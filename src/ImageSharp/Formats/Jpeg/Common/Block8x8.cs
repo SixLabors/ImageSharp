@@ -1,10 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using System.Diagnostics;
-
     /// <summary>
     /// Represents a Jpeg block with <see cref="short"/> coefficiens.
     /// </summary>
@@ -25,37 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             Unsafe.CopyBlock(ref selfRef, ref sourceRef, Size * sizeof(short));
         }
 
-        /// <summary>
-        /// Pointer-based "Indexer" (getter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <returns>The scaleVec value at the specified index</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe short GetScalarAt(Block8x8* blockPtr, int idx)
-        {
-            GuardBlockIndex(idx);
-
-            short* fp = (short*)blockPtr;
-            return fp[idx];
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (setter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <param name="value">Value</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void SetScalarAt(Block8x8* blockPtr, int idx, short value)
-        {
-            GuardBlockIndex(idx);
-
-            short* fp = (short*)blockPtr;
-            fp[idx] = value;
-        }
-
-
         public short this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,12 +44,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
-        [Conditional("DEBUG")]
-        private static void GuardBlockIndex(int idx)
+        /// <summary>
+        /// Pointer-based "Indexer" (getter part)
+        /// </summary>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="idx">Index</param>
+        /// <returns>The scaleVec value at the specified index</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static short GetScalarAt(Block8x8* blockPtr, int idx)
         {
-            DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
-            DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
+            GuardBlockIndex(idx);
+
+            short* fp = blockPtr->data;
+            return fp[idx];
         }
+
+        /// <summary>
+        /// Pointer-based "Indexer" (setter part)
+        /// </summary>
+        /// <param name="blockPtr">Block pointer</param>
+        /// <param name="idx">Index</param>
+        /// <param name="value">Value</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void SetScalarAt(Block8x8* blockPtr, int idx, short value)
+        {
+            GuardBlockIndex(idx);
+
+            short* fp = blockPtr->data;
+            fp[idx] = value;
+        }
+
 
         public Block8x8F AsFloatBlock()
         {
@@ -92,6 +85,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
 
             return result;
+        }
+
+        public short[] ToArray()
+        {
+            short[] result = new short[Size];
+            this.CopyTo(result);
+            return result;
+        }
+
+        public void CopyTo(Span<short> destination)
+        {
+            ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
+            ref byte destRef = ref destination.NonPortableCast<short, byte>().DangerousGetPinnableReference();
+            Unsafe.CopyBlock(ref destRef, ref selfRef, Size * sizeof(short));
+        }
+
+        [Conditional("DEBUG")]
+        private static void GuardBlockIndex(int idx)
+        {
+            DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
+            DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
+        }
+
+        public override string ToString()
+        {
+            var bld = new StringBuilder();
+            bld.Append('[');
+            for (int i = 0; i < Size; i++)
+            {
+                bld.Append(this[i]);
+                if (i < Size - 1)
+                {
+                    bld.Append(',');
+                }
+            }
+
+            bld.Append(']');
+            return bld.ToString();
         }
     }
 }

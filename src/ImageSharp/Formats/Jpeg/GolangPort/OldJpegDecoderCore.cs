@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.configuration = configuration ?? Configuration.Default;
             this.HuffmanTrees = OldHuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
-            this.Temp = new byte[2 * Block8x8F.ScalarCount];
+            this.Temp = new byte[2 * Block8x8F.Size];
         }
 
         /// <summary>
@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Read metadata from stream and read the blocks in the scans into <see cref="DecodedBlocks"/>.
+        /// Read metadata from stream and read the blocks in the scans into <see cref="OldComponent.SpectralBlocks"/>.
         /// </summary>
         /// <param name="metadata">The metadata</param>
         /// <param name="stream">The stream</param>
@@ -1113,32 +1113,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 switch (x >> 4)
                 {
                     case 0:
-                        if (remaining < Block8x8F.ScalarCount)
+                        if (remaining < Block8x8F.Size)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= Block8x8F.ScalarCount;
-                        this.InputProcessor.ReadFull(this.Temp, 0, Block8x8F.ScalarCount);
+                        remaining -= Block8x8F.Size;
+                        this.InputProcessor.ReadFull(this.Temp, 0, Block8x8F.Size);
 
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             this.QuantizationTables[tq][i] = this.Temp[i];
                         }
 
                         break;
                     case 1:
-                        if (remaining < 2 * Block8x8F.ScalarCount)
+                        if (remaining < 2 * Block8x8F.Size)
                         {
                             done = true;
                             break;
                         }
 
-                        remaining -= 2 * Block8x8F.ScalarCount;
-                        this.InputProcessor.ReadFull(this.Temp, 0, 2 * Block8x8F.ScalarCount);
+                        remaining -= 2 * Block8x8F.Size;
+                        this.InputProcessor.ReadFull(this.Temp, 0, 2 * Block8x8F.Size);
 
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             this.QuantizationTables[tq][i] = (this.Temp[2 * i] << 8) | this.Temp[(2 * i) + 1];
                         }

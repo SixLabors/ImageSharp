@@ -9,6 +9,8 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!
     ///
@@ -171,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                             // Find the block at (bx,by) in the component's buffer:
                             OldComponent component = decoder.Components[this.ComponentIndex];
-                            ref Block8x8F blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
+                            ref Block8x8 blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
 
                             // Copy block to stack
                             this.data.Block = blockRefOnHeap;
@@ -273,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 throw new ImageFormatException("Total sampling factors too large.");
             }
 
-            this.zigEnd = Block8x8F.ScalarCount - 1;
+            this.zigEnd = Block8x8F.Size - 1;
 
             if (decoder.IsProgressive)
             {
@@ -283,7 +285,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.al = decoder.Temp[3 + scanComponentCountX2] & 0x0f;
 
                 if ((this.zigStart == 0 && this.zigEnd != 0) || this.zigStart > this.zigEnd
-                    || this.zigEnd >= Block8x8F.ScalarCount)
+                    || this.zigEnd >= Block8x8F.Size)
                 {
                     throw new ImageFormatException("Bad spectral selection bounds");
                 }
@@ -307,7 +309,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="scanIndex">The index of the scan</param>
         private void DecodeBlock(OldJpegDecoderCore decoder, int scanIndex)
         {
-            Block8x8F* b = this.pointers.Block;
+            Block8x8* b = this.pointers.Block;
             int huffmannIdx = (OldHuffmanTree.AcTableIndex * OldHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
@@ -347,7 +349,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     this.pointers.Dc[this.ComponentIndex] += deltaDC;
 
                     // b[0] = dc[compIndex] << al;
-                    Block8x8F.SetScalarAt(b, 0, this.pointers.Dc[this.ComponentIndex] << this.al);
+                    value = this.pointers.Dc[this.ComponentIndex] << this.al;
+                    Block8x8.SetScalarAt(b, 0, (short) value);
                 }
 
                 if (zig <= this.zigEnd && this.eobRun > 0)
@@ -384,7 +387,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             }
 
                             // b[Unzig[zig]] = ac << al;
-                            Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], ac << this.al);
+                            value = ac << this.al;
+                            Block8x8.SetScalarAt(b, this.pointers.Unzig[zig], (short)value);
                         }
                         else
                         {
@@ -501,7 +505,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="delta">The low transform offset</param>
         private void Refine(ref InputProcessor bp, ref OldHuffmanTree h, int delta)
         {
-            Block8x8F* b = this.pointers.Block;
+            Block8x8* b = this.pointers.Block;
 
             // Refining a DC component is trivial.
             if (this.zigStart == 0)
@@ -520,13 +524,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                 if (bit)
                 {
-                    int stuff = (int)Block8x8F.GetScalarAt(b, 0);
+                    int stuff = (int)Block8x8.GetScalarAt(b, 0);
 
                     // int stuff = (int)b[0];
                     stuff |= delta;
 
                     // b[0] = stuff;
-                    Block8x8F.SetScalarAt(b, 0, stuff);
+                    Block8x8.SetScalarAt(b, 0, (short)stuff);
                 }
 
                 return;
@@ -609,7 +613,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     if (z != 0)
                     {
                         // b[Unzig[zig]] = z;
-                        Block8x8F.SetScalarAt(b, this.pointers.Unzig[zig], z);
+                        Block8x8.SetScalarAt(b, this.pointers.Unzig[zig], (short)z);
                     }
                 }
             }
@@ -632,11 +636,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <returns>The <see cref="int" /></returns>
         private int RefineNonZeroes(ref InputProcessor bp, int zig, int nz, int delta)
         {
-            Block8x8F* b = this.pointers.Block;
+            Block8x8* b = this.pointers.Block;
             for (; zig <= this.zigEnd; zig++)
             {
                 int u = this.pointers.Unzig[zig];
-                float bu = Block8x8F.GetScalarAt(b, u);
+                int bu = Block8x8.GetScalarAt(b, u);
 
                 // TODO: Are the equality comparsions OK with floating point values? Isn't an epsilon value necessary?
                 if (bu == 0)
@@ -662,16 +666,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     continue;
                 }
 
-                if (bu >= 0)
-                {
-                    // b[u] += delta;
-                    Block8x8F.SetScalarAt(b, u, bu + delta);
-                }
-                else
-                {
-                    // b[u] -= delta;
-                    Block8x8F.SetScalarAt(b, u, bu - delta);
-                }
+                int val = bu >= 0 ? bu + delta : bu - delta;
+
+                Block8x8.SetScalarAt(b, u, (short)val);
+
+                //if (bu >= 0)
+                //{
+                //    // b[u] += delta;
+                //    Block8x8.SetScalarAt(b, u, bu + delta);
+                //}
+                //else
+                //{
+                //    // b[u] -= delta;
+                //    Block8x8.SetScalarAt(b, u, bu - delta);
+                //}
             }
 
             return zig;

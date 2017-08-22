@@ -43,13 +43,13 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         Block8x8F block = new Block8x8F();
 
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             block[i] = i;
                         }
 
                         sum = 0;
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             sum += block[i];
                         }
@@ -67,13 +67,13 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         Block8x8F block = new Block8x8F();
 
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             Block8x8F.SetScalarAt(&block, i, i);
                         }
 
                         sum = 0;
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             sum += Block8x8F.GetScalarAt(&block, i);
                         }
@@ -92,13 +92,13 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         // Block8x8F block = new Block8x8F();
                         float[] block = new float[64];
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             block[i] = i;
                         }
 
                         sum = 0;
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             sum += block[i];
                         }
@@ -109,10 +109,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Load_Store_FloatArray()
         {
-            float[] data = new float[Block8x8F.ScalarCount];
-            float[] mirror = new float[Block8x8F.ScalarCount];
+            float[] data = new float[Block8x8F.Size];
+            float[] mirror = new float[Block8x8F.Size];
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 data[i] = i;
             }
@@ -134,10 +134,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public unsafe void Load_Store_FloatArray_Ptr()
         {
-            float[] data = new float[Block8x8F.ScalarCount];
-            float[] mirror = new float[Block8x8F.ScalarCount];
+            float[] data = new float[Block8x8F.Size];
+            float[] mirror = new float[Block8x8F.Size];
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 data[i] = i;
             }
@@ -159,10 +159,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Load_Store_IntArray()
         {
-            int[] data = new int[Block8x8F.ScalarCount];
-            int[] mirror = new int[Block8x8F.ScalarCount];
+            int[] data = new int[Block8x8F.Size];
+            int[] mirror = new int[Block8x8F.Size];
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 data[i] = i;
             }
@@ -448,19 +448,35 @@ namespace SixLabors.ImageSharp.Tests
 
             UnzigData unzig = UnzigData.Create();
 
-            int* expectedResults = stackalloc int[Block8x8F.ScalarCount];
+            int* expectedResults = stackalloc int[Block8x8F.Size];
             ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
 
             Block8x8F actualResults = default(Block8x8F);
 
             Block8x8F.UnzigDivRound(&block, &actualResults, &qt, unzig.Data);
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 int expected = expectedResults[i];
                 int actual = (int)actualResults[i];
 
                 Assert.Equal(expected, actual);
+            }
+        }
+
+        [Fact]
+        public void AsInt16Block()
+        {
+            float[] data = Create8x8FloatData();
+
+            var source = default(Block8x8F);
+            source.LoadFrom(data);
+
+            Block8x8 dest = source.AsInt16Block();
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal((short)data[i], dest[i]);
             }
         }
     }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,10 +10,8 @@ using System.Runtime.InteropServices;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
-    /// DCT code Ported from https://github.com/norishigefukushima/dct_simd
+    /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
     internal partial struct Block8x8F
     {
@@ -27,9 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public const int VectorCount = 16;
 
         /// <summary>
-        /// Scalar count
+        /// A number of scalar coefficients in a <see cref="Block8x8F"/>
         /// </summary>
-        public const int ScalarCount = VectorCount * 4;
+        public const int Size = 64;
 
 #pragma warning disable SA1600 // ElementsMustBeDocumented
         public Vector4 V0L;
@@ -65,29 +64,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="idx">The index</param>
         /// <returns>The float value at the specified index</returns>
-        public unsafe float this[int idx]
+        public float this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                fixed (Block8x8F* p = &this)
-                {
-                    float* fp = (float*)p;
-                    return fp[idx];
-                }
+                GuardBlockIndex(idx);
+                ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
+                return Unsafe.Add(ref selfRef, idx);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                fixed (Block8x8F* p = &this)
-                {
-                    float* fp = (float*)p;
-                    fp[idx] = value;
-                }
+                GuardBlockIndex(idx);
+                ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
+                Unsafe.Add(ref selfRef, idx) = value;
             }
         }
-        
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -97,6 +92,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
         {
+            GuardBlockIndex(idx);
+
             float* fp = (float*)blockPtr;
             return fp[idx];
         }
@@ -110,8 +107,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
         {
+            GuardBlockIndex(idx);
+
             float* fp = (float*)blockPtr;
             fp[idx] = value;
+        }
+
+        public Block8x8 AsInt16Block()
+        {
+            // TODO: Optimize this
+            var result = default(Block8x8);
+            for (int i = 0; i < Size; i++)
+            {
+                result[i] = (short)this[i];
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -134,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             ref byte s = ref Unsafe.As<float, byte>(ref source.DangerousGetPinnableReference());
             ref byte d = ref Unsafe.As<Block8x8F, byte>(ref this);
 
-            Unsafe.CopyBlock(ref d, ref s, ScalarCount * sizeof(float));
+            Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
         }
 
         /// <summary>
@@ -157,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             fixed (Vector4* ptr = &this.V0L)
             {
                 float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
+                for (int i = 0; i < Size; i++)
                 {
                     fp[i] = source[i];
                 }
@@ -174,7 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             ref byte d = ref Unsafe.As<float, byte>(ref dest.DangerousGetPinnableReference());
             ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);
 
-            Unsafe.CopyBlock(ref d, ref s, ScalarCount * sizeof(float));
+            Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
         }
 
         /// <summary>
@@ -186,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public static unsafe void CopyTo(Block8x8F* blockPtr, Span<byte> dest)
         {
             float* fPtr = (float*)blockPtr;
-            for (int i = 0; i < ScalarCount; i++)
+            for (int i = 0; i < Size; i++)
             {
                 dest[i] = (byte)*fPtr;
                 fPtr++;
@@ -213,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             fixed (void* ptr = &this.V0L)
             {
-                Marshal.Copy((IntPtr)ptr, dest, 0, ScalarCount);
+                Marshal.Copy((IntPtr)ptr, dest, 0, Size);
             }
         }
 
@@ -226,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             fixed (Vector4* ptr = &this.V0L)
             {
                 float* fp = (float*)ptr;
-                for (int i = 0; i < ScalarCount; i++)
+                for (int i = 0; i < Size; i++)
                 {
                     dest[i] = (int)fp[i];
                 }
@@ -294,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
-            for (int zig = 0; zig < ScalarCount; zig++)
+            for (int zig = 0; zig < Size; zig++)
             {
                 float* unzigPos = b + unzigPtr[zig];
                 float val = *unzigPos;
@@ -347,7 +358,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             float* s = (float*)block;
             float* d = (float*)dest;
 
-            for (int zig = 0; zig < ScalarCount; zig++)
+            for (int zig = 0; zig < Size; zig++)
             {
                 d[zig] = s[unzigPtr[zig]];
             }
@@ -410,6 +421,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             // AlmostRound(dividend/divisor) = dividend/divisior + 0.5*sign(dividend)
             return (dividend / divisor) + (sign * Offset);
+        }
+
+        [Conditional("DEBUG")]
+        private static void GuardBlockIndex(int idx)
+        {
+            DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
+            DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
         }
     }
 }

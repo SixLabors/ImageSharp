@@ -46,6 +46,20 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         // ReSharper disable once InconsistentNaming
+        public static short[] Create8x8ShortData()
+        {
+            short[] result = new short[64];
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    result[i * 8 + j] = (short)(i * 10 + j);
+                }
+            }
+            return result;
+        }
+
+        // ReSharper disable once InconsistentNaming
         public static int[] Create8x8RandomIntData(int minValue, int maxValue, int seed = 42)
         {
             Random rnd = new Random(seed);

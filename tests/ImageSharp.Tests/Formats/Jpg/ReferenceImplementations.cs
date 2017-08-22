@@ -888,7 +888,7 @@ namespace SixLabors.ImageSharp.Tests
             float* s = (float*)src;
             float* q = (float*)qt;
 
-            for (int zig = 0; zig < Block8x8F.ScalarCount; zig++)
+            for (int zig = 0; zig < Block8x8F.Size; zig++)
             {
                 int a = (int)s[unzigPtr[zig]];
                 int b = (int)q[zig];

@@ -9,6 +9,8 @@ using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using System;
+
     public class ReferenceImplementationsTests : JpegUtilityTestFixture
     {
         public ReferenceImplementationsTests(ITestOutputHelper output)
@@ -23,13 +25,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2)]
         public void Idct_FloatingPointReferenceImplementation_IsEquivalentToIntegerImplementation(int seed)
         {
-            MutableSpan<int> intData = Create8x8RandomIntData(-200, 200, seed);
-            MutableSpan<float> floatSrc = intData.ConvertToFloat32MutableSpan();
+            int[] intData = Create8x8RandomIntData(-200, 200, seed);
+            Span<float> floatSrc = intData.ConvertAllToFloat();
 
             ReferenceImplementations.IntegerReferenceDCT.TransformIDCTInplace(intData);
 
-            MutableSpan<float> dest = new MutableSpan<float>(64);
-            MutableSpan<float> temp = new MutableSpan<float>(64);
+            float[] dest = new float[64];
+            float[] temp = new float[64];
 
             ReferenceImplementations.iDCT2D_llm(floatSrc, dest, temp);
 
@@ -48,9 +50,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2, 0)]
         public void IntegerDCT_ForwardThenInverse(int seed, int startAt)
         {
-            MutableSpan<int> original = Create8x8RandomIntData(-200, 200, seed);
+            Span<int> original = Create8x8RandomIntData(-200, 200, seed);
 
-            MutableSpan<int> block = original.AddScalarToAllValues(128);
+            Span<int> block = original.AddScalarToAllValues(128);
 
             ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(block);
 
@@ -78,9 +80,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FloatingPointDCT_ReferenceImplementation_ForwardThenInverse(int seed, int startAt)
         {
             int[] data = Create8x8RandomIntData(-200, 200, seed);
-            MutableSpan<float> src = new MutableSpan<int>(data).ConvertToFloat32MutableSpan();
-            MutableSpan<float> dest = new MutableSpan<float>(64);
-            MutableSpan<float> temp = new MutableSpan<float>(64);
+            float[] src = data.ConvertAllToFloat();
+            float[] dest = new float[64];
+            float[] temp = new float[64];
 
             ReferenceImplementations.fDCT2D_llm(src, dest, temp, true);
             ReferenceImplementations.iDCT2D_llm(dest, src, temp);
@@ -100,13 +102,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2)]
         public void Fdct_FloatingPointReferenceImplementation_IsEquivalentToIntegerImplementation(int seed)
         {
-            MutableSpan<int> intData = Create8x8RandomIntData(-200, 200, seed);
-            MutableSpan<float> floatSrc = intData.ConvertToFloat32MutableSpan();
+            int[] intData = Create8x8RandomIntData(-200, 200, seed);
+            float[] floatSrc = intData.ConvertAllToFloat();
 
             ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(intData);
 
-            MutableSpan<float> dest = new MutableSpan<float>(64);
-            MutableSpan<float> temp = new MutableSpan<float>(64);
+            float[] dest = new float[64];
+            float[] temp = new float[64];
 
             ReferenceImplementations.fDCT2D_llm(floatSrc, dest, temp, offsetSourceByNeg128: true);
 

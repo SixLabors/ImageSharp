@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int i = 0; i < Block8x8.Size; i++)
             {
-                Block8x8.SetScalarAt(&block, i, i);
+                Block8x8.SetScalarAt(&block, i, (short)i);
             }
 
             sum = 0;
@@ -75,6 +75,17 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Equal((float)data[i], dest[i]);
             }
+        }
+
+        [Fact]
+        public void ToArray()
+        {
+            short[] data = Create8x8ShortData();
+            var block = new Block8x8(data);
+
+            short[] result = block.ToArray();
+
+            Assert.Equal(data, result);
         }
     }
 }

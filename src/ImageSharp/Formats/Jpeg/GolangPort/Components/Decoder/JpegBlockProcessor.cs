@@ -67,7 +67,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="by">The y index of the block in <see cref="OldComponent.SpectralBlocks"/></param>
         private void ProcessBlockColors(OldJpegDecoderCore decoder, OldComponent component, int bx, int by)
         {
-            this.data.Block = component.GetBlockReference(bx, by);
+            ref Block8x8 sourceBlock = ref component.GetBlockReference(bx, by);
+
+            this.data.Block = sourceBlock.AsFloatBlock();
             int qtIndex = decoder.Components[this.componentIndex].Selector;
             this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
 

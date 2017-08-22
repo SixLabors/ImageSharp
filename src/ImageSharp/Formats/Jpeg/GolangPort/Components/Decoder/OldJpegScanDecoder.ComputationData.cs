@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// The main input/working block
             /// </summary>
-            public Block8x8F Block;
+            public Block8x8 Block;
 
             /// <summary>
             /// The jpeg unzig data

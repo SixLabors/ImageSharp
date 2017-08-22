@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private static void WriteDataToDqt(byte[] dqt, ref int offset, QuantIndex i, ref Block8x8F quant)
         {
             dqt[offset++] = (byte)i;
-            for (int j = 0; j < Block8x8F.ScalarCount; j++)
+            for (int j = 0; j < Block8x8F.Size; j++)
             {
                 dqt[offset++] = (byte)quant[j];
             }
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <param name="quant">The quantization table.</param>
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
-            for (int j = 0; j < Block8x8F.ScalarCount; j++)
+            for (int j = 0; j < Block8x8F.Size; j++)
             {
                 int x = UnscaledQuant[i, j];
                 x = ((x * scale) + 50) / 100;
@@ -576,7 +576,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
 
-            for (int zig = 1; zig < Block8x8F.ScalarCount; zig++)
+            for (int zig = 1; zig < Block8x8F.Size; zig++)
             {
                 int ac = (int)unziggedDestPtr[zig];
 
@@ -660,12 +660,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void WriteDefineQuantizationTables()
         {
             // Marker + quantization table lengths
-            int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.ScalarCount));
+            int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
             this.WriteMarkerHeader(OldJpegConstants.Markers.DQT, markerlen);
 
             // Loop through and collect the tables as one array.
             // This allows us to reduce the number of writes to the stream.
-            int dqtCount = (QuantizationTableCount * Block8x8F.ScalarCount) + QuantizationTableCount;
+            int dqtCount = (QuantizationTableCount * Block8x8F.Size) + QuantizationTableCount;
             byte[] dqt = ArrayPool<byte>.Shared.Rent(dqtCount);
             int offset = 0;
 

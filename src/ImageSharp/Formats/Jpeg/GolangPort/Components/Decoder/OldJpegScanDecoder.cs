@@ -169,12 +169,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 }
                             }
 
-                            // Take an existing block (required when progressive):
-                            int blockIndex = this.GetBlockIndex(decoder);
+                            // Take a block from the components buffer:
+                            OldComponent component = decoder.Components[this.ComponentIndex];
+                            ref DecodedBlock blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
 
-                            Buffer<DecodedBlock> blocks = decoder.Components[this.ComponentIndex].DecodedBlocks;
-
-                            this.data.Block = blocks[blockIndex].Block;
+                            this.data.Block = blockRefOnHeap.Block;
 
                             if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                             {
@@ -182,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             }
 
                             // Store the decoded block
-                            blocks[blockIndex].SaveBlock(this.bx, this.by, ref this.data.Block);
+                            blockRefOnHeap.Block = this.data.Block;
                         }
 
                         // for j

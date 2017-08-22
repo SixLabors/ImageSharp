@@ -13,31 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     internal struct DecodedBlock
     {
         /// <summary>
-        /// X coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
-        /// </summary>
-        public int Bx;
-
-        /// <summary>
-        /// Y coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
-        /// </summary>
-        public int By;
-
-        /// <summary>
         /// The <see cref="Block8x8F"/>
         /// </summary>
         public Block8x8F Block;
-
-        /// <summary>
-        /// Store the block data into a <see cref="DecodedBlock"/>
-        /// </summary>
-        /// <param name="bx">X coordinate of the block</param>
-        /// <param name="by">Y coordinate of the block</param>
-        /// <param name="block">The <see cref="Block8x8F"/></param>
-        public void SaveBlock(int bx, int by, ref Block8x8F block)
-        {
-            this.Bx = bx;
-            this.By = by;
-            this.Block = block;
-        }
     }
 }

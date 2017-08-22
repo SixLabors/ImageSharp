@@ -107,14 +107,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.HuffmanTrees = OldHuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
-            this.ComponentArray = new OldComponent[MaxComponents];
             this.DecodedBlocks = new Buffer<DecodedBlock>[MaxComponents];
         }
 
         /// <summary>
         /// Gets the component array
         /// </summary>
-        public OldComponent[] ComponentArray { get; }
+        public OldComponent[] Components { get; private set; }
 
         /// <summary>
         /// Gets the huffman trees
@@ -576,7 +575,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromCmyk<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
 
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
@@ -642,7 +641,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromRGB<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
 
             Parallel.For(
                 0,
@@ -679,7 +678,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromYCbCr<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 Parallel.For(
@@ -724,7 +723,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromYcck<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
 
             Parallel.For(
                 0,
@@ -770,8 +769,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 return true;
             }
 
-            return this.ComponentArray[0].Identifier == 'R' && this.ComponentArray[1].Identifier == 'G'
-                   && this.ComponentArray[2].Identifier == 'B';
+            return this.Components[0].Identifier == 'R' && this.Components[1].Identifier == 'G'
+                   && this.Components[2].Identifier == 'B';
         }
 
         /// <summary>
@@ -791,10 +790,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
             else
             {
-                int h0 = this.ComponentArray[0].HorizontalFactor;
-                int v0 = this.ComponentArray[0].VerticalFactor;
-                int horizontalRatio = h0 / this.ComponentArray[1].HorizontalFactor;
-                int verticalRatio = v0 / this.ComponentArray[1].VerticalFactor;
+                int h0 = this.Components[0].HorizontalFactor;
+                int v0 = this.Components[0].VerticalFactor;
+                int horizontalRatio = h0 / this.Components[1].HorizontalFactor;
+                int verticalRatio = v0 / this.Components[1].VerticalFactor;
 
                 YCbCrImage.YCbCrSubsampleRatio ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444;
                 switch ((horizontalRatio << 4) | verticalRatio)
@@ -823,10 +822,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 if (this.ComponentCount == 4)
                 {
-                    int h3 = this.ComponentArray[3].HorizontalFactor;
-                    int v3 = this.ComponentArray[3].VerticalFactor;
+                    int h3 = this.Components[3].HorizontalFactor;
+                    int v3 = this.Components[3].VerticalFactor;
 
-                    Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
+                    var buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
                     this.blackImage = new OldJpegPixelArea(buffer);
                 }
             }
@@ -1208,165 +1207,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 throw new ImageFormatException("SOF has wrong length");
             }
 
+            this.Components = new OldComponent[this.ComponentCount];
+
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                this.ComponentArray[i].Identifier = this.Temp[6 + (3 * i)];
-
-                // Section B.2.2 states that "the value of C_i shall be different from
-                // the values of C_1 through C_(i-1)".
-                for (int j = 0; j < i; j++)
-                {
-                    if (this.ComponentArray[i].Identifier == this.ComponentArray[j].Identifier)
-                    {
-                        throw new ImageFormatException("Repeated component identifier");
-                    }
-                }
-
-                this.ComponentArray[i].Selector = this.Temp[8 + (3 * i)];
-                if (this.ComponentArray[i].Selector > MaxTq)
-                {
-                    throw new ImageFormatException("Bad Tq value");
-                }
-
-                byte hv = this.Temp[7 + (3 * i)];
-                int h = hv >> 4;
-                int v = hv & 0x0f;
-                if (h < 1 || h > 4 || v < 1 || v > 4)
-                {
-                    throw new ImageFormatException("Unsupported Luma/chroma subsampling ratio");
-                }
-
-                if (h == 3 || v == 3)
-                {
-                    throw new ImageFormatException("Lnsupported subsampling ratio");
-                }
-
-                switch (this.ComponentCount)
-                {
-                    case 1:
-
-                        // If a JPEG image has only one component, section A.2 says "this data
-                        // is non-interleaved by definition" and section A.2.2 says "[in this
-                        // case...] the order of data units within a scan shall be left-to-right
-                        // and top-to-bottom... regardless of the values of H_1 and V_1". Section
-                        // 4.8.2 also says "[for non-interleaved data], the MCU is defined to be
-                        // one data unit". Similarly, section A.1.1 explains that it is the ratio
-                        // of H_i to max_j(H_j) that matters, and similarly for V. For grayscale
-                        // images, H_1 is the maximum H_j for all components j, so that ratio is
-                        // always 1. The component's (h, v) is effectively always (1, 1): even if
-                        // the nominal (h, v) is (2, 1), a 20x5 image is encoded in three 8x8
-                        // MCUs, not two 16x8 MCUs.
-                        h = 1;
-                        v = 1;
-                        break;
-
-                    case 3:
-
-                        // For YCbCr images, we only support 4:4:4, 4:4:0, 4:2:2, 4:2:0,
-                        // 4:1:1 or 4:1:0 chroma subsampling ratios. This implies that the
-                        // (h, v) values for the Y component are either (1, 1), (1, 2),
-                        // (2, 1), (2, 2), (4, 1) or (4, 2), and the Y component's values
-                        // must be a multiple of the Cb and Cr component's values. We also
-                        // assume that the two chroma components have the same subsampling
-                        // ratio.
-                        switch (i)
-                        {
-                            case 0:
-                                {
-                                    // Y.
-                                    // We have already verified, above, that h and v are both
-                                    // either 1, 2 or 4, so invalid (h, v) combinations are those
-                                    // with v == 4.
-                                    if (v == 4)
-                                    {
-                                        throw new ImageFormatException("Unsupported subsampling ratio");
-                                    }
-
-                                    break;
-                                }
-
-                            case 1:
-                                {
-                                    // Cb.
-                                    if (this.ComponentArray[0].HorizontalFactor % h != 0
-                                        || this.ComponentArray[0].VerticalFactor % v != 0)
-                                    {
-                                        throw new ImageFormatException("Unsupported subsampling ratio");
-                                    }
-
-                                    break;
-                                }
-
-                            case 2:
-                                {
-                                    // Cr.
-                                    if (this.ComponentArray[1].HorizontalFactor != h
-                                        || this.ComponentArray[1].VerticalFactor != v)
-                                    {
-                                        throw new ImageFormatException("Unsupported subsampling ratio");
-                                    }
-
-                                    break;
-                                }
-                        }
-
-                        break;
-
-                    case 4:
-
-                        // For 4-component images (either CMYK or YCbCrK), we only support two
-                        // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
-                        // Theoretically, 4-component JPEG images could mix and match hv values
-                        // but in practice, those two combinations are the only ones in use,
-                        // and it simplifies the applyBlack code below if we can assume that:
-                        // - for CMYK, the C and K channels have full samples, and if the M
-                        // and Y channels subsample, they subsample both horizontally and
-                        // vertically.
-                        // - for YCbCrK, the Y and K channels have full samples.
-                        switch (i)
-                        {
-                            case 0:
-                                if (hv != 0x11 && hv != 0x22)
-                                {
-                                    throw new ImageFormatException("Unsupported subsampling ratio");
-                                }
-
-                                break;
-                            case 1:
-                            case 2:
-                                if (hv != 0x11)
-                                {
-                                    throw new ImageFormatException("Unsupported subsampling ratio");
-                                }
-
-                                break;
-                            case 3:
-                                if (this.ComponentArray[0].HorizontalFactor != h
-                                    || this.ComponentArray[0].VerticalFactor != v)
-                                {
-                                    throw new ImageFormatException("Unsupported subsampling ratio");
-                                }
-
-                                break;
-                        }
-
-                        break;
-                }
-
-                this.ComponentArray[i].HorizontalFactor = h;
-                this.ComponentArray[i].VerticalFactor = v;
+                byte componentIdentifier = this.Temp[6 + (3 * i)];
+                var component = new OldComponent(componentIdentifier, i);
+                component.InitializeData(this);
+                this.Components[i] = component;
             }
 
-            int h0 = this.ComponentArray[0].HorizontalFactor;
-            int v0 = this.ComponentArray[0].VerticalFactor;
+            int h0 = this.Components[0].HorizontalFactor;
+            int v0 = this.Components[0].VerticalFactor;
             this.MCUCountX = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
             this.MCUCountY = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
 
             // As a preparation for parallelizing Scan decoder, we also allocate DecodedBlocks in the non-progressive case!
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                int count = this.TotalMCUCount * this.ComponentArray[i].HorizontalFactor
-                           * this.ComponentArray[i].VerticalFactor;
+                int count = this.TotalMCUCount * this.Components[i].HorizontalFactor
+                           * this.Components[i].VerticalFactor;
                 this.DecodedBlocks[i] = Buffer<DecodedBlock>.CreateClean(count);
             }
         }

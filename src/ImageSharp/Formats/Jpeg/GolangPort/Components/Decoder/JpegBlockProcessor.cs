@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private void ProcessBlockColors(OldJpegDecoderCore decoder, ref DecodedBlock decodedBlock)
         {
             this.data.Block = decodedBlock.Block;
-            int qtIndex = decoder.ComponentArray[this.componentIndex].Selector;
+            int qtIndex = decoder.Components[this.componentIndex].Selector;
             this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
 
             Block8x8F* b = this.pointers.Block;

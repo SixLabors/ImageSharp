@@ -15,6 +15,8 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
+    using System.Linq;
+
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
@@ -107,7 +109,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.HuffmanTrees = OldHuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
-            this.DecodedBlocks = new Buffer<DecodedBlock>[MaxComponents];
         }
 
         /// <summary>
@@ -119,15 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Gets the huffman trees
         /// </summary>
         public OldHuffmanTree[] HuffmanTrees { get; }
-
-        /// <summary>
-        /// Gets the array of <see cref="Buffer{T}"/>-s storing the "raw" frequency-domain decoded blocks.
-        /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
-        /// This is done by <see cref="ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
-        /// When <see cref="IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
-        /// </summary>
-        public Buffer<DecodedBlock>[] DecodedBlocks { get; }
-
+        
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
         /// </summary>
@@ -217,10 +210,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 this.HuffmanTrees[i].Dispose();
             }
 
-            foreach (Buffer<DecodedBlock> blockArray in this.DecodedBlocks)
+            if (this.Components != null)
             {
-                blockArray?.Dispose();
+                foreach (Buffer<DecodedBlock> blockArray in this.Components.Select(c => c.DecodedBlocks))
+                {
+                    blockArray?.Dispose();
+                }
             }
+            
 
             this.ycbcrImage?.Dispose();
             this.InputProcessor.Dispose();
@@ -1225,9 +1222,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             // As a preparation for parallelizing Scan decoder, we also allocate DecodedBlocks in the non-progressive case!
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                int count = this.TotalMCUCount * this.Components[i].HorizontalFactor
-                           * this.Components[i].VerticalFactor;
-                this.DecodedBlocks[i] = Buffer<DecodedBlock>.CreateClean(count);
+               this.Components[i].InitializeBlocks(this);
             }
         }
     }

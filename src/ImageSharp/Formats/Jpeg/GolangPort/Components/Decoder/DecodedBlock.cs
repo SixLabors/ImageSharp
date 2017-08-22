@@ -13,11 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     internal struct DecodedBlock
     {
         /// <summary>
-        /// A value indicating whether the <see cref="DecodedBlock"/> instance is initialized.
-        /// </summary>
-        public bool Initialized;
-
-        /// <summary>
         /// X coordinate of the current block, in units of 8x8. (The third block in the first row has (bx, by) = (2, 0))
         /// </summary>
         public int Bx;

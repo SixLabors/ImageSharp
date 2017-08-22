@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         public void ProcessAllBlocks(OldJpegDecoderCore decoder)
         {
-            Buffer<DecodedBlock> blockArray = decoder.DecodedBlocks[this.componentIndex];
+            Buffer<DecodedBlock> blockArray = decoder.Components[this.componentIndex].DecodedBlocks;
             for (int i = 0; i < blockArray.Length; i++)
             {
                 this.ProcessBlockColors(decoder, ref blockArray[i]);

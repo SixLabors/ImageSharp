@@ -18,6 +18,8 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System;
+
     public class Block8x8FTests : JpegUtilityTestFixture
     {
 #if BENCHMARKING
@@ -321,7 +323,7 @@ namespace SixLabors.ImageSharp.Tests
 
             ReferenceImplementations.CopyColorsTo(ref block, new MutableSpan<byte>(colorsExpected, offset), stride);
 
-            block.CopyColorsTo(new MutableSpan<byte>(colorsActual, offset), stride, &temp);
+            block.CopyColorsTo(new Span<byte>(colorsActual, offset), stride, &temp);
 
             // Output.WriteLine("******* EXPECTED: *********");
             // PrintLinearData(colorsExpected);

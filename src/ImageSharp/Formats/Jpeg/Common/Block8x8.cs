@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     /// Represents a Jpeg block with <see cref="short"/> coefficiens.
     /// </summary>
     // ReSharper disable once InconsistentNaming
-    internal unsafe struct Block8x8
+    internal unsafe struct Block8x8 : IEquatable<Block8x8>
     {
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
@@ -44,6 +44,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        public static bool operator ==(Block8x8 left, Block8x8 right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Block8x8 left, Block8x8 right)
+        {
+            return !left.Equals(right);
+        }
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -74,6 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             fp[idx] = value;
         }
 
+        public short GetValueAt(int x, int y) => this[(y * 8) + x];
 
         public Block8x8F AsFloatBlock()
         {
@@ -124,5 +135,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             bld.Append(']');
             return bld.ToString();
         }
+
+        public bool Equals(Block8x8 other)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                if (this[i] != other[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            return obj is Block8x8 && this.Equals((Block8x8)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return (this[0] * 31) + this[1];
+        }
+
     }
 }

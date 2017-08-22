@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Tests
 
     using BitMiracle.LibJpeg.Classic;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
     using SixLabors.ImageSharp.PixelFormats;
@@ -17,52 +18,6 @@ namespace SixLabors.ImageSharp.Tests
 
     internal static class LibJpegTools
     {
-        public unsafe struct Block : IEquatable<Block>
-        {
-            public Block(short[] data)
-            {
-                this.Data = data;
-            }
-
-            public short[] Data { get; }
-            
-            public short this[int x, int y]
-            {
-                get => this.Data[y * 8 + x];
-                set => this.Data[y * 8 + x] = value;
-            }
-
-            public bool Equals(Block other)
-            {
-                for (int i = 0; i < 64; i++)
-                {
-                    if (this.Data[i] != other.Data[i]) return false;
-                }
-                return true;
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                return obj is Block && Equals((Block)obj);
-            }
-
-            public override int GetHashCode()
-            {
-                return (this.Data != null ? this.Data.GetHashCode() : 0);
-            }
-
-            public static bool operator ==(Block left, Block right)
-            {
-                return left.Equals(right);
-            }
-
-            public static bool operator !=(Block left, Block right)
-            {
-                return !left.Equals(right);
-            }
-        }
-
         public class SpectralData : IEquatable<SpectralData>
         {
             public int ComponentCount { get; private set; }
@@ -187,9 +142,9 @@ namespace SixLabors.ImageSharp.Tests
                 ComponentData c1 = this.Components[1];
                 ComponentData c2 = this.Components[2];
 
-                Block block0 = c0.Blocks[by, bx];
-                Block block1 = c1.Blocks[by, bx];
-                Block block2 = c2.Blocks[by, bx];
+                Block8x8 block0 = c0.Blocks[by, bx];
+                Block8x8 block1 = c1.Blocks[by, bx];
+                Block8x8 block2 = c2.Blocks[by, bx];
 
                 float d0 = (c0.MaxVal - c0.MinVal);
                 float d1 = (c1.MaxVal - c1.MinVal);
@@ -266,7 +221,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.YCount = yCount;
                 this.XCount = xCount;
                 this.Index = index;
-                this.Blocks = new Block[this.YCount, this.XCount];
+                this.Blocks = new Block8x8[this.YCount, this.XCount];
             }
 
             public Size Size => new Size(this.XCount, this.YCount);
@@ -277,7 +232,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public int XCount { get; }
 
-            public Block[,] Blocks { get; private set; }
+            public Block8x8[,] Blocks { get; private set; }
 
             public short MinVal { get; private set; } = short.MaxValue;
 
@@ -311,7 +266,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.MinVal = Math.Min(this.MinVal, data.Min());
                 this.MaxVal = Math.Max(this.MaxVal, data.Max());
-                this.Blocks[y, x] = new Block(data);
+                this.Blocks[y, x] = new Block8x8(data);
             }
 
             public static ComponentData Load(FrameComponent sc, int index)
@@ -353,7 +308,7 @@ namespace SixLabors.ImageSharp.Tests
 
             internal void WriteToImage(int bx, int by, Image<Rgba32> image)
             {
-                Block block = this.Blocks[by, bx];
+                Block8x8 block = this.Blocks[by, bx];
                 
                 for (int y = 0; y < 8; y++)
                 {
@@ -372,10 +327,10 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            internal float GetBlockValue(Block block, int x, int y)
+            internal float GetBlockValue(Block8x8 block, int x, int y)
             {
                 float d = (this.MaxVal - this.MinVal);
-                float val = block[x, y];
+                float val = block.GetValueAt(x, y);
                 val -= this.MinVal;
                 val /= d;
                 return val;
@@ -394,8 +349,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     for (int j = 0; j < this.XCount; j++)
                     {
-                        Block a = this.Blocks[i, j];
-                        Block b = other.Blocks[i, j];
+                        Block8x8 a = this.Blocks[i, j];
+                        Block8x8 b = other.Blocks[i, j];
                         if (!a.Equals(b)) return false;
                     }
                 }

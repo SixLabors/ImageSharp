@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Gets the huffman trees
         /// </summary>
         public OldHuffmanTree[] HuffmanTrees { get; }
-        
+
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
         /// </summary>
@@ -183,6 +183,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public bool IgnoreMetadata { get; private set; }
 
         /// <summary>
+        /// Gets the <see cref="ImageMetaData"/> decoded by this decoder instance.
+        /// </summary>
+        public ImageMetaData MetaData { get; private set; }
+
+        /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
         /// the data to image.
         /// </summary>
@@ -192,10 +197,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            ImageMetaData metadata = new ImageMetaData();
-            this.ProcessStream(metadata, stream, false);
+            this.ParseStream(stream, false);
             this.ProcessBlocksIntoJpegImageChannels<TPixel>();
-            Image<TPixel> image = this.ConvertJpegPixelsToImagePixels<TPixel>(metadata);
+            Image<TPixel> image = this.ConvertJpegPixelsToImagePixels<TPixel>();
 
             return image;
         }
@@ -254,11 +258,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Read metadata from stream and read the blocks in the scans into <see cref="OldComponent.SpectralBlocks"/>.
         /// </summary>
-        /// <param name="metadata">The metadata</param>
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        private void ProcessStream(ImageMetaData metadata, Stream stream, bool metadataOnly)
+        public void ParseStream(Stream stream, bool metadataOnly)
         {
+            this.MetaData = new ImageMetaData();
             this.InputStream = stream;
             this.InputProcessor = new InputProcessor(stream, this.Temp);
 
@@ -405,10 +409,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         this.ProcessApplicationHeader(remaining);
                         break;
                     case OldJpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(remaining, metadata);
+                        this.ProcessApp1Marker(remaining);
                         break;
                     case OldJpegConstants.Markers.APP2:
-                        this.ProcessApp2Marker(remaining, metadata);
+                        this.ProcessApp2Marker(remaining);
                         break;
                     case OldJpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
@@ -475,12 +479,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="OldJpegPixelArea"/> into pixels of <see cref="Image{TPixel}"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="metadata">The metadata for the image.</param>
         /// <returns>The decoded image.</returns>
-        private Image<TPixel> ConvertJpegPixelsToImagePixels<TPixel>(ImageMetaData metadata)
+        private Image<TPixel> ConvertJpegPixelsToImagePixels<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, metadata);
+            var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
 
             if (this.grayImage.IsInitialized)
             {
@@ -929,7 +932,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="metadata">The image.</param>
-        private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
+        private void ProcessApp1Marker(int remaining)
         {
             if (remaining < 6 || this.IgnoreMetadata)
             {
@@ -948,7 +951,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 profile[5] == '\0')
             {
                 this.isExif = true;
-                metadata.ExifProfile = new ExifProfile(profile);
+                this.MetaData.ExifProfile = new ExifProfile(profile);
             }
         }
 
@@ -956,8 +959,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Processes the App2 marker retrieving any stored ICC profile information
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <param name="metadata">The image.</param>
-        private void ProcessApp2Marker(int remaining, ImageMetaData metadata)
+        private void ProcessApp2Marker(int remaining)
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
@@ -987,13 +989,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
 
-                if (metadata.IccProfile == null)
+                if (this.MetaData.IccProfile == null)
                 {
-                    metadata.IccProfile = new IccProfile(profile);
+                    this.MetaData.IccProfile = new IccProfile(profile);
                 }
                 else
                 {
-                    metadata.IccProfile.Extend(profile);
+                    this.MetaData.IccProfile.Extend(profile);
                 }
             }
             else

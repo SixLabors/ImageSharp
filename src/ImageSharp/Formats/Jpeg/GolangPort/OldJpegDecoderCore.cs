@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (this.Components != null)
             {
-                foreach (Buffer<DecodedBlock> blockArray in this.Components.Select(c => c.DecodedBlocks))
+                foreach (Buffer<DecodedBlock> blockArray in this.Components.Select(c => c.SpectralBlocks))
                 {
                     blockArray?.Dispose();
                 }

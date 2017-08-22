@@ -47,23 +47,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Gets the <see cref="Buffer{T}"/> storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
         /// This is done by <see cref="OldJpegDecoderCore.ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
-        /// When <see cref="OldJpegDecoderCore.IsProgressive"/>==true, we are touching these blocks multiple times - each time we process a Scan.
+        /// When <see cref="OldJpegDecoderCore.IsProgressive"/> us true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
-        public Buffer<DecodedBlock> DecodedBlocks { get; private set; }
+        public Buffer2D<DecodedBlock> SpectralBlocks { get; private set; }
 
         /// <summary>
-        /// Initializes <see cref="DecodedBlocks"/>
+        /// Gets the number of blocks for this component along the X axis
+        /// </summary>
+        public int BlockCountX { get; private set; }
+
+        /// <summary>
+        /// Gets the number of blocks for this component along the Y axis
+        /// </summary>
+        public int BlockCountY { get; private set; }
+
+        public ref DecodedBlock GetBlockReference(int bx, int by)
+        {
+            return ref this.SpectralBlocks[bx, by];
+        }
+
+        /// <summary>
+        /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
         /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         public void InitializeBlocks(OldJpegDecoderCore decoder)
         {
-            // TODO: count could be component and JpegSubsample specific:
-            int count = decoder.TotalMCUCount * this.HorizontalFactor * this.VerticalFactor;
-            this.DecodedBlocks = Buffer<DecodedBlock>.CreateClean(count);
+            this.BlockCountX = decoder.MCUCountX * this.HorizontalFactor;
+            this.BlockCountY = decoder.MCUCountY * this.VerticalFactor;
+            this.SpectralBlocks = Buffer2D<DecodedBlock>.CreateClean(this.BlockCountX, this.BlockCountY);
         }
 
         /// <summary>
-        /// Initializes all component data except <see cref="DecodedBlocks"/>.
+        /// Initializes all component data except <see cref="SpectralBlocks"/>.
         /// </summary>
         /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         public void InitializeData(OldJpegDecoderCore decoder)

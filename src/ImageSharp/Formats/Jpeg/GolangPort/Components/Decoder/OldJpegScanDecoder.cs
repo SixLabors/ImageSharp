@@ -147,8 +147,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
                     {
                         this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
-                        this.hi = decoder.ComponentArray[this.ComponentIndex].HorizontalFactor;
-                        int vi = decoder.ComponentArray[this.ComponentIndex].VerticalFactor;
+                        this.hi = decoder.Components[this.ComponentIndex].HorizontalFactor;
+                        int vi = decoder.Components[this.ComponentIndex].VerticalFactor;
 
                         for (int j = 0; j < this.hi * vi; j++)
                         {
@@ -440,7 +440,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             for (int j = 0; j < decoder.ComponentCount; j++)
             {
                 // Component compv = ;
-                if (cs == decoder.ComponentArray[j].Identifier)
+                if (cs == decoder.Components[j].Identifier)
                 {
                     compIndex = j;
                 }
@@ -453,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             currentComponentScan.ComponentIndex = (byte)compIndex;
 
-            this.ProcessComponentImpl(decoder, i, ref currentComponentScan, ref totalHv, ref decoder.ComponentArray[compIndex]);
+            this.ProcessComponentImpl(decoder, i, ref currentComponentScan, ref totalHv, decoder.Components[compIndex]);
         }
 
         private void ProcessComponentImpl(
@@ -461,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             int i,
             ref OldComponentScan currentComponentScan,
             ref int totalHv,
-            ref OldComponent currentComponent)
+            OldComponent currentComponent)
         {
             // Section B.2.3 states that "the value of Cs_j shall be different from
             // the values of Cs_1 through Cs_(j-1)". Since we have previously

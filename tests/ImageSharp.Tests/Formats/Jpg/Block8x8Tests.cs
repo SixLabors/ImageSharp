@@ -87,5 +87,43 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(data, result);
         }
+
+        [Fact]
+        public void Equality_WhenTrue()
+        {
+            short[] data = Create8x8ShortData();
+            var block1 = new Block8x8(data);
+            var block2 = new Block8x8(data);
+
+            block1[0] = 42;
+            block2[0] = 42;
+
+            Assert.Equal(block1, block2);
+            Assert.Equal(block1.GetHashCode(), block2.GetHashCode());
+        }
+
+        [Fact]
+        public void Equality_WhenFalse()
+        {
+            short[] data = Create8x8ShortData();
+            var block1 = new Block8x8(data);
+            var block2 = new Block8x8(data);
+
+            block1[0] = 42;
+            block2[0] = 666;
+
+            Assert.NotEqual(block1, block2);
+        }
+
+        [Fact]
+        public void GetValueAt()
+        {
+            var block = default(Block8x8);
+            block[8 * 3 + 5] = 42;
+
+            short value = block.GetValueAt(5, 3);
+
+            Assert.Equal(42, value);
+        }
     }
 }

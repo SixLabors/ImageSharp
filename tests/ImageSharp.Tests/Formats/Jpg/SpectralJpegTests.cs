@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void JpegDecoderCore_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
+        public void PdfJsDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             JpegDecoderCore decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void CompareSpectralResults<TPixel>(TestImageProvider<TPixel> provider)
+        public void CompareSpectralResults_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             JpegDecoderCore decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests
                 bool equality = libJpegData.Equals(imageSharpData);
                 this.Output.WriteLine("Spectral data equality: " + equality);
 
-                // Assert.Equal(libJpegData, imageSharpData);
+                Assert.Equal(libJpegData, imageSharpData);
             }
         }
 

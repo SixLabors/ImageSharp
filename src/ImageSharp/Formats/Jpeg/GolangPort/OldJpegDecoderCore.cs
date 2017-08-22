@@ -200,9 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             return image;
         }
 
-        /// <summary>
-        /// Dispose
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
             for (int i = 0; i < this.HuffmanTrees.Length; i++)
@@ -212,12 +210,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (this.Components != null)
             {
-                foreach (Buffer<DecodedBlock> blockArray in this.Components.Select(c => c.SpectralBlocks))
+                foreach (OldComponent component in this.Components)
                 {
-                    blockArray?.Dispose();
+                    component.Dispose();
                 }
             }
-            
 
             this.ycbcrImage?.Dispose();
             this.InputProcessor.Dispose();

@@ -169,19 +169,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 }
                             }
 
-                            // Take a block from the components buffer:
+                            // Find the block at (bx,by) in the component's buffer:
                             OldComponent component = decoder.Components[this.ComponentIndex];
-                            ref DecodedBlock blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
+                            ref Block8x8F blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
 
-                            this.data.Block = blockRefOnHeap.Block;
+                            // Copy block to stack
+                            this.data.Block = blockRefOnHeap;
 
                             if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                             {
                                 this.DecodeBlock(decoder, scanIndex);
                             }
 
-                            // Store the decoded block
-                            blockRefOnHeap.Block = this.data.Block;
+                            // Store the result block:
+                            blockRefOnHeap = this.data.Block;
                         }
 
                         // for j

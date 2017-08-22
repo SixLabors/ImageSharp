@@ -8,6 +8,8 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System;
+
     /// <summary>
     /// Represents an area of a Jpeg subimage (channel)
     /// </summary>
@@ -109,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public unsafe void LoadColorsFrom(Block8x8F* block, Block8x8F* temp)
         {
             // Level shift by +128, clip to [0, 255], and write to dst.
-            block->CopyColorsTo(new MutableSpan<byte>(this.Pixels.Array, this.Offset), this.Stride, temp);
+            block->CopyColorsTo(new Span<byte>(this.Pixels.Array, this.Offset), this.Stride, temp);
         }
     }
 }

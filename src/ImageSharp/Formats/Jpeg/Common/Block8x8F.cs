@@ -305,26 +305,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <summary>
         /// Level shift by +128, clip to [0, 255], and write to buffer.
         /// </summary>
-        /// <param name="buffer">Color buffer</param>
+        /// <param name="destinationBuffer">Color buffer</param>
         /// <param name="stride">Stride offset</param>
         /// <param name="tempBlockPtr">Temp Block pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyColorsTo(MutableSpan<byte> buffer, int stride, Block8x8F* tempBlockPtr)
+        public unsafe void CopyColorsTo(Span<byte> destinationBuffer, int stride, Block8x8F* tempBlockPtr)
         {
             this.TransformByteConvetibleColorValuesInto(ref *tempBlockPtr);
-
+            ref byte d = ref destinationBuffer.DangerousGetPinnableReference();
             float* src = (float*)tempBlockPtr;
             for (int i = 0; i < 8; i++)
             {
-                buffer[0] = (byte)src[0];
-                buffer[1] = (byte)src[1];
-                buffer[2] = (byte)src[2];
-                buffer[3] = (byte)src[3];
-                buffer[4] = (byte)src[4];
-                buffer[5] = (byte)src[5];
-                buffer[6] = (byte)src[6];
-                buffer[7] = (byte)src[7];
-                buffer.AddOffset(stride);
+                ref byte dRow = ref Unsafe.Add(ref d, i * stride);
+                Unsafe.Add(ref dRow, 0) = (byte)src[0];
+                Unsafe.Add(ref dRow, 1) = (byte)src[1];
+                Unsafe.Add(ref dRow, 2) = (byte)src[2];
+                Unsafe.Add(ref dRow, 3) = (byte)src[3];
+                Unsafe.Add(ref dRow, 4) = (byte)src[4];
+                Unsafe.Add(ref dRow, 5) = (byte)src[5];
+                Unsafe.Add(ref dRow, 6) = (byte)src[6];
+                Unsafe.Add(ref dRow, 7) = (byte)src[7];
                 src += 8;
             }
         }

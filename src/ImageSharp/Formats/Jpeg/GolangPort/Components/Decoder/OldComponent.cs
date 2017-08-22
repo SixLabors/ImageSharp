@@ -5,12 +5,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Memory;
 
     /// <summary>
     /// Represents a single color component
     /// </summary>
-    internal class OldComponent
+    internal class OldComponent : IDisposable
     {
         public OldComponent(byte identifier, int index)
         {
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// This is done by <see cref="OldJpegDecoderCore.ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
         /// When <see cref="OldJpegDecoderCore.IsProgressive"/> us true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
-        public Buffer2D<DecodedBlock> SpectralBlocks { get; private set; }
+        public Buffer2D<Block8x8F> SpectralBlocks { get; private set; }
 
         /// <summary>
         /// Gets the number of blocks for this component along the X axis
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public int BlockCountY { get; private set; }
 
-        public ref DecodedBlock GetBlockReference(int bx, int by)
+        public ref Block8x8F GetBlockReference(int bx, int by)
         {
             return ref this.SpectralBlocks[bx, by];
         }
@@ -74,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             this.BlockCountX = decoder.MCUCountX * this.HorizontalFactor;
             this.BlockCountY = decoder.MCUCountY * this.VerticalFactor;
-            this.SpectralBlocks = Buffer2D<DecodedBlock>.CreateClean(this.BlockCountX, this.BlockCountY);
+            this.SpectralBlocks = Buffer2D<Block8x8F>.CreateClean(this.BlockCountX, this.BlockCountY);
         }
 
         /// <summary>
@@ -228,6 +229,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             this.HorizontalFactor = h;
             this.VerticalFactor = v;
+        }
+
+        public void Dispose()
+        {
+            this.SpectralBlocks.Dispose();
         }
     }
 }

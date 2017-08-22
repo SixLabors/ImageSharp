@@ -47,10 +47,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         public void ProcessAllBlocks(OldJpegDecoderCore decoder)
         {
-            Buffer<DecodedBlock> blockArray = decoder.Components[this.componentIndex].DecodedBlocks;
-            for (int i = 0; i < blockArray.Length; i++)
+            OldComponent component = decoder.Components[this.componentIndex];
+
+            for (int by = 0; by < component.BlockCountY; by++)
             {
-                this.ProcessBlockColors(decoder, ref blockArray[i]);
+                for (int bx = 0; bx < component.BlockCountX; bx++)
+                {
+                    this.ProcessBlockColors(decoder, component, bx, by);
+                }
             }
         }
 
@@ -58,10 +62,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Dequantize, perform the inverse DCT and store decodedBlock.Block to the into the corresponding <see cref="OldJpegPixelArea"/> instance.
         /// </summary>
         /// <param name="decoder">The <see cref="OldJpegDecoderCore"/></param>
-        /// <param name="decodedBlock">The <see cref="DecodedBlock"/></param>
-        private void ProcessBlockColors(OldJpegDecoderCore decoder, ref DecodedBlock decodedBlock)
+        /// <param name="component">The <see cref="OldComponent"/></param>
+        /// <param name="bx">The x index of the block in <see cref="OldComponent.SpectralBlocks"/></param>
+        /// <param name="by">The y index of the block in <see cref="OldComponent.SpectralBlocks"/></param>
+        private void ProcessBlockColors(OldJpegDecoderCore decoder, OldComponent component, int bx, int by)
         {
-            this.data.Block = decodedBlock.Block;
+            this.data.Block = component.GetBlockReference(bx, by).Block;
             int qtIndex = decoder.Components[this.componentIndex].Selector;
             this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
 
@@ -72,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
             OldJpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
-            OldJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(decodedBlock.Bx, decodedBlock.By);
+            OldJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
 

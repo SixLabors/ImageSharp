@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Transpose 8x8 block stored linearly in a <see cref="MutableSpan{T}"/> (inplace)
         /// </summary>
         /// <param name="data"></param>
-        internal static void Transpose8x8(MutableSpan<float> data)
+        internal static void Transpose8x8(Span<float> data)
         {
             for (int i = 1; i < 8; i++)
             {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Transpose 8x8 block stored linearly in a  <see cref="MutableSpan{T}"/>
         /// </summary>
-        internal static void Transpose8x8(MutableSpan<float> src, MutableSpan<float> dest)
+        internal static void Transpose8x8(Span<float> src, Span<float> dest)
         {
             for (int i = 0; i < 8; i++)
             {
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests
             /// Leave results scaled up by an overall factor of 8.
             /// </summary>
             /// <param name="block">The block of coefficients.</param>
-            public static void TransformFDCTInplace(MutableSpan<int> block)
+            public static void TransformFDCTInplace(Span<int> block)
             {
                 // Pass 1: process rows.
                 for (int y = 0; y < 8; y++)
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Tests
             /// ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
             /// </summary>
             /// <param name="src">The source block of coefficients</param>
-            public static void TransformIDCTInplace(MutableSpan<int> src)
+            public static void TransformIDCTInplace(Span<int> src)
             {
                 // Horizontal 1-D IDCT.
                 for (int y = 0; y < 8; y++)
@@ -364,7 +364,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         /// <param name="y"></param>
         /// <param name="x"></param>
-        private static void iDCT1Dllm_32f(MutableSpan<float> y, MutableSpan<float> x)
+        private static void iDCT1Dllm_32f(Span<float> y, Span<float> x)
         {
             float a0, a1, a2, a3, b0, b1, b2, b3;
             float z0, z1, z2, z3, z4;
@@ -421,7 +421,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="s"></param>
         /// <param name="d"></param>
         /// <param name="temp"></param>
-        internal static void iDCT2D_llm(MutableSpan<float> s, MutableSpan<float> d, MutableSpan<float> temp)
+        internal static void iDCT2D_llm(Span<float> s, Span<float> d, Span<float> temp)
         {
             int j;
 
@@ -453,7 +453,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>
-        public static void fDCT2D8x4_32f(MutableSpan<float> s, MutableSpan<float> d)
+        public static void fDCT2D8x4_32f(Span<float> s, Span<float> d)
         {
             Vector4 c0 = _mm_load_ps(s, 0);
             Vector4 c1 = _mm_load_ps(s, 56);
@@ -550,7 +550,7 @@ namespace SixLabors.ImageSharp.Tests
             }*/
         }
 
-        public static void fDCT8x8_llm_sse(MutableSpan<float> s, MutableSpan<float> d, MutableSpan<float> temp)
+        public static void fDCT8x8_llm_sse(Span<float> s, Span<float> d, Span<float> temp)
         {
             Transpose8x8(s, temp);
 
@@ -566,33 +566,33 @@ namespace SixLabors.ImageSharp.Tests
 
             Vector4 c = new Vector4(0.1250f);
 
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//0
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//1
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//2
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//3
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//4
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//5
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//6
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//7
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//8
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//9
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//10
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//11
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//12
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//13
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//14
-            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d.AddOffset(4);//15
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//0
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//1
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//2
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//3
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//4
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//5
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//6
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//7
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//8
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//9
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//10
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//11
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//12
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//13
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//14
+            _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//15
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 _mm_load_ps(MutableSpan<float> src, int offset)
+        private static Vector4 _mm_load_ps(Span<float> src, int offset)
         {
             src = src.Slice(offset);
             return new Vector4(src[0], src[1], src[2], src[3]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void _mm_store_ps(MutableSpan<float> dest, int offset, Vector4 src)
+        private static void _mm_store_ps(Span<float> dest, int offset, Vector4 src)
         {
             dest = dest.Slice(offset);
             dest[0] = src.X;
@@ -632,7 +632,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         /// <param name="y"></param>
         /// <param name="x"></param>
-        internal static void iDCT2D8x4_32f(MutableSpan<float> y, MutableSpan<float> x)
+        internal static void iDCT2D8x4_32f(Span<float> y, Span<float> x)
         {
             /*
 	        float a0,a1,a2,a3,b0,b1,b2,b3; float z0,z1,z2,z3,z4; float r[8]; int i;
@@ -750,7 +750,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="block"></param>
         /// <param name="buffer"></param>
         /// <param name="stride"></param>
-        internal static unsafe void CopyColorsTo(ref Block8x8F block, MutableSpan<byte> buffer, int stride)
+        internal static unsafe void CopyColorsTo(ref Block8x8F block, Span<byte> buffer, int stride)
         {
             fixed (Block8x8F* p = &block)
             {
@@ -784,7 +784,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        internal static void fDCT1Dllm_32f(MutableSpan<float> x, MutableSpan<float> y)
+        internal static void fDCT1Dllm_32f(Span<float> x, Span<float> y)
         {
             float t0, t1, t2, t3, t4, t5, t6, t7;
             float c0, c1, c2, c3;
@@ -844,13 +844,13 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         internal static void fDCT2D_llm(
-            MutableSpan<float> s,
-            MutableSpan<float> d,
-            MutableSpan<float> temp,
+            Span<float> s,
+            Span<float> d,
+            Span<float> temp,
             bool downscaleBy8 = false,
             bool offsetSourceByNeg128 = false)
         {
-            MutableSpan<float> sWorker = offsetSourceByNeg128 ? s.AddScalarToAllValues(-128f) : s;
+            Span<float> sWorker = offsetSourceByNeg128 ? s.AddScalarToAllValues(-128f) : s;
 
             for (int j = 0; j < 8; j++)
             {

@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(data, mirror);
 
-            // PrintLinearData((MutableSpan<float>)mirror);
+            // PrintLinearData((Span<float>)mirror);
         }
 
         [Fact]
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(data, mirror);
 
-            // PrintLinearData((MutableSpan<float>)mirror);
+            // PrintLinearData((Span<float>)mirror);
         }
 
         [Fact]
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(data, mirror);
 
-            // PrintLinearData((MutableSpan<int>)mirror);
+            // PrintLinearData((Span<int>)mirror);
         }
 
         [Fact]
@@ -251,10 +251,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void iDCT2D8x4_RightPart()
         {
-            MutableSpan<float> sourceArray = Create8x8FloatData();
-            MutableSpan<float> expectedDestArray = new float[64];
+            float[] sourceArray = Create8x8FloatData();
+            float[] expectedDestArray = new float[64];
 
-            ReferenceImplementations.iDCT2D8x4_32f(sourceArray.Slice(4), expectedDestArray.Slice(4));
+            ReferenceImplementations.iDCT2D8x4_32f(sourceArray.AsSpan().Slice(4), expectedDestArray.AsSpan().Slice(4));
 
             Block8x8F source = new Block8x8F();
             source.LoadFrom(sourceArray);
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Tests
             this.Output.WriteLine("**************");
             this.Print8x8Data(actualDestArray);
 
-            Assert.Equal(expectedDestArray.Data, actualDestArray);
+            Assert.Equal(expectedDestArray, actualDestArray);
         }
 
         [Theory]
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(3)]
         public void TransformIDCT(int seed)
         {
-            MutableSpan<float> sourceArray = Create8x8RandomFloatData(-200, 200, seed);
+            Span<float> sourceArray = Create8x8RandomFloatData(-200, 200, seed);
             float[] expectedDestArray = new float[64];
             float[] tempArray = new float[64];
 
@@ -321,7 +321,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Block8x8F temp = new Block8x8F();
 
-            ReferenceImplementations.CopyColorsTo(ref block, new MutableSpan<byte>(colorsExpected, offset), stride);
+            ReferenceImplementations.CopyColorsTo(ref block, new Span<byte>(colorsExpected, offset), stride);
 
             block.CopyColorsTo(new Span<byte>(colorsActual, offset), stride, &temp);
 
@@ -372,21 +372,21 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(2)]
         public void FDCT8x4_LeftPart(int seed)
         {
-            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
+            Span<float> src = Create8x8RandomFloatData(-200, 200, seed);
             Block8x8F srcBlock = new Block8x8F();
             srcBlock.LoadFrom(src);
 
             Block8x8F destBlock = new Block8x8F();
 
-            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
+            float[] expectedDest = new float[64];
 
             ReferenceImplementations.fDCT2D8x4_32f(src, expectedDest);
             DCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
 
-            MutableSpan<float> actualDest = new MutableSpan<float>(64);
+            float[] actualDest = new float[64];
             destBlock.CopyTo(actualDest);
 
-            Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
+            Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
         }
 
         [Theory]
@@ -394,21 +394,21 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(2)]
         public void FDCT8x4_RightPart(int seed)
         {
-            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
+            Span<float> src = Create8x8RandomFloatData(-200, 200, seed);
             Block8x8F srcBlock = new Block8x8F();
             srcBlock.LoadFrom(src);
 
             Block8x8F destBlock = new Block8x8F();
 
-            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
+            float[] expectedDest = new float[64];
 
-            ReferenceImplementations.fDCT2D8x4_32f(src.Slice(4), expectedDest.Slice(4));
+            ReferenceImplementations.fDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan().Slice(4));
             DCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
 
-            MutableSpan<float> actualDest = new MutableSpan<float>(64);
+            float[] actualDest = new float[64];
             destBlock.CopyTo(actualDest);
 
-            Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
+            Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
         }
 
         [Theory]
@@ -416,23 +416,23 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(2)]
         public void TransformFDCT(int seed)
         {
-            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
+            Span<float> src = Create8x8RandomFloatData(-200, 200, seed);
             Block8x8F srcBlock = new Block8x8F();
             srcBlock.LoadFrom(src);
 
             Block8x8F destBlock = new Block8x8F();
 
-            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
-            MutableSpan<float> temp1 = new MutableSpan<float>(64);
+            float[] expectedDest = new float[64];
+            float[] temp1 = new float[64];
             Block8x8F temp2 = new Block8x8F();
 
             ReferenceImplementations.fDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
             DCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
-            MutableSpan<float> actualDest = new MutableSpan<float>(64);
+            float[] actualDest = new float[64];
             destBlock.CopyTo(actualDest);
 
-            Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
+            Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
         }
 
         [Theory]

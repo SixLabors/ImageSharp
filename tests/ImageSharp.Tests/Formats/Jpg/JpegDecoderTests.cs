@@ -294,8 +294,8 @@ namespace SixLabors.ImageSharp.Tests
                 ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
                 ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);
                 
-                this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentage}");
-                this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentage}");
+                this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
+                this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
             }
         }
     }

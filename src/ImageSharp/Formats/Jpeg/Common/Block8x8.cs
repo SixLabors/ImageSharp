@@ -164,5 +164,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return (this[0] * 31) + this[1];
         }
 
+        public static long TotalDifference(ref Block8x8 a, ref Block8x8 b)
+        {
+            long result = 0;
+            for (int i = 0; i < Size; i++)
+            {
+                int d = a[i] - b[i];
+                result += Math.Abs(d);
+            }
+
+            return result;
+        }
     }
 }

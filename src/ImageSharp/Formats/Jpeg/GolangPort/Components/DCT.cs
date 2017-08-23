@@ -43,7 +43,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components
         private static readonly Vector4 InvSqrt2 = new Vector4(0.707107f);
 
         /// <summary>
-        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization)
+        /// Apply floating point IDCT transformation into dest, using a temporary block 'temp' provided by the caller (optimization).
+        /// Ported from https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L239
         /// </summary>
         /// <param name="src">Source</param>
         /// <param name="dest">Destination</param>

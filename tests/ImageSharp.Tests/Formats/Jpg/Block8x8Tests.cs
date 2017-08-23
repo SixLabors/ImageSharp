@@ -125,5 +125,20 @@ namespace SixLabors.ImageSharp.Tests
 
             Assert.Equal(42, value);
         }
+
+        [Fact]
+        public void TotalDifference()
+        {
+            short[] data = Create8x8ShortData();
+            var block1 = new Block8x8(data);
+            var block2 = new Block8x8(data);
+
+            block2[10] += 7;
+            block2[63] += 8;
+
+            long d = Block8x8.TotalDifference(ref block1, ref block2);
+
+            Assert.Equal(15, d);
+        }
     }
 }

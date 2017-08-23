@@ -9,8 +9,11 @@ namespace SixLabors.ImageSharp.Tests
     using BitMiracle.LibJpeg.Classic;
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+    using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.Primitives;
 
@@ -105,7 +108,14 @@ namespace SixLabors.ImageSharp.Tests
             public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
             {
                 FrameComponent[] srcComponents = decoder.Frame.Components;
+                ComponentData[] destComponents = srcComponents.Select(ComponentData.Load).ToArray();
 
+                return new SpectralData(destComponents);
+            }
+
+            public static SpectralData LoadFromImageSharpDecoder(OldJpegDecoderCore decoder)
+            {
+                OldComponent[] srcComponents = decoder.Components;
                 ComponentData[] destComponents = srcComponents.Select(ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);
@@ -124,11 +134,11 @@ namespace SixLabors.ImageSharp.Tests
                     return null;
                 }
 
-                Image<Rgba32> result = new Image<Rgba32>(c0.XCount * 8, c0.YCount * 8);
+                Image<Rgba32> result = new Image<Rgba32>(c0.BlockCountX * 8, c0.BlockCountY * 8);
 
-                for (int by = 0; by < c0.YCount; by++)
+                for (int by = 0; by < c0.BlockCountY; by++)
                 {
-                    for (int bx = 0; bx < c0.XCount; bx++)
+                    for (int bx = 0; bx < c0.BlockCountX; bx++)
                     {
                         this.WriteToImage(bx, by, result);
                     }
@@ -142,9 +152,9 @@ namespace SixLabors.ImageSharp.Tests
                 ComponentData c1 = this.Components[1];
                 ComponentData c2 = this.Components[2];
 
-                Block8x8 block0 = c0.Blocks[by, bx];
-                Block8x8 block1 = c1.Blocks[by, bx];
-                Block8x8 block2 = c2.Blocks[by, bx];
+                Block8x8 block0 = c0.Blocks[bx, by];
+                Block8x8 block1 = c1.Blocks[bx, by];
+                Block8x8 block2 = c2.Blocks[bx, by];
 
                 float d0 = (c0.MaxVal - c0.MinVal);
                 float d1 = (c1.MaxVal - c1.MinVal);
@@ -216,28 +226,28 @@ namespace SixLabors.ImageSharp.Tests
 
         public class ComponentData : IEquatable<ComponentData>
         {
-            public ComponentData(int yCount, int xCount, int index)
+            public ComponentData(int blockCountY, int blockCountX, int index)
             {
-                this.YCount = yCount;
-                this.XCount = xCount;
+                this.BlockCountY = blockCountY;
+                this.BlockCountX = blockCountX;
                 this.Index = index;
-                this.Blocks = new Block8x8[this.YCount, this.XCount];
+                this.Blocks = new Buffer2D<Block8x8>(this.BlockCountX, this.BlockCountY);
             }
 
-            public Size Size => new Size(this.XCount, this.YCount);
+            public Size Size => new Size(this.BlockCountX, this.BlockCountY);
 
             public int Index { get; }
 
-            public int YCount { get; }
+            public int BlockCountY { get; }
 
-            public int XCount { get; }
+            public int BlockCountX { get; }
 
-            public Block8x8[,] Blocks { get; private set; }
+            public Buffer2D<Block8x8> Blocks { get; private set; }
 
             public short MinVal { get; private set; } = short.MaxValue;
 
             public short MaxVal { get; private set; } = short.MinValue;
-
+            
             public static ComponentData Load(Array bloxSource, int index)
             {
                 int yCount = bloxSource.Length;
@@ -266,39 +276,56 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.MinVal = Math.Min(this.MinVal, data.Min());
                 this.MaxVal = Math.Max(this.MaxVal, data.Max());
-                this.Blocks[y, x] = new Block8x8(data);
+                this.Blocks[x, y] = new Block8x8(data);
             }
 
-            public static ComponentData Load(FrameComponent sc, int index)
+            public static ComponentData Load(FrameComponent c, int index)
             {
                 var result = new ComponentData(
-                    sc.BlocksPerColumnForMcu,
-                    sc.BlocksPerLineForMcu,
+                    c.BlocksPerColumnForMcu,
+                    c.BlocksPerLineForMcu,
                     index
                     );
-                result.Init(sc);
+
+                for (int y = 0; y < result.BlockCountY; y++)
+                {
+                    for (int x = 0; x < result.BlockCountX; x++)
+                    {
+                        short[] data = c.GetBlockBuffer(y, x).ToArray();
+                        result.MakeBlock(data, y, x);
+                    }
+                }
+
                 return result;
             }
 
-            private void Init(FrameComponent sc)
+            public static ComponentData Load(OldComponent c)
             {
-                for (int y = 0; y < this.YCount; y++)
+                var result = new ComponentData(
+                    c.BlockCountY,
+                    c.BlockCountX,
+                    c.Index
+                );
+
+                for (int y = 0; y < result.BlockCountY; y++)
                 {
-                    for (int x = 0; x < this.XCount; x++)
+                    for (int x = 0; x < result.BlockCountX; x++)
                     {
-                        short[] data = sc.GetBlockBuffer(y, x).ToArray();
-                        this.MakeBlock(data, y, x);
+                        short[] data = c.GetBlockReference(x, y).ToArray();
+                        result.MakeBlock(data, y, x);
                     }
                 }
+
+                return result;
             }
 
             public Image<Rgba32> CreateGrayScaleImage()
             {
-                Image<Rgba32> result = new Image<Rgba32>(this.XCount * 8, this.YCount * 8);
+                Image<Rgba32> result = new Image<Rgba32>(this.BlockCountX * 8, this.BlockCountY * 8);
                 
-                for (int by = 0; by < this.YCount; by++)
+                for (int by = 0; by < this.BlockCountY; by++)
                 {
-                    for (int bx = 0; bx < this.XCount; bx++)
+                    for (int bx = 0; bx < this.BlockCountX; bx++)
                     {
                         this.WriteToImage(bx, by, result);
                     }
@@ -308,7 +335,7 @@ namespace SixLabors.ImageSharp.Tests
 
             internal void WriteToImage(int bx, int by, Image<Rgba32> image)
             {
-                Block8x8 block = this.Blocks[by, bx];
+                Block8x8 block = this.Blocks[bx, by];
                 
                 for (int y = 0; y < 8; y++)
                 {
@@ -340,17 +367,18 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (ReferenceEquals(null, other)) return false;
                 if (ReferenceEquals(this, other)) return true;
-                bool ok = this.Index == other.Index && this.YCount == other.YCount && this.XCount == other.XCount
-                       && this.MinVal == other.MinVal
-                       && this.MaxVal == other.MaxVal;
+                bool ok = this.Index == other.Index && this.BlockCountY == other.BlockCountY
+                          && this.BlockCountX == other.BlockCountX;
+                       //&& this.MinVal == other.MinVal
+                       //&& this.MaxVal == other.MaxVal;
                 if (!ok) return false;
 
-                for (int i = 0; i < this.YCount; i++)
+                for (int y = 0; y < this.BlockCountY; y++)
                 {
-                    for (int j = 0; j < this.XCount; j++)
+                    for (int x = 0; x < this.BlockCountX; x++)
                     {
-                        Block8x8 a = this.Blocks[i, j];
-                        Block8x8 b = other.Blocks[i, j];
+                        Block8x8 a = this.Blocks[x, y];
+                        Block8x8 b = other.Blocks[x, y];
                         if (!a.Equals(b)) return false;
                     }
                 }
@@ -370,8 +398,8 @@ namespace SixLabors.ImageSharp.Tests
                 unchecked
                 {
                     var hashCode = this.Index;
-                    hashCode = (hashCode * 397) ^ this.YCount;
-                    hashCode = (hashCode * 397) ^ this.XCount;
+                    hashCode = (hashCode * 397) ^ this.BlockCountY;
+                    hashCode = (hashCode * 397) ^ this.BlockCountX;
                     hashCode = (hashCode * 397) ^ this.MinVal.GetHashCode();
                     hashCode = (hashCode * 397) ^ this.MaxVal.GetHashCode();
                     return hashCode;
@@ -387,6 +415,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 return !Equals(left, right);
             }
+
+            
         }
 
         internal static FieldInfo GetNonPublicField(object obj, string fieldName)
@@ -399,6 +429,29 @@ namespace SixLabors.ImageSharp.Tests
         {
             FieldInfo fi = GetNonPublicField(obj, fieldName);
             return fi.GetValue(obj);
+        }
+
+        public static double CalculateAverageDifference(ComponentData a, ComponentData b)
+        {
+            BigInteger totalDiff = 0;
+            if (a.Size != b.Size)
+            {
+                throw new Exception("a.Size != b.Size");
+            }
+
+            int count = a.Blocks.Length;
+
+            for (int i = 0; i < count; i++)
+            {
+                Block8x8 aa = a.Blocks[i];
+                Block8x8 bb = b.Blocks[i];
+
+                long diff = Block8x8.TotalDifference(ref aa, ref bb);
+                totalDiff += diff;
+            }
+
+            double result = (double)totalDiff;
+            return result / (count * Block8x8.Size);
         }
     }
 }

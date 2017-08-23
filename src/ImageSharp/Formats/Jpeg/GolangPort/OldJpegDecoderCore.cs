@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.ParseStream(stream, false);
+            this.ParseStream(stream);
             this.ProcessBlocksIntoJpegImageChannels<TPixel>();
             Image<TPixel> image = this.ConvertJpegPixelsToImagePixels<TPixel>();
 
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        public void ParseStream(Stream stream, bool metadataOnly)
+        public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
             this.InputStream = stream;

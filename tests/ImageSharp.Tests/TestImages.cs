@@ -25,7 +25,7 @@ namespace ImageSharp.Tests
             public const string Powerpoint = "Png/pp.png";
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
-            public const string Palette8Bpp = "Png/Palette-8bpp.png";
+            public const string Palette8Bpp = "Png/palette-8bpp.png";
             public const string Bpp1 = "Png/bpp1.png";
             public const string Gray4Bpp = "Png/gray_4bpp.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";

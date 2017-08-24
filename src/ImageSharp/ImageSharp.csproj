@@ -38,13 +38,13 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="System.Buffers" Version="4.3.0" />
+    <PackageReference Include="System.Buffers" Version="4.4.0" />
     <PackageReference Include="System.Memory" Version="4.4.0-preview1-25305-02" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0-preview1-25305-02" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.4.0-preview1-25305-02" />
+    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>

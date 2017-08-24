@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-using ImageSharp.Formats;
-
 namespace ImageSharp.Tests
 {
+    using System.IO;
+
     using ImageSharp.PixelFormats;
 
     using Xunit;

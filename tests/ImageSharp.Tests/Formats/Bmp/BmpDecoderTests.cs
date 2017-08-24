@@ -1,17 +1,29 @@
-﻿// <copyright file="GifDecoderTests.cs" company="James Jackson-South">
+﻿// <copyright file="BmpDecoderTests.cs" company="James Jackson-South">
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-// ReSharper disable InconsistentNaming
+using ImageSharp.Formats;
+
 namespace ImageSharp.Tests
 {
-    using System.IO;
+    using ImageSharp.PixelFormats;
 
     using Xunit;
 
-    public class BmpDecoderTests
+    public class BmpDecoderTests : FileTestBase
     {
+        [Theory]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgb24)]
+        public void OpenAllBmpFiles_SaveBmp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "bmp");
+            }
+        }
+
         [Theory]
         [InlineData(TestImages.Bmp.Car, 24)]
         [InlineData(TestImages.Bmp.F, 24)]

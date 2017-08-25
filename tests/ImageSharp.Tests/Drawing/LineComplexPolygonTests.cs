@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "LineComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
 
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutlineNoOverlapping()
         {
-            string path = this.CreateOutputDirectory("Drawing", "LineComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutlineOverlapping()
         {
-            string path = this.CreateOutputDirectory("Drawing", "LineComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutlineDashed()
         {
-            string path = this.CreateOutputDirectory("Drawing", "LineComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "LineComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),

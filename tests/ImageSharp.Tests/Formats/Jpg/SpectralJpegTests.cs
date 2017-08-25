@@ -106,11 +106,11 @@ namespace SixLabors.ImageSharp.Tests
                 LibJpegTools.ComponentData libJpegComponent = libJpegData.Components[i];
                 LibJpegTools.ComponentData imageSharpComponent = imageSharpData.Components[i];
 
-                var d = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
+                (double total, double average) diff = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
 
-                this.Output.WriteLine($"Component{i}: {d}");
-                averageDifference += d.average;
-                totalDifference += d.total;
+                this.Output.WriteLine($"Component{i}: {diff}");
+                averageDifference += diff.average;
+                totalDifference += diff.total;
                 tolerance += libJpegComponent.Blocks.Length;
             }
             averageDifference /= componentCount;

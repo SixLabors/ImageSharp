@@ -1,6 +1,8 @@
 namespace SixLabors.ImageSharp.Tests
 {
     using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Numerics;
@@ -8,6 +10,7 @@ namespace SixLabors.ImageSharp.Tests
 
     using BitMiracle.LibJpeg.Classic;
 
+    using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
@@ -47,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            private SpectralData(ComponentData[] components)
+            internal SpectralData(ComponentData[] components)
             {
                 this.ComponentCount = components.Length;
                 this.Components = components;
@@ -272,7 +275,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            private void MakeBlock(short[] data, int y, int x)
+            internal void MakeBlock(short[] data, int y, int x)
             {
                 this.MinVal = Math.Min(this.MinVal, data.Min());
                 this.MaxVal = Math.Max(this.MaxVal, data.Max());
@@ -302,8 +305,8 @@ namespace SixLabors.ImageSharp.Tests
             public static ComponentData Load(OldComponent c)
             {
                 var result = new ComponentData(
-                    c.BlockCountY,
-                    c.BlockCountX,
+                    c.HeightInBlocks,
+                    c.WidthInBlocks,
                     c.Index
                 );
 
@@ -454,9 +457,69 @@ namespace SixLabors.ImageSharp.Tests
             return result / (count * Block8x8.Size);
         }
 
+        private static string DumpToolFullPath => Path.Combine(
+            TestEnvironment.ToolsDirectoryFullPath,
+            @"jpeg\dump-jpeg-coeffs.exe");
+
         public static void RunDumpJpegCoeffsTool(string sourceFile, string destFile)
         {
-            throw new NotImplementedException();
+            string args = $@"""{sourceFile}"" ""{destFile}""";
+            var process = Process.Start(DumpToolFullPath, args);
+            process.WaitForExit();
+        }
+
+        public static SpectralData ExtractSpectralData(string inputFile)
+        {
+            TestFile testFile = TestFile.Create(inputFile);
+
+            string outDir = TestEnvironment.CreateOutputDirectory(".Temp", $"JpegCoeffs");
+            string fn = $"{Path.GetFileName(inputFile)}-{new Random().Next(1000)}.dctcoeffs";
+            string coeffFileFullPath = Path.Combine(outDir, fn);
+
+            try
+            {
+                RunDumpJpegCoeffsTool(testFile.FullPath, coeffFileFullPath);
+                byte[] spectralBytes = File.ReadAllBytes(coeffFileFullPath);
+                File.Delete(coeffFileFullPath);
+
+                using (var ms = new MemoryStream(testFile.Bytes))
+                {
+                    OldJpegDecoderCore decoder = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                    decoder.ParseStream(ms);
+
+                    Span<short> dump = new Span<byte>(spectralBytes).NonPortableCast<byte, short>();
+                    int counter = 0;
+
+                    OldComponent[] components = decoder.Components;
+                    ComponentData[] result = new ComponentData[components.Length];
+
+                    for (int i = 0; i < components.Length; i++)
+                    {
+                        OldComponent c = components[i];
+                        ComponentData resultComponent = new ComponentData(c.HeightInBlocks, c.WidthInBlocks, i);
+                        result[i] = resultComponent;
+
+                        for (int y = 0; y < c.HeightInBlocks; y++)
+                        {
+                            for (int x = 0; x < c.WidthInBlocks; x++)
+                            {
+                                short[] block = dump.Slice(counter, 64).ToArray();
+                                resultComponent.MakeBlock(block, y, x);
+                                counter += 64;
+                            }
+                        }
+                    }
+
+                    return new SpectralData(result);
+                }
+            }
+            finally
+            {
+                if (File.Exists(coeffFileFullPath))
+                {
+                    File.Delete(coeffFileFullPath);
+                }
+            }
         }
     }
 }

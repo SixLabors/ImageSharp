@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPath_NoAntialias()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPathDashed()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPathDotted()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPathDashDot()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPathDashDotDot()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
             Image<Rgba32> image = new Image<Rgba32>(500, 500);
 
             image.Mutate(x => x
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPathWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
 
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPathOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Lines");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
 
             Image<Rgba32> image = new Image<Rgba32>(500, 500);
 

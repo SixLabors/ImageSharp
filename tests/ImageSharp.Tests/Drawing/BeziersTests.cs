@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByBezierLine()
         {
-            string path = this.CreateOutputDirectory("Drawing", "BezierLine");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "BezierLine");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x.BackgroundColor(Rgba32.Blue)
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedBezierLineWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "BezierLine");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "BezierLine");
 
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 

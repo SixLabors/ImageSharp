@@ -5,9 +5,11 @@ namespace SixLabors.ImageSharp.Tests
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.CompilerServices;
 
     using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.PixelFormats;
@@ -42,6 +44,13 @@ namespace SixLabors.ImageSharp.Tests
 
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 
+        [Fact]
+        public void RunDumpJpegCoeffsTool()
+        {
+            string inputFile = TestFile.GetInputFileFullPath(TestImages.Jpeg.Progressive.Progress);
+            
+        }
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void BuildLibJpegSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
@@ -57,6 +66,40 @@ namespace SixLabors.ImageSharp.Tests
 
                 this.SaveSpectralImage(provider, data);
             }   
+        }
+
+        [Theory]
+        //[WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32)]
+        public void HelloSerializedSpectralData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+            using (var ms = new MemoryStream(sourceBytes))
+            {
+                //LibJpegTools.SpectralData data = LibJpegTools.SpectralData.Load(ms);
+                OldJpegDecoderCore dec = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                dec.ParseStream(new MemoryStream(sourceBytes));
+
+                LibJpegTools.SpectralData data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(dec);
+                Assert.True(data.ComponentCount > 0);
+                this.Output.WriteLine($"ComponentCount: {data.ComponentCount}");
+
+                string comp0FileName = TestFile.GetInputFileFullPath(provider.SourceFileOrDescription + ".comp0");
+                if (!File.Exists(comp0FileName))
+                {
+                    this.Output.WriteLine("Missing file: " + comp0FileName);
+                }
+
+                byte[] stuff = File.ReadAllBytes(comp0FileName);
+
+                ref Block8x8 actual = ref Unsafe.As<byte, Block8x8>(ref stuff[0]);
+                ref Block8x8 expected = ref data.Components[0].Blocks[0];
+
+                Assert.Equal(actual, expected);
+                //this.SaveSpectralImage(provider, data);
+            }
         }
 
         [Theory]

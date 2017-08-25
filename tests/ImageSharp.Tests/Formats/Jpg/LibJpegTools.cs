@@ -453,5 +453,10 @@ namespace SixLabors.ImageSharp.Tests
             double result = (double)totalDiff;
             return result / (count * Block8x8.Size);
         }
+
+        public static void RunDumpJpegCoeffsTool(string sourceFile, string destFile)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

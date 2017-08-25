@@ -2,6 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.6
+VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
@@ -43,7 +44,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj", "{2BF743D8-2A06-412D-96D7-F448F00C5EA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{96188137-5FA6-4924-AB6E-4EFF79C6E0BB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{7CC6D57E-B916-43B8-B315-A0BB92F260A2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvatarWithRoundedCorner", "samples\AvatarWithRoundedCorner\AvatarWithRoundedCorner.csproj", "{844FC582-4E78-4371-847D-EFD4D1103578}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChangeDefaultEncoderOptions", "samples\ChangeDefaultEncoderOptions\ChangeDefaultEncoderOptions.csproj", "{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Web", "src\ImageSharp.Web\ImageSharp.Web.csproj", "{2F1B36E2-5D92-4442-B816-D2A978246435}"
 EndProject
@@ -171,6 +178,30 @@ Global
 		{BD73DBBD-6859-44C2-99FC-84148A6239A5}.Release|x64.Build.0 = Release|Any CPU
 		{BD73DBBD-6859-44C2-99FC-84148A6239A5}.Release|x86.ActiveCfg = Release|Any CPU
 		{BD73DBBD-6859-44C2-99FC-84148A6239A5}.Release|x86.Build.0 = Release|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Debug|x64.Build.0 = Debug|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Debug|x86.Build.0 = Debug|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Release|Any CPU.Build.0 = Release|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Release|x64.ActiveCfg = Release|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Release|x64.Build.0 = Release|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Release|x86.ActiveCfg = Release|Any CPU
+		{844FC582-4E78-4371-847D-EFD4D1103578}.Release|x86.Build.0 = Release|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Debug|x64.Build.0 = Debug|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Debug|x86.Build.0 = Debug|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Release|x64.ActiveCfg = Release|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Release|x64.Build.0 = Release|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Release|x86.ActiveCfg = Release|Any CPU
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -186,5 +217,7 @@ Global
 		{2F1B36E2-5D92-4442-B816-D2A978246435} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}
 		{8864C96C-94AA-454D-BAF5-779216C3745A} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{BD73DBBD-6859-44C2-99FC-84148A6239A5} = {EA4178FC-11E3-496A-B630-0680B35E0AF8}
+		{844FC582-4E78-4371-847D-EFD4D1103578} = {7CC6D57E-B916-43B8-B315-A0BB92F260A2}
+		{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0} = {7CC6D57E-B916-43B8-B315-A0BB92F260A2}
 	EndGlobalSection
 EndGlobal

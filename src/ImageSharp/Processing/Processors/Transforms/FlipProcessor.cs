@@ -10,6 +10,7 @@ namespace ImageSharp.Processing.Processors
 
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Provides methods that allow the flipping of an image around its center point.

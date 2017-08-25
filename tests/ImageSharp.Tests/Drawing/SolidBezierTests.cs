@@ -20,7 +20,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledBezier");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),
@@ -28,13 +28,10 @@ namespace ImageSharp.Tests.Drawing
             };
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-                {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, new Polygon(new BezierLineSegment(simplePath)))
-                        .Save(output);
-                }
+                        .Fill(Rgba32.HotPink, new Polygon(new CubicBezierLineSegment(simplePath)))
+                         .Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -53,7 +50,7 @@ namespace ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
             string path = this.CreateOutputDirectory("Drawing", "FilledBezier");
-            Vector2[] simplePath = new[] {
+            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),
@@ -63,13 +60,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
-                {
                     image
                         .BackgroundColor(Rgba32.Blue)
-                        .Fill(color, new Polygon(new BezierLineSegment(simplePath)))
-                        .Save(output);
-                }
+                        .Fill(color, new Polygon(new CubicBezierLineSegment(simplePath)))
+                        .Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

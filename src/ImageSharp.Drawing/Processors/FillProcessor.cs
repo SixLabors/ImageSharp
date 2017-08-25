@@ -14,6 +14,7 @@ namespace ImageSharp.Drawing.Processors
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Using the bursh as a source of pixels colors blends the brush color with source.

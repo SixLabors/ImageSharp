@@ -8,38 +8,20 @@ namespace ImageSharp.Formats
     using System.Collections.Generic;
 
     /// <summary>
-    /// Encapsulates the means to encode and decode gif images.
+    /// Registers the image encoders, decoders and mime type detectors for the gif format.
     /// </summary>
-    public class GifFormat : IImageFormat
+    internal sealed class GifFormat : IImageFormat
     {
         /// <inheritdoc/>
-        public string Extension => "gif";
+        public string Name => "GIF";
 
         /// <inheritdoc/>
-        public string MimeType => "image/gif";
+        public string DefaultMimeType => "image/gif";
 
         /// <inheritdoc/>
-        public IEnumerable<string> SupportedExtensions => new string[] { "gif" };
+        public IEnumerable<string> MimeTypes => GifConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IImageDecoder Decoder => new GifDecoder();
-
-        /// <inheritdoc/>
-        public IImageEncoder Encoder => new GifEncoder();
-
-        /// <inheritdoc/>
-        public int HeaderSize => 6;
-
-        /// <inheritdoc/>
-        public bool IsSupportedFileFormat(byte[] header)
-        {
-            return header.Length >= this.HeaderSize &&
-                   header[0] == 0x47 && // G
-                   header[1] == 0x49 && // I
-                   header[2] == 0x46 && // F
-                   header[3] == 0x38 && // 8
-                  (header[4] == 0x39 || header[4] == 0x37) && // 9 or 7
-                   header[5] == 0x61;   // a
-        }
+        public IEnumerable<string> FileExtensions => GifConstants.FileExtensions;
     }
 }

@@ -145,7 +145,7 @@
         // [Params(1024)]
         public int Count { get; set; } = 1024;
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.width = 2048;
@@ -158,7 +158,7 @@
             this.endIndex = 2048 / 2 + (this.Count / 2);
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.buffer.Dispose();

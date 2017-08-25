@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     using System.IO;
     using System.Linq;
     using System.Runtime.CompilerServices;
-
+    using System.Text;
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
@@ -20,7 +20,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
-    internal class PngDecoderCore
+    internal sealed class PngDecoderCore
     {
         /// <summary>
         /// The dictionary of available color types.
@@ -28,10 +28,10 @@ namespace ImageSharp.Formats
         private static readonly Dictionary<PngColorType, byte[]> ColorTypes = new Dictionary<PngColorType, byte[]>()
         {
             [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8 },
-            [PngColorType.Rgb] = new byte[] { 8 },
+            [PngColorType.Rgb] = new byte[] { 8, 16 },
             [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
             [PngColorType.GrayscaleWithAlpha] = new byte[] { 8 },
-            [PngColorType.RgbWithAlpha] = new byte[] { 8 },
+            [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
         };
 
         /// <summary>
@@ -73,11 +73,6 @@ namespace ImageSharp.Formats
         /// Reusable buffer for reading char arrays.
         /// </summary>
         private readonly char[] chars = new char[4];
-
-        /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IPngDecoderOptions options;
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -147,28 +142,39 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The current pass for an interlaced PNG
         /// </summary>
-        private int pass = 0;
+        private int pass;
 
         /// <summary>
         /// The current number of bytes read in the current scanline
         /// </summary>
-        private int currentRowBytesRead = 0;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
-        /// </summary>
-        /// <param name="options">The decoder options.</param>
-        /// <param name="configuration">The configuration.</param>
-        public PngDecoderCore(IPngDecoderOptions options, Configuration configuration)
-        {
-            this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new PngDecoderOptions();
-        }
+        private int currentRowBytesRead;
 
         /// <summary>
         /// Gets or sets the png color type
         /// </summary>
-        public PngColorType PngColorType { get; set; }
+        private PngColorType pngColorType;
+
+        /// <summary>
+        /// Gets the encoding to use
+        /// </summary>
+        private Encoding textEncoding;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private bool ignoreMetadata;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="options">The decoder options.</param>
+        public PngDecoderCore(Configuration configuration, IPngDecoderOptions options)
+        {
+            this.configuration = configuration ?? Configuration.Default;
+            this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
+            this.ignoreMetadata = options.IgnoreMetadata;
+        }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -221,7 +227,6 @@ namespace ImageSharp.Formats
                                     byte[] pal = new byte[currentChunk.Length];
                                     Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
                                     this.palette = pal;
-                                    metadata.Quality = pal.Length / 3;
                                     break;
                                 case PngChunkTypes.PaletteAlpha:
                                     byte[] alpha = new byte[currentChunk.Length];
@@ -262,43 +267,46 @@ namespace ImageSharp.Formats
         /// <param name="source">The bytes to convert from. Cannot be null.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bits">The number of bits per value.</param>
-        /// <returns>The resulting <see cref="T:byte[]"/> array. Is never null.</returns>
+        /// <returns>The resulting <see cref="Span{Byte}"/> array. Is never null.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is null.</exception>
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
-        private static byte[] ToArrayByBitsLength(byte[] source, int bytesPerScanline, int bits)
+        private static Span<byte> ToArrayByBitsLength(Span<byte> source, int bytesPerScanline, int bits)
         {
-            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThan(source.Length, 0, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
 
-            byte[] result;
-
-            if (bits < 8)
+            if (bits >= 8)
             {
-                result = new byte[bytesPerScanline * 8 / bits];
-                int mask = 0xFF >> (8 - bits);
-                int resultOffset = 0;
-
-                // ReSharper disable once ForCanBeConvertedToForeach
-                // First byte is the marker so skip.
-                for (int i = 1; i < bytesPerScanline; i++)
-                {
-                    byte b = source[i];
-                    for (int shift = 0; shift < 8; shift += bits)
-                    {
-                        int colorIndex = (b >> (8 - bits - shift)) & mask;
-
-                        result[resultOffset] = (byte)colorIndex;
-
-                        resultOffset++;
-                    }
-                }
+                return source;
             }
-            else
+
+            byte[] result = new byte[bytesPerScanline * 8 / bits];
+            int mask = 0xFF >> (8 - bits);
+            int resultOffset = 0;
+
+            for (int i = 0; i < bytesPerScanline; i++)
             {
-                result = source;
+                byte b = source[i];
+                for (int shift = 0; shift < 8; shift += bits)
+                {
+                    int colorIndex = (b >> (8 - bits - shift)) & mask;
+
+                    result[resultOffset] = (byte)colorIndex;
+
+                    resultOffset++;
+                }
             }
 
             return result;
+        }
+
+        private static bool IsCriticalChunk(PngChunk chunk)
+        {
+            return
+                chunk.Type == PngChunkTypes.Header ||
+                chunk.Type == PngChunkTypes.Palette ||
+                chunk.Type == PngChunkTypes.Data ||
+                chunk.Type == PngChunkTypes.End;
         }
 
         /// <summary>
@@ -325,11 +333,6 @@ namespace ImageSharp.Formats
         private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.header.Width > Image<TPixel>.MaxWidth || this.header.Height > Image<TPixel>.MaxHeight)
-            {
-                throw new ArgumentOutOfRangeException($"The input png '{this.header.Width}x{this.header.Height}' is bigger than the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
-            }
-
             image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
@@ -349,7 +352,7 @@ namespace ImageSharp.Formats
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     return 1;
@@ -361,10 +364,20 @@ namespace ImageSharp.Formats
                     return 1;
 
                 case PngColorType.Rgb:
+                    if (this.header.BitDepth == 16)
+                    {
+                        return 6;
+                    }
+
                     return 3;
 
-                // PngColorType.RgbWithAlpha:
+                case PngColorType.RgbWithAlpha:
                 default:
+                    if (this.header.BitDepth == 16)
+                    {
+                        return 8;
+                    }
+
                     return 4;
             }
         }
@@ -378,15 +391,16 @@ namespace ImageSharp.Formats
         /// </returns>
         private int CalculateScanlineLength(int width)
         {
+            int mod = this.header.BitDepth == 16 ? 16 : 8;
             int scanlineLength = width * this.header.BitDepth * this.bytesPerPixel;
 
-            int amount = scanlineLength % 8;
+            int amount = scanlineLength % mod;
             if (amount != 0)
             {
-                scanlineLength += 8 - amount;
+                scanlineLength += mod - amount;
             }
 
-            return scanlineLength / 8;
+            return scanlineLength / mod;
         }
 
         /// <summary>
@@ -564,17 +578,19 @@ namespace ImageSharp.Formats
         {
             var color = default(TPixel);
             Span<TPixel> rowSpan = pixels.GetRowSpan(this.currentRow);
+
+            // Trim the first marker byte from the buffer
             var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
 
-            switch (this.PngColorType)
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    Span<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
                     for (int x = 0; x < this.header.Width; x++)
                     {
                         byte intensity = (byte)(newScanline1[x] * factor);
-                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
                         rowSpan[x] = color;
                     }
 
@@ -584,12 +600,12 @@ namespace ImageSharp.Formats
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
-                        int offset = 1 + (x * this.bytesPerPixel);
+                        int offset = x * this.bytesPerPixel;
 
-                        byte intensity = defilteredScanline[offset];
-                        byte alpha = defilteredScanline[offset + this.bytesPerSample];
+                        byte intensity = scanlineBuffer[offset];
+                        byte alpha = scanlineBuffer[offset + this.bytesPerSample];
 
-                        color.PackFromBytes(intensity, intensity, intensity, alpha);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, alpha));
                         rowSpan[x] = color;
                     }
 
@@ -597,21 +613,62 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    this.ProcessScanlineFromPalette(defilteredScanline, rowSpan);
+                    this.ProcessScanlineFromPalette(scanlineBuffer, rowSpan);
 
                     break;
 
                 case PngColorType.Rgb:
 
-                    PixelOperations<TPixel>.Instance.PackFromXyzBytes(scanlineBuffer, rowSpan, this.header.Width);
+                    if (this.header.BitDepth == 16)
+                    {
+                        int length = this.header.Width * 3;
+                        using (var compressed = new Buffer<byte>(length))
+                        {
+                            // TODO: Should we use pack from vector here instead?
+                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(compressed, rowSpan, this.header.Width);
+                        }
+                    }
+                    else
+                    {
+                        PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineBuffer, rowSpan, this.header.Width);
+                    }
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    PixelOperations<TPixel>.Instance.PackFromXyzwBytes(scanlineBuffer, rowSpan, this.header.Width);
+                    if (this.header.BitDepth == 16)
+                    {
+                        int length = this.header.Width * 4;
+                        using (var compressed = new Buffer<byte>(length))
+                        {
+                            // TODO: Should we use pack from vector here instead?
+                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(compressed, rowSpan, this.header.Width);
+                        }
+                    }
+                    else
+                    {
+                        PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineBuffer, rowSpan, this.header.Width);
+                    }
 
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Compresses the given span from 16bpp to 8bpp
+        /// </summary>
+        /// <param name="source">The source buffer</param>
+        /// <param name="target">The target buffer</param>
+        /// <param name="length">The target length</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void From16BitTo8Bit(Span<byte> source, Span<byte> target, int length)
+        {
+            for (int i = 0, j = 0; i < length; i++, j += 2)
+            {
+                target[i] = (byte)((source[j + 1] << 8) + source[j]);
             }
         }
 
@@ -621,12 +678,14 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="defilteredScanline">The scanline</param>
         /// <param name="row">Thecurrent  output image row</param>
-        private void ProcessScanlineFromPalette<TPixel>(byte[] defilteredScanline, Span<TPixel> row)
+        private void ProcessScanlineFromPalette<TPixel>(Span<byte> defilteredScanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-            byte[] palette = this.palette;
+            Span<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+            byte[] pal = this.palette;
             var color = default(TPixel);
+
+            var rgba = default(Rgba32);
 
             if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
             {
@@ -634,38 +693,28 @@ namespace ImageSharp.Formats
                 // channel and we should try to read it.
                 for (int x = 0; x < this.header.Width; x++)
                 {
-                    int index = newScanline[x + 1];
+                    int index = newScanline[x];
                     int pixelOffset = index * 3;
 
-                    byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                    rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                    rgba.Rgb = pal.GetRgb24(pixelOffset);
 
-                    if (a > 0)
-                    {
-                        byte r = palette[pixelOffset];
-                        byte g = palette[pixelOffset + 1];
-                        byte b = palette[pixelOffset + 2];
-                        color.PackFromBytes(r, g, b, a);
-                    }
-                    else
-                    {
-                        color.PackFromBytes(0, 0, 0, 0);
-                    }
-
+                    color.PackFromRgba32(rgba);
                     row[x] = color;
                 }
             }
             else
             {
+                rgba.A = 255;
+
                 for (int x = 0; x < this.header.Width; x++)
                 {
-                    int index = newScanline[x + 1];
+                    int index = newScanline[x];
                     int pixelOffset = index * 3;
 
-                    byte r = palette[pixelOffset];
-                    byte g = palette[pixelOffset + 1];
-                    byte b = palette[pixelOffset + 2];
+                    rgba.Rgb = pal.GetRgb24(pixelOffset);
 
-                    color.PackFromBytes(r, g, b, 255);
+                    color.PackFromRgba32(rgba);
                     row[x] = color;
                 }
             }
@@ -684,15 +733,18 @@ namespace ImageSharp.Formats
         {
             var color = default(TPixel);
 
-            switch (this.PngColorType)
+            // Trim the first marker byte from the buffer
+            var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
+
+            switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    byte[] newScanline1 = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
+                    Span<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
+                    for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                     {
                         byte intensity = (byte)(newScanline1[o] * factor);
-                        color.PackFromBytes(intensity, intensity, intensity, 255);
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity));
                         rowSpan[x] = color;
                     }
 
@@ -700,12 +752,11 @@ namespace ImageSharp.Formats
 
                 case PngColorType.GrayscaleWithAlpha:
 
-                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                    for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                     {
-                        byte intensity = defilteredScanline[o];
-                        byte alpha = defilteredScanline[o + this.bytesPerSample];
-
-                        color.PackFromBytes(intensity, intensity, intensity, alpha);
+                        byte intensity = scanlineBuffer[o];
+                        byte alpha = scanlineBuffer[o + this.bytesPerSample];
+                        color.PackFromRgba32(new Rgba32(intensity, intensity, intensity, alpha));
                         rowSpan[x] = color;
                     }
 
@@ -713,46 +764,37 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Palette:
 
-                    byte[] newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+                    Span<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
+                    var rgba = default(Rgba32);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
-                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                         {
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            byte a = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                            rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
+                            rgba.Rgb = this.palette.GetRgb24(offset);
 
-                            if (a > 0)
-                            {
-                                byte r = this.palette[offset];
-                                byte g = this.palette[offset + 1];
-                                byte b = this.palette[offset + 2];
-                                color.PackFromBytes(r, g, b, a);
-                            }
-                            else
-                            {
-                                color.PackFromBytes(0, 0, 0, 0);
-                            }
-
+                            color.PackFromRgba32(rgba);
                             rowSpan[x] = color;
                         }
                     }
                     else
                     {
-                        for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o++)
+                        rgba.A = 255;
+
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                         {
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            byte r = this.palette[offset];
-                            byte g = this.palette[offset + 1];
-                            byte b = this.palette[offset + 2];
+                            rgba.Rgb = this.palette.GetRgb24(offset);
 
-                            color.PackFromBytes(r, g, b, 255);
+                            color.PackFromRgba32(rgba);
                             rowSpan[x] = color;
                         }
                     }
@@ -761,29 +803,74 @@ namespace ImageSharp.Formats
 
                 case PngColorType.Rgb:
 
-                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
-                    {
-                        byte r = defilteredScanline[o];
-                        byte g = defilteredScanline[o + this.bytesPerSample];
-                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
+                    rgba.A = 255;
 
-                        color.PackFromBytes(r, g, b, 255);
-                        rowSpan[x] = color;
+                    if (this.header.BitDepth == 16)
+                    {
+                        int length = this.header.Width * 3;
+                        using (var compressed = new Buffer<byte>(length))
+                        {
+                            // TODO: Should we use pack from vector here instead?
+                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 3)
+                            {
+                                rgba.R = compressed[o];
+                                rgba.G = compressed[o + 1];
+                                rgba.B = compressed[o + 2];
+
+                                color.PackFromRgba32(rgba);
+                                rowSpan[x] = color;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                        {
+                            rgba.R = scanlineBuffer[o];
+                            rgba.G = scanlineBuffer[o + this.bytesPerSample];
+                            rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
+
+                            color.PackFromRgba32(rgba);
+                            rowSpan[x] = color;
+                        }
                     }
 
                     break;
 
                 case PngColorType.RgbWithAlpha:
 
-                    for (int x = pixelOffset, o = 1; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                    if (this.header.BitDepth == 16)
                     {
-                        byte r = defilteredScanline[o];
-                        byte g = defilteredScanline[o + this.bytesPerSample];
-                        byte b = defilteredScanline[o + (2 * this.bytesPerSample)];
-                        byte a = defilteredScanline[o + (3 * this.bytesPerSample)];
+                        int length = this.header.Width * 4;
+                        using (var compressed = new Buffer<byte>(length))
+                        {
+                            // TODO: Should we use pack from vector here instead?
+                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
+                            {
+                                rgba.R = compressed[o];
+                                rgba.G = compressed[o + 1];
+                                rgba.B = compressed[o + 2];
+                                rgba.A = compressed[o + 3];
 
-                        color.PackFromBytes(r, g, b, a);
-                        rowSpan[x] = color;
+                                color.PackFromRgba32(rgba);
+                                rowSpan[x] = color;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
+                        {
+                            rgba.R = scanlineBuffer[o];
+                            rgba.G = scanlineBuffer[o + this.bytesPerSample];
+                            rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
+                            rgba.A = scanlineBuffer[o + (3 * this.bytesPerSample)];
+
+                            color.PackFromRgba32(rgba);
+                            rowSpan[x] = color;
+                        }
                     }
 
                     break;
@@ -798,7 +885,7 @@ namespace ImageSharp.Formats
         /// <param name="length">The maximum length to read.</param>
         private void ReadTextChunk(ImageMetaData metadata, byte[] data, int length)
         {
-            if (this.options.IgnoreMetadata)
+            if (this.ignoreMetadata)
             {
                 return;
             }
@@ -814,8 +901,8 @@ namespace ImageSharp.Formats
                 }
             }
 
-            string name = this.options.TextEncoding.GetString(data, 0, zeroIndex);
-            string value = this.options.TextEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
+            string name = this.textEncoding.GetString(data, 0, zeroIndex);
+            string value = this.textEncoding.GetString(data, zeroIndex + 1, length - zeroIndex - 1);
 
             metadata.Properties.Add(new ImageProperty(name, value));
         }
@@ -869,7 +956,7 @@ namespace ImageSharp.Formats
                 throw new NotSupportedException("The png specification only defines 'None' and 'Adam7' as interlaced methods.");
             }
 
-            this.PngColorType = (PngColorType)this.header.ColorType;
+            this.pngColorType = this.header.ColorType;
         }
 
         /// <summary>
@@ -922,9 +1009,9 @@ namespace ImageSharp.Formats
             this.crc.Update(this.chunkTypeBuffer);
             this.crc.Update(chunk.Data, 0, chunk.Length);
 
-            if (this.crc.Value != chunk.Crc)
+            if (this.crc.Value != chunk.Crc && IsCriticalChunk(chunk))
             {
-                throw new ImageFormatException("CRC Error. PNG Image chunk is corrupt!");
+                throw new ImageFormatException($"CRC Error. PNG {chunk.Type} chunk is corrupt!");
             }
         }
 
@@ -986,13 +1073,13 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Returns the correct number of columns for each interlaced pass.
         /// </summary>
-        /// <param name="pass">Th current pass index</param>
+        /// <param name="passIndex">Th current pass index</param>
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int ComputeColumnsAdam7(int pass)
+        private int ComputeColumnsAdam7(int passIndex)
         {
             int width = this.header.Width;
-            switch (pass)
+            switch (passIndex)
             {
                 case 0: return (width + 7) / 8;
                 case 1: return (width + 3) / 8;
@@ -1001,7 +1088,7 @@ namespace ImageSharp.Formats
                 case 4: return (width + 1) / 2;
                 case 5: return width / 2;
                 case 6: return width;
-                default: throw new ArgumentException($"Not a valid pass index: {pass}");
+                default: throw new ArgumentException($"Not a valid pass index: {passIndex}");
             }
         }
     }

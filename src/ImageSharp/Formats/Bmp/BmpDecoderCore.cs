@@ -2,11 +2,13 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
+
 namespace ImageSharp.Formats
 {
     using System;
     using System.IO;
-
+    using System.Runtime.CompilerServices;
+    using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
 
     /// <summary>
@@ -51,7 +53,8 @@ namespace ImageSharp.Formats
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        public BmpDecoderCore(Configuration configuration)
+        /// <param name="options">The options</param>
+        public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
             this.configuration = configuration;
         }
@@ -133,11 +136,6 @@ namespace ImageSharp.Formats
                     switch (this.infoHeader.Compression)
                     {
                         case BmpCompression.RGB:
-                            if (this.infoHeader.HeaderSize != 40)
-                            {
-                                throw new ImageFormatException($"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
-                            }
-
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
                                 this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -243,13 +241,16 @@ namespace ImageSharp.Formats
             byte[] row = new byte[arrayWidth + padding];
             TPixel color = default(TPixel);
 
+            Rgba32 rgba = default(Rgba32);
+
             for (int y = 0; y < height; y++)
             {
                 int newY = Invert(y, height, inverted);
-
                 this.currentStream.Read(row, 0, row.Length);
-
                 int offset = 0;
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+
+                // TODO: Could use PixelOperations here!
                 for (int x = 0; x < arrayWidth; x++)
                 {
                     int colOffset = x * ppb;
@@ -260,8 +261,9 @@ namespace ImageSharp.Formats
                         int newX = colOffset + shift;
 
                         // Stored in b-> g-> r order.
-                        color.PackFromBytes(colors[colorIndex + 2], colors[colorIndex + 1], colors[colorIndex], 255);
-                        pixels[newX, newY] = color;
+                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[colorIndex]);
+                        color.PackFromRgba32(rgba);
+                        pixelRow[newX] = color;
                     }
 
                     offset++;
@@ -286,6 +288,8 @@ namespace ImageSharp.Formats
             const int ComponentCount = 2;
 
             TPixel color = default(TPixel);
+            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+
             using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < height; y++)
@@ -294,17 +298,19 @@ namespace ImageSharp.Formats
 
                     int newY = Invert(y, height, inverted);
 
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
                     int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
                         short temp = BitConverter.ToInt16(row.Bytes, offset);
 
-                        byte r = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                        byte g = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                        byte b = (byte)((temp & Rgb16BMask) * ScaleR);
+                        rgba.R = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
+                        rgba.G = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
+                        rgba.B = (byte)((temp & Rgb16BMask) * ScaleR);
 
-                        color.PackFromBytes(r, g, b, 255);
-                        pixels[x, newY] = color;
+                        color.PackFromRgba32(rgba);
+                        pixelRow[x] = color;
                         offset += ComponentCount;
                     }
                 }
@@ -364,11 +370,69 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] data = new byte[BmpInfoHeader.Size];
+            byte[] data = new byte[BmpInfoHeader.MaxHeaderSize];
 
-            this.currentStream.Read(data, 0, BmpInfoHeader.Size);
+            // read header size
+            this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
+            int headerSize = BitConverter.ToInt32(data, 0);
+            if (headerSize < BmpInfoHeader.HeaderSizeSize || headerSize > BmpInfoHeader.MaxHeaderSize)
+            {
+                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
 
-            this.infoHeader = new BmpInfoHeader
+            // read the rest of the header
+            this.currentStream.Read(data, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
+
+            switch (headerSize)
+            {
+                case BmpInfoHeader.BitmapCoreHeaderSize:
+                    this.infoHeader = this.ParseBitmapCoreHeader(data);
+                    break;
+
+                case BmpInfoHeader.BitmapInfoHeaderSize:
+                    this.infoHeader = this.ParseBitmapInfoHeader(data);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
+        {
+            return new BmpInfoHeader
+            {
+                HeaderSize = BitConverter.ToInt32(data, 0),
+                Width = BitConverter.ToUInt16(data, 4),
+                Height = BitConverter.ToUInt16(data, 6),
+                Planes = BitConverter.ToInt16(data, 8),
+                BitsPerPixel = BitConverter.ToInt16(data, 10),
+
+                // the rest is not present in the core header
+                ImageSize = 0,
+                XPelsPerMeter = 0,
+                YPelsPerMeter = 0,
+                ClrUsed = 0,
+                ClrImportant = 0,
+                Compression = BmpCompression.RGB
+            };
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPINFOHEADER format.
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
+        {
+            return new BmpInfoHeader
             {
                 HeaderSize = BitConverter.ToInt32(data, 0),
                 Width = BitConverter.ToInt32(data, 4),

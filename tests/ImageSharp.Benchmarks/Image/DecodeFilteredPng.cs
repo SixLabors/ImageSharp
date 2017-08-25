@@ -10,6 +10,7 @@ namespace ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
 
     using ImageSharp;
+    using SixLabors.Primitives;
     using CoreImage = ImageSharp.Image;
 
     public class DecodeFilteredPng : BenchmarkBase
@@ -20,7 +21,7 @@ namespace ImageSharp.Benchmarks.Image
         private MemoryStream filter3;
         private MemoryStream filter4;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             this.filter0 = new MemoryStream(File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Png/filter0.png"));
@@ -30,11 +31,11 @@ namespace ImageSharp.Benchmarks.Image
             this.filter4 = new MemoryStream(File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Png/filter4.png"));
         }
 
-        private Size LoadPng(MemoryStream stream)
+        private SixLabors.Primitives.Size LoadPng(MemoryStream stream)
         {
             using (Image<Rgba32> image = CoreImage.Load<Rgba32>(stream))
             {
-                return new Size(image.Width, image.Height);
+                return new SixLabors.Primitives.Size(image.Width, image.Height);
             }
         }
 

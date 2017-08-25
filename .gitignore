@@ -219,3 +219,4 @@ artifacts/
 docs/
 
 **/is-cache/
+/samples/AvatarWithRoundedCorner/output

@@ -18,7 +18,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal unsafe class JpegDecoderCore : IDisposable
+    internal sealed unsafe class JpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum number of color components
@@ -44,11 +44,6 @@ namespace ImageSharp.Formats
         /// Lookup tables for converting YCbCr to Rgb
         /// </summary>
         private static YCbCrToRgbTables yCbCrToRgbTables = YCbCrToRgbTables.Create();
-
-        /// <summary>
-        /// The decoder options.
-        /// </summary>
-        private readonly IDecoderOptions options;
 
         /// <summary>
         /// The global configuration
@@ -103,12 +98,12 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
-        /// <param name="options">The decoder options.</param>
         /// <param name="configuration">The configuration.</param>
-        public JpegDecoderCore(IDecoderOptions options, Configuration configuration)
+        /// <param name="options">The options.</param>
+        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
+            this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
-            this.options = options ?? new DecoderOptions();
             this.HuffmanTrees = HuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.ScalarCount];
@@ -189,6 +184,11 @@ namespace ImageSharp.Formats
         /// Gets the the total number of MCU-s (Minimum Coded Units) in the image.
         /// </summary>
         public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
+
+        /// <summary>
+        /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        public bool IgnoreMetadata { get; private set; }
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
@@ -613,25 +613,23 @@ namespace ImageSharp.Formats
         private void ConvertFromGrayScale<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                Parallel.For(
-                    0,
-                    image.Height,
-                    image.Configuration.ParallelOptions,
-                    y =>
+            Parallel.For(
+                0,
+                image.Height,
+                image.Configuration.ParallelOptions,
+                y =>
                     {
+                        ref TPixel pixelRowBaseRef = ref image.GetPixelReference(0, y);
+
                         int yoff = this.grayImage.GetRowOffset(y);
+
                         for (int x = 0; x < image.Width; x++)
                         {
                             byte rgb = this.grayImage.Pixels[yoff + x];
-
-                            TPixel packed = default(TPixel);
-                            packed.PackFromBytes(rgb, rgb, rgb, 255);
-                            pixels[x, y] = packed;
+                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowBaseRef, x);
+                            pixel.PackFromRgba32(new Rgba32(rgb, rgb, rgb, 255));
                         }
                     });
-            }
 
             this.AssignResolution(image);
         }
@@ -646,30 +644,29 @@ namespace ImageSharp.Formats
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                Parallel.For(
-                    0,
-                    image.Height,
-                    image.Configuration.ParallelOptions,
-                    y =>
+            Parallel.For(
+                0,
+                image.Height,
+                image.Configuration.ParallelOptions,
+                y =>
                     {
                         // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
+                        ref TPixel pixelRowBaseRef = ref image.GetPixelReference(0, y);
+
+                        Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
                         for (int x = 0; x < image.Width; x++)
                         {
-                            byte red = this.ycbcrImage.YChannel[yo + x];
-                            byte green = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte blue = this.ycbcrImage.CrChannel[co + (x / scale)];
+                            rgba.R = this.ycbcrImage.YChannel[yo + x];
+                            rgba.G = this.ycbcrImage.CbChannel[co + (x / scale)];
+                            rgba.B = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                            TPixel packed = default(TPixel);
-                            packed.PackFromBytes(red, green, blue, 255);
-                            pixels[x, y] = packed;
+                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowBaseRef, x);
+                            pixel.PackFromRgba32(rgba);
                         }
                     });
-            }
 
             this.AssignResolution(image);
         }
@@ -729,16 +726,15 @@ namespace ImageSharp.Formats
         {
             int scale = this.ComponentArray[0].HorizontalFactor / this.ComponentArray[1].HorizontalFactor;
 
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                Parallel.For(
-                    0,
-                    image.Height,
-                    y =>
+            Parallel.For(
+                0,
+                image.Height,
+                y =>
                     {
                         // TODO: Simplify + optimize + share duplicate code across converter methods
                         int yo = this.ycbcrImage.GetRowYOffset(y);
                         int co = this.ycbcrImage.GetRowCOffset(y);
+                        ref TPixel pixelRowBaseRef = ref image.GetPixelReference(0, y);
 
                         for (int x = 0; x < image.Width; x++)
                         {
@@ -746,12 +742,10 @@ namespace ImageSharp.Formats
                             byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
                             byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
 
-                            TPixel packed = default(TPixel);
-                            this.PackYcck(ref packed, yy, cb, cr, x, y);
-                            pixels[x, y] = packed;
+                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowBaseRef, x);
+                            this.PackYcck(ref pixel, yy, cb, cr, x, y);
                         }
                     });
-            }
 
             this.AssignResolution(image);
         }
@@ -860,7 +854,7 @@ namespace ImageSharp.Formats
             byte g = (byte)(((m / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
             byte b = (byte)(((y / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
 
-            packed.PackFromBytes(r, g, b, 255);
+            packed.PackFromRgba32(new Rgba32(r, g, b));
         }
 
         /// <summary>
@@ -904,7 +898,7 @@ namespace ImageSharp.Formats
             byte g = (byte)(((1 - magenta) * (1 - keyline)).Clamp(0, 1) * 255);
             byte b = (byte)(((1 - yellow) * (1 - keyline)).Clamp(0, 1) * 255);
 
-            packed.PackFromBytes(r, g, b, 255);
+            packed.PackFromRgba32(new Rgba32(r, g, b));
         }
 
         /// <summary>
@@ -944,7 +938,7 @@ namespace ImageSharp.Formats
         /// <param name="metadata">The image.</param>
         private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
         {
-            if (remaining < 6 || this.options.IgnoreMetadata)
+            if (remaining < 6 || this.IgnoreMetadata)
             {
                 this.InputProcessor.Skip(remaining);
                 return;
@@ -974,7 +968,7 @@ namespace ImageSharp.Formats
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
-            if (remaining < Icclength || this.options.IgnoreMetadata)
+            if (remaining < Icclength || this.IgnoreMetadata)
             {
                 this.InputProcessor.Skip(remaining);
                 return;
@@ -982,6 +976,7 @@ namespace ImageSharp.Formats
 
             byte[] identifier = new byte[Icclength];
             this.InputProcessor.ReadFull(identifier, 0, Icclength);
+            remaining -= Icclength; // we have read it by this point
 
             if (identifier[0] == 'I' &&
                 identifier[1] == 'C' &&
@@ -996,7 +991,6 @@ namespace ImageSharp.Formats
                 identifier[10] == 'E' &&
                 identifier[11] == '\0')
             {
-                remaining -= Icclength;
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
 
@@ -1008,6 +1002,11 @@ namespace ImageSharp.Formats
                 {
                     metadata.IccProfile.Extend(profile);
                 }
+            }
+            else
+            {
+                // not an ICC profile we can handle read the remaining so we can carry on and ignore this.
+                this.InputProcessor.Skip(remaining);
             }
         }
 

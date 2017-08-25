@@ -9,7 +9,7 @@ namespace ImageSharp.Tests
     using System.Numerics;
 
     using ImageSharp.PixelFormats;
-
+    using SixLabors.Primitives;
     using Xunit;
 
     /// <summary>
@@ -70,22 +70,6 @@ namespace ImageSharp.Tests
             }
         }
 
-        // TODO: Need a processor in the library with this signature
-        private static void Fill<TPixel>(Image<TPixel> image, Rectangle region, TPixel color)
-             where TPixel : struct, IPixel<TPixel>
-        {
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                for (int y = region.Top; y < region.Bottom; y++)
-                {
-                    for (int x = region.Left; x < region.Right; x++)
-                    {
-                        pixels[x, y] = color;
-                    }
-                }
-            }
-        }
-
         [Theory]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyz)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
@@ -98,7 +82,7 @@ namespace ImageSharp.Tests
             {
                 using (Image<TPixel> srcImage = provider.GetImage())
                 {
-                    Fill(srcImage, new Rectangle(4, 4, 8, 8), NamedColors<TPixel>.Red);
+                    srcImage.Fill(NamedColors<TPixel>.Red, new Rectangle(4, 4, 8, 8));
                     using (PixelAccessor<TPixel> srcPixels = srcImage.Lock())
                     {
                         using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, order))
@@ -129,7 +113,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyFromZYX(image);
+                CopyFromZYXImpl(image);
             }
         }
         
@@ -138,7 +122,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyFromZYXW(image);
+                CopyFromZYXWImpl(image);
             }
         }
         
@@ -147,7 +131,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyToZYX(image);
+                CopyToZYXImpl(image);
             }
         }
         
@@ -156,11 +140,11 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyToZYXW(image);
+                CopyToZYXWImpl(image);
             }
         }
         
-        private static void CopyFromZYX<TPixel>(Image<TPixel> image)
+        private static void CopyFromZYXImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -187,7 +171,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyFromZYXW<TPixel>(Image<TPixel> image)
+        private static void CopyFromZYXWImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -215,7 +199,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYX<TPixel>(Image<TPixel> image)
+        private static void CopyToZYXImpl<TPixel>(Image<TPixel> image)
           where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -237,7 +221,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYXW<TPixel>(Image<TPixel> image)
+        private static void CopyToZYXWImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())

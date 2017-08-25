@@ -7,6 +7,7 @@ namespace ImageSharp.Web.Processors
 {
     using System.Collections.Generic;
 
+    using ImageSharp.Formats;
     using ImageSharp.Web.Commands;
 
     using Microsoft.Extensions.Logging;
@@ -31,7 +32,7 @@ namespace ImageSharp.Web.Processors
         public IEnumerable<string> Commands { get; } = ColorCommands;
 
         /// <inheritdoc/>
-        public Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands)
+        public Image<Rgba32> Process(Image<Rgba32> image, ref IImageFormat format, ILogger logger, IDictionary<string, string> commands)
         {
             Rgba32 background = CommandParser.Instance.ParseValue<Rgba32>(commands.GetValueOrDefault(Color));
 

@@ -5,6 +5,7 @@
 
 namespace ImageSharp.Formats
 {
+    using System.Collections.Generic;
     using System.Text;
 
     /// <summary>
@@ -90,6 +91,16 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Gets the default encoding to use when reading comments.
         /// </summary>
-        public static Encoding DefaultEncoding { get; } = Encoding.GetEncoding("ASCII");
+        public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
+
+        /// <summary>
+        /// The list of mimetypes that equate to a gif.
+        /// </summary>
+        public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
+
+        /// <summary>
+        /// The list of file extensions that equate to a gif.
+        /// </summary>
+        public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
     }
 }

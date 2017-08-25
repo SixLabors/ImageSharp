@@ -174,10 +174,10 @@ namespace ImageSharp.Web.Middleware
                 // TODO: How to prevent the allocation in outStream? Passing a pooled buffer won't let stream grow if needed.
                 inStream = new MemoryStream(inBuffer);
                 outStream = new MemoryStream();
-                using (var image = Image.Load(this.options.Configuration, inStream))
+                using (var image = Image.Load(this.options.Configuration, inStream, out var format))
                 {
-                    image.Process(this.logger, this.processors, commands)
-                         .Save(outStream);
+                    image.Process(ref format, this.logger, this.processors, commands)
+                         .Save(outStream, format);
                 }
 
                 // Allow for any further optimization of the image. Always reset the position just in case.

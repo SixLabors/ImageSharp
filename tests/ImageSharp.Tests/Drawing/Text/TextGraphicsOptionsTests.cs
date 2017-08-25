@@ -22,7 +22,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
             TextGraphicsOptions textOptions = opt;
 
-            Assert.Equal(false, textOptions.Antialias);
+            Assert.False(textOptions.Antialias);
             Assert.Equal(99, textOptions.AntialiasSubpixelDepth);
         }
 
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests.Drawing.Text
 
             GraphicsOptions opt = (GraphicsOptions)textOptions;
 
-            Assert.Equal(false, opt.Antialias);
+            Assert.False(opt.Antialias);
             Assert.Equal(99, opt.AntialiasSubpixelDepth);
         }
     }

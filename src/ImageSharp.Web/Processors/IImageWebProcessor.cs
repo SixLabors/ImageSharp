@@ -7,6 +7,8 @@ namespace ImageSharp.Web.Processors
 {
     using System.Collections.Generic;
 
+    using ImageSharp.Formats;
+
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -23,9 +25,10 @@ namespace ImageSharp.Web.Processors
         /// Processes the image based on the querystring commands.
         /// </summary>
         /// <param name="image">The image to process</param>
+        /// <param name="format">The current image format</param>
         /// <param name="logger">The type used for performing logging</param>
         /// <param name="commands">The querystring collection containing the processing commands</param>
         /// <returns>The <see cref="Image{Rgba32}"/></returns>
-        Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands);
+        Image<Rgba32> Process(Image<Rgba32> image, ref IImageFormat format, ILogger logger, IDictionary<string, string> commands);
     }
 }

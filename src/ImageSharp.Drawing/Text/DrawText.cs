@@ -12,13 +12,15 @@ namespace ImageSharp
     using Drawing.Pens;
     using ImageSharp.PixelFormats;
     using SixLabors.Fonts;
+    using SixLabors.Primitives;
+    using SixLabors.Shapes;
 
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
     public static partial class ImageExtensions
     {
-        private static readonly Vector2 DefaultTextDpi = new Vector2(72);
+        private static readonly int DefaultTextDpi = 72;
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
@@ -32,7 +34,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, color, location, TextGraphicsOptions.Default);
@@ -51,7 +53,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, TPixel color, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, Brushes.Solid(color), null, location, options);
@@ -69,7 +71,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, location, TextGraphicsOptions.Default);
@@ -88,7 +90,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, null, location, options);
@@ -106,7 +108,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, pen, location, TextGraphicsOptions.Default);
@@ -125,7 +127,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, null, pen, location, options);
@@ -144,7 +146,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawText(text, font, brush, pen, location, TextGraphicsOptions.Default);
@@ -164,46 +166,37 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, Vector2 location, TextGraphicsOptions options)
+        public static Image<TPixel> DrawText<TPixel>(this Image<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            GlyphBuilder glyphBuilder = new GlyphBuilder(location);
-
-            TextRenderer renderer = new TextRenderer(glyphBuilder);
-
-            Vector2 dpi = DefaultTextDpi;
+            float dpiX = DefaultTextDpi;
+            float dpiY = DefaultTextDpi;
             if (options.UseImageResolution)
             {
-                dpi = new Vector2((float)source.MetaData.HorizontalResolution, (float)source.MetaData.VerticalResolution);
+                dpiX = (float)source.MetaData.HorizontalResolution;
+                dpiY = (float)source.MetaData.VerticalResolution;
             }
 
-            FontSpan style = new FontSpan(font, dpi)
+            var style = new RendererOptions(font, dpiX, dpiY, location)
             {
                 ApplyKerning = options.ApplyKerning,
                 TabWidth = options.TabWidth,
                 WrappingWidth = options.WrapTextWidth,
-                Alignment = options.TextAlignment
+                HorizontalAlignment = options.HorizontalAlignment,
+                VerticalAlignment = options.VerticalAlignment
             };
 
-            renderer.RenderText(text, style);
+            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, style);
 
-            System.Collections.Generic.IEnumerable<SixLabors.Shapes.IPath> shapesToDraw = glyphBuilder.Paths;
-
-            GraphicsOptions pathOptions = (GraphicsOptions)options;
+            var pathOptions = (GraphicsOptions)options;
             if (brush != null)
             {
-                foreach (SixLabors.Shapes.IPath s in shapesToDraw)
-                {
-                    source.Fill(brush, s, pathOptions);
-                }
+                source.Fill(brush, glyphs, pathOptions);
             }
 
             if (pen != null)
             {
-                foreach (SixLabors.Shapes.IPath s in shapesToDraw)
-                {
-                    source.Draw(pen, s, pathOptions);
-                }
+                source.Draw(pen, glyphs, pathOptions);
             }
 
             return source;

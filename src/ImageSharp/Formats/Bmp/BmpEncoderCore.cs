@@ -18,22 +18,22 @@ namespace ImageSharp.Formats
     internal sealed class BmpEncoderCore
     {
         /// <summary>
-        /// The options for the encoder.
-        /// </summary>
-        private readonly IBmpEncoderOptions options;
-
-        /// <summary>
         /// The amount to pad each row by.
         /// </summary>
         private int padding;
 
         /// <summary>
+        /// Gets or sets the number of bits per pixel.
+        /// </summary>
+        private BmpBitsPerPixel bitsPerPixel;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options for the encoder.</param>
+        /// <param name="options">The encoder options</param>
         public BmpEncoderCore(IBmpEncoderOptions options)
         {
-            this.options = options ?? new BmpEncoderOptions();
+            this.bitsPerPixel = options.BitsPerPixel;
         }
 
         /// <summary>
@@ -49,16 +49,16 @@ namespace ImageSharp.Formats
             Guard.NotNull(stream, nameof(stream));
 
             // Cast to int will get the bytes per pixel
-            short bpp = (short)(8 * (int)this.options.BitsPerPixel);
+            short bpp = (short)(8 * (int)this.bitsPerPixel);
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
-            this.padding = bytesPerLine - (image.Width * (int)this.options.BitsPerPixel);
+            this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
             EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             BmpInfoHeader infoHeader = new BmpInfoHeader
             {
-                HeaderSize = BmpInfoHeader.Size,
+                HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
                 Height = image.Height,
                 Width = image.Width,
                 BitsPerPixel = bpp,
@@ -136,7 +136,7 @@ namespace ImageSharp.Formats
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
-                switch (this.options.BitsPerPixel)
+                switch (this.bitsPerPixel)
                 {
                     case BmpBitsPerPixel.Pixel32:
                         this.Write32Bit(writer, pixels);

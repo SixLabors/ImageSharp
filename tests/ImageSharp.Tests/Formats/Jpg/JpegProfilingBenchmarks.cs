@@ -34,7 +34,7 @@ namespace ImageSharp.Tests
         };
 
         // [Theory] // Benchmark, enable manually
-        [MemberData(nameof(DecodeJpegData))]
+        // [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName)
         {
             const int ExecutionCount = 30;
@@ -60,10 +60,10 @@ namespace ImageSharp.Tests
 
         // Benchmark, enable manually!
         // [Theory]
-        [InlineData(1, 75, JpegSubsample.Ratio420)]
-        [InlineData(30, 75, JpegSubsample.Ratio420)]
-        [InlineData(30, 75, JpegSubsample.Ratio444)]
-        [InlineData(30, 100, JpegSubsample.Ratio444)]
+        // [InlineData(1, 75, JpegSubsample.Ratio420)]
+        // [InlineData(30, 75, JpegSubsample.Ratio420)]
+        // [InlineData(30, 75, JpegSubsample.Ratio444)]
+        // [InlineData(30, 100, JpegSubsample.Ratio444)]
         public void EncodeJpeg(int executionCount, int quality, JpegSubsample subsample)
         {
             string[] testFiles = TestImages.Bmp.All
@@ -82,9 +82,8 @@ namespace ImageSharp.Tests
                     {
                         foreach (Image<Rgba32> img in testImages)
                         {
-                            JpegEncoder encoder = new JpegEncoder();
-                            JpegEncoderOptions options = new JpegEncoderOptions { Quality = quality, Subsample = subsample };
-                            img.Save(ms, encoder, options);
+                            JpegEncoder options = new JpegEncoder { Quality = quality, Subsample = subsample };
+                            img.Save(ms, options);
                             ms.Seek(0, SeekOrigin.Begin);
                         }
                     },

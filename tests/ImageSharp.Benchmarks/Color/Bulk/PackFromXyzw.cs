@@ -16,14 +16,14 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Params(16, 128, 1024)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.destination = new Buffer<TPixel>(this.Count);
             this.source = new Buffer<byte>(this.Count * 4);
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.destination.Dispose();
@@ -40,7 +40,7 @@ namespace ImageSharp.Benchmarks.Color.Bulk
             {
                 int i4 = i * 4;
                 TPixel c = default(TPixel);
-                c.PackFromBytes(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]);
+                c.PackFromRgba32(new Rgba32(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
                 d[i] = c;
             }
         }
@@ -48,13 +48,13 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromXyzwBytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source, this.destination, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.PackFromXyzwBytes(this.source, this.destination, this.Count);
+           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source, this.destination, this.Count);
         }
     }
 

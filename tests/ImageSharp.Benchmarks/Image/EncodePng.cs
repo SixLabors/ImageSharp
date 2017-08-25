@@ -29,7 +29,7 @@ namespace ImageSharp.Benchmarks.Image
         [Params(false)]
         public bool UseOctreeQuantizer { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             if (this.bmpStream == null)
@@ -44,7 +44,7 @@ namespace ImageSharp.Benchmarks.Image
             }
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.bmpStream.Dispose();
@@ -71,7 +71,7 @@ namespace ImageSharp.Benchmarks.Image
                 new OctreeQuantizer<Rgba32>()
                 : new PaletteQuantizer<Rgba32>();
 
-                PngEncoderOptions options = new PngEncoderOptions() { Quantizer = quantizer };
+                PngEncoder options = new PngEncoder() { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

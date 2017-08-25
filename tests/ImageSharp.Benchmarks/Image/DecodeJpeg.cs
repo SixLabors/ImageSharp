@@ -12,13 +12,13 @@ namespace ImageSharp.Benchmarks.Image
 
     using CoreImage = ImageSharp.Image;
 
-    using CoreSize = ImageSharp.Size;
+    using CoreSize = SixLabors.Primitives.Size;
 
     public class DecodeJpeg : BenchmarkBase
     {
         private byte[] jpegBytes;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             if (this.jpegBytes == null)

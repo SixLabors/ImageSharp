@@ -50,18 +50,18 @@ namespace ImageSharp.Web.Processors
         public IEnumerable<string> Commands { get; } = FormatCommands;
 
         /// <inheritdoc/>
-        public Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands)
+        public Image<Rgba32> Process(Image<Rgba32> image, ref IImageFormat format, ILogger logger, IDictionary<string, string> commands)
         {
             string extension = commands.GetValueOrDefault(Format);
 
             if (!string.IsNullOrWhiteSpace(extension))
             {
-                IImageFormat format = this.options.Configuration.ImageFormats
-                                                  .FirstOrDefault(f => f.SupportedExtensions.Contains(extension));
+                IImageFormat newFormat = this.options.Configuration.ImageFormats
+                    .FirstOrDefault(f => f.FileExtensions.Contains(extension));
 
-                if (format != null)
+                if (newFormat != null)
                 {
-                    image.CurrentImageFormat = format;
+                    format = newFormat;
                 }
             }
 

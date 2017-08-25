@@ -23,10 +23,9 @@ namespace ImageSharp.PixelFormats
             /// <inheritdoc />
             internal override unsafe void ToVector4(Span<RgbaVector> sourceColors, Span<Vector4> destVectors, int count)
             {
-                Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destVectors, count, nameof(destVectors));
+                GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
-                SpanHelper.Copy(sourceColors.AsBytes(), destVectors.AsBytes(), count * sizeof(Vector4));
+                SpanHelper.Copy(sourceColors.NonPortableCast<RgbaVector, Vector4>(), destVectors, count);
             }
         }
     }

@@ -24,18 +24,15 @@ namespace ImageSharp.Tests.Drawing
             string path = this.CreateOutputDirectory("Drawing", "BezierLine");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Simple.png"))
-                {
-                    image.BackgroundColor(Rgba32.Blue)
-                        .DrawBeziers(Rgba32.HotPink, 5,
-                            new[] {
+                image.BackgroundColor(Rgba32.Blue)
+                    .DrawBeziers(Rgba32.HotPink, 5,
+                        new SixLabors.Primitives.PointF[] {
                                 new Vector2(10, 400),
                                 new Vector2(30, 10),
                                 new Vector2(240, 30),
                                 new Vector2(300, 400)
-                            })
-                        .Save(output);
-                }
+                        })
+                    .Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -43,8 +40,8 @@ namespace ImageSharp.Tests.Drawing
                     Assert.Equal(Rgba32.HotPink, sourcePixels[138, 115]);
 
                     //start points
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[10, 400]);
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[300, 400]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[10, 395]);
+                    Assert.Equal(Rgba32.HotPink, sourcePixels[300, 395]);
 
                     //curve points should not be never be set
                     Assert.Equal(Rgba32.Blue, sourcePixels[30, 10]);
@@ -66,33 +63,30 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                using (FileStream output = File.OpenWrite($"{path}/Opacity.png"))
-                {
-                    image.BackgroundColor(Rgba32.Blue)
-                        .DrawBeziers(color,
-                        10,
-                        new[] {
+                image.BackgroundColor(Rgba32.Blue)
+                    .DrawBeziers(color,
+                    10,
+                    new SixLabors.Primitives.PointF[]{
                             new Vector2(10, 400),
                             new Vector2(30, 10),
                             new Vector2(240, 30),
                             new Vector2(300, 400)
-                        })
-                        .Save(output);
-                }
+                    })
+                    .Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    //top of curve
+                    // top of curve
                     Assert.Equal(mergedColor, sourcePixels[138, 115]);
 
-                    //start points
-                    Assert.Equal(mergedColor, sourcePixels[10, 400]);
-                    Assert.Equal(mergedColor, sourcePixels[300, 400]);
+                    // start points
+                    Assert.Equal(mergedColor, sourcePixels[10, 395]);
+                    Assert.Equal(mergedColor, sourcePixels[300, 395]);
 
-                    //curve points should not be never be set
+                    // curve points should not be never be set
                     Assert.Equal(Rgba32.Blue, sourcePixels[30, 10]);
                     Assert.Equal(Rgba32.Blue, sourcePixels[240, 30]);
 

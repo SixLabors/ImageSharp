@@ -12,13 +12,13 @@ namespace ImageSharp.Benchmarks.Image
 
     using CoreImage = ImageSharp.Image;
 
-    using CoreSize = ImageSharp.Size;
+    using CoreSize = SixLabors.Primitives.Size;
 
     public class DecodeGif : BenchmarkBase
     {
         private byte[] gifBytes;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImages()
         {
             if (this.gifBytes == null)

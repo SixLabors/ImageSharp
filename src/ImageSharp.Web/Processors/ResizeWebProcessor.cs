@@ -7,10 +7,13 @@ namespace ImageSharp.Web.Processors
 {
     using System.Collections.Generic;
 
+    using ImageSharp.Formats;
     using ImageSharp.Processing;
     using ImageSharp.Web.Commands;
 
     using Microsoft.Extensions.Logging;
+
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Allows the resizing of images.
@@ -68,7 +71,7 @@ namespace ImageSharp.Web.Processors
         public IEnumerable<string> Commands { get; } = ResizeCommands;
 
         /// <inheritdoc/>
-        public Image<Rgba32> Process(Image<Rgba32> image, ILogger logger, IDictionary<string, string> commands)
+        public Image<Rgba32> Process(Image<Rgba32> image, ref IImageFormat format, ILogger logger, IDictionary<string, string> commands)
         {
             ResizeOptions options = GetResizeOptions(commands);
 

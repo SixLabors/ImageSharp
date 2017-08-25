@@ -20,7 +20,7 @@ namespace ImageSharp.Benchmarks.General
 
         private Vector4 parameter;
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.random = new Random(42);

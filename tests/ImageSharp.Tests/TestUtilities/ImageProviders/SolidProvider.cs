@@ -53,11 +53,11 @@ namespace ImageSharp.Tests
             {
                 Image<TPixel> image = base.GetImage();
                 TPixel color = default(TPixel);
-                color.PackFromBytes(this.r, this.g, this.b, this.a);
+                color.PackFromRgba32(new Rgba32(this.r, this.g, this.b, this.a));
 
                 return image.Fill(color);
             }
-
+            
             public override void Serialize(IXunitSerializationInfo info)
             {
                 info.AddValue("red", this.r);

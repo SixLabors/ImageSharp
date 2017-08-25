@@ -25,7 +25,7 @@ namespace ImageSharp.Web.Helpers
         public static string GetContentType(Configuration configuration, string key)
         {
             string extension = Path.GetExtension(key).Replace(".", string.Empty);
-            return configuration.ImageFormats.First(f => f.SupportedExtensions.Contains(extension)).MimeType;
+            return configuration.ImageFormats.First(f => f.FileExtensions.Contains(extension)).DefaultMimeType;
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace ImageSharp.Web.Helpers
             int index = 0;
             foreach (IImageFormat format in configuration.ImageFormats)
             {
-                foreach (string ext in format.SupportedExtensions)
+                foreach (string ext in format.FileExtensions)
                 {
                     int i = uri.LastIndexOf(ext, StringComparison.OrdinalIgnoreCase);
                     if (i <= index)
@@ -64,7 +64,7 @@ namespace ImageSharp.Web.Helpers
         /// <returns>The <see cref="string"/></returns>
         public static string GetExtensionOrDefault(Configuration configuration, string uri)
         {
-            return GetExtension(configuration, uri) ?? configuration.ImageFormats.First().Extension;
+            return GetExtension(configuration, uri) ?? configuration.ImageFormats.First().FileExtensions.First();
         }
     }
 }

@@ -31,7 +31,7 @@ namespace ImageSharp.Tests
                 string filename = file.GetFileNameWithoutExtension(bitsPerPixel);
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    image.Save($"{path}/{filename}.bmp", new BmpEncoderOptions { BitsPerPixel = bitsPerPixel });
+                    image.Save($"{path}/{filename}.bmp", new BmpEncoder { BitsPerPixel = bitsPerPixel });
                 }
             }
         }

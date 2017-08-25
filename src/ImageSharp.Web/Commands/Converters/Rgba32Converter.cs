@@ -75,15 +75,20 @@ namespace ImageSharp.Web.Commands.Converters
                 }
             }
 
+            // Named colors
+            IDictionary<string, Rgba32> table = ColorConstantsTable.Value;
+            if (table.ContainsKey(value))
+            {
+                return table[value];
+            }
+
             // Hex colors rgb, rrggbb, rrggbbaa
             if (HexColorRegex.IsMatch(value))
             {
                 return Rgba32.FromHex(value);
             }
 
-            // Named colors
-            IDictionary<string, Rgba32> table = ColorConstantsTable.Value;
-            return table.ContainsKey(value) ? table[value] : base.ConvertFrom(culture, value, propertyType);
+            return base.ConvertFrom(culture, value, propertyType);
         }
 
         /// <summary>

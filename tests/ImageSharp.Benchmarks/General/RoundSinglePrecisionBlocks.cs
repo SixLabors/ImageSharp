@@ -22,7 +22,7 @@
         private Block8x8F inputDividend = default(Block8x8F);
         private Block8x8F inputDivisior = default(Block8x8F);
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             for (int i = 0; i < Block8x8F.ScalarCount; i++)

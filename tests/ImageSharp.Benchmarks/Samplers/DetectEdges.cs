@@ -17,7 +17,7 @@ namespace ImageSharp.Benchmarks
     {
         private Image<Rgba32> image;
 
-        [Setup]
+        [GlobalSetup]
         public void ReadImage()
         {
             if (this.image == null)
@@ -29,7 +29,7 @@ namespace ImageSharp.Benchmarks
             }
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             this.image.Dispose();

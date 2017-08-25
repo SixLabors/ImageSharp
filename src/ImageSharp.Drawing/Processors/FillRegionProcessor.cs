@@ -13,6 +13,7 @@ namespace ImageSharp.Drawing.Processors
     using ImageSharp.Memory;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing;
+    using SixLabors.Primitives;
 
     /// <summary>
     /// Usinf a brsuh and a shape fills shape with contents of brush the
@@ -93,6 +94,7 @@ namespace ImageSharp.Drawing.Processors
             using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
             {
                 float[] buffer = arrayPool.Rent(maxIntersections);
+                Span<float> bufferSpan = buffer.AsSpan().Slice(0, maxIntersections);
                 int scanlineWidth = maxX - minX;
                 using (var scanline = new Buffer<float>(scanlineWidth))
                 {
@@ -116,14 +118,14 @@ namespace ImageSharp.Drawing.Processors
                             float subpixelFractionPoint = subpixelFraction / subpixelCount;
                             for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
                             {
-                                int pointsFound = region.Scan(subPixel, buffer, maxIntersections, 0);
+                                int pointsFound = region.Scan(subPixel, bufferSpan);
                                 if (pointsFound == 0)
                                 {
                                     // nothing on this line skip
                                     continue;
                                 }
 
-                                QuickSort(buffer, pointsFound);
+                                QuickSort(bufferSpan.Slice(0, pointsFound));
 
                                 for (int point = 0; point < pointsFound; point += 2)
                                 {
@@ -153,13 +155,11 @@ namespace ImageSharp.Drawing.Processors
 
                                     int nextX = startX + 1;
                                     endX = Math.Min(endX, scanline.Length); // reduce to end to the right edge
-                                    if (nextX >= 0)
+                                    nextX = Math.Max(nextX, 0);
+                                    for (int x = nextX; x < endX; x++)
                                     {
-                                        for (int x = nextX; x < endX; x++)
-                                        {
-                                            scanline[x] += subpixelFraction;
-                                            scanlineDirty = true;
-                                        }
+                                        scanline[x] += subpixelFraction;
+                                        scanlineDirty = true;
                                     }
                                 }
                             }
@@ -194,20 +194,20 @@ namespace ImageSharp.Drawing.Processors
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Swap(float[] data, int left, int right)
+        private static void Swap(Span<float> data, int left, int right)
         {
             float tmp = data[left];
             data[left] = data[right];
             data[right] = tmp;
         }
 
-        private static void QuickSort(float[] data, int size)
+        private static void QuickSort(Span<float> data)
         {
-            int hi = Math.Min(data.Length - 1, size - 1);
+            int hi = Math.Min(data.Length - 1, data.Length - 1);
             QuickSort(data, 0, hi);
         }
 
-        private static void QuickSort(float[] data, int lo, int hi)
+        private static void QuickSort(Span<float> data, int lo, int hi)
         {
             if (lo < hi)
             {
@@ -217,7 +217,7 @@ namespace ImageSharp.Drawing.Processors
             }
         }
 
-        private static int Partition(float[] data, int lo, int hi)
+        private static int Partition(Span<float> data, int lo, int hi)
         {
             float pivot = data[lo];
             int i = lo - 1;

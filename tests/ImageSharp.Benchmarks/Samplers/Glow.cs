@@ -9,20 +9,21 @@ namespace ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
     using ImageSharp.PixelFormats;
     using ImageSharp.Processing.Processors;
-    using CoreSize = ImageSharp.Size;
+    using CoreSize = SixLabors.Primitives.Size;
     using ImageSharp.Processing;
     using System.Numerics;
     using System;
     using System.Threading.Tasks;
 
     using ImageSharp.Memory;
+    using SixLabors.Primitives;
 
     public class Glow : BenchmarkBase
     {
         private GlowProcessor<Rgba32> bulk;
         private GlowProcessorParallel<Rgba32> parallel;
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, GraphicsOptions.Default) { Radius = 800 * .5f, };

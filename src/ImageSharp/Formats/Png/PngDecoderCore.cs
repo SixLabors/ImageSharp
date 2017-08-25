@@ -272,7 +272,7 @@ namespace ImageSharp.Formats
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
         private static Span<byte> ToArrayByBitsLength(Span<byte> source, int bytesPerScanline, int bits)
         {
-            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThan(source.Length, 0, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
 
             if (bits >= 8)

@@ -298,8 +298,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     Scale = new System.Numerics.Vector2(
                         frameComponent.HorizontalFactor / (float)this.Frame.MaxHorizontalFactor,
                         frameComponent.VerticalFactor / (float)this.Frame.MaxVerticalFactor),
-                    BlocksPerLine = frameComponent.BlocksPerLine,
-                    BlocksPerColumn = frameComponent.BlocksPerColumn
+                    BlocksPerLine = frameComponent.WidthInBlocks,
+                    BlocksPerColumn = frameComponent.HeightInBlocks
                 };
 
                 // this.QuantizeAndInverseComponentData(ref component, frameComponent);

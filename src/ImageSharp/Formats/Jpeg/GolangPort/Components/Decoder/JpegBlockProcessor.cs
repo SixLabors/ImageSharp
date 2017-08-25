@@ -49,9 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             OldComponent component = decoder.Components[this.componentIndex];
 
-            for (int by = 0; by < component.BlockCountY; by++)
+            for (int by = 0; by < component.HeightInBlocks; by++)
             {
-                for (int bx = 0; bx < component.BlockCountX; bx++)
+                for (int bx = 0; bx < component.WidthInBlocks; bx++)
                 {
                     this.ProcessBlockColors(decoder, component, bx, by);
                 }

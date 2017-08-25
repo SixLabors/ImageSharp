@@ -137,11 +137,11 @@ namespace SixLabors.ImageSharp.Tests
                     return null;
                 }
 
-                Image<Rgba32> result = new Image<Rgba32>(c0.BlockCountX * 8, c0.BlockCountY * 8);
+                Image<Rgba32> result = new Image<Rgba32>(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
 
-                for (int by = 0; by < c0.BlockCountY; by++)
+                for (int by = 0; by < c0.HeightInBlocks; by++)
                 {
-                    for (int bx = 0; bx < c0.BlockCountX; bx++)
+                    for (int bx = 0; bx < c0.WidthInBlocks; bx++)
                     {
                         this.WriteToImage(bx, by, result);
                     }
@@ -227,23 +227,23 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        public class ComponentData : IEquatable<ComponentData>
+        public class ComponentData : IEquatable<ComponentData>, IJpegComponent
         {
-            public ComponentData(int blockCountY, int blockCountX, int index)
+            public ComponentData(int heightInBlocks, int widthInBlocks, int index)
             {
-                this.BlockCountY = blockCountY;
-                this.BlockCountX = blockCountX;
+                this.HeightInBlocks = heightInBlocks;
+                this.WidthInBlocks = widthInBlocks;
                 this.Index = index;
-                this.Blocks = new Buffer2D<Block8x8>(this.BlockCountX, this.BlockCountY);
+                this.Blocks = new Buffer2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
             }
 
-            public Size Size => new Size(this.BlockCountX, this.BlockCountY);
+            public Size Size => new Size(this.WidthInBlocks, this.HeightInBlocks);
 
             public int Index { get; }
 
-            public int BlockCountY { get; }
+            public int HeightInBlocks { get; }
 
-            public int BlockCountX { get; }
+            public int WidthInBlocks { get; }
 
             public Buffer2D<Block8x8> Blocks { get; private set; }
 
@@ -290,9 +290,9 @@ namespace SixLabors.ImageSharp.Tests
                     index
                     );
 
-                for (int y = 0; y < result.BlockCountY; y++)
+                for (int y = 0; y < result.HeightInBlocks; y++)
                 {
-                    for (int x = 0; x < result.BlockCountX; x++)
+                    for (int x = 0; x < result.WidthInBlocks; x++)
                     {
                         short[] data = c.GetBlockBuffer(y, x).ToArray();
                         result.MakeBlock(data, y, x);
@@ -310,9 +310,9 @@ namespace SixLabors.ImageSharp.Tests
                     c.Index
                 );
 
-                for (int y = 0; y < result.BlockCountY; y++)
+                for (int y = 0; y < result.HeightInBlocks; y++)
                 {
-                    for (int x = 0; x < result.BlockCountX; x++)
+                    for (int x = 0; x < result.WidthInBlocks; x++)
                     {
                         short[] data = c.GetBlockReference(x, y).ToArray();
                         result.MakeBlock(data, y, x);
@@ -324,11 +324,11 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image<Rgba32> CreateGrayScaleImage()
             {
-                Image<Rgba32> result = new Image<Rgba32>(this.BlockCountX * 8, this.BlockCountY * 8);
+                Image<Rgba32> result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
                 
-                for (int by = 0; by < this.BlockCountY; by++)
+                for (int by = 0; by < this.HeightInBlocks; by++)
                 {
-                    for (int bx = 0; bx < this.BlockCountX; bx++)
+                    for (int bx = 0; bx < this.WidthInBlocks; bx++)
                     {
                         this.WriteToImage(bx, by, result);
                     }
@@ -370,15 +370,15 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (ReferenceEquals(null, other)) return false;
                 if (ReferenceEquals(this, other)) return true;
-                bool ok = this.Index == other.Index && this.BlockCountY == other.BlockCountY
-                          && this.BlockCountX == other.BlockCountX;
+                bool ok = this.Index == other.Index && this.HeightInBlocks == other.HeightInBlocks
+                          && this.WidthInBlocks == other.WidthInBlocks;
                        //&& this.MinVal == other.MinVal
                        //&& this.MaxVal == other.MaxVal;
                 if (!ok) return false;
 
-                for (int y = 0; y < this.BlockCountY; y++)
+                for (int y = 0; y < this.HeightInBlocks; y++)
                 {
-                    for (int x = 0; x < this.BlockCountX; x++)
+                    for (int x = 0; x < this.WidthInBlocks; x++)
                     {
                         Block8x8 a = this.Blocks[x, y];
                         Block8x8 b = other.Blocks[x, y];
@@ -401,8 +401,8 @@ namespace SixLabors.ImageSharp.Tests
                 unchecked
                 {
                     var hashCode = this.Index;
-                    hashCode = (hashCode * 397) ^ this.BlockCountY;
-                    hashCode = (hashCode * 397) ^ this.BlockCountX;
+                    hashCode = (hashCode * 397) ^ this.HeightInBlocks;
+                    hashCode = (hashCode * 397) ^ this.WidthInBlocks;
                     hashCode = (hashCode * 397) ^ this.MinVal.GetHashCode();
                     hashCode = (hashCode * 397) ^ this.MaxVal.GetHashCode();
                     return hashCode;
@@ -479,33 +479,35 @@ namespace SixLabors.ImageSharp.Tests
             try
             {
                 RunDumpJpegCoeffsTool(testFile.FullPath, coeffFileFullPath);
-                byte[] spectralBytes = File.ReadAllBytes(coeffFileFullPath);
-                File.Delete(coeffFileFullPath);
-
-                using (var ms = new MemoryStream(testFile.Bytes))
+                
+                using (var dumpStream = new FileStream(coeffFileFullPath, FileMode.Open))
+                using (var rdr = new BinaryReader(dumpStream))
                 {
-                    OldJpegDecoderCore decoder = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
-                    decoder.ParseStream(ms);
+                    int componentCount = rdr.ReadInt16();
+                    ComponentData[] result = new ComponentData[componentCount];
 
-                    Span<short> dump = new Span<byte>(spectralBytes).NonPortableCast<byte, short>();
-                    int counter = 0;
-
-                    OldComponent[] components = decoder.Components;
-                    ComponentData[] result = new ComponentData[components.Length];
-
-                    for (int i = 0; i < components.Length; i++)
+                    for (int i = 0; i < componentCount; i++)
                     {
-                        OldComponent c = components[i];
-                        ComponentData resultComponent = new ComponentData(c.HeightInBlocks, c.WidthInBlocks, i);
+                        int widthInBlocks = rdr.ReadInt16();
+                        int heightInBlocks = rdr.ReadInt16();
+                        ComponentData resultComponent = new ComponentData(heightInBlocks, widthInBlocks, i);
                         result[i] = resultComponent;
+                    }
+
+                    byte[] buffer = new byte[64*sizeof(short)];
+
+                    for (int i = 0; i < result.Length; i++)
+                    {
+                        ComponentData c = result[i];
 
                         for (int y = 0; y < c.HeightInBlocks; y++)
                         {
                             for (int x = 0; x < c.WidthInBlocks; x++)
                             {
-                                short[] block = dump.Slice(counter, 64).ToArray();
-                                resultComponent.MakeBlock(block, y, x);
-                                counter += 64;
+                                rdr.Read(buffer, 0, buffer.Length);
+
+                                short[] block = buffer.AsSpan().NonPortableCast<byte, short>().ToArray();
+                                c.MakeBlock(block, y, x);
                             }
                         }
                     }

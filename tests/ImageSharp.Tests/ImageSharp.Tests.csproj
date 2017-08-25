@@ -16,7 +16,6 @@
     <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BitMiracle.LibJpeg.NET" Version="1.4.280" />
     <PackageReference Include="CoreCompat.System.Drawing" Version="1.0.0-beta006" />
     <PackageReference Include="xunit" Version="2.3.0-beta4-build3742" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0-beta4-build3742" />

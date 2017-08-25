@@ -47,10 +47,28 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void RunDumpJpegCoeffsTool()
         {
+            if (!TestEnvironment.IsWindows) return;
+
             string inputFile = TestFile.GetInputFileFullPath(TestImages.Jpeg.Progressive.Progress);
-            
+            string outputDir = TestEnvironment.CreateOutputDirectory(nameof(SpectralJpegTests));
+            string outputFile = Path.Combine(outputDir, "progress.dctdump");
+
+            LibJpegTools.RunDumpJpegCoeffsTool(inputFile, outputFile);
+
+            Assert.True(File.Exists(outputFile));
         }
 
+        [Theory]
+        [InlineData(TestImages.Jpeg.Baseline.Calliphora)]
+        [InlineData(TestImages.Jpeg.Progressive.Progress)]
+        public void ExtractSpectralData(string testImage)
+        {
+            LibJpegTools.SpectralData data = LibJpegTools.ExtractSpectralData(testImage);
+
+            Assert.True(data.ComponentCount == 3);
+            Assert.True(data.Components.Length == 3);
+        }
+        
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void BuildLibJpegSpectralResult<TPixel>(TestImageProvider<TPixel> provider)

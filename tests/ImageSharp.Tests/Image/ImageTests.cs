@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FullPath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);

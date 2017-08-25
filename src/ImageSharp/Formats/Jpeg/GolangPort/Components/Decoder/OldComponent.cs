@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents a single color component
     /// </summary>
-    internal class OldComponent : IDisposable
+    internal class OldComponent : IDisposable, IJpegComponent
     {
         public OldComponent(byte identifier, int index)
         {
@@ -55,12 +55,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Gets the number of blocks for this component along the X axis
         /// </summary>
-        public int BlockCountX { get; private set; }
+        public int WidthInBlocks { get; private set; }
 
         /// <summary>
         /// Gets the number of blocks for this component along the Y axis
         /// </summary>
-        public int BlockCountY { get; private set; }
+        public int HeightInBlocks { get; private set; }
 
         public ref Block8x8 GetBlockReference(int bx, int by)
         {
@@ -73,9 +73,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
         public void InitializeBlocks(OldJpegDecoderCore decoder)
         {
-            this.BlockCountX = decoder.MCUCountX * this.HorizontalFactor;
-            this.BlockCountY = decoder.MCUCountY * this.VerticalFactor;
-            this.SpectralBlocks = Buffer2D<Block8x8>.CreateClean(this.BlockCountX, this.BlockCountY);
+            this.WidthInBlocks = decoder.MCUCountX * this.HorizontalFactor;
+            this.HeightInBlocks = decoder.MCUCountY * this.VerticalFactor;
+            this.SpectralBlocks = Buffer2D<Block8x8>.CreateClean(this.WidthInBlocks, this.HeightInBlocks);
         }
 
         /// <summary>

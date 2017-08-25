@@ -7,10 +7,12 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal class FrameComponent : IDisposable
+    internal class FrameComponent : IDisposable, IJpegComponent
     {
 #pragma warning disable SA1401 // Fields should be private
 
@@ -56,12 +58,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the number of blocks per line
         /// </summary>
-        public int BlocksPerLine { get; private set; }
+        public int WidthInBlocks { get; private set; }
 
         /// <summary>
         /// Gets the number of blocks per column
         /// </summary>
-        public int BlocksPerColumn { get; private set; }
+        public int HeightInBlocks { get; private set; }
 
         /// <summary>
         /// Gets or sets the index for the DC Huffman table
@@ -88,10 +90,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         public void Init()
         {
-            this.BlocksPerLine = (int)MathF.Ceiling(
+            this.WidthInBlocks = (int)MathF.Ceiling(
                 MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * this.HorizontalFactor / this.Frame.MaxHorizontalFactor);
 
-            this.BlocksPerColumn = (int)MathF.Ceiling(
+            this.HeightInBlocks = (int)MathF.Ceiling(
                 MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalFactor / this.Frame.MaxVerticalFactor);
 
             this.BlocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalFactor;
@@ -106,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetBlockBufferOffset(int row, int col)
         {
-            return 64 * (((this.BlocksPerLine + 1) * row) + col);
+            return 64 * (((this.WidthInBlocks + 1) * row) + col);
         }
 
         public Span<short> GetBlockBuffer(int row, int col)

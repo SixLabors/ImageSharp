@@ -11,12 +11,15 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
 
     using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -62,7 +65,53 @@ namespace SixLabors.ImageSharp.Tests
         private static IImageDecoder OldJpegDecoder => new OldJpegDecoder();
 
         private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
-        
+
+        private static void VerifyJpegComponent(IJpegComponent component, int expectedBlocksX, int expectedBlocksY)
+        {
+            Assert.Equal(component.WidthInBlocks, expectedBlocksX);
+            Assert.Equal(component.HeightInBlocks, expectedBlocksY);
+        }
+
+        private static void Verify3ComponentJpeg(
+            IEnumerable<IJpegComponent> components,
+            int xBc0, int yBc0,
+            int xBc1, int yBc1,
+            int xBc2, int yBc2)
+        {
+            IJpegComponent[] c = components.ToArray();
+            Assert.Equal(3, components.Count());
+
+            VerifyJpegComponent(c[0], xBc0, yBc0);
+            VerifyJpegComponent(c[1], xBc1, yBc1);
+            VerifyJpegComponent(c[2], xBc2, yBc2);
+        }
+
+        [Fact]
+        public void ParseStream_BasicPropertiesAreCorrect1_Old()
+        {
+            byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
+            using (var ms = new MemoryStream(bytes))
+            {
+                var decoder = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                decoder.ParseStream(ms);
+                
+                Verify3ComponentJpeg(decoder.Components, 43, 61, 22, 31, 22, 31);
+            }
+        }
+
+        [Fact]
+        public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()
+        {
+            byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
+            using (var ms = new MemoryStream(bytes))
+            {
+                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+                decoder.ParseStream(ms);
+
+                Verify3ComponentJpeg(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
+            }
+        }
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)

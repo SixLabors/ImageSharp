@@ -7,9 +7,7 @@ namespace SixLabors.ImageSharp.Tests
     using System.Linq;
     using System.Numerics;
     using System.Reflection;
-
-    using BitMiracle.LibJpeg.Classic;
-
+    
     using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
@@ -55,59 +53,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.ComponentCount = components.Length;
                 this.Components = components;
             }
-
-            public static SpectralData Load(jpeg_decompress_struct cinfo)
-            {
-                //short[][][] result = new short[cinfo.Image_height][][];
-                //int blockPerMcu = (int)GetNonPublicMember(cinfo, "m_blocks_in_MCU");
-                //int mcuPerRow = (int)GetNonPublicMember(cinfo, "m_MCUs_per_row");
-                //int mcuRows = (int)GetNonPublicMember(cinfo, "m_MCU_rows_in_scan");
-
-                object coefController = GetNonPublicMember(cinfo, "m_coef");
-                Array wholeImage = (Array)GetNonPublicMember(coefController, "m_whole_image");
-
-                var result = new SpectralData(wholeImage);
-
-                return result;
-            }
-
-            public static SpectralData Load(Stream fileStream)
-            {
-                jpeg_error_mgr err = new jpeg_error_mgr();
-                jpeg_decompress_struct cinfo = new jpeg_decompress_struct(err);
-
-                cinfo.jpeg_stdio_src(fileStream);
-                cinfo.jpeg_read_header(true);
-                cinfo.Buffered_image = true;
-                cinfo.Do_block_smoothing = false;
-
-                cinfo.jpeg_start_decompress();
-
-                var output = CreateOutputArray(cinfo);
-                for (int scan = 0; scan < cinfo.Input_scan_number; scan++)
-                {
-                    cinfo.jpeg_start_output(scan);
-                    for (int i = 0; i < cinfo.Image_height; i++)
-                    {
-                        int numScanlines = cinfo.jpeg_read_scanlines(output, 1);
-                        if (numScanlines != 1) throw new Exception("?");
-                    }
-                }
-
-                var result = SpectralData.Load(cinfo);
-                return result;
-            }
             
-            private static byte[][] CreateOutputArray(jpeg_decompress_struct cinfo)
-            {
-                byte[][] output = new byte[cinfo.Image_height][];
-                for (int i = 0; i < cinfo.Image_height; i++)
-                {
-                    output[i] = new byte[cinfo.Image_width * cinfo.Num_components];
-                }
-                return output;
-            }
-
             public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
             {
                 FrameComponent[] srcComponents = decoder.Frame.Components;
@@ -434,27 +380,37 @@ namespace SixLabors.ImageSharp.Tests
             return fi.GetValue(obj);
         }
 
-        public static double CalculateAverageDifference(ComponentData a, ComponentData b)
+        public static (double total, double average) CalculateDifference(ComponentData expected, ComponentData actual)
         {
             BigInteger totalDiff = 0;
-            if (a.Size != b.Size)
+            if (actual.WidthInBlocks < expected.WidthInBlocks)
             {
-                throw new Exception("a.Size != b.Size");
+                throw new Exception("actual.WidthInBlocks < expected.WidthInBlocks");
             }
 
-            int count = a.Blocks.Length;
-
-            for (int i = 0; i < count; i++)
+            if (actual.HeightInBlocks < expected.HeightInBlocks)
             {
-                Block8x8 aa = a.Blocks[i];
-                Block8x8 bb = b.Blocks[i];
-
-                long diff = Block8x8.TotalDifference(ref aa, ref bb);
-                totalDiff += diff;
+                throw new Exception("actual.HeightInBlocks < expected.HeightInBlocks");
             }
 
-            double result = (double)totalDiff;
-            return result / (count * Block8x8.Size);
+            int w = expected.WidthInBlocks;
+            int h = expected.HeightInBlocks;
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    Block8x8 aa = expected.Blocks[x, y];
+                    Block8x8 bb = actual.Blocks[x, y];
+
+                    long diff = Block8x8.TotalDifference(ref aa, ref bb);
+                    totalDiff += diff;
+                }
+            }
+            
+            int count = w * h;
+            double total = (double)totalDiff;
+            double average = (double)totalDiff / (count * Block8x8.Size);
+            return (total, average);
         }
 
         private static string DumpToolFullPath => Path.Combine(

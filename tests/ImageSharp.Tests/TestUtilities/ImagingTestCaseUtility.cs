@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests
     /// Utility class to provide information about the test image & the test case for the test code,
     /// and help managing IO.
     /// </summary>
-    public class ImagingTestCaseUtility : TestBase
+    public class ImagingTestCaseUtility
     {
         /// <summary>
         /// Name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>

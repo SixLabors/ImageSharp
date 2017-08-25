@@ -11,7 +11,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
-    public class JpegUtilsTests : TestBase
+    public class JpegUtilsTests
     {
         public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>

@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System;
 
+    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+
     public class ReferenceImplementationsTests : JpegUtilityTestFixture
     {
         public ReferenceImplementationsTests(ITestOutputHelper output)
@@ -28,12 +30,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int[] intData = Create8x8RandomIntData(-200, 200, seed);
             Span<float> floatSrc = intData.ConvertAllToFloat();
 
-            ReferenceImplementations.IntegerReferenceDCT.TransformIDCTInplace(intData);
+            ReferenceImplementations.IntegerDCT.TransformIDCTInplace(intData);
 
             float[] dest = new float[64];
             float[] temp = new float[64];
 
-            ReferenceImplementations.iDCT2D_llm(floatSrc, dest, temp);
+            ReferenceImplementations.FastFloatingPointDCT.iDCT2D_llm(floatSrc, dest, temp);
 
             for (int i = 0; i < 64; i++)
             {
@@ -54,14 +56,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             Span<int> block = original.AddScalarToAllValues(128);
 
-            ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(block);
+            ReferenceImplementations.IntegerDCT.TransformFDCTInplace(block);
 
             for (int i = 0; i < 64; i++)
             {
                 block[i] /= 8;
             }
 
-            ReferenceImplementations.IntegerReferenceDCT.TransformIDCTInplace(block);
+            ReferenceImplementations.IntegerDCT.TransformIDCTInplace(block);
 
             for (int i = startAt; i < 64; i++)
             {
@@ -84,8 +86,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float[] dest = new float[64];
             float[] temp = new float[64];
 
-            ReferenceImplementations.fDCT2D_llm(src, dest, temp, true);
-            ReferenceImplementations.iDCT2D_llm(dest, src, temp);
+            ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(src, dest, temp, true);
+            ReferenceImplementations.FastFloatingPointDCT.iDCT2D_llm(dest, src, temp);
 
             for (int i = startAt; i < 64; i++)
             {
@@ -105,12 +107,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int[] intData = Create8x8RandomIntData(-200, 200, seed);
             float[] floatSrc = intData.ConvertAllToFloat();
 
-            ReferenceImplementations.IntegerReferenceDCT.TransformFDCTInplace(intData);
+            ReferenceImplementations.IntegerDCT.TransformFDCTInplace(intData);
 
             float[] dest = new float[64];
             float[] temp = new float[64];
 
-            ReferenceImplementations.fDCT2D_llm(floatSrc, dest, temp, offsetSourceByNeg128: true);
+            ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(floatSrc, dest, temp, offsetSourceByNeg128: true);
 
             for (int i = 0; i < 64; i++)
             {

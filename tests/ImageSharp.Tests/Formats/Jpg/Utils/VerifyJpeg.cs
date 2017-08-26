@@ -1,4 +1,4 @@
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     using System.Collections.Generic;
     using System.Linq;

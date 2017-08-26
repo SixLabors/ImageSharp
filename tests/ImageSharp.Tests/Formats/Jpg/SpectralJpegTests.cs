@@ -1,19 +1,15 @@
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Runtime.CompilerServices;
 
-    using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
     using Xunit;
     using Xunit.Abstractions;

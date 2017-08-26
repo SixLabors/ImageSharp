@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Contains the quantization tables.
     /// </summary>
-    internal sealed class QuantizationTables : IDisposable
+    internal sealed class PdfJsQuantizationTables : IDisposable
     {
         /// <summary>
         /// Gets the ZigZag scan table

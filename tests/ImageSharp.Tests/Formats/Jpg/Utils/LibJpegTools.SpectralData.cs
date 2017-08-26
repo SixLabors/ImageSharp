@@ -24,17 +24,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.Components = components;
             }
             
-            public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
+            public static SpectralData LoadFromImageSharpDecoder(PdfJsJpegDecoderCore decoder)
             {
-                FrameComponent[] srcComponents = decoder.Frame.Components;
+                PdfJsFrameComponent[] srcComponents = decoder.Frame.Components;
                 LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);
             }
 
-            public static SpectralData LoadFromImageSharpDecoder(OldJpegDecoderCore decoder)
+            public static SpectralData LoadFromImageSharpDecoder(OrigJpegDecoderCore decoder)
             {
-                OldComponent[] srcComponents = decoder.Components;
+                OrigComponent[] srcComponents = decoder.Components;
                 LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);

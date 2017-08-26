@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a section of the jpeg component data laid out in pixel order.
     /// </summary>
-    internal struct JpegPixelArea : IDisposable
+    internal struct PdfJsJpegPixelArea : IDisposable
     {
         private readonly int imageWidth;
 
@@ -23,12 +23,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private int rowStride;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JpegPixelArea"/> struct.
+        /// Initializes a new instance of the <see cref="PdfJsJpegPixelArea"/> struct.
         /// </summary>
         /// <param name="imageWidth">The image width</param>
         /// <param name="imageHeight">The image height</param>
         /// <param name="numberOfComponents">The number of components</param>
-        public JpegPixelArea(int imageWidth, int imageHeight, int numberOfComponents)
+        public PdfJsJpegPixelArea(int imageWidth, int imageHeight, int numberOfComponents)
         {
             this.imageWidth = imageWidth;
             this.imageHeight = imageHeight;
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="components">The jpeg component blocks</param>
         /// <param name="width">The pixel area width</param>
         /// <param name="height">The pixel area height</param>
-        public void LinearizeBlockData(ComponentBlocks components, int width, int height)
+        public void LinearizeBlockData(PdfJsComponentBlocks components, int width, int height)
         {
             this.Width = width;
             this.Height = height;
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
                 for (int i = 0; i < numberOfComponents; i++)
                 {
-                    ref Component component = ref components.Components[i];
+                    ref PdfJsComponent component = ref components.Components[i];
                     Vector2 componentScale = component.Scale * scale;
                     int offset = i;
                     Span<short> output = component.Output;

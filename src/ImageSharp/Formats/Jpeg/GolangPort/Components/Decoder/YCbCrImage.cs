@@ -15,17 +15,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
 #pragma warning disable SA1401 // FieldsMustBePrivate
         /// <summary>
-        /// Gets the luminance components channel as <see cref="OldJpegPixelArea" />.
+        /// Gets the luminance components channel as <see cref="OrigJpegPixelArea" />.
         /// </summary>
         public Buffer2D<byte> YChannel;
 
         /// <summary>
-        /// Gets the blue chroma components channel as <see cref="OldJpegPixelArea" />.
+        /// Gets the blue chroma components channel as <see cref="OrigJpegPixelArea" />.
         /// </summary>
         public Buffer2D<byte> CbChannel;
 
         /// <summary>
-        /// Gets an offseted <see cref="OldJpegPixelArea" /> to the Cr channel
+        /// Gets an offseted <see cref="OrigJpegPixelArea" /> to the Cr channel
         /// </summary>
         public Buffer2D<byte> CrChannel;
 #pragma warning restore SA1401

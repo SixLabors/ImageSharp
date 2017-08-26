@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
     /// <summary>
     /// Defines jpeg constants defined in the specification.
     /// </summary>
-    internal static class OldJpegConstants
+    internal static class OrigJpegConstants
     {
         /// <summary>
         /// The maximum allowable length in each dimension of a jpeg image.

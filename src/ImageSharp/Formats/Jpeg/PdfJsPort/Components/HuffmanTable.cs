@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a Huffman Table
     /// </summary>
-    internal struct HuffmanTable : IDisposable
+    internal struct PdfJsHuffmanTable : IDisposable
     {
         private Buffer<short> lookahead;
         private Buffer<short> valOffset;
@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private Buffer<byte> huffval;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
+        /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public HuffmanTable(byte[] lengths, byte[] values)
+        public PdfJsHuffmanTable(byte[] lengths, byte[] values)
         {
             this.lookahead = Buffer<short>.CreateClean(256);
             this.valOffset = Buffer<short>.CreateClean(18);

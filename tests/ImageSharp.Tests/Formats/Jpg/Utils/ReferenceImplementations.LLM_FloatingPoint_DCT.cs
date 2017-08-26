@@ -13,14 +13,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     internal static partial class ReferenceImplementations
     {
         /// <summary>
-        /// Contains a non-optimized port of:
+        /// Contains port of non-optimized methods in:
         /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp
+        /// 
+        /// *** Paper ***
+        /// paper LLM89
+        /// C. Loeffler, A. Ligtenberg, and G. S. Moschytz, 
+        /// "Practical fast 1-D DCT algorithms with 11 multiplications,"
+        /// Proc. Int'l. Conf. on Acoustics, Speech, and Signal Processing (ICASSP89), pp. 988-991, 1989.
         /// 
         /// The main purpose of this code is testing and documentation, it is intented to be similar to it's original counterpart.
         /// DO NOT clean it!
         /// DO NOT StyleCop it!
         /// </summary>
-        internal static class FastFloatingPointDCT
+        internal static class LLM_FloatingPoint_DCT
         {
             public static Block8x8F TransformIDCT(ref Block8x8F source)
             {
@@ -137,14 +143,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     iDCT1Dllm_32f(s.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 for (j = 0; j < 8; j++)
                 {
                     iDCT1Dllm_32f(d.Slice(j * 8), temp.Slice(j * 8));
                 }
 
-                ReferenceImplementations.Transpose8x8(temp, d);
+                Transpose8x8(temp, d);
 
                 for (j = 0; j < 64; j++)
                 {

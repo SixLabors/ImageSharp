@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// For baseline JPEGs, these parameters are hard-coded to 0/63/0/0.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe partial struct OldJpegScanDecoder
+    internal unsafe partial struct OrigJpegScanDecoder
     {
         // The JpegScanDecoder members should be ordered in a way that results in optimal memory layout.
 #pragma warning disable SA1202 // ElementsMustBeOrderedByAccess
@@ -96,12 +96,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private int eobRun;
 
         /// <summary>
-        /// Initializes a default-constructed <see cref="OldJpegScanDecoder"/> instance for reading data from <see cref="OldJpegDecoderCore"/>-s stream.
+        /// Initializes a default-constructed <see cref="OrigJpegScanDecoder"/> instance for reading data from <see cref="OrigJpegDecoderCore"/>-s stream.
         /// </summary>
-        /// <param name="p">Pointer to <see cref="OldJpegScanDecoder"/> on the stack</param>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
+        /// <param name="p">Pointer to <see cref="OrigJpegScanDecoder"/> on the stack</param>
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        public static void InitStreamReading(OldJpegScanDecoder* p, OldJpegDecoderCore decoder, int remaining)
+        public static void InitStreamReading(OrigJpegScanDecoder* p, OrigJpegDecoderCore decoder, int remaining)
         {
             p->data = ComputationData.Create();
             p->pointers = new DataPointers(&p->data);
@@ -109,8 +109,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Read Huffman data from Jpeg scans in <see cref="OldJpegDecoderCore.InputStream"/>,
-        /// and decode it as <see cref="Block8x8F"/> into <see cref="OldJpegDecoderCore.DecodedBlocks"/>.
+        /// Read Huffman data from Jpeg scans in <see cref="OrigJpegDecoderCore.InputStream"/>,
+        /// and decode it as <see cref="Block8x8F"/> into <see cref="OrigJpegDecoderCore.DecodedBlocks"/>.
         ///
         /// The blocks are traversed one MCU at a time. For 4:2:0 chroma
         /// subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
@@ -135,12 +135,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// 0 1 2
         /// 3 4 5
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
-        public void DecodeBlocks(OldJpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
+        public void DecodeBlocks(OrigJpegDecoderCore decoder)
         {
             int blockCount = 0;
             int mcu = 0;
-            byte expectedRst = OldJpegConstants.Markers.RST0;
+            byte expectedRst = OrigJpegConstants.Markers.RST0;
 
             for (int my = 0; my < decoder.MCUCountY; my++)
             {
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             }
 
                             // Find the block at (bx,by) in the component's buffer:
-                            OldComponent component = decoder.Components[this.ComponentIndex];
+                            OrigComponent component = decoder.Components[this.ComponentIndex];
                             ref Block8x8 blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
 
                             // Copy block to stack
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
                         if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
                         {
-                            OldDecoderErrorCode errorCode = decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
+                            OrigDecoderErrorCode errorCode = decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
                             if (decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
                             {
                                 if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
@@ -208,9 +208,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 }
 
                                 expectedRst++;
-                                if (expectedRst == OldJpegConstants.Markers.RST7 + 1)
+                                if (expectedRst == OrigJpegConstants.Markers.RST7 + 1)
                                 {
-                                    expectedRst = OldJpegConstants.Markers.RST0;
+                                    expectedRst = OrigJpegConstants.Markers.RST0;
                                 }
                             }
                         }
@@ -232,15 +232,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         private void ResetDc()
         {
-            Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * OldJpegDecoderCore.MaxComponents);
+            Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * OrigJpegDecoderCore.MaxComponents);
         }
 
         /// <summary>
         /// The implementation part of <see cref="InitStreamReading"/> as an instance method.
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/></param>
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/></param>
         /// <param name="remaining">The remaining bytes</param>
-        private void InitStreamReadingImpl(OldJpegDecoderCore decoder, int remaining)
+        private void InitStreamReadingImpl(OrigJpegDecoderCore decoder, int remaining)
         {
             if (decoder.ComponentCount == 0)
             {
@@ -307,10 +307,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="decoder">The decoder</param>
         /// <param name="scanIndex">The index of the scan</param>
-        private void DecodeBlock(OldJpegDecoderCore decoder, int scanIndex)
+        private void DecodeBlock(OrigJpegDecoderCore decoder, int scanIndex)
         {
             Block8x8* b = this.pointers.Block;
-            int huffmannIdx = (OldHuffmanTree.AcTableIndex * OldHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
+            int huffmannIdx = (OrigHuffmanTree.AcTableIndex * OrigHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].AcTableSelector;
             if (this.ah != 0)
             {
                 this.Refine(ref decoder.InputProcessor, ref decoder.HuffmanTrees[huffmannIdx], 1 << this.al);
@@ -318,14 +318,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             else
             {
                 int zig = this.zigStart;
-                OldDecoderErrorCode errorCode;
+                OrigDecoderErrorCode errorCode;
                 if (zig == 0)
                 {
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     int value;
-                    int huffmanIndex = (OldHuffmanTree.DcTableIndex * OldHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
+                    int huffmanIndex = (OrigHuffmanTree.DcTableIndex * OrigHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
                     errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
                             out value);
@@ -415,30 +415,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
         }
 
-        private OldDecoderErrorCode DecodeEobRun(int count, ref InputProcessor decoder)
+        private OrigDecoderErrorCode DecodeEobRun(int count, ref InputProcessor decoder)
         {
             int bitsResult;
-            OldDecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
-            if (errorCode != OldDecoderErrorCode.NoError)
+            OrigDecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
+            if (errorCode != OrigDecoderErrorCode.NoError)
             {
                 return errorCode;
             }
 
             this.eobRun |= bitsResult;
-            return OldDecoderErrorCode.NoError;
+            return OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
-        /// Gets the block index used to retieve blocks from in <see cref="OldJpegDecoderCore.DecodedBlocks"/>
+        /// Gets the block index used to retieve blocks from in <see cref="OrigJpegDecoderCore.DecodedBlocks"/>
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
         /// <returns>The index</returns>
-        private int GetBlockIndex(OldJpegDecoderCore decoder)
+        private int GetBlockIndex(OrigJpegDecoderCore decoder)
         {
             return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
-        private void InitComponentScan(OldJpegDecoderCore decoder, int i, ref OldComponentScan currentComponentScan, ref int totalHv)
+        private void InitComponentScan(OrigJpegDecoderCore decoder, int i, ref OrigComponentScan currentComponentScan, ref int totalHv)
         {
             // Component selector.
             int cs = decoder.Temp[1 + (2 * i)];
@@ -463,11 +463,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         private void ProcessComponentImpl(
-            OldJpegDecoderCore decoder,
+            OrigJpegDecoderCore decoder,
             int i,
-            ref OldComponentScan currentComponentScan,
+            ref OrigComponentScan currentComponentScan,
             ref int totalHv,
-            OldComponent currentComponent)
+            OrigComponent currentComponent)
         {
             // Section B.2.3 states that "the value of Cs_j shall be different from
             // the values of Cs_1 through Cs_(j-1)". Since we have previously
@@ -485,13 +485,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
 
             currentComponentScan.DcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] >> 4);
-            if (currentComponentScan.DcTableSelector > OldHuffmanTree.MaxTh)
+            if (currentComponentScan.DcTableSelector > OrigHuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad DC table selector value");
             }
 
             currentComponentScan.AcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] & 0x0f);
-            if (currentComponentScan.AcTableSelector > OldHuffmanTree.MaxTh)
+            if (currentComponentScan.AcTableSelector > OrigHuffmanTree.MaxTh)
             {
                 throw new ImageFormatException("Bad AC table selector  value");
             }
@@ -503,7 +503,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="bp">The <see cref="InputProcessor"/> instance</param>
         /// <param name="h">The Huffman tree</param>
         /// <param name="delta">The low transform offset</param>
-        private void Refine(ref InputProcessor bp, ref OldHuffmanTree h, int delta)
+        private void Refine(ref InputProcessor bp, ref OrigHuffmanTree h, int delta)
         {
             Block8x8* b = this.pointers.Block;
 
@@ -516,7 +516,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
 
                 bool bit;
-                OldDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                OrigDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
                 if (!bp.CheckEOFEnsureNoError(errorCode))
                 {
                     return;
@@ -546,7 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     int z = 0;
 
                     int val;
-                    OldDecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
+                    OrigDecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
                     if (!bp.CheckEOF(errorCode))
                     {
                         return;
@@ -655,7 +655,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
 
                 bool bit;
-                OldDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
+                OrigDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
                 if (!bp.CheckEOFEnsureNoError(errorCode))
                 {
                     return int.MinValue;

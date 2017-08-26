@@ -8,8 +8,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
 
+    using Xunit.Abstractions;
+
     internal static partial class ReferenceImplementations
     {
+        /// <summary>
+        /// Contains a non-optimized port of:
+        /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp
+        /// 
+        /// The main purpose of this code is testing and documentation, it is intented to be similar to it's original counterpart.
+        /// DO NOT clean it!
+        /// DO NOT StyleCop it!
+        /// </summary>
         internal static class FastFloatingPointDCT
         {
             public static Block8x8F TransformIDCT(ref Block8x8F source)
@@ -38,6 +48,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return result;
             }
 
+            private static double cos(double x) => Math.Cos(x);
+
+            private const double M_PI = Math.PI;
+
+            private static readonly double M_SQRT2 = Math.Sqrt(2);
+
+            public static float[] PrintConstants(ITestOutputHelper output)
+            {
+                float[] r = new float[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    r[i] = (float)(cos((double)i / 16.0 * M_PI) * M_SQRT2);
+                    output?.WriteLine($"float r{i} = {r[i]:R}f;");
+                }
+                return r;
+            }
+
             /// <summary>
             /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L200
             /// </summary>
@@ -48,14 +75,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float a0, a1, a2, a3, b0, b1, b2, b3;
                 float z0, z1, z2, z3, z4;
 
-                //float r0 = 1.414214f;
-                float r1 = 1.387040f;
+                // see: PrintConstants()
+                float r0 = 1.41421354f;
+                float r1 = 1.3870399f;
                 float r2 = 1.306563f;
-                float r3 = 1.175876f;
-                //float r4 = 1.000000f;
-                float r5 = 0.785695f;
-                float r6 = 0.541196f;
-                float r7 = 0.275899f;
+                float r3 = 1.17587554f;
+                float r4 = 1f;
+                float r5 = 0.785694957f;
+                float r6 = 0.5411961f;
+                float r7 = 0.27589938f;
 
                 z0 = y[1] + y[7];
                 z1 = y[3] + y[5];

@@ -4,12 +4,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
 
     internal static partial class ReferenceImplementations
     {
         internal static class FastFloatingPointDCT
         {
+            public static Block8x8F TransformIDCT(ref Block8x8F source)
+            {
+                float[] s = new float[64];
+                source.CopyTo(s);
+                float[] d = new float[64];
+                float[] temp = new float[64];
+
+                iDCT2D_llm(s, d, temp);
+                Block8x8F result = default(Block8x8F);
+                result.LoadFrom(d);
+                return result;
+            }
+
+            public static Block8x8F TransformFDCT(ref Block8x8F source)
+            {
+                float[] s = new float[64];
+                source.CopyTo(s);
+                float[] d = new float[64];
+                float[] temp = new float[64];
+
+                fDCT2D_llm(s, d, temp);
+                Block8x8F result = default(Block8x8F);
+                result.LoadFrom(d);
+                return result;
+            }
+
             /// <summary>
             /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L200
             /// </summary>

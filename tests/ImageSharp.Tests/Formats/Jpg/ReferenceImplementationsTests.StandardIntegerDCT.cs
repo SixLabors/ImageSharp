@@ -10,7 +10,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
     public partial class ReferenceImplementationsTests
     {
-        
         public class StandardIntegerDCT
         {
             public StandardIntegerDCT(ITestOutputHelper output)
@@ -34,10 +33,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8 expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
                 Block8x8 actual = ReferenceImplementations.StandardIntegerDCT.TransformIDCT(ref source);
 
+                Block8x8F sourceF = source.AsFloatBlock();
+                Block8x8F wut0 = ReferenceImplementations.FastFloatingPointDCT.TransformIDCT(ref sourceF);
+                Block8x8 wut1 = wut0.RoundAsInt16Block();
+
                 long diff = Block8x8.TotalDifference(ref expected, ref actual);
                 this.Output.WriteLine(expected.ToString());
                 this.Output.WriteLine(actual.ToString());
+                this.Output.WriteLine(wut1.ToString());
                 this.Output.WriteLine("DIFFERENCE: "+diff);
+
+                Assert.True(diff < 4);
+            }
+
+            [Theory]
+            [InlineData(42)]
+            [InlineData(1)]
+            [InlineData(2)]
+            public void FDCT_IsEquivalentTo_AccurateImplementation(int seed)
+            {
+                int[] data = Create8x8RandomIntData(-1000, 1000, seed);
+
+                Block8x8 source = default(Block8x8);
+                source.LoadFrom(data);
+
+                Block8x8 expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
+                Block8x8 actual = ReferenceImplementations.StandardIntegerDCT.TransformFDCT(ref source);
+                
+                long diff = Block8x8.TotalDifference(ref expected, ref actual);
+                this.Output.WriteLine(expected.ToString());
+                this.Output.WriteLine(actual.ToString());
+                this.Output.WriteLine("DIFFERENCE: " + diff);
+
+                Assert.True(diff < 4);
             }
 
 

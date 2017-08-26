@@ -76,8 +76,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             return result;
         }
 
-        internal static float[] Create8x8RandomFloatData(int minValue, int maxValue, int seed = 42)
-            => SpanExtensions.ConvertAllToFloat(Create8x8RandomIntData(minValue, maxValue, seed));
+        internal static float[] Create8x8RoundedRandomFloatData(int minValue, int maxValue, int seed = 42)
+            => Create8x8RandomIntData(minValue, maxValue, seed).ConvertAllToFloat();
+
+        public static float[] Create8x8RandomFloatData(float minValue, float maxValue, int seed = 42)
+        {
+            Random rnd = new Random(seed);
+            float[] result = new float[64];
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    double val = rnd.NextDouble();
+                    val *= maxValue - minValue;
+                    val += minValue;
+                    
+                    result[i * 8 + j] = (float)val;
+                }
+            }
+            return result;
+        }
 
         internal void Print8x8Data<T>(T[] data) => this.Print8x8Data(new Span<T>(data));
 

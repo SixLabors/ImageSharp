@@ -44,6 +44,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        public short this[int y, int x]
+        {
+            get => this[(y * 8) + x];
+            set => this[(y * 8) + x] = value;
+        }
+
         public static bool operator ==(Block8x8 left, Block8x8 right)
         {
             return left.Equals(right);
@@ -83,9 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             short* fp = blockPtr->data;
             fp[idx] = value;
         }
-
-        public short GetValueAt(int x, int y) => this[(y * 8) + x];
-
+        
         public Block8x8F AsFloatBlock()
         {
             // TODO: Optimize this
@@ -110,6 +114,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
             ref byte destRef = ref destination.NonPortableCast<short, byte>().DangerousGetPinnableReference();
             Unsafe.CopyBlock(ref destRef, ref selfRef, Size * sizeof(short));
+        }
+
+        public void CopyTo(Span<int> destination)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                destination[i] = this[i];
+            }
+        }
+
+        public void LoadFrom(Span<int> source)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                this[i] = (short)source[i];
+            }
         }
 
         [Conditional("DEBUG")]

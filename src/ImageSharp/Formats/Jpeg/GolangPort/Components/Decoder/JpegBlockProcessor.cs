@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             Block8x8F* b = this.pointers.Block;
 
-            Block8x8F.UnZigAndQuantize(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
+            Block8x8F.QuantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
 
             FastFloatingPointDCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 

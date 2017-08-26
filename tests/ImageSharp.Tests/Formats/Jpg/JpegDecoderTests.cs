@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
 
         [Fact]
-        public void ParseStream_BasicPropertiesAreCorrect1_Old()
+        public void ParseStream_BasicPropertiesAreCorrect1_Orig()
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using (var ms = new MemoryStream(bytes))
@@ -85,15 +85,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
+        public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
 
+                provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }
@@ -109,48 +113,51 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 image.DebugSave(provider);
 
-                provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
+                provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg_Old<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(OldJpegDecoder))
             {
                 image.DebugSave(provider);
 
-                provider.Utility.TestName = nameof(this.DecodeBaselineJpeg);
+                provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }
-        
+
+        public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";
+
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
 
+                provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(provider, PdfJsProgressiveComparer, appendPixelTypeToFileName: false);
             }
         }
 
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeProgressiveJpeg_Old<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(OldJpegDecoder))
             {
                 image.DebugSave(provider);
 
-                provider.Utility.TestName = nameof(this.DecodeProgressiveJpeg);
+                provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }
@@ -198,7 +205,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CompareJpegDecoders_Baseline<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.CompareJpegDecodersImpl(provider, nameof(this.DecodeBaselineJpeg));
+            this.CompareJpegDecodersImpl(provider, DecodeBaselineJpegOutputName);
         }
 
         [Theory]
@@ -206,7 +213,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CompareJpegDecoders_Progressive<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.CompareJpegDecodersImpl(provider, nameof(this.DecodeProgressiveJpeg));
+            this.CompareJpegDecodersImpl(provider, DecodeProgressiveJpegOutputName);
         }
         
         [Theory]
@@ -305,7 +312,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             byte[] sourceBytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
 
-            provider.Utility.TestName = nameof(this.DecodeProgressiveJpeg);
+            provider.Utility.TestName = nameof(DecodeProgressiveJpegOutputName);
 
             var comparer = ImageComparer.Tolerant(0, 0);
 

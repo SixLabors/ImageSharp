@@ -19,7 +19,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="inverted">True to use the inverse curve calculation; False otherwise</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateCurve(IccTagDataEntry[] entries, bool inverted, float[] values)
+        protected float[] CalculateCurve(IccTagDataEntry[] entries, bool inverted, float[] values)
         {
             float[] result = new float[values.Length];
             for (int i = 0; i < result.Length; i++)
@@ -37,7 +37,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="inverted">True to use the inverse curve calculation; False otherwise</param>
         /// <param name="value">The input color value to convert</param>
         /// <returns>The converted output color value</returns>
-        private float CalculateCurve(IccTagDataEntry curveEntry, bool inverted, float value)
+        protected float CalculateCurve(IccTagDataEntry curveEntry, bool inverted, float value)
         {
             switch (curveEntry)
             {

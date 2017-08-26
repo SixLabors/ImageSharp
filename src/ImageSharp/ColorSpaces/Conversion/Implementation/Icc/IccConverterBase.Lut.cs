@@ -19,7 +19,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="lut">The lookup table to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateLut(IccLut8TagDataEntry lut, float[] values)
+        protected float[] CalculateLut(IccLut8TagDataEntry lut, float[] values)
         {
             return this.CalculateLut(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix, values);
         }
@@ -30,7 +30,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="lut">The lookup table to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateLut(IccLut16TagDataEntry lut, float[] values)
+        protected float[] CalculateLut(IccLut16TagDataEntry lut, float[] values)
         {
             return this.CalculateLut(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix, values);
         }
@@ -41,7 +41,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="entry">The conversion info to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateLutAToB(IccLutAToBTagDataEntry entry, float[] values)
+        protected float[] CalculateLutAToB(IccLutAToBTagDataEntry entry, float[] values)
         {
             bool ca = entry.CurveA != null;
             bool cb = entry.CurveB != null;
@@ -85,7 +85,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="entry">The conversion info to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateLutBToA(IccLutBToATagDataEntry entry, float[] values)
+        protected float[] CalculateLutBToA(IccLutBToATagDataEntry entry, float[] values)
         {
             bool ca = entry.CurveA != null;
             bool cb = entry.CurveB != null;

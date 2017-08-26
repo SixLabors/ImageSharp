@@ -19,7 +19,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="element">The curve set to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateMpeCurveSet(IccCurveSetProcessElement element, float[] values)
+        protected float[] CalculateMpeCurveSet(IccCurveSetProcessElement element, float[] values)
         {
             float[] result = new float[values.Length];
             for (int i = 0; i < element.Curves.Length; i++)
@@ -36,7 +36,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="element">The matrix data to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateMpeMatrix(IccMatrixProcessElement element, float[] values)
+        protected float[] CalculateMpeMatrix(IccMatrixProcessElement element, float[] values)
         {
             float[] multiplied = this.MultiplyMatrix(element.MatrixIxO, values);
             return this.AddMatrix(multiplied, element.MatrixOx1);
@@ -48,7 +48,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="element">The color lookup table to use</param>
         /// <param name="values">The input color values to convert</param>
         /// <returns>The converted output color values</returns>
-        private float[] CalculateMpeClut(IccClutProcessElement element, float[] values)
+        protected float[] CalculateMpeClut(IccClutProcessElement element, float[] values)
         {
             return this.CalculateClut(element.ClutValue, values);
         }

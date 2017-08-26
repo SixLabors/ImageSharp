@@ -1,16 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Diagnostics;
-using System.Text;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
-using Xunit.Abstractions;
+
 
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
+    using System;
+    using System.Diagnostics;
+    using System.Text;
+
+    using Xunit.Abstractions;
+
     public class JpegUtilityTestFixture : MeasureFixture
     {
         public JpegUtilityTestFixture(ITestOutputHelper output) : base(output)
@@ -75,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         internal static float[] Create8x8RandomFloatData(int minValue, int maxValue, int seed = 42)
-            => Create8x8RandomIntData(minValue, maxValue, seed).ConvertAllToFloat();
+            => ImageSharp.Formats.Jpeg.GolangPort.Utils.SpanExtensions.ConvertAllToFloat(Create8x8RandomIntData(minValue, maxValue, seed));
 
         internal void Print8x8Data<T>(T[] data) => this.Print8x8Data(new Span<T>(data));
 

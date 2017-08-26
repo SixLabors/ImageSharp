@@ -1,9 +1,8 @@
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using Moq;
-
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
     using Xunit;
     using Xunit.Abstractions;

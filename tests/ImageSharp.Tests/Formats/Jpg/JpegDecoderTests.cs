@@ -1,16 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.IO;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
+
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
     using System.IO;
     using System.Linq;
 
@@ -19,8 +14,8 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     using Xunit;
     using Xunit.Abstractions;

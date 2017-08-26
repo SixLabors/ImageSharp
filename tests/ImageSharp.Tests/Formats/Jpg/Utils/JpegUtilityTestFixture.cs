@@ -137,8 +137,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             this.Output.WriteLine(msg);
         }
 
-        internal void CompareBlocks(Block8x8 a, Block8x8 b, float tolerance) =>
-            this.CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), tolerance);
+        internal void CompareBlocks(Block8x8 a, Block8x8 b, int tolerance) =>
+            this.CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), (float)tolerance + 1e-5f);
 
         internal void CompareBlocks(Block8x8F a, Block8x8F b, float tolerance) 
             => this.CompareBlocks(a.ToArray(), b.ToArray(), tolerance);

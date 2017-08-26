@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             Block8x8F.UnZigAndQuantize(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
 
-            DCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
+            FastFloatingPointDCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
             OldJpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
             OldJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);

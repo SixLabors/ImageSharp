@@ -9,9 +9,9 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components
 {
     /// <summary>
-    /// Contains forward and inverse DCT implementations
+    /// Contains inaccurate, but fast forward and inverse DCT implementations.
     /// </summary>
-    internal static class DCT
+    internal static class FastFloatingPointDCT
     {
 #pragma warning disable SA1310 // FieldNamesMustNotContainUnderscore
         private static readonly float C_1_175876 = 1.175876f;

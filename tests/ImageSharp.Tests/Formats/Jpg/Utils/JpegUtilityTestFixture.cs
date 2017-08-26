@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         }
 
         internal static float[] Create8x8RandomFloatData(int minValue, int maxValue, int seed = 42)
-            => ImageSharp.Formats.Jpeg.GolangPort.Utils.SpanExtensions.ConvertAllToFloat(Create8x8RandomIntData(minValue, maxValue, seed));
+            => SpanExtensions.ConvertAllToFloat(Create8x8RandomIntData(minValue, maxValue, seed));
 
         internal void Print8x8Data<T>(T[] data) => this.Print8x8Data(new Span<T>(data));
 

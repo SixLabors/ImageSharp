@@ -1,12 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Span Extensions
@@ -86,22 +85,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         }
 
         /// <summary>
-        /// Converts all float values of src to int
-        /// </summary>
-        /// <param name="src">Source</param>
-        /// <returns>A new <see cref="Span{T}"/> with float values</returns>
-        public static Span<int> ConvertToInt32Span(this Span<float> src)
-        {
-            int[] result = new int[src.Length];
-            for (int i = 0; i < src.Length; i++)
-            {
-                result[i] = (int)src[i];
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Add a scalar to all values of src
         /// </summary>
         /// <param name="src">The source</param>
@@ -130,23 +113,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
             for (int i = 0; i < src.Length; i++)
             {
                 result[i] = src[i] + scalar;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Copy all values in src to a new <see cref="Span{T}"/> instance
-        /// </summary>
-        /// <typeparam name="T">Element type</typeparam>
-        /// <param name="src">The source</param>
-        /// <returns>A new instance of <see cref="Span{T}"/></returns>
-        public static Span<T> Copy<T>(this Span<T> src)
-        {
-            T[] result = new T[src.Length];
-            for (int i = 0; i < src.Length; i++)
-            {
-                result[i] = src[i];
             }
 
             return result;

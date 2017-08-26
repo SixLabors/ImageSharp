@@ -40,6 +40,5 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="TestUtilities\Factories\" />
-    <Folder Include="Utils\Jpg\Formats\" />
   </ItemGroup>
 </Project>

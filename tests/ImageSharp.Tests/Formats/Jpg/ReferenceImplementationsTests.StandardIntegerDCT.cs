@@ -1,3 +1,4 @@
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System;
@@ -10,16 +11,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
     public partial class ReferenceImplementationsTests
     {
-        public class StandardIntegerDCT
+        public class StandardIntegerDCT : JpegUtilityTestFixture
         {
             public StandardIntegerDCT(ITestOutputHelper output)
+                : base(output)
             {
-                this.Output = output;
             }
 
-            private ITestOutputHelper Output { get; }
-
-            [Theory]
+            [Theory(Skip = "Sandboxing only! (Incorrect reference implementation)")]
             [InlineData(42)]
             [InlineData(1)]
             [InlineData(2)]
@@ -54,18 +53,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 int[] data = Create8x8RandomIntData(-1000, 1000, seed);
 
-                Block8x8 source = default(Block8x8);
+                Block8x8F source = default(Block8x8F);
                 source.LoadFrom(data);
 
-                Block8x8 expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
-                Block8x8 actual = ReferenceImplementations.StandardIntegerDCT.TransformFDCT(ref source);
-                
-                long diff = Block8x8.TotalDifference(ref expected, ref actual);
-                this.Output.WriteLine(expected.ToString());
-                this.Output.WriteLine(actual.ToString());
-                this.Output.WriteLine("DIFFERENCE: " + diff);
+                Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
 
-                Assert.True(diff < 4);
+                source += 128;
+                Block8x8 temp = source.RoundAsInt16Block();
+                Block8x8 actual8 = ReferenceImplementations.StandardIntegerDCT.Subtract128_TransformFDCT_Upscale8(ref temp);
+                Block8x8F actual = actual8.AsFloatBlock();
+                actual /= 8;
+                
+                this.CompareBlocks(expected, actual, 1f);
             }
 
 
@@ -79,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Span<int> block = original.AddScalarToAllValues(128);
 
-                ReferenceImplementations.StandardIntegerDCT.TransformFDCTInplace(block);
+                ReferenceImplementations.StandardIntegerDCT.Subtract128_TransformFDCT_Upscale8_Inplace(block);
 
                 for (int i = 0; i < 64; i++)
                 {

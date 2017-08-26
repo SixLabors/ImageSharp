@@ -1,3 +1,4 @@
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     using System;
@@ -65,11 +66,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             /// </summary>
             private const int CenterJSample = 128;
 
-            public static Block8x8 TransformFDCT(ref Block8x8 block)
+            public static Block8x8 Subtract128_TransformFDCT_Upscale8(ref Block8x8 block)
             {
                 int[] temp = new int[Block8x8.Size];
                 block.CopyTo(temp);
-                TransformFDCTInplace(temp);
+                Subtract128_TransformFDCT_Upscale8_Inplace(temp);
                 var result = default(Block8x8);
                 result.LoadFrom(temp);
                 return result;
@@ -91,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             /// Leave results scaled up by an overall factor of 8.
             /// </summary>
             /// <param name="block">The block of coefficients.</param>
-            public static void TransformFDCTInplace(Span<int> block)
+            public static void Subtract128_TransformFDCT_Upscale8_Inplace(Span<int> block)
             {
                 // Pass 1: process rows.
                 for (int y = 0; y < 8; y++)

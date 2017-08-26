@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Colors.Spaces.Conversion.Implementation.Icc
+namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
 {
     using System;
 

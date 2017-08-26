@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             public void LLM_ForwardThenInverse(int seed, int startAt)
             {
                 int[] data = JpegUtilityTestFixture.Create8x8RandomIntData(-1000, 1000, seed);
+                float[] original = data.ConvertAllToFloat();
                 float[] src = data.ConvertAllToFloat();
                 float[] dest = new float[64];
                 float[] temp = new float[64];
@@ -32,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D_llm(src, dest, temp, true);
                 ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(dest, src, temp);
 
-                this.CompareBlocks(data.ConvertAllToFloat(), src, 2f);
+                this.CompareBlocks(original, src, 0.1f);
             }
             
             // [Fact]
@@ -58,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Block8x8F actual = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformIDCT(ref source);
 
-                this.CompareBlocks(expected, actual, 1f);
+                this.CompareBlocks(expected, actual, 0.1f);
             }
             
             [Theory]

@@ -141,6 +141,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        public static Block8x8F Load(Span<float> data)
+        {
+            var result = default(Block8x8F);
+            result.LoadFrom(data);
+            return result;
+        }
+
+        public static Block8x8F Load(Span<int> data)
+        {
+            var result = default(Block8x8F);
+            result.LoadFrom(data);
+            return result;
+        }
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -348,13 +362,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
-        /// Un-zig
+        /// Quantize the block.
         /// </summary>
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void UnZigAndQuantize(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        public static unsafe void QuantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;

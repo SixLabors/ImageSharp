@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(1)]
             [InlineData(2)]
             [InlineData(3)]
-            public void TransformIDCT(int seed)
+            public void LLM_TransformIDCT_CompareToNonOptimized(int seed)
             {
                 Span<float> sourceArray = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
                 float[] expectedDestArray = new float[64];
@@ -82,14 +82,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(sourceArray, expectedDestArray, tempArray);
 
-                // ReferenceImplementations.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
-                Block8x8F source = new Block8x8F();
-                source.LoadFrom(sourceArray);
+                var source = Block8x8F.Load(sourceArray);
+                var dest = default(Block8x8F);
+                var temp = default(Block8x8F);
 
-                Block8x8F dest = new Block8x8F();
-                Block8x8F tempBuffer = new Block8x8F();
-
-                FastFloatingPointDCT.TransformIDCT(ref source, ref dest, ref tempBuffer);
+                FastFloatingPointDCT.TransformIDCT(ref source, ref dest, ref temp);
 
                 float[] actualDestArray = new float[64];
                 dest.CopyTo(actualDestArray);
@@ -99,6 +96,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Print8x8Data(actualDestArray);
                 Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer(1f));
                 Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer(1f));
+            }
+
+            [Theory]
+            [InlineData(1)]
+            [InlineData(2)]
+            [InlineData(3)]
+            public void LLM_TransformIDCT_CompareToAccurate(int seed)
+            {
+                float[] sourceArray = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-1000, 1000, seed);
+
+                var source = Block8x8F.Load(sourceArray);
+
+                Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
+
+                var temp = default(Block8x8F);
+                var actual = default(Block8x8F);
+                FastFloatingPointDCT.TransformIDCT(ref source, ref actual, ref temp);
+                
+                this.CompareBlocks(expected, actual, 1f);
             }
 
 

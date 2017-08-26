@@ -76,26 +76,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(3)]
             public void LLM_TransformIDCT_CompareToNonOptimized(int seed)
             {
-                Span<float> sourceArray = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
-                float[] expectedDestArray = new float[64];
-                float[] tempArray = new float[64];
-
-                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(sourceArray, expectedDestArray, tempArray);
+                float[] sourceArray = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-1000, 1000, seed);
 
                 var source = Block8x8F.Load(sourceArray);
-                var dest = default(Block8x8F);
+
+                Block8x8F expected = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformIDCT(ref source);
+
                 var temp = default(Block8x8F);
+                var actual = default(Block8x8F);
+                FastFloatingPointDCT.TransformIDCT(ref source, ref actual, ref temp);
 
-                FastFloatingPointDCT.TransformIDCT(ref source, ref dest, ref temp);
-
-                float[] actualDestArray = new float[64];
-                dest.CopyTo(actualDestArray);
-
-                this.Print8x8Data(expectedDestArray);
-                this.Output.WriteLine("**************");
-                this.Print8x8Data(actualDestArray);
-                Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer(1f));
-                Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer(1f));
+                this.CompareBlocks(expected, actual, 1f);
             }
 
             [Theory]

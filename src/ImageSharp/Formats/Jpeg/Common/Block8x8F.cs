@@ -89,6 +89,58 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             set => this[(y * 8) + x] = value;
         }
 
+        public static Block8x8F operator *(Block8x8F block, float value)
+        {
+            Block8x8F result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                float val = result[i];
+                val *= value;
+                result[i] = val;
+            }
+
+            return result;
+        }
+
+        public static Block8x8F operator /(Block8x8F block, float value)
+        {
+            Block8x8F result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                float val = result[i];
+                val /= value;
+                result[i] = (float)val;
+            }
+
+            return result;
+        }
+
+        public static Block8x8F operator +(Block8x8F block, float value)
+        {
+            Block8x8F result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                float val = result[i];
+                val += value;
+                result[i] = (float)val;
+            }
+
+            return result;
+        }
+
+        public static Block8x8F operator -(Block8x8F block, float value)
+        {
+            Block8x8F result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                float val = result[i];
+                val -= value;
+                result[i] = (float)val;
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -118,18 +170,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             float* fp = (float*)blockPtr;
             fp[idx] = value;
         }
-
-        //public Block8x8 AsInt16Block()
-        //{
-        //    // TODO: Optimize this
-        //    var result = default(Block8x8);
-        //    for (int i = 0; i < Size; i++)
-        //    {
-        //        result[i] = (short)this[i];
-        //    }
-
-        //    return result;
-        //}
 
         /// <summary>
         /// Fill the block with defaults (zeroes)

@@ -1,3 +1,4 @@
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     using System;
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return result;
             }
 
-            public static Block8x8F TransformFDCT(ref Block8x8F source)
+            public static Block8x8F TransformFDCT_UpscaleBy8(ref Block8x8F source)
             {
                 float[] s = new float[64];
                 source.CopyTo(s);
@@ -480,15 +481,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 y[1] = c0 + c3;
                 y[7] = c0 - c3;
             }
-
+            
             internal static void fDCT2D_llm(
                 Span<float> s,
                 Span<float> d,
                 Span<float> temp,
                 bool downscaleBy8 = false,
-                bool offsetSourceByNeg128 = false)
+                bool subtract128FromSource = false)
             {
-                Span<float> sWorker = offsetSourceByNeg128 ? s.AddScalarToAllValues(-128f) : s;
+                Span<float> sWorker = subtract128FromSource ? s.AddScalarToAllValues(-128f) : s;
 
                 for (int j = 0; j < 8; j++)
                 {

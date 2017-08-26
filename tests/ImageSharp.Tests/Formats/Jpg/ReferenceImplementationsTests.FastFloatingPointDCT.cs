@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.CompareBlocks(data.ConvertAllToFloat(), src, 2f);
             }
 
-            [Theory]
+            [Theory(Skip = "Sandboxing only! (Incorrect reference implementation)")]
             [InlineData(42)]
             [InlineData(1)]
             [InlineData(2)]
@@ -82,12 +82,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 int[] intData = JpegUtilityTestFixture.Create8x8RandomIntData(-1000, 1000, seed);
                 float[] floatSrc = intData.ConvertAllToFloat();
 
-                ReferenceImplementations.StandardIntegerDCT.TransformFDCTInplace(intData);
+                ReferenceImplementations.StandardIntegerDCT.Subtract128_TransformFDCT_Upscale8_Inplace(intData);
 
                 float[] dest = new float[64];
                 float[] temp = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(floatSrc, dest, temp, offsetSourceByNeg128: true);
+                ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(floatSrc, dest, temp, subtract128FromSource: true);
 
                 this.CompareBlocks(intData.ConvertAllToFloat(), dest, 2f);
             }
@@ -104,7 +104,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 source.LoadFrom(floatData);
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
-                Block8x8F actual = ReferenceImplementations.FastFloatingPointDCT.TransformFDCT(ref source);
+                Block8x8F actual = ReferenceImplementations.FastFloatingPointDCT.TransformFDCT_UpscaleBy8(ref source);
+                actual /= 8;
 
                 this.CompareBlocks(expected, actual, 1f);
 

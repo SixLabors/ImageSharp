@@ -60,6 +60,58 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return !left.Equals(right);
         }
 
+        public static Block8x8 operator *(Block8x8 block, int value)
+        {
+            Block8x8 result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                int val = result[i];
+                val *= value;
+                result[i] = (short)val;
+            }
+
+            return result;
+        }
+
+        public static Block8x8 operator /(Block8x8 block, int value)
+        {
+            Block8x8 result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                int val = result[i];
+                val /= value;
+                result[i] = (short)val;
+            }
+
+            return result;
+        }
+
+        public static Block8x8 operator +(Block8x8 block, int value)
+        {
+            Block8x8 result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                int val = result[i];
+                val += value;
+                result[i] = (short)val;
+            }
+
+            return result;
+        }
+
+        public static Block8x8 operator -(Block8x8 block, int value)
+        {
+            Block8x8 result = block;
+            for (int i = 0; i < Size; i++)
+            {
+                int val = result[i];
+                val -= value;
+                result[i] = (short)val;
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -195,5 +247,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             return result;
         }
+
     }
 }

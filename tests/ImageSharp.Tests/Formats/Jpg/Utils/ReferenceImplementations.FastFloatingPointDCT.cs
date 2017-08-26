@@ -280,29 +280,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 dest[3] = src.W;
             }
 
-            private static readonly Vector4 _1_175876 = new Vector4(1.175876f);
+            // Accurate variants of constants from:
+            // https://github.com/mozilla/mozjpeg/blob/master/simd/jfdctint-altivec.c
 
-            private static readonly Vector4 _1_961571 = new Vector4(-1.961571f);
+            private static readonly Vector4 _1_175876 = new Vector4(1.175875602f);
 
-            private static readonly Vector4 _0_390181 = new Vector4(-0.390181f);
+            private static readonly Vector4 _1_961571 = new Vector4(-1.961570560f);
 
-            private static readonly Vector4 _0_899976 = new Vector4(-0.899976f);
+            private static readonly Vector4 _0_390181 = new Vector4(-0.390180644f);
 
-            private static readonly Vector4 _2_562915 = new Vector4(-2.562915f);
+            private static readonly Vector4 _0_899976 = new Vector4(-0.899976223f);
 
-            private static readonly Vector4 _0_298631 = new Vector4(0.298631f);
+            private static readonly Vector4 _2_562915 = new Vector4(-2.562915447f);
 
-            private static readonly Vector4 _2_053120 = new Vector4(2.053120f);
+            private static readonly Vector4 _0_298631 = new Vector4(0.298631336f);
 
-            private static readonly Vector4 _3_072711 = new Vector4(3.072711f);
+            private static readonly Vector4 _2_053120 = new Vector4(2.053119869f);
 
-            private static readonly Vector4 _1_501321 = new Vector4(1.501321f);
+            private static readonly Vector4 _3_072711 = new Vector4(3.072711026f);
 
-            private static readonly Vector4 _0_541196 = new Vector4(0.541196f);
+            private static readonly Vector4 _1_501321 = new Vector4(1.501321110f);
 
-            private static readonly Vector4 _1_847759 = new Vector4(-1.847759f);
+            private static readonly Vector4 _0_541196 = new Vector4(0.541196100f);
 
-            private static readonly Vector4 _0_765367 = new Vector4(0.765367f);
+            private static readonly Vector4 _1_847759 = new Vector4(-1.847759065f);
+
+            private static readonly Vector4 _0_765367 = new Vector4(0.765366865f);
 
             /// <summary>
             /// Original:

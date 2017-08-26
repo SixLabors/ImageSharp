@@ -50,17 +50,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 200)]
             public void LLM_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
-                int[] intData = JpegUtilityTestFixture.Create8x8RandomIntData(-range, range, seed);
-                float[] floatSrc = intData.ConvertAllToFloat();
+                float[] sourceArray = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-1000, 1000, seed);
 
-                ReferenceImplementations.AccurateDCT.TransformIDCTInplace(intData);
+                var source = Block8x8F.Load(sourceArray);
 
-                float[] dest = new float[64];
-                float[] temp = new float[64];
+                Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
 
-                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(floatSrc, dest, temp);
+                Block8x8F actual = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformIDCT(ref source);
 
-                this.CompareBlocks(intData.ConvertAllToFloat(), dest, 1f);
+                this.CompareBlocks(expected, actual, 1f);
             }
             
             [Theory]

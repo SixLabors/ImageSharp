@@ -291,10 +291,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public unsafe void UnzigDivRound(int seed)
         {
             Block8x8F block = new Block8x8F();
-            block.LoadFrom(Create8x8RandomFloatData(-2000, 2000, seed));
+            block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
             Block8x8F qt = new Block8x8F();
-            qt.LoadFrom(Create8x8RandomFloatData(-2000, 2000, seed));
+            qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
             UnzigData unzig = UnzigData.Create();
 
@@ -314,19 +314,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
+        //[Fact]
+        //public void AsInt16Block()
+        //{
+        //    float[] data = Create8x8FloatData();
+
+        //    var source = default(Block8x8F);
+        //    source.LoadFrom(data);
+
+        //    Block8x8 dest = source.AsInt16Block();
+
+        //    for (int i = 0; i < Block8x8F.Size; i++)
+        //    {
+        //        Assert.Equal((short)data[i], dest[i]);
+        //    }
+        //}
+
         [Fact]
-        public void AsInt16Block()
+        public void RoundInto()
         {
-            float[] data = Create8x8FloatData();
+            float[] data = Create8x8RandomFloatData(-1000, 1000);
 
             var source = default(Block8x8F);
             source.LoadFrom(data);
+            var dest = default(Block8x8);
 
-            Block8x8 dest = source.AsInt16Block();
+            source.RoundInto(ref dest);
 
-            for (int i = 0; i < Block8x8F.Size; i++)
+            for (int i = 0; i < Block8x8.Size; i++)
             {
-                Assert.Equal((short)data[i], dest[i]);
+                float expectedFloat = data[i];
+                short expectedShort = (short) Math.Round(expectedFloat);
+                short actualShort = dest[i];
+
+                Assert.Equal(expectedShort, actualShort);
             }
         }
     }

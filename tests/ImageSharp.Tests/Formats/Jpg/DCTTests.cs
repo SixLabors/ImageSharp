@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(3)]
             public void TransformIDCT(int seed)
             {
-                Span<float> sourceArray = JpegUtilityTestFixture.Create8x8RandomFloatData(-200, 200, seed);
+                Span<float> sourceArray = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
                 float[] expectedDestArray = new float[64];
                 float[] tempArray = new float[64];
 
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void FDCT8x4_LeftPart(int seed)
             {
-                Span<float> src = JpegUtilityTestFixture.Create8x8RandomFloatData(-200, 200, seed);
+                Span<float> src = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
                 Block8x8F srcBlock = new Block8x8F();
                 srcBlock.LoadFrom(src);
 
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void FDCT8x4_RightPart(int seed)
             {
-                Span<float> src = JpegUtilityTestFixture.Create8x8RandomFloatData(-200, 200, seed);
+                Span<float> src = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
                 Block8x8F srcBlock = new Block8x8F();
                 srcBlock.LoadFrom(src);
 
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void TransformFDCT(int seed)
             {
-                Span<float> src = JpegUtilityTestFixture.Create8x8RandomFloatData(-200, 200, seed);
+                Span<float> src = JpegUtilityTestFixture.Create8x8RoundedRandomFloatData(-200, 200, seed);
                 Block8x8F srcBlock = new Block8x8F();
                 srcBlock.LoadFrom(src);
 

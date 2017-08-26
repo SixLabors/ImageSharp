@@ -83,6 +83,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        public float this[int y, int x]
+        {
+            get => this[(y * 8) + x];
+            set => this[(y * 8) + x] = value;
+        }
+
         /// <summary>
         /// Pointer-based "Indexer" (getter part)
         /// </summary>
@@ -113,17 +119,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             fp[idx] = value;
         }
 
-        public Block8x8 AsInt16Block()
-        {
-            // TODO: Optimize this
-            var result = default(Block8x8);
-            for (int i = 0; i < Size; i++)
-            {
-                result[i] = (short)this[i];
-            }
+        //public Block8x8 AsInt16Block()
+        //{
+        //    // TODO: Optimize this
+        //    var result = default(Block8x8);
+        //    for (int i = 0; i < Size; i++)
+        //    {
+        //        result[i] = (short)this[i];
+        //    }
 
-            return result;
-        }
+        //    return result;
+        //}
 
         /// <summary>
         /// Fill the block with defaults (zeroes)
@@ -411,6 +417,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             a.V6R = DivideRound(a.V6R, b.V6R);
             a.V7L = DivideRound(a.V7L, b.V7L);
             a.V7R = DivideRound(a.V7R, b.V7R);
+        }
+
+        public void RoundInto(ref Block8x8 dest)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                float val = this[i];
+                if (val < 0)
+                {
+                    val -= 0.5f;
+                }
+                else
+                {
+                    val += 0.5f;
+                }
+                dest[i] = (short)val;
+            }
+        }
+
+        public Block8x8 RoundAsInt16Block()
+        {
+            var result = default(Block8x8);
+            this.RoundInto(ref result);
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             internal float GetBlockValue(Block8x8 block, int x, int y)
             {
                 float d = (this.MaxVal - this.MinVal);
-                float val = block.GetValueAt(x, y);
+                float val = block[y, x];
                 val -= this.MinVal;
                 val /= d;
                 return val;

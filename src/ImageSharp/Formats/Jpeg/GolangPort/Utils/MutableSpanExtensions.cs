@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
     using System;
 
     /// <summary>
-    /// MutableSpan Extensions
+    /// Span Extensions
     /// </summary>
-    internal static class MutableSpanExtensions
+    internal static class SpanExtensions
     {
         /// <summary>
         /// Save to a Vector4
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
         /// </summary>
         /// <param name="src">Source</param>
         /// <returns>A new <see cref="Span{T}"/> with float values</returns>
-        public static Span<int> ConvertToInt32MutableSpan(this Span<float> src)
+        public static Span<int> ConvertToInt32Span(this Span<float> src)
         {
             int[] result = new int[src.Length];
             for (int i = 0; i < src.Length; i++)

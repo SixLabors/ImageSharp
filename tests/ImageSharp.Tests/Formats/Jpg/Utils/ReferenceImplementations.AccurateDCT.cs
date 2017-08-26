@@ -100,20 +100,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 double tmp, tmp2;
                 Block8x8F res = default(Block8x8F);
 
-                for (v=0; v<8; v++) {   
-                    for (u=0; u<8; u++) {   
-                        tmp = 0.0;   
-                        for (y=0; y<8; y++) {   
-                            tmp2 = 0.0;   
-                            for (x=0; x<8; x++) {   
-                                tmp2 += (double) block[y, x] * CosLut[x, u];
+                for (v = 0; v < 8; v++)
+                {
+                    for (u = 0; u < 8; u++)
+                    {
+                        tmp = 0.0;
+                        for (y = 0; y < 8; y++)
+                        {
+                            tmp2 = 0.0;
+                            for (x = 0; x < 8; x++)
+                            {
+                                tmp2 += (double)block[y,x] * CosLut[x,u];
                             }
-                            tmp += CosLut[y, v] * tmp2;   
+                            tmp += CosLut[y,v] * tmp2;
                         }
-                        res[v, u] = (float)tmp;   
-                    }   
+                        res[v,u] = (float) tmp;
+                    }
                 }
-
+                
                 return res;
             }   
         }

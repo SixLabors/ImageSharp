@@ -3,10 +3,9 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
     /// <summary>
     /// Contains inaccurate, but fast forward and inverse DCT implementations.

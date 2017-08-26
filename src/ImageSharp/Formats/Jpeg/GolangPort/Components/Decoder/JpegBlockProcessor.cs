@@ -42,12 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Dequantize, perform the inverse DCT and store the blocks to the into the corresponding <see cref="OldJpegPixelArea"/> instances.
+        /// Dequantize, perform the inverse DCT and store the blocks to the into the corresponding <see cref="OrigJpegPixelArea"/> instances.
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
-        public void ProcessAllBlocks(OldJpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
+        public void ProcessAllBlocks(OrigJpegDecoderCore decoder)
         {
-            OldComponent component = decoder.Components[this.componentIndex];
+            OrigComponent component = decoder.Components[this.componentIndex];
 
             for (int by = 0; by < component.HeightInBlocks; by++)
             {
@@ -59,13 +59,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Dequantize, perform the inverse DCT and store decodedBlock.Block to the into the corresponding <see cref="OldJpegPixelArea"/> instance.
+        /// Dequantize, perform the inverse DCT and store decodedBlock.Block to the into the corresponding <see cref="OrigJpegPixelArea"/> instance.
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/></param>
-        /// <param name="component">The <see cref="OldComponent"/></param>
-        /// <param name="bx">The x index of the block in <see cref="OldComponent.SpectralBlocks"/></param>
-        /// <param name="by">The y index of the block in <see cref="OldComponent.SpectralBlocks"/></param>
-        private void ProcessBlockColors(OldJpegDecoderCore decoder, OldComponent component, int bx, int by)
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/></param>
+        /// <param name="component">The <see cref="OrigComponent"/></param>
+        /// <param name="bx">The x index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
+        /// <param name="by">The y index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
+        private void ProcessBlockColors(OrigJpegDecoderCore decoder, OrigComponent component, int bx, int by)
         {
             ref Block8x8 sourceBlock = ref component.GetBlockReference(bx, by);
 
@@ -79,8 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             FastFloatingPointDCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
 
-            OldJpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
-            OldJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);
+            OrigJpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
+            OrigJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);
             destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
         }
 

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using (var decoder = new JpegDecoderCore(configuration, this))
+            using (var decoder = new PdfJsJpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
             }

@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
     /// <summary>
     /// Contains jpeg constant values
     /// </summary>
-    internal static class JpegConstants
+    internal static class PdfJsJpegConstants
     {
         /// <summary>
         /// Contains marker specific constants

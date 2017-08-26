@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.Blocks[x, y] = new Block8x8(data);
             }
 
-            public static ComponentData Load(FrameComponent c, int index)
+            public static ComponentData Load(PdfJsFrameComponent c, int index)
             {
                 var result = new ComponentData(
                     c.BlocksPerColumnForMcu,
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return result;
             }
 
-            public static ComponentData Load(OldComponent c)
+            public static ComponentData Load(OrigComponent c)
             {
                 var result = new ComponentData(
                     c.HeightInBlocks,

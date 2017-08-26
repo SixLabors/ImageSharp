@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents a Huffman tree
     /// </summary>
-    internal struct OldHuffmanTree : IDisposable
+    internal struct OrigHuffmanTree : IDisposable
     {
         /// <summary>
         /// The index of the AC table row
@@ -98,12 +98,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private static readonly ArrayPool<int> CodesPool16 = ArrayPool<int>.Create(MaxCodeLength, 50);
 
         /// <summary>
-        /// Creates and initializes an array of <see cref="OldHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
+        /// Creates and initializes an array of <see cref="OrigHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
         /// </summary>
-        /// <returns>An array of <see cref="OldHuffmanTree" /> instances representing the Huffman tables</returns>
-        public static OldHuffmanTree[] CreateHuffmanTrees()
+        /// <returns>An array of <see cref="OrigHuffmanTree" /> instances representing the Huffman tables</returns>
+        public static OrigHuffmanTree[] CreateHuffmanTrees()
         {
-            OldHuffmanTree[] result = new OldHuffmanTree[NumberOfTrees];
+            OrigHuffmanTree[] result = new OrigHuffmanTree[NumberOfTrees];
             for (int i = 0; i < MaxTc + 1; i++)
             {
                 for (int j = 0; j < MaxTh + 1; j++)

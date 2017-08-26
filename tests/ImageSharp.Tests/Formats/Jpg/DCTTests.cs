@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] sourceArray = JpegUtilityTestFixture.Create8x8FloatData();
                 float[] expectedDestArray = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.iDCT2D8x4_32f(sourceArray, expectedDestArray);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D8x4_32f(sourceArray, expectedDestArray);
 
                 Block8x8F source = new Block8x8F();
                 source.LoadFrom(sourceArray);
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] sourceArray = JpegUtilityTestFixture.Create8x8FloatData();
                 float[] expectedDestArray = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.iDCT2D8x4_32f(sourceArray.AsSpan().Slice(4), expectedDestArray.AsSpan().Slice(4));
+                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D8x4_32f(sourceArray.AsSpan().Slice(4), expectedDestArray.AsSpan().Slice(4));
 
                 Block8x8F source = new Block8x8F();
                 source.LoadFrom(sourceArray);
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] expectedDestArray = new float[64];
                 float[] tempArray = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.iDCT2D_llm(sourceArray, expectedDestArray, tempArray);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(sourceArray, expectedDestArray, tempArray);
 
                 // ReferenceImplementations.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
                 Block8x8F source = new Block8x8F();
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 float[] expectedDest = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.fDCT2D8x4_32f(src, expectedDest);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D8x4_32f(src, expectedDest);
                 FastFloatingPointDCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
 
                 float[] actualDest = new float[64];
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 float[] expectedDest = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.fDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan().Slice(4));
+                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan().Slice(4));
                 FastFloatingPointDCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
 
                 float[] actualDest = new float[64];
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] temp1 = new float[64];
                 Block8x8F temp2 = new Block8x8F();
 
-                ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
                 FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
                 float[] actualDest = new float[64];

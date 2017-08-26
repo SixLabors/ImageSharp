@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     using System.Diagnostics;
     using System.Text;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+    using Xunit;
     using Xunit.Abstractions;
 
     public class JpegUtilityTestFixture : MeasureFixture
@@ -132,6 +135,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             Debug.WriteLine(msg);
             this.Output.WriteLine(msg);
+        }
+
+        internal void CompareBlocks(Block8x8 a, Block8x8 b, float tolerance) =>
+            this.CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), tolerance);
+
+        internal void CompareBlocks(Block8x8F a, Block8x8F b, float tolerance) 
+            => this.CompareBlocks(a.ToArray(), b.ToArray(), tolerance);
+
+        internal void CompareBlocks(Span<float> a, Span<float> b, float tolerance)
+        {
+            ApproximateFloatComparer comparer = new ApproximateFloatComparer(tolerance);
+            double totalDifference = 0.0;
+
+            bool failed = false;
+
+            for (int i = 0; i < 64; i++)
+            {
+                float expected = a[i];
+                float actual = b[i];
+                totalDifference += Math.Abs(expected - actual);
+
+                if (!comparer.Equals(expected, actual))
+                {
+                    failed = true;
+                    this.Output.WriteLine($"Difference too large at index {i}");
+                }
+            }
+
+            this.Output.WriteLine("TOTAL DIFF: "+totalDifference);
+            Assert.False(failed);
         }
     }
 }

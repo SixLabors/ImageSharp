@@ -250,6 +250,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        public float[] ToArray()
+        {
+            float[] result = new float[Size];
+            this.CopyTo(result);
+            return result;
+        }
+
         /// <summary>
         /// Multiply all elements of the block.
         /// </summary>

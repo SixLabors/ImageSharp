@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Block8x8F dest = new Block8x8F();
 
-                DCT.IDCT8x4_LeftPart(ref source, ref dest);
+                FastFloatingPointDCT.IDCT8x4_LeftPart(ref source, ref dest);
 
                 float[] actualDestArray = new float[64];
                 dest.CopyTo(actualDestArray);
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Block8x8F dest = new Block8x8F();
 
-                DCT.IDCT8x4_RightPart(ref source, ref dest);
+                FastFloatingPointDCT.IDCT8x4_RightPart(ref source, ref dest);
 
                 float[] actualDestArray = new float[64];
                 dest.CopyTo(actualDestArray);
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8F dest = new Block8x8F();
                 Block8x8F tempBuffer = new Block8x8F();
 
-                DCT.TransformIDCT(ref source, ref dest, ref tempBuffer);
+                FastFloatingPointDCT.TransformIDCT(ref source, ref dest, ref tempBuffer);
 
                 float[] actualDestArray = new float[64];
                 dest.CopyTo(actualDestArray);
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] expectedDest = new float[64];
 
                 ReferenceImplementations.FastFloatingPointDCT.fDCT2D8x4_32f(src, expectedDest);
-                DCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
+                FastFloatingPointDCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
 
                 float[] actualDest = new float[64];
                 destBlock.CopyTo(actualDest);
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] expectedDest = new float[64];
 
                 ReferenceImplementations.FastFloatingPointDCT.fDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan().Slice(4));
-                DCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
+                FastFloatingPointDCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
 
                 float[] actualDest = new float[64];
                 destBlock.CopyTo(actualDest);
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8F temp2 = new Block8x8F();
 
                 ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
-                DCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
+                FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
                 float[] actualDest = new float[64];
                 destBlock.CopyTo(actualDest);

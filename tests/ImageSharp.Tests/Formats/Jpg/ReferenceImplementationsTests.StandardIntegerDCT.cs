@@ -18,13 +18,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
             }
 
-            [Theory(Skip = "Sandboxing only! (Incorrect reference implementation)")]
-            [InlineData(42)]
-            [InlineData(1)]
-            [InlineData(2)]
-            public void IDCT_IsEquivalentTo_AccurateImplementation(int seed)
+            [Theory]
+            [InlineData(42, 200)]
+            [InlineData(1, 200)]
+            [InlineData(2, 200)]
+            public void IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
-                int[] data = Create8x8RandomIntData(-1000, 1000, seed);
+                int[] data = Create8x8RandomIntData(-range, range, seed);
 
                 Block8x8 source = default(Block8x8);
                 source.LoadFrom(data);
@@ -32,17 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8 expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
                 Block8x8 actual = ReferenceImplementations.StandardIntegerDCT.TransformIDCT(ref source);
 
-                Block8x8F sourceF = source.AsFloatBlock();
-                Block8x8F wut0 = ReferenceImplementations.FastFloatingPointDCT.TransformIDCT(ref sourceF);
-                Block8x8 wut1 = wut0.RoundAsInt16Block();
-
-                long diff = Block8x8.TotalDifference(ref expected, ref actual);
-                this.Output.WriteLine(expected.ToString());
-                this.Output.WriteLine(actual.ToString());
-                this.Output.WriteLine(wut1.ToString());
-                this.Output.WriteLine("DIFFERENCE: "+diff);
-
-                Assert.True(diff < 4);
+                this.CompareBlocks(expected, actual, 1);
             }
 
             [Theory]

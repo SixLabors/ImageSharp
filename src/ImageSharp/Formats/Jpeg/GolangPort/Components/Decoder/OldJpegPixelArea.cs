@@ -1,27 +1,25 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Memory;
 using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System;
-
     /// <summary>
     /// Represents an area of a Jpeg subimage (channel)
     /// </summary>
-    internal struct OldJpegPixelArea
+    internal struct OrigJpegPixelArea
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="OldJpegPixelArea" /> struct from existing data.
+        /// Initializes a new instance of the <see cref="OrigJpegPixelArea" /> struct from existing data.
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
         /// <param name="stride">The stride</param>
         /// <param name="offset">The offset</param>
-        public OldJpegPixelArea(Buffer2D<byte> pixels, int stride, int offset)
+        public OrigJpegPixelArea(Buffer2D<byte> pixels, int stride, int offset)
         {
             this.Stride = stride;
             this.Pixels = pixels;
@@ -29,11 +27,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OldJpegPixelArea" /> struct from existing buffer.
+        /// Initializes a new instance of the <see cref="OrigJpegPixelArea" /> struct from existing buffer.
         /// <see cref="Stride"/> will be set to <see cref="Buffer2D{T}.Width"/> of <paramref name="pixels"/> and <see cref="Offset"/> will be set to 0.
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
-        public OldJpegPixelArea(Buffer2D<byte> pixels)
+        public OrigJpegPixelArea(Buffer2D<byte> pixels)
             : this(pixels, pixels.Width, 0)
         {
         }
@@ -84,10 +82,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="bx">The block X index</param>
         /// <param name="by">The block Y index</param>
         /// <returns>The subarea offseted by block indices</returns>
-        public OldJpegPixelArea GetOffsetedSubAreaForBlock(int bx, int by)
+        public OrigJpegPixelArea GetOffsetedSubAreaForBlock(int bx, int by)
         {
             int offset = this.Offset + (8 * ((by * this.Stride) + bx));
-            return new OldJpegPixelArea(this.Pixels, this.Stride, offset);
+            return new OrigJpegPixelArea(this.Pixels, this.Stride, offset);
         }
 
         /// <summary>

@@ -22,23 +22,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(42, 0)]
             [InlineData(1, 0)]
             [InlineData(2, 0)]
-            public void ForwardThenInverse(int seed, int startAt)
+            public void LLM_ForwardThenInverse(int seed, int startAt)
             {
                 int[] data = JpegUtilityTestFixture.Create8x8RandomIntData(-1000, 1000, seed);
                 float[] src = data.ConvertAllToFloat();
                 float[] dest = new float[64];
                 float[] temp = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.fDCT2D_llm(src, dest, temp, true);
-                ReferenceImplementations.FastFloatingPointDCT.iDCT2D_llm(dest, src, temp);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D_llm(src, dest, temp, true);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(dest, src, temp);
 
                 this.CompareBlocks(data.ConvertAllToFloat(), src, 2f);
             }
             
             // [Fact]
-            public void CalcConstants()
+            public void LLM_CalcConstants()
             {
-                ReferenceImplementations.FastFloatingPointDCT.PrintConstants(this.Output);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.PrintConstants(this.Output);
             }
             
             [Theory]
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(42, 200)]
             [InlineData(1, 200)]
             [InlineData(2, 200)]
-            public void IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
+            public void LLM_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
                 int[] intData = JpegUtilityTestFixture.Create8x8RandomIntData(-range, range, seed);
                 float[] floatSrc = intData.ConvertAllToFloat();
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] dest = new float[64];
                 float[] temp = new float[64];
 
-                ReferenceImplementations.FastFloatingPointDCT.iDCT2D_llm(floatSrc, dest, temp);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(floatSrc, dest, temp);
 
                 this.CompareBlocks(intData.ConvertAllToFloat(), dest, 1f);
             }
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(42)]
             [InlineData(1)]
             [InlineData(2)]
-            public void FDCT_IsEquivalentTo_AccurateImplementation(int seed)
+            public void LLM_FDCT_IsEquivalentTo_AccurateImplementation(int seed)
             {
                 float[] floatData = JpegUtilityTestFixture.Create8x8RandomFloatData(-1000, 1000);
 
@@ -75,13 +75,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 source.LoadFrom(floatData);
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
-                Block8x8F actual = ReferenceImplementations.FastFloatingPointDCT.TransformFDCT_UpscaleBy8(ref source);
+                Block8x8F actual = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformFDCT_UpscaleBy8(ref source);
                 actual /= 8;
 
                 this.CompareBlocks(expected, actual, 1f);
             }
 
+            [Theory]
+            [InlineData(42, 1000)]
+            [InlineData(1, 1000)]
+            [InlineData(2, 1000)]
+            [InlineData(42, 200)]
+            [InlineData(1, 200)]
+            [InlineData(2, 200)]
+            public void GT_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
+            {
+                int[] intData = JpegUtilityTestFixture.Create8x8RandomIntData(-range, range, seed);
+                float[] floatSrc = intData.ConvertAllToFloat();
 
+                ReferenceImplementations.AccurateDCT.TransformIDCTInplace(intData);
+
+                float[] dest = new float[64];
+                
+                ReferenceImplementations.GT_FloatingPoint_DCT.iDCT8x8GT(floatSrc, dest);
+
+                this.CompareBlocks(intData.ConvertAllToFloat(), dest, 1f);
+            }
         }
     }
 }

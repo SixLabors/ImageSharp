@@ -1,19 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Represents a single color component
     /// </summary>
-    internal class OldComponent : IDisposable, IJpegComponent
+    internal class OrigComponent : IDisposable, IJpegComponent
     {
-        public OldComponent(byte identifier, int index)
+        public OrigComponent(byte identifier, int index)
         {
             this.Identifier = identifier;
             this.Index = index;
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public byte Identifier { get; }
 
         /// <summary>
-        /// Gets the component's position in <see cref="OldJpegDecoderCore.Components"/>
+        /// Gets the component's position in <see cref="OrigJpegDecoderCore.Components"/>
         /// </summary>
         public int Index { get; }
 
@@ -47,8 +46,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Gets the <see cref="Buffer{T}"/> storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
-        /// This is done by <see cref="OldJpegDecoderCore.ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
-        /// When <see cref="OldJpegDecoderCore.IsProgressive"/> us true, we are touching these blocks multiple times - each time we process a Scan.
+        /// This is done by <see cref="OrigJpegDecoderCore.ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
+        /// When <see cref="OrigJpegDecoderCore.IsProgressive"/> us true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
         public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
@@ -70,8 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
-        public void InitializeBlocks(OldJpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
+        public void InitializeBlocks(OrigJpegDecoderCore decoder)
         {
             this.WidthInBlocks = decoder.MCUCountX * this.HorizontalFactor;
             this.HeightInBlocks = decoder.MCUCountY * this.VerticalFactor;
@@ -81,8 +80,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Initializes all component data except <see cref="SpectralBlocks"/>.
         /// </summary>
-        /// <param name="decoder">The <see cref="OldJpegDecoderCore"/> instance</param>
-        public void InitializeData(OldJpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
+        public void InitializeData(OrigJpegDecoderCore decoder)
         {
             // Section B.2.2 states that "the value of C_i shall be different from
             // the values of C_1 through C_(i-1)".
@@ -97,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
 
             this.Selector = decoder.Temp[8 + (3 * i)];
-            if (this.Selector > OldJpegDecoderCore.MaxTq)
+            if (this.Selector > OrigJpegDecoderCore.MaxTq)
             {
                 throw new ImageFormatException("Bad Tq value");
             }

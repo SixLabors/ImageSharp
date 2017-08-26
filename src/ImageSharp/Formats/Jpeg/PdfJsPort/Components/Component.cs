@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a component block
     /// </summary>
-    internal class Component : IDisposable
+    internal class PdfJsComponent : IDisposable
     {
 #pragma warning disable SA1401
         /// <summary>

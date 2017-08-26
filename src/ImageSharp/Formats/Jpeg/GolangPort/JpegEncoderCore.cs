@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         private static readonly byte[] SosHeaderYCbCr =
             {
-                OldJpegConstants.Markers.XFF, OldJpegConstants.Markers.SOS,
+                OrigJpegConstants.Markers.XFF, OrigJpegConstants.Markers.SOS,
 
                 // Marker
                 0x00, 0x0c,
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            ushort max = OldJpegConstants.MaxLength;
+            ushort max = OrigJpegConstants.MaxLength;
             if (image.Width >= max || image.Height >= max)
             {
                 throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
@@ -246,8 +246,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             // Write the End Of Image marker.
-            this.buffer[0] = OldJpegConstants.Markers.XFF;
-            this.buffer[1] = OldJpegConstants.Markers.EOI;
+            this.buffer[0] = OrigJpegConstants.Markers.XFF;
+            this.buffer[1] = OrigJpegConstants.Markers.EOI;
             stream.Write(this.buffer, 0, 2);
             stream.Flush();
         }
@@ -508,12 +508,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
         {
             // Write the start of image marker. Markers are always prefixed with with 0xff.
-            this.buffer[0] = OldJpegConstants.Markers.XFF;
-            this.buffer[1] = OldJpegConstants.Markers.SOI;
+            this.buffer[0] = OrigJpegConstants.Markers.XFF;
+            this.buffer[1] = OrigJpegConstants.Markers.SOI;
 
             // Write the JFIF headers
-            this.buffer[2] = OldJpegConstants.Markers.XFF;
-            this.buffer[3] = OldJpegConstants.Markers.APP0; // Application Marker
+            this.buffer[2] = OrigJpegConstants.Markers.XFF;
+            this.buffer[3] = OrigJpegConstants.Markers.APP0; // Application Marker
             this.buffer[4] = 0x00;
             this.buffer[5] = 0x10;
             this.buffer[6] = 0x4a; // J
@@ -627,7 +627,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 markerlen += 1 + 16 + s.Values.Length;
             }
 
-            this.WriteMarkerHeader(OldJpegConstants.Markers.DHT, markerlen);
+            this.WriteMarkerHeader(OrigJpegConstants.Markers.DHT, markerlen);
             for (int i = 0; i < specs.Length; i++)
             {
                 HuffmanSpec spec = specs[i];
@@ -661,7 +661,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             // Marker + quantization table lengths
             int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
-            this.WriteMarkerHeader(OldJpegConstants.Markers.DQT, markerlen);
+            this.WriteMarkerHeader(OrigJpegConstants.Markers.DQT, markerlen);
 
             // Loop through and collect the tables as one array.
             // This allows us to reduce the number of writes to the stream.
@@ -699,8 +699,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             int length = data.Length + 2;
 
-            this.buffer[0] = OldJpegConstants.Markers.XFF;
-            this.buffer[1] = OldJpegConstants.Markers.APP1; // Application Marker
+            this.buffer[0] = OrigJpegConstants.Markers.XFF;
+            this.buffer[1] = OrigJpegConstants.Markers.APP1; // Application Marker
             this.buffer[2] = (byte)((length >> 8) & 0xFF);
             this.buffer[3] = (byte)(length & 0xFF);
 
@@ -758,8 +758,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 dataLength -= length;
 
-                this.buffer[0] = OldJpegConstants.Markers.XFF;
-                this.buffer[1] = OldJpegConstants.Markers.APP2; // Application Marker
+                this.buffer[0] = OrigJpegConstants.Markers.XFF;
+                this.buffer[1] = OrigJpegConstants.Markers.APP2; // Application Marker
                 int markerLength = length + 16;
                 this.buffer[2] = (byte)((markerLength >> 8) & 0xFF);
                 this.buffer[3] = (byte)(markerLength & 0xFF);
@@ -831,7 +831,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             // Length (high byte, low byte), 8 + components * 3.
             int markerlen = 8 + (3 * componentCount);
-            this.WriteMarkerHeader(OldJpegConstants.Markers.SOF0, markerlen);
+            this.WriteMarkerHeader(OrigJpegConstants.Markers.SOF0, markerlen);
             this.buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
             this.buffer[1] = (byte)(height >> 8);
             this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
@@ -974,7 +974,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void WriteMarkerHeader(byte marker, int length)
         {
             // Markers are always prefixed with with 0xff.
-            this.buffer[0] = OldJpegConstants.Markers.XFF;
+            this.buffer[0] = OrigJpegConstants.Markers.XFF;
             this.buffer[1] = marker;
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);

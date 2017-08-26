@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void PdfJsDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            JpegDecoderCore decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            PdfJsJpegDecoderCore decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void OriginalDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            OldJpegDecoderCore decoder = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            OrigJpegDecoderCore decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void VerifySpectralCorrectness_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            JpegDecoderCore decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            PdfJsJpegDecoderCore decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void VerifySpectralResults_OriginalDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            OldJpegDecoderCore decoder = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            OrigJpegDecoderCore decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 

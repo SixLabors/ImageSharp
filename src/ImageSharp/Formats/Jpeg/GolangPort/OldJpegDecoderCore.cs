@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal sealed unsafe class OldJpegDecoderCore : IDisposable
+    internal sealed unsafe class OrigJpegDecoderCore : IDisposable
     {
         /// <summary>
         /// The maximum number of color components
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 #pragma warning disable SA1401 // FieldsMustBePrivate
 
         /// <summary>
-        /// Encapsulates stream reading and processing data and operations for <see cref="OldJpegDecoderCore"/>.
+        /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
         /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
         /// </summary>
         public InputProcessor InputProcessor;
@@ -65,12 +65,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// The black image to decode to.
         /// </summary>
-        private OldJpegPixelArea blackImage;
+        private OrigJpegPixelArea blackImage;
 
         /// <summary>
         /// A grayscale image to decode to.
         /// </summary>
-        private OldJpegPixelArea grayImage;
+        private OrigJpegPixelArea grayImage;
 
         /// <summary>
         /// The horizontal resolution. Calculated if the image has a JFIF header.
@@ -98,15 +98,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private YCbCrImage ycbcrImage;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OldJpegDecoderCore" /> class.
+        /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public OldJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
+        public OrigJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
-            this.HuffmanTrees = OldHuffmanTree.CreateHuffmanTrees();
+            this.HuffmanTrees = OrigHuffmanTree.CreateHuffmanTrees();
             this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.Size];
         }
@@ -114,12 +114,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the component array
         /// </summary>
-        public OldComponent[] Components { get; private set; }
+        public OrigComponent[] Components { get; private set; }
 
         /// <summary>
         /// Gets the huffman trees
         /// </summary>
-        public OldHuffmanTree[] HuffmanTrees { get; }
+        public OrigHuffmanTree[] HuffmanTrees { get; }
 
         /// <summary>
         /// Gets the quantization tables, in zigzag order.
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (this.Components != null)
             {
-                foreach (OldComponent component in this.Components)
+                foreach (OrigComponent component in this.Components)
                 {
                     component.Dispose();
                 }
@@ -227,11 +227,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Gets the <see cref="OldJpegPixelArea"/> representing the channel at a given component index
+        /// Gets the <see cref="OrigJpegPixelArea"/> representing the channel at a given component index
         /// </summary>
         /// <param name="compIndex">The component index</param>
-        /// <returns>The <see cref="OldJpegPixelArea"/> of the channel</returns>
-        public OldJpegPixelArea GetDestinationChannel(int compIndex)
+        /// <returns>The <see cref="OrigJpegPixelArea"/> of the channel</returns>
+        public OrigJpegPixelArea GetDestinationChannel(int compIndex)
         {
             if (this.ComponentCount == 1)
             {
@@ -242,11 +242,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 switch (compIndex)
                 {
                     case 0:
-                        return new OldJpegPixelArea(this.ycbcrImage.YChannel);
+                        return new OrigJpegPixelArea(this.ycbcrImage.YChannel);
                     case 1:
-                        return new OldJpegPixelArea(this.ycbcrImage.CbChannel);
+                        return new OrigJpegPixelArea(this.ycbcrImage.CbChannel);
                     case 2:
-                        return new OldJpegPixelArea(this.ycbcrImage.CrChannel);
+                        return new OrigJpegPixelArea(this.ycbcrImage.CrChannel);
                     case 3:
                         return this.blackImage;
                     default:
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Read metadata from stream and read the blocks in the scans into <see cref="OldComponent.SpectralBlocks"/>.
+        /// Read metadata from stream and read the blocks in the scans into <see cref="OrigComponent.SpectralBlocks"/>.
         /// </summary>
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);
-            if (this.Temp[0] != OldJpegConstants.Markers.XFF || this.Temp[1] != OldJpegConstants.Markers.SOI)
+            if (this.Temp[0] != OrigJpegConstants.Markers.XFF || this.Temp[1] != OrigJpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
@@ -318,12 +318,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 }
 
                 // End Of Image.
-                if (marker == OldJpegConstants.Markers.EOI)
+                if (marker == OrigJpegConstants.Markers.EOI)
                 {
                     break;
                 }
 
-                if (marker >= OldJpegConstants.Markers.RST0 && marker <= OldJpegConstants.Markers.RST7)
+                if (marker >= OrigJpegConstants.Markers.RST0 && marker <= OrigJpegConstants.Markers.RST7)
                 {
                     // Figures B.2 and B.16 of the specification suggest that restart markers should
                     // only occur between Entropy Coded Segments and not after the final ECS.
@@ -345,10 +345,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 switch (marker)
                 {
-                    case OldJpegConstants.Markers.SOF0:
-                    case OldJpegConstants.Markers.SOF1:
-                    case OldJpegConstants.Markers.SOF2:
-                        this.IsProgressive = marker == OldJpegConstants.Markers.SOF2;
+                    case OrigJpegConstants.Markers.SOF0:
+                    case OrigJpegConstants.Markers.SOF1:
+                    case OrigJpegConstants.Markers.SOF2:
+                        this.IsProgressive = marker == OrigJpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining);
                         if (metadataOnly && this.isJfif)
                         {
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OldJpegConstants.Markers.DHT:
+                    case OrigJpegConstants.Markers.DHT:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OldJpegConstants.Markers.DQT:
+                    case OrigJpegConstants.Markers.DQT:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OldJpegConstants.Markers.SOS:
+                    case OrigJpegConstants.Markers.SOS:
                         if (metadataOnly)
                         {
                             return;
@@ -394,7 +394,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OldJpegConstants.Markers.DRI:
+                    case OrigJpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -405,25 +405,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OldJpegConstants.Markers.APP0:
+                    case OrigJpegConstants.Markers.APP0:
                         this.ProcessApplicationHeader(remaining);
                         break;
-                    case OldJpegConstants.Markers.APP1:
+                    case OrigJpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining);
                         break;
-                    case OldJpegConstants.Markers.APP2:
+                    case OrigJpegConstants.Markers.APP2:
                         this.ProcessApp2Marker(remaining);
                         break;
-                    case OldJpegConstants.Markers.APP14:
+                    case OrigJpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
                         break;
                     default:
-                        if ((marker >= OldJpegConstants.Markers.APP0 && marker <= OldJpegConstants.Markers.APP15)
-                            || marker == OldJpegConstants.Markers.COM)
+                        if ((marker >= OrigJpegConstants.Markers.APP0 && marker <= OrigJpegConstants.Markers.APP15)
+                            || marker == OrigJpegConstants.Markers.COM)
                         {
                             this.InputProcessor.Skip(remaining);
                         }
-                        else if (marker < OldJpegConstants.Markers.SOF0)
+                        else if (marker < OrigJpegConstants.Markers.SOF0)
                         {
                             // See Table B.1 "Marker code assignments".
                             throw new ImageFormatException("Unknown marker");
@@ -448,17 +448,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </exception>
         private void ProcessStartOfScan(int remaining)
         {
-            OldJpegScanDecoder scan = default(OldJpegScanDecoder);
-            OldJpegScanDecoder.InitStreamReading(&scan, this, remaining);
+            OrigJpegScanDecoder scan = default(OrigJpegScanDecoder);
+            OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default(Bits);
             this.MakeImage();
             scan.DecodeBlocks(this);
         }
 
         /// <summary>
-        /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="OldJpegPixelArea"/>)
+        /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="OrigJpegPixelArea"/>)
         /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
-        /// We can copy these blocks into <see cref="OldJpegPixelArea"/>-s afterwards.
+        /// We can copy these blocks into <see cref="OrigJpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         private void ProcessBlocksIntoJpegImageChannels<TPixel>()
@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="OldJpegPixelArea"/> into pixels of <see cref="Image{TPixel}"/>
+        /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="OrigJpegPixelArea"/> into pixels of <see cref="Image{TPixel}"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <returns>The decoded image.</returns>
@@ -503,11 +503,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
                     // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
                     // TODO: YCbCrA?
-                    if (this.adobeTransform == OldJpegConstants.Adobe.ColorTransformYcck)
+                    if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
                     {
                         this.ConvertFromYcck(image);
                     }
-                    else if (this.adobeTransform == OldJpegConstants.Adobe.ColorTransformUnknown)
+                    else if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
                     {
                         // Assume CMYK
                         this.ConvertFromCmyk(image);
@@ -759,7 +759,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 return false;
             }
 
-            if (this.adobeTransformValid && this.adobeTransform == OldJpegConstants.Adobe.ColorTransformUnknown)
+            if (this.adobeTransformValid && this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
             {
                 // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
                 // says that 0 means Unknown (and in practice RGB) and 1 means YCbCr.
@@ -783,7 +783,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             if (this.ComponentCount == 1)
             {
                 Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
-                this.grayImage = new OldJpegPixelArea(buffer);
+                this.grayImage = new OrigJpegPixelArea(buffer);
             }
             else
             {
@@ -823,7 +823,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     int v3 = this.Components[3].VerticalFactor;
 
                     var buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
-                    this.blackImage = new OldJpegPixelArea(buffer);
+                    this.blackImage = new OrigJpegPixelArea(buffer);
                 }
             }
         }
@@ -1056,18 +1056,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 this.InputProcessor.ReadFull(this.Temp, 0, 17);
 
                 int tc = this.Temp[0] >> 4;
-                if (tc > OldHuffmanTree.MaxTc)
+                if (tc > OrigHuffmanTree.MaxTc)
                 {
                     throw new ImageFormatException("Bad Tc value");
                 }
 
                 int th = this.Temp[0] & 0x0f;
-                if (th > OldHuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
+                if (th > OrigHuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
                 {
                     throw new ImageFormatException("Bad Th value");
                 }
 
-                int huffTreeIndex = (tc * OldHuffmanTree.ThRowSize) + th;
+                int huffTreeIndex = (tc * OrigHuffmanTree.ThRowSize) + th;
                 this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
                     ref this.InputProcessor,
                     this.Temp,
@@ -1203,12 +1203,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 throw new ImageFormatException("SOF has wrong length");
             }
 
-            this.Components = new OldComponent[this.ComponentCount];
+            this.Components = new OrigComponent[this.ComponentCount];
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
                 byte componentIdentifier = this.Temp[6 + (3 * i)];
-                var component = new OldComponent(componentIdentifier, i);
+                var component = new OrigComponent(componentIdentifier, i);
                 component.InitializeData(this);
                 this.Components[i] = component;
             }

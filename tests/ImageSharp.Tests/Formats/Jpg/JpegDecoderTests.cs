@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        private static IImageDecoder OldJpegDecoder => new OldJpegDecoder();
+        private static IImageDecoder OldJpegDecoder => new OrigJpegDecoder();
 
         private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using (var ms = new MemoryStream(bytes))
             {
-                var decoder = new OldJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
                 decoder.ParseStream(ms);
 
                 VerifyJpeg.Components3(decoder.Components, 43, 61, 22, 31, 22, 31);
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using (var ms = new MemoryStream(bytes))
             {
-                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+                var decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
                 decoder.ParseStream(ms);
 
                 VerifyJpeg.Components3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);

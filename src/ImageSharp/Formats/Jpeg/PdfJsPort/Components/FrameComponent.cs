@@ -12,11 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal class FrameComponent : IDisposable, IJpegComponent
+    internal class PdfJsFrameComponent : IDisposable, IJpegComponent
     {
 #pragma warning disable SA1401 // Fields should be private
 
-        public FrameComponent(Frame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier)
+        public PdfJsFrameComponent(PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier)
         {
             this.Frame = frame;
             this.Id = id;
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         internal int BlocksPerColumnForMcu { get; private set; }
 
-        public Frame Frame { get; }
+        public PdfJsFrame Frame { get; }
 
         /// <inheritdoc/>
         public void Dispose()

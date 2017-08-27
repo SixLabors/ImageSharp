@@ -81,18 +81,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public static bool IsChromaComponent(this IJpegComponent component) =>
             component.Index > 0 && component.Index < 3;
 
-        public static Size CalculateJpegChannelSize(this IJpegComponent component, SubsampleRatio ratio = SubsampleRatio.Undefined)
+        public static Size[] CalculateJpegChannelSizes(IEnumerable<IJpegComponent> components, SubsampleRatio ratio)
         {
-            Size size = new Size(component.WidthInBlocks, component.HeightInBlocks) * 8;
+            IJpegComponent[] c = components.ToArray();
+            Size[] sizes = new Size[c.Length];
 
-            if (component.IsChromaComponent())
+            Size s0 = new Size(c[0].WidthInBlocks, c[0].HeightInBlocks) * 8;
+            sizes[0] = s0;
+
+            if (c.Length > 1)
             {
-                return ratio.CalculateChrominanceSize(size.Width, size.Height);
+                Size chromaSize = ratio.CalculateChrominanceSize(s0.Width, s0.Height);
+                sizes[1] = chromaSize;
+
+                if (c.Length > 2)
+                {
+                    sizes[2] = chromaSize;
+                }
             }
-            else
+
+            if (c.Length > 3)
             {
-                return size;
+                sizes[3] = s0;
             }
+
+            return sizes;
         }
+
+        //public static Size CalculateJpegChannelSize(this IJpegComponent component, SubsampleRatio ratio = SubsampleRatio.Undefined)
+        //{
+        //    Size size = new Size(component.WidthInBlocks, component.HeightInBlocks) * 8;
+
+        //    if (component.IsChromaComponent())
+        //    {
+        //        return ratio.CalculateChrominanceSize(size.Width, size.Height);
+        //    }
+        //    else
+        //    {
+        //        return size;
+        //    }
+        //}
     }
 }

@@ -669,17 +669,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 int val = bu >= 0 ? bu + delta : bu - delta;
 
                 Block8x8.SetScalarAt(b, u, (short)val);
-
-                //if (bu >= 0)
-                //{
-                //    // b[u] += delta;
-                //    Block8x8.SetScalarAt(b, u, bu + delta);
-                //}
-                //else
-                //{
-                //    // b[u] -= delta;
-                //    Block8x8.SetScalarAt(b, u, bu - delta);
-                //}
             }
 
             return zig;

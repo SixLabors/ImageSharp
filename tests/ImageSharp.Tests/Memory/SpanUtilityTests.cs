@@ -1,17 +1,18 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
-using static SixLabors.ImageSharp.Tests.Common.TestStructs;
-
-namespace SixLabors.ImageSharp.Tests.Common
+namespace SixLabors.ImageSharp.Tests.Memory
 {
-    public unsafe class SpanTests
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.Tests.Common;
+
+    using Xunit;
+
+    public unsafe class SpanUtilityTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             {
                 ref T1 bb = ref Unsafe.As<T2, T1>(ref b);
 
-                True(Unsafe.AreSame(ref a, ref bb), "References are not same!");
+                Assert.True(Unsafe.AreSame(ref a, ref bb), "References are not same!");
             }
         }
 
@@ -42,15 +43,15 @@ namespace SixLabors.ImageSharp.Tests.Common
         [Fact]
         public void AsBytes()
         {
-            Foo[] fooz = { new Foo(1, 2), new Foo(3, 4), new Foo(5, 6) };
+            TestStructs.Foo[] fooz = { new TestStructs.Foo(1, 2), new TestStructs.Foo(3, 4), new TestStructs.Foo(5, 6) };
 
-            using (Buffer<Foo> colorBuf = new Buffer<Foo>(fooz))
+            using (Buffer<TestStructs.Foo> colorBuf = new Buffer<TestStructs.Foo>(fooz))
             {
-                Span<Foo> orig = colorBuf.Slice(1);
+                Span<TestStructs.Foo> orig = colorBuf.Slice(1);
                 Span<byte> asBytes = orig.AsBytes();
 
                 //  Assert.Equal(asBytes.Start, sizeof(Foo));
-                Assert.Equal(orig.Length * Unsafe.SizeOf<Foo>(), asBytes.Length);
+                Assert.Equal(orig.Length * Unsafe.SizeOf<TestStructs.Foo>(), asBytes.Length);
                 Assert.SameRefs(ref orig.DangerousGetPinnableReference(), ref asBytes.DangerousGetPinnableReference());
             }
         }
@@ -60,10 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Common
             [Fact]
             public void Basic()
             {
-                Foo[] array = Foo.CreateArray(3);
+                TestStructs.Foo[] array = TestStructs.Foo.CreateArray(3);
 
                 // Act:
-                Span<Foo> span = new Span<Foo>(array);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array);
 
                 // Assert:
                 Assert.Equal(array, span.ToArray());
@@ -74,11 +75,11 @@ namespace SixLabors.ImageSharp.Tests.Common
             [Fact]
             public void WithStart()
             {
-                Foo[] array = Foo.CreateArray(4);
+                TestStructs.Foo[] array = TestStructs.Foo.CreateArray(4);
                 int start = 2;
 
                 // Act:
-                Span<Foo> span = new Span<Foo>(array, start);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start);
 
                 // Assert:
                 Assert.SameRefs(ref array[start], ref span.DangerousGetPinnableReference());
@@ -88,11 +89,11 @@ namespace SixLabors.ImageSharp.Tests.Common
             [Fact]
             public void WithStartAndLength()
             {
-                Foo[] array = Foo.CreateArray(10);
+                TestStructs.Foo[] array = TestStructs.Foo.CreateArray(10);
                 int start = 2;
                 int length = 3;
                 // Act:
-                Span<Foo> span = new Span<Foo>(array, start, length);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start, length);
 
                 // Assert:
                 Assert.SameRefs(ref array[start], ref span.DangerousGetPinnableReference());
@@ -105,12 +106,12 @@ namespace SixLabors.ImageSharp.Tests.Common
             [Fact]
             public void StartOnly()
             {
-                Foo[] array = Foo.CreateArray(5);
+                TestStructs.Foo[] array = TestStructs.Foo.CreateArray(5);
                 int start0 = 2;
                 int start1 = 2;
                 int totalOffset = start0 + start1;
 
-                Span<Foo> span = new Span<Foo>(array, start0);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start0);
 
                 // Act:
                 span = span.Slice(start1);
@@ -123,13 +124,13 @@ namespace SixLabors.ImageSharp.Tests.Common
             [Fact]
             public void StartAndLength()
             {
-                Foo[] array = Foo.CreateArray(10);
+                TestStructs.Foo[] array = TestStructs.Foo.CreateArray(10);
                 int start0 = 2;
                 int start1 = 2;
                 int totalOffset = start0 + start1;
                 int sliceLength = 3;
 
-                Span<Foo> span = new Span<Foo>(array, start0);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start0);
 
                 // Act:
                 span = span.Slice(start1, sliceLength);
@@ -176,10 +177,10 @@ namespace SixLabors.ImageSharp.Tests.Common
             [MemberData(nameof(IndexerData))]
             public void Read(int length, int start, int index)
             {
-                Foo[] a = Foo.CreateArray(length);
-                Span<Foo> span = new Span<Foo>(a, start);
+                TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
 
-                Foo element = span[index];
+                TestStructs.Foo element = span[index];
 
                 Assert.Equal(a[start + index], element);
             }
@@ -188,12 +189,12 @@ namespace SixLabors.ImageSharp.Tests.Common
             [MemberData(nameof(IndexerData))]
             public void Write(int length, int start, int index)
             {
-                Foo[] a = Foo.CreateArray(length);
-                Span<Foo> span = new Span<Foo>(a, start);
+                TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
 
-                span[index] = new Foo(666, 666);
+                span[index] = new TestStructs.Foo(666, 666);
 
-                Assert.Equal(new Foo(666, 666), a[start + index]);
+                Assert.Equal(new TestStructs.Foo(666, 666), a[start + index]);
             }
 
             [Theory]
@@ -203,15 +204,15 @@ namespace SixLabors.ImageSharp.Tests.Common
             [InlineData(10, 1, 1, 7)]
             public void AsBytes_Read(int length, int start, int index, int byteOffset)
             {
-                Foo[] a = Foo.CreateArray(length);
-                Span<Foo> span = new Span<Foo>(a, start);
+                TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
 
                 Span<byte> bytes = span.AsBytes();
 
-                byte actual = bytes[index * Unsafe.SizeOf<Foo>() + byteOffset];
+                byte actual = bytes[index * Unsafe.SizeOf<TestStructs.Foo>() + byteOffset];
 
-                ref byte baseRef = ref Unsafe.As<Foo, byte>(ref a[0]);
-                byte expected = Unsafe.Add(ref baseRef, (start + index) * Unsafe.SizeOf<Foo>() + byteOffset);
+                ref byte baseRef = ref Unsafe.As<TestStructs.Foo, byte>(ref a[0]);
+                byte expected = Unsafe.Add(ref baseRef, (start + index) * Unsafe.SizeOf<TestStructs.Foo>() + byteOffset);
 
                 Assert.Equal(expected, actual);
             }
@@ -223,9 +224,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(3, 4)]
         public void DangerousGetPinnableReference(int start, int length)
         {
-            Foo[] a = Foo.CreateArray(length);
-            Span<Foo> span = new Span<Foo>(a, start);
-            ref Foo r = ref span.DangerousGetPinnableReference();
+            TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
+            Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
+            ref TestStructs.Foo r = ref span.DangerousGetPinnableReference();
 
             Assert.True(Unsafe.AreSame(ref a[start], ref r));
         }
@@ -263,11 +264,11 @@ namespace SixLabors.ImageSharp.Tests.Common
             [InlineData(1500)]
             public void GenericToOwnType(int count)
             {
-                Foo[] source = Foo.CreateArray(count + 2);
-                Foo[] dest = new Foo[count + 5];
+                TestStructs.Foo[] source = TestStructs.Foo.CreateArray(count + 2);
+                TestStructs.Foo[] dest = new TestStructs.Foo[count + 5];
 
-                Span<Foo> apSource = new Span<Foo>(source, 1);
-                Span<Foo> apDest = new Span<Foo>(dest, 1);
+                Span<TestStructs.Foo> apSource = new Span<TestStructs.Foo>(source, 1);
+                Span<TestStructs.Foo> apDest = new Span<TestStructs.Foo>(dest, 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -286,11 +287,11 @@ namespace SixLabors.ImageSharp.Tests.Common
             [InlineData(1500)]
             public void GenericToOwnType_Aligned(int count)
             {
-                AlignedFoo[] source = AlignedFoo.CreateArray(count + 2);
-                AlignedFoo[] dest = new AlignedFoo[count + 5];
+                TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
+                TestStructs.AlignedFoo[] dest = new TestStructs.AlignedFoo[count + 5];
 
-                Span<AlignedFoo> apSource = new Span<AlignedFoo>(source, 1);
-                Span<AlignedFoo> apDest = new Span<AlignedFoo>(dest, 1);
+                Span<TestStructs.AlignedFoo> apSource = new Span<TestStructs.AlignedFoo>(source, 1);
+                Span<TestStructs.AlignedFoo> apDest = new Span<TestStructs.AlignedFoo>(dest, 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -332,22 +333,22 @@ namespace SixLabors.ImageSharp.Tests.Common
             [InlineData(1500)]
             public void GenericToBytes(int count)
             {
-                int destCount = count * sizeof(Foo);
-                Foo[] source = Foo.CreateArray(count + 2);
-                byte[] dest = new byte[destCount + sizeof(Foo) * 2];
+                int destCount = count * sizeof(TestStructs.Foo);
+                TestStructs.Foo[] source = TestStructs.Foo.CreateArray(count + 2);
+                byte[] dest = new byte[destCount + sizeof(TestStructs.Foo) * 2];
 
-                Span<Foo> apSource = new Span<Foo>(source, 1);
-                Span<byte> apDest = new Span<byte>(dest, sizeof(Foo));
+                Span<TestStructs.Foo> apSource = new Span<TestStructs.Foo>(source, 1);
+                Span<byte> apDest = new Span<byte>(dest, sizeof(TestStructs.Foo));
 
-                SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(Foo));
+                SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(TestStructs.Foo));
 
                 AssertNotDefault(source, 1);
 
-                Assert.False(ElementsAreEqual(source, dest, 0));
-                Assert.True(ElementsAreEqual(source, dest, 1));
-                Assert.True(ElementsAreEqual(source, dest, 2));
-                Assert.True(ElementsAreEqual(source, dest, count - 1));
-                Assert.False(ElementsAreEqual(source, dest, count));
+                Assert.False((bool)ElementsAreEqual(source, dest, 0));
+                Assert.True((bool)ElementsAreEqual(source, dest, 1));
+                Assert.True((bool)ElementsAreEqual(source, dest, 2));
+                Assert.True((bool)ElementsAreEqual(source, dest, count - 1));
+                Assert.False((bool)ElementsAreEqual(source, dest, count));
             }
 
             [Theory]
@@ -355,22 +356,22 @@ namespace SixLabors.ImageSharp.Tests.Common
             [InlineData(1500)]
             public void GenericToBytes_Aligned(int count)
             {
-                int destCount = count * sizeof(Foo);
-                AlignedFoo[] source = AlignedFoo.CreateArray(count + 2);
-                byte[] dest = new byte[destCount + sizeof(AlignedFoo) * 2];
+                int destCount = count * sizeof(TestStructs.Foo);
+                TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
+                byte[] dest = new byte[destCount + sizeof(TestStructs.AlignedFoo) * 2];
 
-                Span<AlignedFoo> apSource = new Span<AlignedFoo>(source, 1);
-                Span<byte> apDest = new Span<byte>(dest, sizeof(AlignedFoo));
+                Span<TestStructs.AlignedFoo> apSource = new Span<TestStructs.AlignedFoo>(source, 1);
+                Span<byte> apDest = new Span<byte>(dest, sizeof(TestStructs.AlignedFoo));
 
-                SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(AlignedFoo));
+                SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(TestStructs.AlignedFoo));
 
                 AssertNotDefault(source, 1);
 
-                Assert.False(ElementsAreEqual(source, dest, 0));
-                Assert.True(ElementsAreEqual(source, dest, 1));
-                Assert.True(ElementsAreEqual(source, dest, 2));
-                Assert.True(ElementsAreEqual(source, dest, count - 1));
-                Assert.False(ElementsAreEqual(source, dest, count));
+                Assert.False((bool)ElementsAreEqual(source, dest, 0));
+                Assert.True((bool)ElementsAreEqual(source, dest, 1));
+                Assert.True((bool)ElementsAreEqual(source, dest, 2));
+                Assert.True((bool)ElementsAreEqual(source, dest, count - 1));
+                Assert.False((bool)ElementsAreEqual(source, dest, count));
             }
 
             [Theory]
@@ -389,9 +390,9 @@ namespace SixLabors.ImageSharp.Tests.Common
 
                 AssertNotDefault(source, 1);
 
-                Assert.True(ElementsAreEqual(source, dest, 0));
-                Assert.True(ElementsAreEqual(source, dest, count - 1));
-                Assert.False(ElementsAreEqual(source, dest, count));
+                Assert.True((bool)ElementsAreEqual(source, dest, 0));
+                Assert.True((bool)ElementsAreEqual(source, dest, count - 1));
+                Assert.False((bool)ElementsAreEqual(source, dest, count));
             }
 
             [Theory]
@@ -399,22 +400,22 @@ namespace SixLabors.ImageSharp.Tests.Common
             [InlineData(1500)]
             public void BytesToGeneric(int count)
             {
-                int srcCount = count * sizeof(Foo);
+                int srcCount = count * sizeof(TestStructs.Foo);
                 byte[] source = CreateTestBytes(srcCount);
-                Foo[] dest = new Foo[count + 2];
+                TestStructs.Foo[] dest = new TestStructs.Foo[count + 2];
 
                 Span<byte> apSource = new Span<byte>(source);
-                Span<Foo> apDest = new Span<Foo>(dest);
+                Span<TestStructs.Foo> apDest = new Span<TestStructs.Foo>(dest);
 
-                SpanHelper.Copy(apSource, apDest.AsBytes(), count * sizeof(Foo));
+                SpanHelper.Copy(apSource, apDest.AsBytes(), count * sizeof(TestStructs.Foo));
 
-                AssertNotDefault(source, sizeof(Foo) + 1);
+                AssertNotDefault(source, sizeof(TestStructs.Foo) + 1);
                 AssertNotDefault(dest, 1);
 
-                Assert.True(ElementsAreEqual(dest, source, 0));
-                Assert.True(ElementsAreEqual(dest, source, 1));
-                Assert.True(ElementsAreEqual(dest, source, count - 1));
-                Assert.False(ElementsAreEqual(dest, source, count));
+                Assert.True((bool)ElementsAreEqual(dest, source, 0));
+                Assert.True((bool)ElementsAreEqual(dest, source, 1));
+                Assert.True((bool)ElementsAreEqual(dest, source, count - 1));
+                Assert.False((bool)ElementsAreEqual(dest, source, count));
             }
 
             [Fact]
@@ -436,29 +437,29 @@ namespace SixLabors.ImageSharp.Tests.Common
                 }
             }
 
-            internal static bool ElementsAreEqual(Foo[] array, byte[] rawArray, int index)
+            internal static bool ElementsAreEqual(TestStructs.Foo[] array, byte[] rawArray, int index)
             {
-                fixed (Foo* pArray = array)
+                fixed (TestStructs.Foo* pArray = array)
                 fixed (byte* pRaw = rawArray)
                 {
-                    Foo* pCasted = (Foo*)pRaw;
+                    TestStructs.Foo* pCasted = (TestStructs.Foo*)pRaw;
 
-                    Foo val1 = pArray[index];
-                    Foo val2 = pCasted[index];
+                    TestStructs.Foo val1 = pArray[index];
+                    TestStructs.Foo val2 = pCasted[index];
 
                     return val1.Equals(val2);
                 }
             }
 
-            internal static bool ElementsAreEqual(AlignedFoo[] array, byte[] rawArray, int index)
+            internal static bool ElementsAreEqual(TestStructs.AlignedFoo[] array, byte[] rawArray, int index)
             {
-                fixed (AlignedFoo* pArray = array)
+                fixed (TestStructs.AlignedFoo* pArray = array)
                 fixed (byte* pRaw = rawArray)
                 {
-                    AlignedFoo* pCasted = (AlignedFoo*)pRaw;
+                    TestStructs.AlignedFoo* pCasted = (TestStructs.AlignedFoo*)pRaw;
 
-                    AlignedFoo val1 = pArray[index];
-                    AlignedFoo val2 = pCasted[index];
+                    TestStructs.AlignedFoo val1 = pArray[index];
+                    TestStructs.AlignedFoo val2 = pCasted[index];
 
                     return val1.Equals(val2);
                 }

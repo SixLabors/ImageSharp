@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             short* fp = blockPtr->data;
             fp[idx] = value;
         }
-        
+
         public Block8x8F AsFloatBlock()
         {
             // TODO: Optimize this

@@ -19,19 +19,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private ITestOutputHelper Output { get; }
 
         [Theory]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio410, 4, 2)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio411, 4, 1)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio420, 2, 2)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio422, 2, 1)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio440, 1, 2)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444, 1, 1)]
+        [InlineData(SubsampleRatio.Ratio410, 4, 2)]
+        [InlineData(SubsampleRatio.Ratio411, 4, 1)]
+        [InlineData(SubsampleRatio.Ratio420, 2, 2)]
+        [InlineData(SubsampleRatio.Ratio422, 2, 1)]
+        [InlineData(SubsampleRatio.Ratio440, 1, 2)]
+        [InlineData(SubsampleRatio.Ratio444, 1, 1)]
         internal void CalculateChrominanceSize(
-            YCbCrImage.YCbCrSubsampleRatio ratioValue,
+            SubsampleRatio ratio,
             int expectedDivX,
             int expectedDivY)
         {
-            YCbCrImage.YCbCrSubsampleRatio ratio = (YCbCrImage.YCbCrSubsampleRatio)ratioValue;
-
             //this.Output.WriteLine($"RATIO: {ratio}");
             Size size = YCbCrImage.CalculateChrominanceSize(400, 400, ratio);
             //this.Output.WriteLine($"Ch Size: {size}");
@@ -40,16 +38,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio410, 4)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio411, 4)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio420, 2)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio422, 2)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio440, 1)]
-        [InlineData(YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444, 1)]
-        internal void Create(YCbCrImage.YCbCrSubsampleRatio ratioValue, int expectedCStrideDiv)
+        [InlineData(SubsampleRatio.Ratio410, 4)]
+        [InlineData(SubsampleRatio.Ratio411, 4)]
+        [InlineData(SubsampleRatio.Ratio420, 2)]
+        [InlineData(SubsampleRatio.Ratio422, 2)]
+        [InlineData(SubsampleRatio.Ratio440, 1)]
+        [InlineData(SubsampleRatio.Ratio444, 1)]
+        internal void Create(SubsampleRatio ratio, int expectedCStrideDiv)
         {
-            YCbCrImage.YCbCrSubsampleRatio ratio = (YCbCrImage.YCbCrSubsampleRatio)ratioValue;
-
             this.Output.WriteLine($"RATIO: {ratio}");
 
             YCbCrImage img = new YCbCrImage(400, 400, ratio);

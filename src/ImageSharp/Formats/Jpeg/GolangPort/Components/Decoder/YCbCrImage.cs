@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <param name="ratio">The ratio.</param>
-        public YCbCrImage(int width, int height, YCbCrSubsampleRatio ratio)
+        public YCbCrImage(int width, int height, SubsampleRatio ratio)
         {
             Size cSize = CalculateChrominanceSize(width, height, ratio);
 
@@ -47,42 +47,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             this.YChannel = Buffer2D<byte>.CreateClean(width, height);
             this.CbChannel = Buffer2D<byte>.CreateClean(cSize.Width, cSize.Height);
             this.CrChannel = Buffer2D<byte>.CreateClean(cSize.Width, cSize.Height);
-        }
-
-        /// <summary>
-        /// Provides enumeration of the various available subsample ratios.
-        /// </summary>
-        public enum YCbCrSubsampleRatio
-        {
-            /// <summary>
-            /// YCbCrSubsampleRatio444
-            /// </summary>
-            YCbCrSubsampleRatio444,
-
-            /// <summary>
-            /// YCbCrSubsampleRatio422
-            /// </summary>
-            YCbCrSubsampleRatio422,
-
-            /// <summary>
-            /// YCbCrSubsampleRatio420
-            /// </summary>
-            YCbCrSubsampleRatio420,
-
-            /// <summary>
-            /// YCbCrSubsampleRatio440
-            /// </summary>
-            YCbCrSubsampleRatio440,
-
-            /// <summary>
-            /// YCbCrSubsampleRatio411
-            /// </summary>
-            YCbCrSubsampleRatio411,
-
-            /// <summary>
-            /// YCbCrSubsampleRatio410
-            /// </summary>
-            YCbCrSubsampleRatio410,
         }
 
         /// <summary>
@@ -99,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Gets or sets the subsampling ratio.
         /// </summary>
-        public YCbCrSubsampleRatio Ratio { get; set; }
+        public SubsampleRatio Ratio { get; set; }
 
         /// <summary>
         /// Disposes the <see cref="YCbCrImage" /> returning rented arrays to the pools.
@@ -122,15 +86,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             switch (this.Ratio)
             {
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio422:
+                case SubsampleRatio.Ratio422:
                     return y * this.CStride;
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio420:
+                case SubsampleRatio.Ratio420:
                     return (y / 2) * this.CStride;
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio440:
+                case SubsampleRatio.Ratio440:
                     return (y / 2) * this.CStride;
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio411:
+                case SubsampleRatio.Ratio411:
                     return y * this.CStride;
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio410:
+                case SubsampleRatio.Ratio410:
                     return (y / 2) * this.CStride;
                 default:
                     return y * this.CStride;
@@ -159,19 +123,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         internal static Size CalculateChrominanceSize(
             int width,
             int height,
-            YCbCrSubsampleRatio ratio)
+            SubsampleRatio ratio)
         {
             switch (ratio)
             {
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio422:
+                case SubsampleRatio.Ratio422:
                     return new Size((width + 1) / 2, height);
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio420:
+                case SubsampleRatio.Ratio420:
                     return new Size((width + 1) / 2, (height + 1) / 2);
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio440:
+                case SubsampleRatio.Ratio440:
                     return new Size(width, (height + 1) / 2);
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio411:
+                case SubsampleRatio.Ratio411:
                     return new Size((width + 3) / 4, height);
-                case YCbCrSubsampleRatio.YCbCrSubsampleRatio410:
+                case SubsampleRatio.Ratio410:
                     return new Size((width + 3) / 4, (height + 1) / 2);
                 default:
                     // Default to 4:4:4 subsampling.

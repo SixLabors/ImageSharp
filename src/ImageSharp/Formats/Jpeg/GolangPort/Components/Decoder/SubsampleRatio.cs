@@ -1,11 +1,10 @@
-﻿namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
+﻿using System.Collections.Generic;
+using System.Linq;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides enumeration of the various available subsample ratios.
     /// https://en.wikipedia.org/wiki/Chroma_subsampling

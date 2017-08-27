@@ -7,6 +7,8 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Represents a single color component
     /// </summary>
@@ -220,6 +222,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             this.HorizontalSamplingFactor = h;
             this.VerticalSamplingFactor = v;
+        }
+
+        public Size CalculateJpegChannelSize(SubsampleRatio ratio)
+        {
+            Size size = new Size(this.WidthInBlocks, this.HeightInBlocks) * 8;
+
+            if (this.Index > 0 && this.Index < 3) // Chroma component:
+            {
+                return ratio.CalculateChrominanceSize(size.Width, size.Height);
+            }
+            else
+            {
+                return size;
+            }
         }
 
         public void Dispose()

@@ -296,8 +296,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 var component = new PdfJsComponent
                 {
                     Scale = new System.Numerics.Vector2(
-                        frameComponent.HorizontalFactor / (float)this.Frame.MaxHorizontalFactor,
-                        frameComponent.VerticalFactor / (float)this.Frame.MaxVerticalFactor),
+                        frameComponent.HorizontalSamplingFactor / (float)this.Frame.MaxHorizontalFactor,
+                        frameComponent.VerticalSamplingFactor / (float)this.Frame.MaxVerticalFactor),
                     BlocksPerLine = frameComponent.WidthInBlocks,
                     BlocksPerColumn = frameComponent.HeightInBlocks
                 };

@@ -149,8 +149,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
                     {
                         this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
-                        this.hi = decoder.Components[this.ComponentIndex].HorizontalFactor;
-                        int vi = decoder.Components[this.ComponentIndex].VerticalFactor;
+                        this.hi = decoder.Components[this.ComponentIndex].HorizontalSamplingFactor;
+                        int vi = decoder.Components[this.ComponentIndex].VerticalSamplingFactor;
 
                         for (int j = 0; j < this.hi * vi; j++)
                         {
@@ -482,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
             }
 
-            totalHv += currentComponent.HorizontalFactor * currentComponent.VerticalFactor;
+            totalHv += currentComponent.HorizontalSamplingFactor * currentComponent.VerticalSamplingFactor;
 
             currentComponentScan.DcTableSelector = (byte)(decoder.Temp[2 + (2 * i)] >> 4);
             if (currentComponentScan.DcTableSelector > OrigHuffmanTree.MaxTh)

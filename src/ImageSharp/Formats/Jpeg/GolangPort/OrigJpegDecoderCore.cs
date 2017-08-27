@@ -456,19 +456,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             OrigJpegScanDecoder scan = default(OrigJpegScanDecoder);
             OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default(Bits);
-            this.MakeImage();
             scan.DecodeBlocks(this);
         }
 
         /// <summary>
-        /// Process the blocks in <see cref="DecodedBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="OrigJpegPixelArea"/>)
-        /// <see cref="DecodedBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
+        /// Process the blocks in <see cref="OrigComponent.SpectralBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="OrigJpegPixelArea"/>)
+        /// <see cref="OrigComponent.SpectralBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
         /// We can copy these blocks into <see cref="OrigJpegPixelArea"/>-s afterwards.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         private void ProcessBlocksIntoJpegImageChannels<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
+            this.InitJpegImageChannels();
+
             Parallel.For(
                 0,
                 this.ComponentCount,
@@ -577,7 +578,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromCmyk<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
 
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
@@ -643,7 +644,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromRGB<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
 
             Parallel.For(
                 0,
@@ -680,7 +681,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromYCbCr<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 Parallel.For(
@@ -725,7 +726,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void ConvertFromYcck<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            int scale = this.Components[0].HorizontalFactor / this.Components[1].HorizontalFactor;
+            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
 
             Parallel.For(
                 0,
@@ -778,35 +779,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Makes the image from the buffer.
         /// </summary>
-        private void MakeImage()
+        private void InitJpegImageChannels()
         {
-            if (this.grayImage.IsInitialized || this.ycbcrImage != null)
-            {
-                return;
-            }
-
-            this.SubsampleRatio = GolangPort.Components.Decoder.SubsampleRatio.Undefined;
-
             if (this.ComponentCount == 1)
             {
-                Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
+                var buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
                 this.grayImage = new OrigJpegPixelArea(buffer);
             }
             else
             {
-                int h0 = this.Components[0].HorizontalFactor;
-                int v0 = this.Components[0].VerticalFactor;
-                int horizontalRatio = h0 / this.Components[1].HorizontalFactor;
-                int verticalRatio = v0 / this.Components[1].VerticalFactor;
+                int h0 = this.Components[0].HorizontalSamplingFactor;
+                int v0 = this.Components[0].VerticalSamplingFactor;
 
-                SubsampleRatio ratio = Subsampling.GetSubsampleRatio(horizontalRatio, verticalRatio);
-
-                this.ycbcrImage = new YCbCrImage(8 * h0 * this.MCUCountX, 8 * v0 * this.MCUCountY, ratio);
+                this.ycbcrImage = new YCbCrImage(8 * h0 * this.MCUCountX, 8 * v0 * this.MCUCountY, this.SubsampleRatio);
 
                 if (this.ComponentCount == 4)
                 {
-                    int h3 = this.Components[3].HorizontalFactor;
-                    int v3 = this.Components[3].VerticalFactor;
+                    int h3 = this.Components[3].HorizontalSamplingFactor;
+                    int v3 = this.Components[3].VerticalSamplingFactor;
 
                     var buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
                     this.blackImage = new OrigJpegPixelArea(buffer);
@@ -1199,8 +1189,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 this.Components[i] = component;
             }
 
-            int h0 = this.Components[0].HorizontalFactor;
-            int v0 = this.Components[0].VerticalFactor;
+            int h0 = this.Components[0].HorizontalSamplingFactor;
+            int v0 = this.Components[0].VerticalSamplingFactor;
             this.MCUCountX = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
             this.MCUCountY = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
 
@@ -1209,6 +1199,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             {
                this.Components[i].InitializeBlocks(this);
             }
+
+            this.SubsampleRatio = Subsampling.GetSubsampleRatio(this.Components);
         }
     }
 }

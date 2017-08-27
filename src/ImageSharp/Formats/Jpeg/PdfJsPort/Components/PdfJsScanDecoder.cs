@@ -224,8 +224,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         PdfJsFrameComponent component = components[i];
                         ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        int h = component.HorizontalFactor;
-                        int v = component.VerticalFactor;
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
 
                         for (int j = 0; j < v; j++)
                         {
@@ -280,8 +280,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         PdfJsFrameComponent component = components[i];
                         ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                        int h = component.HorizontalFactor;
-                        int v = component.VerticalFactor;
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
 
                         for (int j = 0; j < v; j++)
                         {
@@ -332,8 +332,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
-                        int h = component.HorizontalFactor;
-                        int v = component.VerticalFactor;
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
                         for (int j = 0; j < v; j++)
                         {
                             for (int k = 0; k < h; k++)
@@ -387,8 +387,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         PdfJsFrameComponent component = components[i];
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        int h = component.HorizontalFactor;
-                        int v = component.VerticalFactor;
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
 
                         for (int j = 0; j < v; j++)
                         {
@@ -443,8 +443,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         PdfJsFrameComponent component = components[i];
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        int h = component.HorizontalFactor;
-                        int v = component.VerticalFactor;
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
 
                         for (int j = 0; j < v; j++)
                         {
@@ -479,8 +479,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
-            int blockRow = (mcuRow * component.VerticalFactor) + row;
-            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
             this.DecodeBaseline(component, offset, ref dcHuffmanTable, ref acHuffmanTable, stream);
         }
@@ -499,8 +499,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
-            int blockRow = (mcuRow * component.VerticalFactor) + row;
-            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
             this.DecodeDCFirst(component, offset, ref dcHuffmanTable, stream);
         }
@@ -519,8 +519,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
-            int blockRow = (mcuRow * component.VerticalFactor) + row;
-            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
             this.DecodeDCSuccessive(component, offset, stream);
         }
@@ -539,8 +539,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
-            int blockRow = (mcuRow * component.VerticalFactor) + row;
-            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
             this.DecodeACFirst(component, offset, ref acHuffmanTable, stream);
         }
@@ -559,8 +559,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
-            int blockRow = (mcuRow * component.VerticalFactor) + row;
-            int blockCol = (mcuCol * component.HorizontalFactor) + col;
+            int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
+            int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
             this.DecodeACSuccessive(component, offset, ref acHuffmanTable, stream);
         }

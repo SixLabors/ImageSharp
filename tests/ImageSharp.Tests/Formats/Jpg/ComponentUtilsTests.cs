@@ -84,12 +84,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Calliphora, 1)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, 1)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420, 2)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, 1, 1)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Exif, 2, 2)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 2, 2)]
         public void CalculateJpegChannelSizes_YCbCr(
             string imageFile,
-            int chromaDiv)
+            int hDiv,
+            int vDiv)
         {
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
             {
@@ -98,7 +99,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(3, s.Length);
 
                 Size ySize = decoder.Components[0].SizeInBlocks() * 8;
-                Size cSize = ySize / chromaDiv;
+                Size cSize = ySize;
+                cSize.Width /= hDiv;
+                cSize.Height /= vDiv;
 
                 Assert.Equal(ySize, s[0]);
                 Assert.Equal(cSize, s[1]);

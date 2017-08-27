@@ -99,15 +99,16 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Snake = "Jpg/baseline/Snake.jpg";
                 public const string Lake = "Jpg/baseline/Lake.jpg";
                 public const string Jpeg400 = "Jpg/baseline/jpeg400jfif.jpg";
-                public const string Jpeg420 = "Jpg/baseline/jpeg420exif.jpg";
+                public const string Jpeg420Exif = "Jpg/baseline/jpeg420exif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
+                public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
                 public const string Testimgorig = "Jpg/baseline/testorig.jpg";
 
                 public static readonly string[] All =
                     {
                         Cmyk, Ycck, Exif, Floorplan,
                         Calliphora, Turtle, GammaDalaiLamaGray,
-                        Hiyamugi, Jpeg400, Jpeg420, Jpeg444,
+                        Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
                     };
             }
 

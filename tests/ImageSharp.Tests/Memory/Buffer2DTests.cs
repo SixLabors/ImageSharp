@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
     using Xunit;
 
-    public unsafe class Buffer2DTests
+    public class Buffer2DTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert

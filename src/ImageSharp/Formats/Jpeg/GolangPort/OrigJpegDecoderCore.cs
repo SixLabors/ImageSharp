@@ -17,6 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
     using System.Linq;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
@@ -112,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Gets the <see cref="GolangPort.Components.Decoder.SubsampleRatio"/> ratio.
+        /// Gets the <see cref="Common.SubsampleRatio"/> ratio.
         /// </summary>
         public SubsampleRatio SubsampleRatio { get; private set; }
 
@@ -775,29 +778,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Makes the image from the buffer.
+        /// Initializes the image channels.
         /// </summary>
         private void InitJpegImageChannels()
         {
             if (this.ComponentCount == 1)
             {
-                var buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
-                this.grayImage = new OrigJpegPixelArea(buffer);
+                this.grayImage = OrigJpegPixelArea.CreateForComponent(this.Components[0]);
             }
             else
             {
-                int h0 = this.Components[0].HorizontalSamplingFactor;
-                int v0 = this.Components[0].VerticalSamplingFactor;
+                Size size = this.Components[0].CalculateJpegChannelSize();
 
-                this.ycbcrImage = new YCbCrImage(8 * h0 * this.MCUCountX, 8 * v0 * this.MCUCountY, this.SubsampleRatio);
+                this.ycbcrImage = new YCbCrImage(size.Width, size.Height, this.SubsampleRatio);
 
                 if (this.ComponentCount == 4)
                 {
-                    int h3 = this.Components[3].HorizontalSamplingFactor;
-                    int v3 = this.Components[3].VerticalSamplingFactor;
-
-                    var buffer = Buffer2D<byte>.CreateClean(8 * h3 * this.MCUCountX, 8 * v3 * this.MCUCountY);
-                    this.blackImage = new OrigJpegPixelArea(buffer);
+                    this.blackImage = OrigJpegPixelArea.CreateForComponent(this.Components[3]);
                 }
             }
         }
@@ -1198,7 +1195,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                this.Components[i].InitializeBlocks(this);
             }
 
-            this.SubsampleRatio = Subsampling.GetSubsampleRatio(this.Components);
+            this.SubsampleRatio = ComponentUtils.GetSubsampleRatio(this.Components);
         }
     }
 }

@@ -25,9 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public byte Identifier { get; }
 
-        /// <summary>
-        /// Gets the component's position in <see cref="OrigJpegDecoderCore.Components"/>
-        /// </summary>
+        /// <inheritdoc />
         public int Index { get; }
 
         /// <inheritdoc />
@@ -44,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Gets the <see cref="Buffer{T}"/> storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
-        /// This is done by <see cref="OrigJpegDecoderCore.ProcessBlocksIntoJpegImageChannels{TPixel}"/>.
+        /// This is done by <see cref="OrigJpegDecoderCore.ProcessBlocksIntoJpegImageChannels"/>.
         /// When <see cref="OrigJpegDecoderCore.IsProgressive"/> us true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
         public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
@@ -222,20 +220,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             this.HorizontalSamplingFactor = h;
             this.VerticalSamplingFactor = v;
-        }
-
-        public Size CalculateJpegChannelSize(SubsampleRatio ratio)
-        {
-            Size size = new Size(this.WidthInBlocks, this.HeightInBlocks) * 8;
-
-            if (this.Index > 0 && this.Index < 3) // Chroma component:
-            {
-                return ratio.CalculateChrominanceSize(size.Width, size.Height);
-            }
-            else
-            {
-                return size;
-            }
         }
 
         public void Dispose()

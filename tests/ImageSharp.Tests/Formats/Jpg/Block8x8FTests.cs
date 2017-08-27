@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
-    public class Block8x8FTests : JpegUtilityTestFixture
+    public class Block8x8FTests : JpegFixture
     {
 #if BENCHMARKING
         public const int Times = 1000000;

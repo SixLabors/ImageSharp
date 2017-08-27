@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
-    public class Block8x8Tests : JpegUtilityTestFixture
+    public class Block8x8Tests : JpegFixture
     {
         public Block8x8Tests(ITestOutputHelper output)
             : base(output)

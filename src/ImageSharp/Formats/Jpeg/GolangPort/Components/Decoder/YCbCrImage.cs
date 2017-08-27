@@ -7,6 +7,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
     /// <summary>
     /// Represents an image made up of three color components (luminance, blue chroma, red chroma)
     /// </summary>

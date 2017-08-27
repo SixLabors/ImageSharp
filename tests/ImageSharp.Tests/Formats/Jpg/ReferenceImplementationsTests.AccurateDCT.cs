@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
     public partial class ReferenceImplementationsTests
     {
-        public class AccurateDCT : JpegUtilityTestFixture
+        public class AccurateDCT : JpegFixture
         {
             public AccurateDCT(ITestOutputHelper output)
                 : base(output)
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void ForwardThenInverse(int seed)
             {
-                float[] data = JpegUtilityTestFixture.Create8x8RandomFloatData(-1000, 1000, seed);
+                float[] data = JpegFixture.Create8x8RandomFloatData(-1000, 1000, seed);
 
                 var b0 = default(Block8x8F);
                 b0.LoadFrom(data);

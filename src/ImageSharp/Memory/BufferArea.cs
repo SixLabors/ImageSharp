@@ -47,6 +47,25 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BufferArea<T> GetSubArea(int x, int y, int width, int height)
+        {
+            var rectangle = new Rectangle(x, y, width, height);
+            return this.GetSubArea(rectangle);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public BufferArea<T> GetSubArea(Rectangle rectangle)
+        {
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, this.Rectangle.Width, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
+
+            int x = this.Rectangle.X + rectangle.X;
+            int y = this.Rectangle.Y + rectangle.Y;
+            rectangle = new Rectangle(x, y, rectangle.Width, rectangle.Height);
+            return new BufferArea<T>(this.DestinationBuffer, rectangle);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetIndexOf(int x, int y)
         {
             int yy = this.GetRowIndex(y);

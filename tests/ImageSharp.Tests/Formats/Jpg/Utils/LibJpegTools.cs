@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 for (int x = 0; x < w; x++)
                 {
-                    Block8x8 aa = expected.Blocks[x, y];
-                    Block8x8 bb = actual.Blocks[x, y];
+                    Block8x8 aa = expected.SpectralBlocks[x, y];
+                    Block8x8 bb = actual.SpectralBlocks[x, y];
 
                     long diff = Block8x8.TotalDifference(ref aa, ref bb);
                     totalDiff += diff;

@@ -42,6 +42,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <inheritdoc />
         public int VerticalSamplingFactor { get; }
 
+        Buffer2D<Block8x8> IJpegComponent.SpectralBlocks => throw new NotImplementedException();
+
         /// <summary>
         /// Gets the identifier
         /// </summary>
@@ -55,14 +57,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <inheritdoc />
         public int Index { get; }
 
-        /// <summary>
-        /// Gets the number of blocks per line
-        /// </summary>
+        /// <inheritdoc />
         public int WidthInBlocks { get; private set; }
 
-        /// <summary>
-        /// Gets the number of blocks per column
-        /// </summary>
+        /// <inheritdoc />
         public int HeightInBlocks { get; private set; }
 
         /// <summary>

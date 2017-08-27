@@ -7,8 +7,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using SixLabors.Primitives;
-
+    /// <inheritdoc cref="IJpegComponent" />
     /// <summary>
     /// Represents a single color component
     /// </summary>
@@ -39,11 +38,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public byte Selector { get; private set; }
 
+        /// <inheritdoc />
         /// <summary>
-        /// Gets the <see cref="Buffer{T}"/> storing the "raw" frequency-domain decoded blocks.
+        /// Gets the <see cref="T:SixLabors.ImageSharp.Memory.Buffer`1" /> storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
-        /// This is done by <see cref="OrigJpegDecoderCore.ProcessBlocksIntoJpegImageChannels"/>.
-        /// When <see cref="OrigJpegDecoderCore.IsProgressive"/> us true, we are touching these blocks multiple times - each time we process a Scan.
+        /// This is done by <see cref="M:SixLabors.ImageSharp.Formats.Jpeg.GolangPort.OrigJpegDecoderCore.ProcessBlocksIntoJpegImageChannels" />.
+        /// When <see cref="P:SixLabors.ImageSharp.Formats.Jpeg.GolangPort.OrigJpegDecoderCore.IsProgressive" /> us true, we are touching these blocks multiple times - each time we process a Scan.
         /// </summary>
         public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 

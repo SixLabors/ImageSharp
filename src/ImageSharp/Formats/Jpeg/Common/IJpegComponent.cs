@@ -3,6 +3,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     internal interface IJpegComponent
     {
         /// <summary>
+        /// Gets the component's position in the components array.
+        /// </summary>
+        int Index { get; }
+
+        /// <summary>
         /// Gets the number of blocks per line
         /// </summary>
         int WidthInBlocks { get; }

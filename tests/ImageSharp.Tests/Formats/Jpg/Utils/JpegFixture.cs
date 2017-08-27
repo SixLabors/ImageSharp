@@ -9,16 +9,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     using System;
     using System.Diagnostics;
+    using System.IO;
     using System.Text;
 
+    using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 
     using Xunit;
     using Xunit.Abstractions;
 
-    public class JpegUtilityTestFixture : MeasureFixture
+    public class JpegFixture : MeasureFixture
     {
-        public JpegUtilityTestFixture(ITestOutputHelper output) : base(output)
+        public JpegFixture(ITestOutputHelper output) : base(output)
         {
         }
 
@@ -165,6 +168,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             this.Output.WriteLine("TOTAL DIFF: "+totalDifference);
             Assert.False(failed);
+        }
+
+        internal static OrigJpegDecoderCore ParseStream(string testFileName)
+        {
+            byte[] bytes = TestFile.Create(testFileName).Bytes;
+            using (var ms = new MemoryStream(bytes))
+            {
+                var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                decoder.ParseStream(ms);
+                return decoder;
+            }
         }
     }
 }

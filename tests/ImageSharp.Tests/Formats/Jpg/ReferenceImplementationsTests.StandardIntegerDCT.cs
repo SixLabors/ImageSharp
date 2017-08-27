@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
     public partial class ReferenceImplementationsTests
     {
-        public class StandardIntegerDCT : JpegUtilityTestFixture
+        public class StandardIntegerDCT : JpegFixture
         {
             public StandardIntegerDCT(ITestOutputHelper output)
                 : base(output)
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 0)]
             public void ForwardThenInverse(int seed, int startAt)
             {
-                Span<int> original = JpegUtilityTestFixture.Create8x8RandomIntData(-200, 200, seed);
+                Span<int> original = JpegFixture.Create8x8RandomIntData(-200, 200, seed);
 
                 Span<int> block = original.AddScalarToAllValues(128);
 

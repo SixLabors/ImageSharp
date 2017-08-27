@@ -83,23 +83,23 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
             }
             else
             {
-                int scopeStart = 0;
-                int scopeEnd = curve.CurveData.Length - 1;
-                int foundIndex = 0;
-                while (scopeEnd > scopeStart)
+                int idx = Array.BinarySearch(curve.CurveData, value);
+                if (idx < 0)
                 {
-                    foundIndex = (scopeStart + scopeEnd) / 2;
-                    if (value > curve.CurveData[foundIndex])
+                    // Note that idx - 1 is never less than zero because BinarySearch always returns the index of the next
+                    // bigger value and the array always has a length bigger than one because of the previous if conditions:
+                    // IsIdentityResponse means it's a length of zero, IsGamma means it's a length of one.
+                    idx = ~idx;
+                    float higher = curve.CurveData[idx];
+                    float lower = curve.CurveData[idx - 1];
+
+                    if ((higher - value) > (value - lower))
                     {
-                        scopeStart = foundIndex + 1;
-                    }
-                    else
-                    {
-                        scopeEnd = foundIndex;
+                        idx -= 1;
                     }
                 }
 
-                return foundIndex / (curve.CurveData.Length - 1f);
+                return idx / (curve.CurveData.Length - 1f);
             }
         }
 
@@ -192,7 +192,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         {
             if (value >= curve.D)
             {
-                return (float)Math.Pow((curve.A * value) + curve.B, curve.G) + curve.C;
+                return (float)Math.Pow((curve.A * value) + curve.B, curve.G) + curve.E;
             }
             else
             {
@@ -207,33 +207,26 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
 
         private float CalculateParametricCurveInvertedCie122(IccParametricCurve curve, float value)
         {
-            if (value >= -curve.B / curve.A)
-            {
-                return ((float)Math.Pow(curve.A, 1 / curve.G) - curve.B) / value;
-            }
-            else
-            {
-                return 0;
-            }
+            return ((float)Math.Pow(value, 1 / curve.G) - curve.B) / curve.A;
         }
 
         private float CalculateParametricCurveInvertedIec61966(IccParametricCurve curve, float value)
         {
-            if (value >= -curve.B / curve.A)
+            if (value >= curve.C)
             {
                 return ((float)Math.Pow(value - curve.C, 1 / curve.G) - curve.B) / curve.A;
             }
             else
             {
-                return curve.C;
+                return -curve.B / curve.A;
             }
         }
 
         private float CalculateParametricCurveInvertedSRgb(IccParametricCurve curve, float value)
         {
-            if (value >= curve.D)
+            if (value >= Math.Pow((curve.A * curve.D) + curve.B, curve.G))
             {
-                return ((float)Math.Pow(curve.A, 1 / curve.G) - curve.B) / value;
+                return ((float)Math.Pow(value, 1 / curve.G) - curve.B) / curve.A;
             }
             else
             {
@@ -243,9 +236,9 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
 
         private float CalculateParametricCurveInvertedType5(IccParametricCurve curve, float value)
         {
-            if (value >= curve.D)
+            if (value >= (curve.C * curve.D) + curve.F)
             {
-                return ((float)Math.Pow(value - curve.C, 1 / curve.G) - curve.B) / curve.A;
+                return ((float)Math.Pow(value - curve.E, 1 / curve.G) - curve.B) / curve.A;
             }
             else
             {

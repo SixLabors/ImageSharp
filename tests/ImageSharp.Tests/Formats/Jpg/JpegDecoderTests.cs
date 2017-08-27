@@ -55,11 +55,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        private static IImageDecoder OldJpegDecoder => new OrigJpegDecoder();
+        private static IImageDecoder OrigJpegDecoder => new OrigJpegDecoder();
 
         private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
 
-        [Fact]
+        [Fact(Skip = "Doesn't really matter")]
         public void ParseStream_BasicPropertiesAreCorrect1_Orig()
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, bool useOldDecoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            IImageDecoder decoder = useOldDecoder ? OldJpegDecoder : PdfJsJpegDecoder;
+            IImageDecoder decoder = useOldDecoder ? OrigJpegDecoder : PdfJsJpegDecoder;
             using (Image<TPixel> image = provider.GetImage(decoder))
             {
                 image.DebugSave(provider);
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(OldJpegDecoder))
+            using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
 
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(OldJpegDecoder))
+            using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
 
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine(provider.SourceFileOrDescription);
             provider.Utility.TestName = testName;
 
-            using (Image<TPixel> image = provider.GetImage(OldJpegDecoder))
+            using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 double d = this.GetDifferenceInPercents(image, provider);
                 this.Output.WriteLine($"Difference using ORIGINAL decoder: {d:0.0000}%");
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
         [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
-        public void DecodeGenerated<TPixel>(
+        public void DecodeGenerated_Orig<TPixel>(
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
             int quality)
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
 
-            var mirror = Image.Load<TPixel>(data);
+            var mirror = Image.Load<TPixel>(data, OrigJpegDecoder);
             mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
         

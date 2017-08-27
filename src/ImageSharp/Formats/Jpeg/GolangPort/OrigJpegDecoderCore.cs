@@ -112,6 +112,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
+        /// Gets the <see cref="GolangPort.Components.Decoder.SubsampleRatio"/> ratio.
+        /// </summary>
+        public SubsampleRatio SubsampleRatio { get; private set; }
+
+        /// <summary>
         /// Gets the component array
         /// </summary>
         public OrigComponent[] Components { get; private set; }
@@ -780,6 +785,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 return;
             }
 
+            this.SubsampleRatio = GolangPort.Components.Decoder.SubsampleRatio.Undefined;
+
             if (this.ComponentCount == 1)
             {
                 Buffer2D<byte> buffer = Buffer2D<byte>.CreateClean(8 * this.MCUCountX, 8 * this.MCUCountY);
@@ -792,28 +799,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 int horizontalRatio = h0 / this.Components[1].HorizontalFactor;
                 int verticalRatio = v0 / this.Components[1].VerticalFactor;
 
-                YCbCrImage.YCbCrSubsampleRatio ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444;
-                switch ((horizontalRatio << 4) | verticalRatio)
-                {
-                    case 0x11:
-                        ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio444;
-                        break;
-                    case 0x12:
-                        ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio440;
-                        break;
-                    case 0x21:
-                        ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio422;
-                        break;
-                    case 0x22:
-                        ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio420;
-                        break;
-                    case 0x41:
-                        ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio411;
-                        break;
-                    case 0x42:
-                        ratio = YCbCrImage.YCbCrSubsampleRatio.YCbCrSubsampleRatio410;
-                        break;
-                }
+                SubsampleRatio ratio = Subsampling.GetSubsampleRatio(horizontalRatio, verticalRatio);
 
                 this.ycbcrImage = new YCbCrImage(8 * h0 * this.MCUCountX, 8 * v0 * this.MCUCountY, ratio);
 

@@ -203,10 +203,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
-            this.ProcessBlocksIntoJpegImageChannels<TPixel>();
-            Image<TPixel> image = this.ConvertJpegPixelsToImagePixels<TPixel>();
 
-            return image;
+            this.ProcessBlocksIntoJpegImageChannels();
+
+            return this.ConvertJpegPixelsToImagePixels<TPixel>();
         }
 
         /// <inheritdoc />
@@ -464,9 +464,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <see cref="OrigComponent.SpectralBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
         /// We can copy these blocks into <see cref="OrigJpegPixelArea"/>-s afterwards.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel type</typeparam>
-        private void ProcessBlocksIntoJpegImageChannels<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+        private void ProcessBlocksIntoJpegImageChannels()
         {
             this.InitJpegImageChannels();
 

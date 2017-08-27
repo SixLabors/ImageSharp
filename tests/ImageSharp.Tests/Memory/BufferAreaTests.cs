@@ -98,5 +98,24 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 }
             }
         }
+
+        [Fact]
+        public void GetSubArea()
+        {
+            using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
+            {
+                BufferArea<int> area0 = buffer.GetArea(6, 8, 10, 10);
+
+                BufferArea<int> area1 = area0.GetSubArea(4, 4, 5, 5);
+
+                var expectedRect = new Rectangle(10, 12, 5, 5);
+
+                Assert.Equal(buffer, area1.DestinationBuffer);
+                Assert.Equal(expectedRect, area1.Rectangle);
+
+                int value00 = 12 * 100 + 10;
+                Assert.Equal(value00, area1[0, 0]);
+            }
+        }
     }
 }

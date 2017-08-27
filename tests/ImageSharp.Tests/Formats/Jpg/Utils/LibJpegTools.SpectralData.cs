@@ -71,9 +71,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 LibJpegTools.ComponentData c1 = this.Components[1];
                 LibJpegTools.ComponentData c2 = this.Components[2];
 
-                Block8x8 block0 = c0.Blocks[bx, by];
-                Block8x8 block1 = c1.Blocks[bx, by];
-                Block8x8 block2 = c2.Blocks[bx, by];
+                Block8x8 block0 = c0.SpectralBlocks[bx, by];
+                Block8x8 block1 = c1.SpectralBlocks[bx, by];
+                Block8x8 block2 = c2.SpectralBlocks[bx, by];
 
                 float d0 = (c0.MaxVal - c0.MinVal);
                 float d1 = (c1.MaxVal - c1.MinVal);

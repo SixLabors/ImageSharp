@@ -1,5 +1,10 @@
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    /// <summary>
+    /// Common interface to represent raw Jpeg components.
+    /// </summary>
     internal interface IJpegComponent
     {
         /// <summary>
@@ -26,5 +31,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// Gets the vertical sampling factor.
         /// </summary>
         int VerticalSamplingFactor { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Buffer2D{Block8x8}"/> storing the "raw" frequency-domain decoded blocks.
+        /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
+        /// </summary>
+        Buffer2D<Block8x8> SpectralBlocks { get; }
     }
 }

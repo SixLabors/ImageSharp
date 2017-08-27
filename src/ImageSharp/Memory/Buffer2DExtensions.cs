@@ -75,6 +75,13 @@ namespace SixLabors.ImageSharp.Memory
         public static BufferArea<T> GetArea<T>(this IBuffer2D<T> buffer, Rectangle rectangle)
             where T : struct => new BufferArea<T>(buffer, rectangle);
 
+        public static BufferArea<T> GetArea<T>(this IBuffer2D<T> buffer, int x, int y, int width, int height)
+            where T : struct
+        {
+            var rectangle = new Rectangle(x, y, width, height);
+            return new BufferArea<T>(buffer, rectangle);
+        }
+
         /// <summary>
         /// Return a <see cref="BufferArea{T}"/> to the whole area of 'buffer'
         /// </summary>

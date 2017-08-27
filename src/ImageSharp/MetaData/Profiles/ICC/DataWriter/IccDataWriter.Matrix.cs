@@ -62,33 +62,6 @@ namespace ImageSharp
         /// <param name="value">The matrix to write</param>
         /// <param name="isSingle">True if the values are encoded as Single; false if encoded as Fix16</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteMatrix(Fast2DArray<float> value, bool isSingle)
-        {
-            int count = 0;
-            for (int y = 0; y < value.Height; y++)
-            {
-                for (int x = 0; x < value.Width; x++)
-                {
-                    if (isSingle)
-                    {
-                        count += this.WriteSingle(value[x, y]);
-                    }
-                    else
-                    {
-                        count += this.WriteFix16(value[x, y]);
-                    }
-                }
-            }
-
-            return count;
-        }
-
-        /// <summary>
-        /// Writes a two dimensional matrix
-        /// </summary>
-        /// <param name="value">The matrix to write</param>
-        /// <param name="isSingle">True if the values are encoded as Single; false if encoded as Fix16</param>
-        /// <returns>The number of bytes written</returns>
         public int WriteMatrix(float[,] value, bool isSingle)
         {
             int count = 0;

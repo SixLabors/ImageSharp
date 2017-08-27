@@ -36,19 +36,7 @@ namespace ImageSharp.Tests.Icc
 
             Assert.Equal(expected, output);
         }
-
-        [Theory]
-        [MemberData(nameof(IccTestDataMatrix.Matrix2D_Fast2DArrayTestData), MemberType = typeof(IccTestDataMatrix))]
-        internal void WriteMatrix2D_Fast2DArray(byte[] expected, int xCount, int yCount, bool isSingle, Fast2DArray<float> data)
-        {
-            IccDataWriter writer = CreateWriter();
-
-            writer.WriteMatrix(data, isSingle);
-            byte[] output = writer.GetData();
-
-            Assert.Equal(expected, output);
-        }
-
+        
         [Theory]
         [MemberData(nameof(IccTestDataMatrix.Matrix1D_ArrayTestData), MemberType = typeof(IccTestDataMatrix))]
         public void WriteMatrix1D_Array(byte[] expected, int yCount, bool isSingle, float[] data)

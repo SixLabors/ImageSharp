@@ -7,8 +7,6 @@ using System.Numerics;
 
 namespace ImageSharp.Tests
 {
-    using ImageSharp.Memory;
-
     internal static class IccTestDataMatrix
     {
         #region 2D
@@ -41,17 +39,7 @@ namespace ImageSharp.Tests
         /// 3x3 Matrix
         /// </summary>
         public static readonly Matrix4x4 Single_Matrix4x4_ValIdentity = Matrix4x4.Identity;
-
-        /// <summary>
-        /// 3x3 Matrix
-        /// </summary>
-        public static readonly Fast2DArray<float> Single_Fast2DArray_ValGrad = new Fast2DArray<float>(Single_2DArray_ValGrad);
-
-        /// <summary>
-        /// 3x3 Matrix
-        /// </summary>
-        public static readonly Fast2DArray<float> Single_Fast2DArray_ValIdentity = new Fast2DArray<float>(Single_2DArray_ValIdentity);
-
+        
         /// <summary>
         /// 3x3 Matrix
         /// </summary>
@@ -112,14 +100,7 @@ namespace ImageSharp.Tests
             new object[] { Fix16_2D_Identity, 3, 3, false, Single_2DArray_ValIdentity },
             new object[] { Single_2D_Grad, 3, 3, true, Single_2DArray_ValGrad },
         };
-
-        public static readonly object[][] Matrix2D_Fast2DArrayTestData =
-        {
-            new object[] { Fix16_2D_Grad, 3, 3, false, Single_Fast2DArray_ValGrad },
-            new object[] { Fix16_2D_Identity, 3, 3, false, Single_Fast2DArray_ValIdentity },
-            new object[] { Single_2D_Grad, 3, 3, true, Single_Fast2DArray_ValGrad },
-        };
-
+        
         public static readonly object[][] Matrix2D_Matrix4x4TestData =
         {
             new object[] { Fix16_2D_Grad, 3, 3, false, Single_Matrix4x4_ValGrad },

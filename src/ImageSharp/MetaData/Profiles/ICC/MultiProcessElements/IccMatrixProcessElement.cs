@@ -8,8 +8,6 @@ namespace ImageSharp
     using System;
     using System.Linq;
 
-    using ImageSharp.Memory;
-
     /// <summary>
     /// A matrix element to process data
     /// </summary>
@@ -36,7 +34,7 @@ namespace ImageSharp
         /// <summary>
         /// Gets the two dimensional matrix with size of Input-Channels x Output-Channels
         /// </summary>
-        public Fast2DArray<float> MatrixIxO { get; }
+        public float[,] MatrixIxO { get; }
 
         /// <summary>
         /// Gets the one dimensional matrix with size of Output-Channels x 1
@@ -63,9 +61,16 @@ namespace ImageSharp
 
         private bool EqualsMatrix(IccMatrixProcessElement element)
         {
-            for (int x = 0; x < this.MatrixIxO.Width; x++)
+            int width = this.MatrixIxO.GetLength(0);
+            int height = this.MatrixIxO.GetLength(1);
+            if (width != element.MatrixIxO.GetLength(0) || height != element.MatrixIxO.GetLength(1))
             {
-                for (int y = 0; y < this.MatrixIxO.Height; y++)
+                return false;
+            }
+
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
                 {
                     if (this.MatrixIxO[x, y] != element.MatrixIxO[x, y])
                     {

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct JpegBlockProcessor
+    internal unsafe struct JpegBlockPostProcessor
     {
         /// <summary>
         /// The <see cref="ComputationData"/>
@@ -30,15 +30,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private int componentIndex;
 
         /// <summary>
-        /// Initialize the <see cref="JpegBlockProcessor"/> instance on the stack.
+        /// Initialize the <see cref="JpegBlockPostProcessor"/> instance on the stack.
         /// </summary>
-        /// <param name="processor">The <see cref="JpegBlockProcessor"/> instance</param>
+        /// <param name="postProcessor">The <see cref="JpegBlockPostProcessor"/> instance</param>
         /// <param name="componentIndex">The current component index</param>
-        public static void Init(JpegBlockProcessor* processor, int componentIndex)
+        public static void Init(JpegBlockPostProcessor* postProcessor, int componentIndex)
         {
-            processor->componentIndex = componentIndex;
-            processor->data = ComputationData.Create();
-            processor->pointers = new DataPointers(&processor->data);
+            postProcessor->componentIndex = componentIndex;
+            postProcessor->data = ComputationData.Create();
+            postProcessor->pointers = new DataPointers(&postProcessor->data);
         }
 
         /// <summary>

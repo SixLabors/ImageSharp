@@ -1,14 +1,16 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
-using Xunit;
-using static SixLabors.ImageSharp.Tests.Common.TestStructs;
-
-namespace SixLabors.ImageSharp.Tests.Common
+namespace SixLabors.ImageSharp.Tests.Memory
 {
+    using System;
+    using System.Runtime.CompilerServices;
+
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.Tests.Common;
+
+    using Xunit;
+
     public unsafe class Buffer2DTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
@@ -29,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -42,8 +44,8 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(1025, 17)]
         public void Construct_FromExternalArray(int width, int height)
         {
-            Foo[] array = new Foo[width * height + 10];
-            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(array, width, height))
+            TestStructs.Foo[] array = new TestStructs.Foo[width * height + 10];
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(array, width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -74,9 +76,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
-                Span<Foo> span = buffer.GetRowSpan(y);
+                Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
                 // Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
@@ -90,9 +92,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
-                Span<Foo> span = buffer.GetRowSpan(x, y);
+                Span<TestStructs.Foo> span = buffer.GetRowSpan(x, y);
 
                 // Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
@@ -106,13 +108,13 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (Buffer2D<Foo> buffer = new Buffer2D<Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
-                Foo[] array = buffer.Array;
+                TestStructs.Foo[] array = buffer.Array;
 
-                ref Foo actual = ref buffer[x, y];
+                ref TestStructs.Foo actual = ref buffer[x, y];
 
-                ref Foo expected = ref array[y * width + x];
+                ref TestStructs.Foo expected = ref array[y * width + x];
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }

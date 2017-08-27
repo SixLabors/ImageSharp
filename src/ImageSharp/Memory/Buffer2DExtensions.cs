@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -38,6 +39,30 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             return buffer.Span.Slice(y * buffer.Width, buffer.Width);
+        }
+
+        /// <summary>
+        /// Returns the size of the buffer.
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <param name="buffer">The <see cref="IBuffer2D{T}"/></param>
+        /// <returns>The <see cref="Size{T}"/> of the buffer</returns>
+        public static Size Size<T>(this IBuffer2D<T> buffer)
+            where T : struct
+        {
+            return new Size(buffer.Width, buffer.Height);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="Rectangle"/> representing the full area of the buffer.
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <param name="buffer">The <see cref="IBuffer2D{T}"/></param>
+        /// <returns>The <see cref="Rectangle"/></returns>
+        public static Rectangle FullRectangle<T>(this IBuffer2D<T> buffer)
+            where T : struct
+        {
+            return new Rectangle(0, 0, buffer.Width, buffer.Height);
         }
     }
 }

@@ -28,9 +28,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Cmyk,
                 TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
+                TestImages.Jpeg.Baseline.Testorig420,
                 TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Baseline.Jpeg444,
-                TestImages.Jpeg.Baseline.Testimgorig,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.Bad.ExifUndefType,
             };

@@ -16,7 +16,7 @@ namespace ImageSharp
         Type1 = 0,
 
         /// <summary>
-        /// Type 1: Y = a * log10 (b * X^γ + c) + d
+        /// Type 2: Y = a * log10 (b * X^γ + c) + d
         /// </summary>
         Type2 = 1,
 

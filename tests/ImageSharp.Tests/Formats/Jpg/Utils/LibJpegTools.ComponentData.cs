@@ -27,8 +27,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public int Index { get; }
 
             public int HeightInBlocks { get; }
-
+            
             public int WidthInBlocks { get; }
+
+            public int HorizontalSamplingFactor => throw new NotSupportedException();
+
+            public int VerticalSamplingFactor => throw new NotSupportedException();
 
             public Buffer2D<Block8x8> Blocks { get; private set; }
 

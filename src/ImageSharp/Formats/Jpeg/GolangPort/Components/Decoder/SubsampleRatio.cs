@@ -1,5 +1,9 @@
 ﻿namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System.Collections.Generic;
+    using System.Linq;
+
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.Primitives;
 
     /// <summary>
@@ -65,6 +69,23 @@
             }
 
             return SubsampleRatio.Ratio444;
+        }
+
+        public static SubsampleRatio GetSubsampleRatio(IEnumerable<IJpegComponent> components)
+        {
+            IJpegComponent[] componentArray = components.ToArray();
+            if (componentArray.Length == 3)
+            {
+                int h0 = componentArray[0].HorizontalSamplingFactor;
+                int v0 = componentArray[0].VerticalSamplingFactor;
+                int horizontalRatio = h0 / componentArray[1].HorizontalSamplingFactor;
+                int verticalRatio = v0 / componentArray[1].VerticalSamplingFactor;
+                return GetSubsampleRatio(horizontalRatio, verticalRatio);
+            }
+            else
+            {
+                return SubsampleRatio.Undefined;
+            }
         }
 
         /// <summary>

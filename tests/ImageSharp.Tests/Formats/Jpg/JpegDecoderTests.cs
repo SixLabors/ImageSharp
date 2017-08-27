@@ -24,8 +24,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     {
         public static string[] BaselineTestJpegs =
             {
-                TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk,
-                TestImages.Jpeg.Baseline.Jpeg400, TestImages.Jpeg.Baseline.Jpeg444,
+                TestImages.Jpeg.Baseline.Calliphora,
+                TestImages.Jpeg.Baseline.Cmyk,
+                TestImages.Jpeg.Baseline.Ycck,
+                TestImages.Jpeg.Baseline.Jpeg400,
+                TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Testimgorig,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.Bad.ExifUndefType,

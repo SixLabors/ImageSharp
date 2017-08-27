@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Cmyk,
                 TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
+                TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Testimgorig,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
@@ -255,7 +256,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Exif()
         {
-            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420).CreateImage())
+            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420Exif).CreateImage())
             {
                 Assert.Equal(72, image.MetaData.HorizontalResolution);
                 Assert.Equal(72, image.MetaData.VerticalResolution);

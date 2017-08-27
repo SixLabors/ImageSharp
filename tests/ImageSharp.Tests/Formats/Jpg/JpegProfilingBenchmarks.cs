@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Baseline.Ycck,
             TestImages.Jpeg.Baseline.Calliphora,
             TestImages.Jpeg.Baseline.Jpeg400,
-            TestImages.Jpeg.Baseline.Jpeg420,
+            TestImages.Jpeg.Baseline.Jpeg420Exif,
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 

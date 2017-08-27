@@ -1,54 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    /// <summary>
-    /// Provides enumeration of the various available subsample ratios.
-    /// https://en.wikipedia.org/wiki/Chroma_subsampling
-    /// </summary>
-    internal enum SubsampleRatio
-    {
-        Undefined,
-
-        /// <summary>
-        /// 4:4:4
-        /// </summary>
-        Ratio444,
-
-        /// <summary>
-        /// 4:2:2
-        /// </summary>
-        Ratio422,
-
-        /// <summary>
-        /// 4:2:0
-        /// </summary>
-        Ratio420,
-
-        /// <summary>
-        /// 4:4:0
-        /// </summary>
-        Ratio440,
-
-        /// <summary>
-        /// 4:1:1
-        /// </summary>
-        Ratio411,
-
-        /// <summary>
-        /// 4:1:0
-        /// </summary>
-        Ratio410,
-    }
+    using System;
 
     /// <summary>
-    /// Various utilities for <see cref="SubsampleRatio"/>
+    /// Various utilities for <see cref="SubsampleRatio"/> and <see cref="IJpegComponent"/>.
     /// </summary>
-    internal static class Subsampling
+    internal static class ComponentUtils
     {
+        public static Size SizeInBlocks(this IJpegComponent component) => new Size(component.WidthInBlocks, component.HeightInBlocks);
+
         public static SubsampleRatio GetSubsampleRatio(int horizontalRatio, int verticalRatio)
         {
             switch ((horizontalRatio << 4) | verticalRatio)
@@ -111,6 +75,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 default:
                     // Default to 4:4:4 subsampling.
                     return new Size(width, height);
+            }
+        }
+
+        public static bool IsChromaComponent(this IJpegComponent component) =>
+            component.Index > 0 && component.Index < 3;
+
+        public static Size CalculateJpegChannelSize(this IJpegComponent component, SubsampleRatio ratio = SubsampleRatio.Undefined)
+        {
+            Size size = new Size(component.WidthInBlocks, component.HeightInBlocks) * 8;
+
+            if (component.IsChromaComponent())
+            {
+                return ratio.CalculateChrominanceSize(size.Width, size.Height);
+            }
+            else
+            {
+                return size;
             }
         }
     }

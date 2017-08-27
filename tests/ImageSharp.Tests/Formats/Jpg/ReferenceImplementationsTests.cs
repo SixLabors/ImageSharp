@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
-    public partial class ReferenceImplementationsTests : JpegUtilityTestFixture
+    public partial class ReferenceImplementationsTests : JpegFixture
     {
         public ReferenceImplementationsTests(ITestOutputHelper output)
             : base(output)

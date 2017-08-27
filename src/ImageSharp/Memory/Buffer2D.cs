@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Represents a buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
@@ -71,5 +73,12 @@ namespace SixLabors.ImageSharp.Memory
             buffer.Clear();
             return buffer;
         }
+
+        /// <summary>
+        /// Creates a clean instance of <see cref="Buffer2D{T}"/> initializing it's elements with 'default(T)'.
+        /// </summary>
+        /// <param name="size">The size of the buffer</param>
+        /// <returns>The <see cref="Buffer2D{T}"/> instance</returns>
+        public static Buffer2D<T> CreateClean(Size size) => CreateClean(size.Width, size.Height);
     }
 }

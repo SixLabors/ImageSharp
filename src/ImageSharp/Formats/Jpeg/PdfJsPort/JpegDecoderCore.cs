@@ -676,7 +676,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     maxV = v;
                 }
 
-                var component = new PdfJsFrameComponent(this.Frame, this.temp[index], h, v, this.temp[index + 2]);
+                var component = new PdfJsFrameComponent(this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                 this.Frame.Components[i] = component;
                 this.Frame.ComponentIds[i] = component.Id;

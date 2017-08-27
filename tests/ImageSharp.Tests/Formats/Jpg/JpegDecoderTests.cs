@@ -65,12 +65,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact(Skip = "Doesn't really matter")]
         public void ParseStream_BasicPropertiesAreCorrect1_Orig()
         {
-            byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-            using (var ms = new MemoryStream(bytes))
+            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Progressive.Progress))
             {
-                var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
-                decoder.ParseStream(ms);
-
                 VerifyJpeg.Components3(decoder.Components, 43, 61, 22, 31, 22, 31);
             }
         }
@@ -95,7 +91,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);

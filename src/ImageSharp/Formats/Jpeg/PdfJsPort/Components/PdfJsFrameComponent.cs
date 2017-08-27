@@ -16,13 +16,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     {
 #pragma warning disable SA1401 // Fields should be private
 
-        public PdfJsFrameComponent(PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier)
+        public PdfJsFrameComponent(PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier, int index)
         {
             this.Frame = frame;
             this.Id = id;
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
             this.QuantizationIdentifier = quantizationIdentifier;
+            this.Index = index;
         }
 
         /// <summary>
@@ -35,14 +36,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int Pred { get; set; }
 
-        /// <summary>
-        /// Gets the horizontal sampling factor.
-        /// </summary>
+        /// <inheritdoc />
         public int HorizontalSamplingFactor { get; }
 
-        /// <summary>
-        /// Gets the vertical sampling factor.
-        /// </summary>
+        /// <inheritdoc />
         public int VerticalSamplingFactor { get; }
 
         /// <summary>
@@ -54,6 +51,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// Gets the block data
         /// </summary>
         public Buffer<short> BlockData { get; private set; }
+
+        /// <inheritdoc />
+        public int Index { get; }
 
         /// <summary>
         /// Gets the number of blocks per line

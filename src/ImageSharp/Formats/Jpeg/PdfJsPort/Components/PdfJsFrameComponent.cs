@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             this.Frame = frame;
             this.Id = id;
-            this.HorizontalFactor = horizontalFactor;
-            this.VerticalFactor = verticalFactor;
+            this.HorizontalSamplingFactor = horizontalFactor;
+            this.VerticalSamplingFactor = verticalFactor;
             this.QuantizationIdentifier = quantizationIdentifier;
         }
 
@@ -38,12 +38,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the horizontal sampling factor.
         /// </summary>
-        public int HorizontalFactor { get; }
+        public int HorizontalSamplingFactor { get; }
 
         /// <summary>
         /// Gets the vertical sampling factor.
         /// </summary>
-        public int VerticalFactor { get; }
+        public int VerticalSamplingFactor { get; }
 
         /// <summary>
         /// Gets the identifier
@@ -91,13 +91,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public void Init()
         {
             this.WidthInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * this.HorizontalFactor / this.Frame.MaxHorizontalFactor);
+                MathF.Ceiling(this.Frame.SamplesPerLine / 8F) * this.HorizontalSamplingFactor / this.Frame.MaxHorizontalFactor);
 
             this.HeightInBlocks = (int)MathF.Ceiling(
-                MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalFactor / this.Frame.MaxVerticalFactor);
+                MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
 
-            this.BlocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalFactor;
-            this.BlocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalFactor;
+            this.BlocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
+            this.BlocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
 
             int blocksBufferSize = 64 * this.BlocksPerColumnForMcu * (this.BlocksPerLineForMcu + 1);
 

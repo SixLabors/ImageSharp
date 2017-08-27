@@ -3,23 +3,21 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
-    using System.Linq;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
@@ -476,9 +474,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 this.ComponentCount,
                 componentIndex =>
                     {
-                        JpegBlockProcessor processor = default(JpegBlockProcessor);
-                        JpegBlockProcessor.Init(&processor, componentIndex);
-                        processor.ProcessAllBlocks(this);
+                        JpegBlockPostProcessor postProcessor = default(JpegBlockPostProcessor);
+                        JpegBlockPostProcessor.Init(&postProcessor, componentIndex);
+                        postProcessor.ProcessAllBlocks(this);
                     });
         }
 

@@ -1,14 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Linq;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
+
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Memory
 {
+    using SixLabors.ImageSharp.Memory;
+
+    using Xunit;
+
     /// <summary>
     /// Tests the <see cref="PixelDataPool{T}"/> class.
     /// </summary>

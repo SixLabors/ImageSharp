@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.HeightInBlocks = heightInBlocks;
                 this.WidthInBlocks = widthInBlocks;
                 this.Index = index;
-                this.Blocks = new Buffer2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
+                this.SpectralBlocks = new Buffer2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
             }
 
             public Size Size => new Size(this.WidthInBlocks, this.HeightInBlocks);
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public int VerticalSamplingFactor => throw new NotSupportedException();
 
-            public Buffer2D<Block8x8> Blocks { get; private set; }
+            public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
             public short MinVal { get; private set; } = short.MaxValue;
 
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 this.MinVal = Math.Min((short)this.MinVal, data.Min());
                 this.MaxVal = Math.Max((short)this.MaxVal, data.Max());
-                this.Blocks[x, y] = new Block8x8(data);
+                this.SpectralBlocks[x, y] = new Block8x8(data);
             }
 
             public static ComponentData Load(PdfJsFrameComponent c, int index)
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             internal void WriteToImage(int bx, int by, Image<Rgba32> image)
             {
-                Block8x8 block = this.Blocks[bx, by];
+                Block8x8 block = this.SpectralBlocks[bx, by];
                 
                 for (int y = 0; y < 8; y++)
                 {
@@ -145,8 +145,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 {
                     for (int x = 0; x < this.WidthInBlocks; x++)
                     {
-                        Block8x8 a = this.Blocks[x, y];
-                        Block8x8 b = other.Blocks[x, y];
+                        Block8x8 a = this.SpectralBlocks[x, y];
+                        Block8x8 b = other.SpectralBlocks[x, y];
                         if (!a.Equals(b)) return false;
                     }
                 }

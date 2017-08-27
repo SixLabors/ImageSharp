@@ -782,19 +782,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         private void InitJpegImageChannels()
         {
+            Size[] sizes = ComponentUtils.CalculateJpegChannelSizes(this.Components, this.SubsampleRatio);
+
             if (this.ComponentCount == 1)
             {
-                this.grayImage = OrigJpegPixelArea.CreateForComponent(this.Components[0]);
+                this.grayImage = new OrigJpegPixelArea(sizes[0]);
             }
             else
             {
-                Size size = this.Components[0].CalculateJpegChannelSize();
+                Size size = sizes[0];
 
                 this.ycbcrImage = new YCbCrImage(size.Width, size.Height, this.SubsampleRatio);
 
                 if (this.ComponentCount == 4)
                 {
-                    this.blackImage = OrigJpegPixelArea.CreateForComponent(this.Components[3]);
+                    this.blackImage = new OrigJpegPixelArea(sizes[3]);
                 }
             }
         }

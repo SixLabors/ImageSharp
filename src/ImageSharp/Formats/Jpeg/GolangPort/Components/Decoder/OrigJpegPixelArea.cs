@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             : this(Buffer2D<byte>.CreateClean(size))
         {
         }
-        
+
         /// <summary>
         /// Gets the pixels buffer.
         /// </summary>
@@ -81,12 +81,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             {
                 return this.Pixels[(y * this.Stride) + x];
             }
-        }
-
-        public static OrigJpegPixelArea CreateForComponent(IJpegComponent component, SubsampleRatio ratio = SubsampleRatio.Undefined)
-        {
-            Size size = component.CalculateJpegChannelSize(ratio);
-            return new OrigJpegPixelArea(size);
         }
 
         /// <summary>

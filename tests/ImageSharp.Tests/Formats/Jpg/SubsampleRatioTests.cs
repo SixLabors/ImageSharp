@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
-    public class YCbCrImageTests
+    public class SubsampleRatioTests
     {
-        public YCbCrImageTests(ITestOutputHelper output)
+        public SubsampleRatioTests(ITestOutputHelper output)
         {
             this.Output = output;
         }
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int expectedDivY)
         {
             //this.Output.WriteLine($"RATIO: {ratio}");
-            Size size = YCbCrImage.CalculateChrominanceSize(400, 400, ratio);
+            Size size = ratio.CalculateChrominanceSize(400, 400);
             //this.Output.WriteLine($"Ch Size: {size}");
 
             Assert.Equal(new Size(400 / expectedDivX, 400 / expectedDivY), size);

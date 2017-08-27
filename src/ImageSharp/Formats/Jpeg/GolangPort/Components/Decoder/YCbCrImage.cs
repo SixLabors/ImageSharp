@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="ratio">The ratio.</param>
         public YCbCrImage(int width, int height, SubsampleRatio ratio)
         {
-            Size cSize = CalculateChrominanceSize(width, height, ratio);
+            Size cSize = ratio.CalculateChrominanceSize(width, height);
 
             this.Ratio = ratio;
             this.YStride = width;
@@ -111,36 +111,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public int GetRowYOffset(int y)
         {
             return y * this.YStride;
-        }
-
-        /// <summary>
-        /// Returns the height and width of the chroma components
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="ratio">The subsampling ratio.</param>
-        /// <returns>The <see cref="Size"/> of the chrominance channel</returns>
-        internal static Size CalculateChrominanceSize(
-            int width,
-            int height,
-            SubsampleRatio ratio)
-        {
-            switch (ratio)
-            {
-                case SubsampleRatio.Ratio422:
-                    return new Size((width + 1) / 2, height);
-                case SubsampleRatio.Ratio420:
-                    return new Size((width + 1) / 2, (height + 1) / 2);
-                case SubsampleRatio.Ratio440:
-                    return new Size(width, (height + 1) / 2);
-                case SubsampleRatio.Ratio411:
-                    return new Size((width + 3) / 4, height);
-                case SubsampleRatio.Ratio410:
-                    return new Size((width + 3) / 4, (height + 1) / 2);
-                default:
-                    // Default to 4:4:4 subsampling.
-                    return new Size(width, height);
-            }
         }
     }
 }

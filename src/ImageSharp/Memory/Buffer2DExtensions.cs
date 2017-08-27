@@ -64,5 +64,24 @@ namespace SixLabors.ImageSharp.Memory
         {
             return new Rectangle(0, 0, buffer.Width, buffer.Height);
         }
+
+        /// <summary>
+        /// Return a <see cref="BufferArea{T}"/> to the subarea represented by 'rectangle'
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <param name="buffer">The <see cref="IBuffer2D{T}"/></param>
+        /// <param name="rectangle">The rectangel subarea</param>
+        /// <returns>The <see cref="BufferArea{T}"/></returns>
+        public static BufferArea<T> GetArea<T>(this IBuffer2D<T> buffer, Rectangle rectangle)
+            where T : struct => new BufferArea<T>(buffer, rectangle);
+
+        /// <summary>
+        /// Return a <see cref="BufferArea{T}"/> to the whole area of 'buffer'
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <param name="buffer">The <see cref="IBuffer2D{T}"/></param>
+        /// <returns>The <see cref="BufferArea{T}"/></returns>
+        public static BufferArea<T> GetArea<T>(this IBuffer2D<T> buffer)
+            where T : struct => new BufferArea<T>(buffer);
     }
 }

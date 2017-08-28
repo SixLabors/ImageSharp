@@ -33,6 +33,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         int VerticalSamplingFactor { get; }
 
         /// <summary>
+        /// Gets the index of the quantization table for this block.
+        /// </summary>
+        int QuantizationTableIndex { get; }
+
+        /// <summary>
         /// Gets the <see cref="Buffer2D{Block8x8}"/> storing the "raw" frequency-domain decoded blocks.
         /// We need to apply IDCT, dequantiazition and unzigging to transform them into color-space blocks.
         /// </summary>

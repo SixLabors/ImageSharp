@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public ref T this[int x, int y] => ref this.DestinationBuffer.Span[this.GetIndexOf(x, y)];
 
-        public ref T DangerousGetPinnableReference() =>
+        public ref T GetReferenceToOrigo() =>
             ref this.DestinationBuffer.Span[(this.Rectangle.Y * this.DestinationBuffer.Width) + this.Rectangle.X];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

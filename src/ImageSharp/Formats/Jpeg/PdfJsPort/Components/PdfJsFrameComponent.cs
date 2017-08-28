@@ -3,12 +3,11 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <summary>
     /// Represents a single frame component
     /// </summary>
@@ -16,13 +15,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     {
 #pragma warning disable SA1401 // Fields should be private
 
-        public PdfJsFrameComponent(PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationIdentifier, int index)
+        public PdfJsFrameComponent(PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
             this.Frame = frame;
             this.Id = id;
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
-            this.QuantizationIdentifier = quantizationIdentifier;
+            this.QuantizationTableIndex = quantizationTableIndex;
             this.Index = index;
         }
 
@@ -44,10 +43,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         Buffer2D<Block8x8> IJpegComponent.SpectralBlocks => throw new NotImplementedException();
 
-        /// <summary>
-        /// Gets the identifier
-        /// </summary>
-        public byte QuantizationIdentifier { get; }
+        /// <inheritdoc />
+        public int QuantizationTableIndex { get; }
 
         /// <summary>
         /// Gets the block data

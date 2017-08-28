@@ -15,6 +15,11 @@ namespace SixLabors.ImageSharp.Memory
     internal class Buffer2D<T> : Buffer<T>, IBuffer2D<T>
         where T : struct
     {
+        public Buffer2D(Size size)
+            : this(size.Width, size.Height)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>

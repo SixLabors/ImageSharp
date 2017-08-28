@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void CopyTo(BufferArea<float> area)
         {
             ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
-            ref byte destBase = ref Unsafe.As<float, byte>(ref area.DangerousGetPinnableReference());
+            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigo());
             int destStride = area.Stride * sizeof(float);
 
             CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
@@ -446,7 +446,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void CopyColorsTo(Span<byte> destinationBuffer, int stride, Block8x8F* tempBlockPtr)
         {
-            this.TransformByteConvetibleColorValuesInto(ref *tempBlockPtr);
+            this.NormalizeColorsInto(ref *tempBlockPtr);
             ref byte d = ref destinationBuffer.DangerousGetPinnableReference();
             float* src = (float*)tempBlockPtr;
             for (int i = 0; i < 8; i++)

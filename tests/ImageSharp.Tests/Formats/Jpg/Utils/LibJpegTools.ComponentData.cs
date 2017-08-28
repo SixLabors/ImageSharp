@@ -34,6 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public int VerticalSamplingFactor => throw new NotSupportedException();
 
+            public int QuantizationTableIndex => throw new NotSupportedException();
+
             public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
             public short MinVal { get; private set; } = short.MaxValue;

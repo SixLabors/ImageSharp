@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="component">The <see cref="OrigComponent"/></param>
         /// <param name="bx">The x index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
         /// <param name="by">The y index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
-        private void ProcessBlockColors(OrigJpegDecoderCore decoder, OrigComponent component, int bx, int by)
+        private void ProcessBlockColors(OrigJpegDecoderCore decoder, IJpegComponent component, int bx, int by)
         {
             ref Block8x8 sourceBlock = ref component.GetBlockReference(bx, by);
 

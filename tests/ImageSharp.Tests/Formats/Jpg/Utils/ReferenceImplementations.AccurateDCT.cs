@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                             }
                             tmp += CosLut[y, v] * tmp2;
                         }
-                        res[y, x] = (float)tmp;
+                        res[y * 8 + x] = (float)tmp;
                     }
                 }
                 return res;
@@ -88,11 +88,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                             tmp2 = 0.0;
                             for (x = 0; x < 8; x++)
                             {
-                                tmp2 += (double)block[y,x] * CosLut[x,u];
+                                tmp2 += (double)block[y * 8 + x] * CosLut[x,u];
                             }
-                            tmp += CosLut[y,v] * tmp2;
+                            tmp += CosLut[y, v] * tmp2;
                         }
-                        res[v,u] = (float) tmp;
+                        res[v * 8 + u] = (float) tmp;
                     }
                 }
                 

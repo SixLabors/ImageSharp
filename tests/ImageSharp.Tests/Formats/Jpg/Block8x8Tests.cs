@@ -115,12 +115,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void IndexerYX()
+        public void IndexerXY()
         {
             var block = default(Block8x8);
             block[8 * 3 + 5] = 42;
 
-            short value = block[3, 5];
+            short value = block[5, 3];
 
             Assert.Equal(42, value);
         }

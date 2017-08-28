@@ -52,12 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         /// <inheritdoc />
         public int HeightInBlocks { get; private set; }
-
-        public ref Block8x8 GetBlockReference(int bx, int by)
-        {
-            return ref this.SpectralBlocks[bx, by];
-        }
-
+        
         /// <summary>
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>

@@ -18,10 +18,13 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
+    using System.Collections.Generic;
+    using System.Numerics;
+
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal sealed unsafe class OrigJpegDecoderCore : IDisposable
+    internal sealed unsafe class OrigJpegDecoderCore : IDisposable, IRawJpegData
     {
         /// <summary>
         /// The maximum number of color components
@@ -138,20 +141,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         public byte[] Temp { get; }
 
+        public Size ImageSize { get; private set; }
+
+        public Size ImageSizeInBlocks { get; private set; }
+
         /// <summary>
         /// Gets the number of color components within the image.
         /// </summary>
         public int ComponentCount { get; private set; }
 
+        IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
+
         /// <summary>
         /// Gets the image height
         /// </summary>
-        public int ImageHeight { get; private set; }
+        public int ImageHeight => this.ImageSize.Height;
 
         /// <summary>
         /// Gets the image width
         /// </summary>
-        public int ImageWidth { get; private set; }
+        public int ImageWidth => this.ImageSize.Width;
 
         /// <summary>
         /// Gets the input stream.
@@ -1167,8 +1176,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 throw new ImageFormatException("Only 8-Bit precision supported.");
             }
 
-            this.ImageHeight = (this.Temp[1] << 8) + this.Temp[2];
-            this.ImageWidth = (this.Temp[3] << 8) + this.Temp[4];
+            int height = (this.Temp[1] << 8) + this.Temp[2];
+            int width = (this.Temp[3] << 8) + this.Temp[4];
+
+            this.InitSizes(width, height);
+
             if (this.Temp[5] != this.ComponentCount)
             {
                 throw new ImageFormatException("SOF has wrong length");
@@ -1196,6 +1208,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             this.SubsampleRatio = ComponentUtils.GetSubsampleRatio(this.Components);
+        }
+
+        private void InitSizes(int width, int height)
+        {
+            this.ImageSize = new Size(width, height);
+
+            var sizeInBlocks = (Vector2)(SizeF)this.ImageSize;
+            sizeInBlocks /= 8;
+            sizeInBlocks.X = MathF.Ceiling(sizeInBlocks.X);
+            sizeInBlocks.Y = MathF.Ceiling(sizeInBlocks.Y);
+            this.ImageSizeInBlocks = new Size((int)sizeInBlocks.X, (int)sizeInBlocks.Y);
         }
     }
 }

@@ -33,10 +33,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <inheritdoc />
         public int VerticalSamplingFactor { get; private set; }
 
-        /// <summary>
-        /// Gets the quantization table destination selector.
-        /// </summary>
-        public byte Selector { get; private set; }
+        /// <inheritdoc />
+        public int QuantizationTableIndex { get; private set; }
 
         /// <inheritdoc />
         /// <summary>
@@ -52,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         /// <inheritdoc />
         public int HeightInBlocks { get; private set; }
-        
+
         /// <summary>
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
@@ -82,8 +80,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
             }
 
-            this.Selector = decoder.Temp[8 + (3 * i)];
-            if (this.Selector > OrigJpegDecoderCore.MaxTq)
+            this.QuantizationTableIndex = decoder.Temp[8 + (3 * i)];
+            if (this.QuantizationTableIndex > OrigJpegDecoderCore.MaxTq)
             {
                 throw new ImageFormatException("Bad Tq value");
             }

@@ -815,7 +815,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             using (var computationBuffer = Buffer<short>.CreateClean(64))
             using (var multiplicationBuffer = Buffer<short>.CreateClean(64))
             {
-                Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationIdentifier);
+                Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
                 Span<short> computationBufferSpan = computationBuffer;
 
                 // For AA&N IDCT method, multiplier are equal to quantization

@@ -8,6 +8,8 @@ using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
@@ -23,20 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Pointers to elements of <see cref="data"/>
         /// </summary>
         private DataPointers pointers;
-
-        /// <summary>
-        /// The component index.
-        /// </summary>
-        private int componentIndex;
-
+        
         /// <summary>
         /// Initialize the <see cref="JpegBlockPostProcessor"/> instance on the stack.
         /// </summary>
         /// <param name="postProcessor">The <see cref="JpegBlockPostProcessor"/> instance</param>
-        /// <param name="componentIndex">The current component index</param>
-        public static void Init(JpegBlockPostProcessor* postProcessor, int componentIndex)
+        public static void Init(JpegBlockPostProcessor* postProcessor)
         {
-            postProcessor->componentIndex = componentIndex;
             postProcessor->data = ComputationData.Create();
             postProcessor->pointers = new DataPointers(&postProcessor->data);
         }
@@ -45,10 +40,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Dequantize, perform the inverse DCT and store the blocks to the into the corresponding <see cref="OrigJpegPixelArea"/> instances.
         /// </summary>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        public void ProcessAllBlocks(OrigJpegDecoderCore decoder)
+        /// <param name="component">The component</param>
+        public void ProcessAllBlocks(OrigJpegDecoderCore decoder, IJpegComponent component)
         {
-            OrigComponent component = decoder.Components[this.componentIndex];
-
             for (int by = 0; by < component.HeightInBlocks; by++)
             {
                 for (int bx = 0; bx < component.WidthInBlocks; bx++)
@@ -56,6 +50,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     this.ProcessBlockColors(decoder, component, bx, by);
                 }
             }
+        }
+
+        public void QuantizeAndTransform(IRawJpegData decoder, IJpegComponent component, ref Block8x8 sourceBlock)
+        {
+            this.data.SourceBlock = sourceBlock.AsFloatBlock();
+            int qtIndex = component.QuantizationTableIndex;
+            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+
+            Block8x8F* b = this.pointers.SourceBlock;
+
+            Block8x8F.QuantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
+
+            FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.ResultBlock, ref this.data.TempBlock);
+        }
+
+        public void ProcessBlockColorsInto(
+            IRawJpegData decoder,
+            IJpegComponent component,
+            ref Block8x8 sourceBlock,
+            BufferArea<float> destArea)
+        {
+            this.QuantizeAndTransform(decoder, component, ref sourceBlock);
+
+            this.data.ResultBlock.NormalizeColorsInplace();
+            this.data.ResultBlock.CopyTo(destArea);
         }
 
         /// <summary>
@@ -67,22 +86,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="by">The y index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
         private void ProcessBlockColors(OrigJpegDecoderCore decoder, IJpegComponent component, int bx, int by)
         {
-            ref Block8x8 sourceBlock = ref component.GetBlockReference(bx, by);
+            ref Block8x8 sourceBlock = ref component.GetBlockReference(bx, @by);
 
-            this.data.Block = sourceBlock.AsFloatBlock();
-            int qtIndex = decoder.Components[this.componentIndex].Selector;
-            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+            this.QuantizeAndTransform(decoder, component, ref sourceBlock);
 
-            Block8x8F* b = this.pointers.Block;
-
-            Block8x8F.QuantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
-
-            FastFloatingPointDCT.TransformIDCT(ref *b, ref *this.pointers.Temp1, ref *this.pointers.Temp2);
-
-            OrigJpegPixelArea destChannel = decoder.GetDestinationChannel(this.componentIndex);
+            OrigJpegPixelArea destChannel = decoder.GetDestinationChannel(component.Index);
             OrigJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);
-            destArea.LoadColorsFrom(this.pointers.Temp1, this.pointers.Temp2);
+            destArea.LoadColorsFrom(this.pointers.ResultBlock, this.pointers.TempBlock);
         }
+
 
         /// <summary>
         /// Holds the "large" data blocks needed for computations.
@@ -93,17 +105,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// Temporal block 1 to store intermediate and/or final computation results
             /// </summary>
-            public Block8x8F Block;
+            public Block8x8F SourceBlock;
 
             /// <summary>
             /// Temporal block 1 to store intermediate and/or final computation results
             /// </summary>
-            public Block8x8F Temp1;
+            public Block8x8F ResultBlock;
 
             /// <summary>
             /// Temporal block 2 to store intermediate and/or final computation results
             /// </summary>
-            public Block8x8F Temp2;
+            public Block8x8F TempBlock;
 
             /// <summary>
             /// The quantization table as <see cref="Block8x8F"/>
@@ -133,19 +145,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public struct DataPointers
         {
             /// <summary>
-            /// Pointer to <see cref="DecodedBlock.Block"/>
+            /// Pointer to <see cref="ComputationData.SourceBlock"/>
             /// </summary>
-            public Block8x8F* Block;
+            public Block8x8F* SourceBlock;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.Temp1"/>
+            /// Pointer to <see cref="ComputationData.ResultBlock"/>
             /// </summary>
-            public Block8x8F* Temp1;
+            public Block8x8F* ResultBlock;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.Temp2"/>
+            /// Pointer to <see cref="ComputationData.TempBlock"/>
             /// </summary>
-            public Block8x8F* Temp2;
+            public Block8x8F* TempBlock;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
@@ -163,9 +175,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <param name="dataPtr">Pointer to <see cref="ComputationData"/></param>
             internal DataPointers(ComputationData* dataPtr)
             {
-                this.Block = &dataPtr->Block;
-                this.Temp1 = &dataPtr->Temp1;
-                this.Temp2 = &dataPtr->Temp2;
+                this.SourceBlock = &dataPtr->SourceBlock;
+                this.ResultBlock = &dataPtr->ResultBlock;
+                this.TempBlock = &dataPtr->TempBlock;
                 this.QuantiazationTable = &dataPtr->QuantiazationTable;
                 this.Unzig = dataPtr->Unzig.Data;
             }

@@ -22,6 +22,7 @@
         public static ImageSimilarityReport Empty =>
             new ImageSimilarityReport(null, null, Enumerable.Empty<PixelDifference>(), null);
 
+        // TODO: This should not be a nullable value!
         public float? TotalNormalizedDifference { get; }
 
         public string DifferencePercentageString => this.TotalNormalizedDifference.HasValue

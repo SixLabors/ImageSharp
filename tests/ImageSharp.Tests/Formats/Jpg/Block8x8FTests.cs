@@ -263,17 +263,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
-        [Fact]
-        public void TransformByteConvetibleColorValuesInto()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void NormalizeColors(bool inplace)
         {
-            Block8x8F block = new Block8x8F();
+            var block = default(Block8x8F);
             float[] input = Create8x8ColorCropTestData();
             block.LoadFrom(input);
             this.Output.WriteLine("Input:");
             this.PrintLinearData(input);
+            
+            var dest = default(Block8x8F);
 
-            Block8x8F dest = new Block8x8F();
-            block.TransformByteConvetibleColorValuesInto(ref dest);
+            if (inplace)
+            {
+                dest = block;
+                dest.NormalizeColorsInplace();
+            }
+            else
+            {
+                block.NormalizeColorsInto(ref dest);
+            }
+            
 
             float[] array = new float[64];
             dest.CopyTo(array);
@@ -284,6 +296,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.InRange(val, 0, 255);
             }
         }
+
 
         [Theory]
         [InlineData(1)]

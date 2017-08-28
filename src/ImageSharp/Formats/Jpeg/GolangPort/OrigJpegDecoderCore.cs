@@ -130,9 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         public OrigHuffmanTree[] HuffmanTrees { get; }
 
-        /// <summary>
-        /// Gets the quantization tables, in zigzag order.
-        /// </summary>
+        /// <inheritdoc />
         public Block8x8F[] QuantizationTables { get; }
 
         /// <summary>
@@ -141,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         public byte[] Temp { get; }
 
-        public Size ImageSize { get; private set; }
+        public Size ImageSizeInPixels { get; private set; }
 
         public Size ImageSizeInBlocks { get; private set; }
 
@@ -155,12 +153,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the image height
         /// </summary>
-        public int ImageHeight => this.ImageSize.Height;
+        public int ImageHeight => this.ImageSizeInPixels.Height;
 
         /// <summary>
         /// Gets the image width
         /// </summary>
-        public int ImageWidth => this.ImageSize.Width;
+        public int ImageWidth => this.ImageSizeInPixels.Width;
 
         /// <summary>
         /// Gets the input stream.
@@ -463,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </exception>
         private void ProcessStartOfScan(int remaining)
         {
-            OrigJpegScanDecoder scan = default(OrigJpegScanDecoder);
+            var scan = default(OrigJpegScanDecoder);
             OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default(Bits);
             scan.DecodeBlocks(this);
@@ -483,9 +481,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 this.ComponentCount,
                 componentIndex =>
                     {
-                        JpegBlockPostProcessor postProcessor = default(JpegBlockPostProcessor);
-                        JpegBlockPostProcessor.Init(&postProcessor, componentIndex);
-                        postProcessor.ProcessAllBlocks(this);
+                        var postProcessor = default(JpegBlockPostProcessor);
+                        JpegBlockPostProcessor.Init(&postProcessor);
+                        IJpegComponent component = this.Components[componentIndex];
+                        postProcessor.ProcessAllBlocks(this, component);
                     });
         }
 
@@ -1212,9 +1211,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
         private void InitSizes(int width, int height)
         {
-            this.ImageSize = new Size(width, height);
+            this.ImageSizeInPixels = new Size(width, height);
 
-            var sizeInBlocks = (Vector2)(SizeF)this.ImageSize;
+            var sizeInBlocks = (Vector2)(SizeF)this.ImageSizeInPixels;
             sizeInBlocks /= 8;
             sizeInBlocks.X = MathF.Ceiling(sizeInBlocks.X);
             sizeInBlocks.Y = MathF.Ceiling(sizeInBlocks.Y);

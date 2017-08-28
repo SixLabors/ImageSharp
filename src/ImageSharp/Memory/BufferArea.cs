@@ -34,7 +34,12 @@ namespace SixLabors.ImageSharp.Memory
 
         public Size Size => this.Rectangle.Size;
 
+        public int Stride => this.DestinationBuffer.Width;
+
         public ref T this[int x, int y] => ref this.DestinationBuffer.Span[this.GetIndexOf(x, y)];
+
+        public ref T DangerousGetPinnableReference() =>
+            ref this.DestinationBuffer.Span[(this.Rectangle.Y * this.DestinationBuffer.Width) + this.Rectangle.X];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> GetRowSpan(int y)

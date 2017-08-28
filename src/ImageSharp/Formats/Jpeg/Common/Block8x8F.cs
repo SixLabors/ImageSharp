@@ -10,6 +10,8 @@ using System.Runtime.InteropServices;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
@@ -83,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
-        public float this[int y, int x]
+        public float this[int x, int y]
         {
             get => this[(y * 8) + x];
             set => this[(y * 8) + x] = value;
@@ -304,6 +306,60 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CopyRowImpl(ref byte selfBase, ref byte destBase, int destStride, int row)
+        {
+            ref byte s = ref Unsafe.Add(ref selfBase, row * 8 * sizeof(float));
+            ref byte d = ref Unsafe.Add(ref destBase, row * destStride);
+            Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
+        }
+
+        public void CopyTo(BufferArea<float> area)
+        {
+            ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
+            ref byte destBase = ref Unsafe.As<float, byte>(ref area.DangerousGetPinnableReference());
+            int destStride = area.Stride * sizeof(float);
+
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 1);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 2);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 3);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 4);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 5);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 6);
+            CopyRowImpl(ref selfBase, ref destBase, destStride, 7);
+        }
+
+        public void CopyTo(BufferArea<float> area, int horizontalScale, int verticalScale)
+        {
+            if (horizontalScale == 1 && verticalScale == 1)
+            {
+                this.CopyTo(area);
+                return;
+            }
+
+            // TODO: Optimize: implement all the cases with loopless special code! (T4?)
+            for (int y = 0; y < 8; y++)
+            {
+                int yy = y * verticalScale;
+
+                for (int x = 0; x < 8; x++)
+                {
+                    int xx = x * horizontalScale;
+
+                    float value = this[(y * 8) + x];
+
+                    for (int i = 0; i < verticalScale; i++)
+                    {
+                        for (int j = 0; j < horizontalScale; j++)
+                        {
+                            area[xx + j, yy + i] = value;
+                        }
+                    }
+                }
+            }
+        }
+
         public float[] ToArray()
         {
             float[] result = new float[Size];
@@ -519,6 +575,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
             DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
+        }
+
+        [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(float))]
+        private struct Row
+        {
         }
     }
 }

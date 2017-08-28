@@ -103,6 +103,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             return result;
         }
 
+        internal static Block8x8F CreateRandomFloatBlock(float minValue, float maxValue, int seed = 42) =>
+            Block8x8F.Load(Create8x8RandomFloatData(minValue, maxValue, seed));
+
         internal void Print8x8Data<T>(T[] data) => this.Print8x8Data(new Span<T>(data));
 
         internal void Print8x8Data<T>(Span<T> data)

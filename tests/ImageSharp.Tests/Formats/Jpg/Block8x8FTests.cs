@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
-    public class Block8x8FTests : JpegFixture
+    public partial class Block8x8FTests : JpegFixture
     {
 #if BENCHMARKING
         public const int Times = 1000000;
@@ -313,23 +313,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expected, actual);
             }
         }
-
-        //[Fact]
-        //public void AsInt16Block()
-        //{
-        //    float[] data = Create8x8FloatData();
-
-        //    var source = default(Block8x8F);
-        //    source.LoadFrom(data);
-
-        //    Block8x8 dest = source.AsInt16Block();
-
-        //    for (int i = 0; i < Block8x8F.Size; i++)
-        //    {
-        //        Assert.Equal((short)data[i], dest[i]);
-        //    }
-        //}
-
+        
         [Fact]
         public void RoundInto()
         {

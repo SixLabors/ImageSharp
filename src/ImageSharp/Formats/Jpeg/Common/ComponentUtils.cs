@@ -13,6 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     {
         public static Size SizeInBlocks(this IJpegComponent component) => new Size(component.WidthInBlocks, component.HeightInBlocks);
 
+        public static ref Block8x8 GetBlockReference(this IJpegComponent component, int bx, int by)
+        {
+            return ref component.SpectralBlocks[bx, by];
+        }
+
         public static SubsampleRatio GetSubsampleRatio(int horizontalRatio, int verticalRatio)
         {
             switch ((horizontalRatio << 4) | verticalRatio)
@@ -107,19 +112,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             return sizes;
         }
-
-        //public static Size CalculateJpegChannelSize(this IJpegComponent component, SubsampleRatio ratio = SubsampleRatio.Undefined)
-        //{
-        //    Size size = new Size(component.WidthInBlocks, component.HeightInBlocks) * 8;
-
-        //    if (component.IsChromaComponent())
-        //    {
-        //        return ratio.CalculateChrominanceSize(size.Width, size.Height);
-        //    }
-        //    else
-        //    {
-        //        return size;
-        //    }
-        //}
     }
 }

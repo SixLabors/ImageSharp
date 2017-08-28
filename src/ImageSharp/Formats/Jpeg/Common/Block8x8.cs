@@ -5,6 +5,8 @@ using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Represents a Jpeg block with <see cref="short"/> coefficiens.
     /// </summary>
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
-        public short this[int y, int x]
+        public short this[int x, int y]
         {
             get => this[(y * 8) + x];
             set => this[(y * 8) + x] = value;

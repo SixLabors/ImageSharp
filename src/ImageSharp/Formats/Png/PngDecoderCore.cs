@@ -564,6 +564,7 @@ namespace ImageSharp.Formats
                 }
                 else
                 {
+                    this.pass = 0;
                     break;
                 }
             }

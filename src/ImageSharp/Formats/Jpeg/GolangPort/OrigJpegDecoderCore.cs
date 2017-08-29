@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
@@ -14,13 +16,9 @@ using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
-    using System.Collections.Generic;
-    using System.Numerics;
-
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
@@ -143,6 +141,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
         public Size ImageSizeInBlocks { get; private set; }
 
+        public Size ImageSizeInMCU { get; private set; }
+
         /// <summary>
         /// Gets the number of color components within the image.
         /// </summary>
@@ -178,12 +178,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the number of MCU-s (Minimum Coded Units) in the image along the X axis
         /// </summary>
-        public int MCUCountX { get; private set; }
+        public int MCUCountX => this.ImageSizeInMCU.Width;
 
         /// <summary>
         /// Gets the number of MCU-s (Minimum Coded Units) in the image along the Y axis
         /// </summary>
-        public int MCUCountY { get; private set; }
+        public int MCUCountY => this.ImageSizeInMCU.Height;
 
         /// <summary>
         /// Gets the the total number of MCU-s (Minimum Coded Units) in the image.
@@ -1178,7 +1178,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             int height = (this.Temp[1] << 8) + this.Temp[2];
             int width = (this.Temp[3] << 8) + this.Temp[4];
 
-            this.InitSizes(width, height);
+            this.ImageSizeInPixels = new Size(width, height);
+            
 
             if (this.Temp[5] != this.ComponentCount)
             {
@@ -1191,33 +1192,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             {
                 byte componentIdentifier = this.Temp[6 + (3 * i)];
                 var component = new OrigComponent(componentIdentifier, i);
-                component.InitializeData(this);
+                component.InitializeCoreData(this);
                 this.Components[i] = component;
             }
 
             int h0 = this.Components[0].HorizontalSamplingFactor;
             int v0 = this.Components[0].VerticalSamplingFactor;
-            this.MCUCountX = (this.ImageWidth + (8 * h0) - 1) / (8 * h0);
-            this.MCUCountY = (this.ImageHeight + (8 * v0) - 1) / (8 * v0);
 
-            // As a preparation for parallelizing Scan decoder, we also allocate DecodedBlocks in the non-progressive case!
-            for (int i = 0; i < this.ComponentCount; i++)
+            this.ImageSizeInMCU = this.ImageSizeInPixels.GetSubSampledSize(8 * h0, 8 * v0);
+
+            foreach (OrigComponent component in this.Components)
             {
-               this.Components[i].InitializeBlocks(this);
+                component.InitializeDerivedData(this);
             }
 
+            this.ImageSizeInBlocks = this.Components[0].SizeInBlocks;
             this.SubsampleRatio = ComponentUtils.GetSubsampleRatio(this.Components);
-        }
-
-        private void InitSizes(int width, int height)
-        {
-            this.ImageSizeInPixels = new Size(width, height);
-
-            var sizeInBlocks = (Vector2)(SizeF)this.ImageSizeInPixels;
-            sizeInBlocks /= 8;
-            sizeInBlocks.X = MathF.Ceiling(sizeInBlocks.X);
-            sizeInBlocks.Y = MathF.Ceiling(sizeInBlocks.Y);
-            this.ImageSizeInBlocks = new Size((int)sizeInBlocks.X, (int)sizeInBlocks.Y);
         }
     }
 }

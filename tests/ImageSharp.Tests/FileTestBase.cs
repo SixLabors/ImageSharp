@@ -85,6 +85,7 @@ namespace SixLabors.ImageSharp.Tests
             // TestFile.Create(TestImages.Bmp.NegHeight), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Bmp.CoreHeader), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Png.Splash),
+            // TestFile.Create(TestImages.Png.SnakeGame),
             // TestFile.Create(TestImages.Png.Cross), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Bad.ChunkLength1), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Bad.ChunkLength2), // Perf: Enable for local testing only

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     {
         public class ComponentData : IEquatable<ComponentData>, IJpegComponent
         {
-            public ComponentData(int heightInBlocks, int widthInBlocks, int index)
+            public ComponentData(int widthInBlocks, int heightInBlocks, int index)
             {
                 this.HeightInBlocks = heightInBlocks;
                 this.WidthInBlocks = widthInBlocks;
@@ -54,8 +54,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public static ComponentData Load(PdfJsFrameComponent c, int index)
             {
                 var result = new ComponentData(
-                    c.BlocksPerColumnForMcu,
-                    c.BlocksPerLineForMcu,
+                    c.WidthInBlocks,
+                    c.HeightInBlocks,
                     index
                 );
 

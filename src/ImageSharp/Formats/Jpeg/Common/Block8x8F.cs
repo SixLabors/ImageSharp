@@ -560,6 +560,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        // TODO: Optimize this!
+        public void RoundInplace()
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                this[i] = MathF.Round(this[i]);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {

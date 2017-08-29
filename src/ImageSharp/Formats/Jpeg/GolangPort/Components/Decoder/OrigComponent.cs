@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         public Size SamplingFactors { get; private set; }
 
-        public Size SubSamplingDivisors { get; private set; } = new Size(1, 1);
+        public Size SubSamplingDivisors { get; private set; }
 
         public int HorizontalSamplingFactor => this.SamplingFactors.Width;
 
@@ -57,15 +57,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
         public void InitializeDerivedData(OrigJpegDecoderCore decoder)
         {
-            this.SizeInBlocks = decoder.ImageSizeInBlocks.MultiplyBy(this.SamplingFactors);
+            // For 4-component images (either CMYK or YCbCrK), we only support two
+            // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
+            // Theoretically, 4-component JPEG images could mix and match hv values
+            // but in practice, those two combinations are the only ones in use,
+            // and it simplifies the applyBlack code below if we can assume that:
+            // - for CMYK, the C and K channels have full samples, and if the M
+            // and Y channels subsample, they subsample both horizontally and
+            // vertically.
+            // - for YCbCrK, the Y and K channels have full samples.
+
+            this.SizeInBlocks = decoder.ImageSizeInMCU.MultiplyBy(this.SamplingFactors);
+
+            if (this.Index == 0 || this.Index == 3)
+            {
+                this.SubSamplingDivisors = new Size(1, 1);
+            }
+            else
+            {
+                OrigComponent c0 = decoder.Components[0];
+                this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
+            }
 
             this.SpectralBlocks = Buffer2D<Block8x8>.CreateClean(this.SizeInBlocks);
-
-            if (decoder.ComponentCount > 1 && (this.Index == 1 || this.Index == 2))
-            {
-                Size s0 = decoder.Components[0].SamplingFactors;
-                this.SubSamplingDivisors = s0.DivideBy(this.SamplingFactors);
-            }
         }
 
         /// <summary>

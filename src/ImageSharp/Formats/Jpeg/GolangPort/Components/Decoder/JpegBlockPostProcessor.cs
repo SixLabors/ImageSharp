@@ -10,6 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.CompilerServices;
 
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
@@ -74,7 +76,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             this.QuantizeAndTransform(decoder, component, ref sourceBlock);
 
             this.data.ResultBlock.NormalizeColorsInplace();
-            this.data.ResultBlock.CopyTo(destArea);
+            Size divs = component.SubSamplingDivisors;
+
+            this.data.ResultBlock.RoundInplace();
+
+            this.data.ResultBlock.CopyTo(destArea, divs.Width, divs.Height);
         }
 
         /// <summary>

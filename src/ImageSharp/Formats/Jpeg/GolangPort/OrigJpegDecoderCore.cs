@@ -139,8 +139,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
         public Size ImageSizeInPixels { get; private set; }
 
-        public Size ImageSizeInBlocks { get; private set; }
-
         public Size ImageSizeInMCU { get; private set; }
 
         /// <summary>
@@ -1180,7 +1178,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             this.ImageSizeInPixels = new Size(width, height);
             
-
             if (this.Temp[5] != this.ComponentCount)
             {
                 throw new ImageFormatException("SOF has wrong length");
@@ -1199,14 +1196,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             int h0 = this.Components[0].HorizontalSamplingFactor;
             int v0 = this.Components[0].VerticalSamplingFactor;
 
-            this.ImageSizeInMCU = this.ImageSizeInPixels.GetSubSampledSize(8 * h0, 8 * v0);
+            this.ImageSizeInMCU = this.ImageSizeInPixels.DivideRoundUp(8 * h0, 8 * v0);
 
             foreach (OrigComponent component in this.Components)
             {
                 component.InitializeDerivedData(this);
             }
 
-            this.ImageSizeInBlocks = this.Components[0].SizeInBlocks;
             this.SubsampleRatio = ComponentUtils.GetSubsampleRatio(this.Components);
         }
     }

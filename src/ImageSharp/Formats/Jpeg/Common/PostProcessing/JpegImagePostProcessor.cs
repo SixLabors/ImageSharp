@@ -21,8 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
         public JpegImagePostProcessor(IRawJpegData rawJpeg)
         {
             this.RawJpeg = rawJpeg;
-            this.NumberOfPostProcessorSteps = rawJpeg.ImageSizeInBlocks.Height / BlockRowsPerStep;
-            this.PostProcessorBufferSize = new Size(rawJpeg.ImageSizeInBlocks.Width * 8, PixelRowsPerStep);
+            IJpegComponent c0 = rawJpeg.Components.First();
+            this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
+            this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
             this.componentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
         }

@@ -2,15 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
+using SixLabors.Primitives;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using SixLabors.Primitives;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class ComponentUtilsTests
     {
         public ComponentUtilsTests(ITestOutputHelper output)
@@ -27,10 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(SubsampleRatio.Ratio422, 2, 1)]
         [InlineData(SubsampleRatio.Ratio440, 1, 2)]
         [InlineData(SubsampleRatio.Ratio444, 1, 1)]
-        internal void CalculateChrominanceSize(
-            SubsampleRatio ratio,
-            int expectedDivX,
-            int expectedDivY)
+        internal void CalculateChrominanceSize(SubsampleRatio ratio, int expectedDivX, int expectedDivY)
         {
             //this.Output.WriteLine($"RATIO: {ratio}");
             Size size = ratio.CalculateChrominanceSize(400, 400);
@@ -81,6 +80,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             this.Output.WriteLine($"{name}: Stride={channel.Stride}");
         }
-
     }
 }

@@ -3,7 +3,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     internal class JpegComponentPostProcessor : IDisposable
     {

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
     using SixLabors.Primitives;
 
     /// <inheritdoc cref="IJpegComponent" />

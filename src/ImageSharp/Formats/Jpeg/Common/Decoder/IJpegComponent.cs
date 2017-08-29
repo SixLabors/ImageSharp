@@ -1,7 +1,7 @@
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
     /// Common interface to represent raw Jpeg components.

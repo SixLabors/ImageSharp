@@ -3,14 +3,13 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!
     ///

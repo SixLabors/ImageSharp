@@ -4,14 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
@@ -118,6 +116,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Gets the <see cref="Common.SubsampleRatio"/> ratio.
         /// </summary>
         public SubsampleRatio SubsampleRatio { get; private set; }
+
+        public JpegColorSpace ColorSpace { get; private set; }
 
         /// <summary>
         /// Gets the component array
@@ -592,22 +592,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     0,
                     image.Height,
                     y =>
-                    {
-                        // TODO: Simplify + optimize + share duplicate code across converter methods
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-
-                        for (int x = 0; x < image.Width; x++)
                         {
-                            byte cyan = this.ycbcrImage.YChannel[yo + x];
-                            byte magenta = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
+                            // TODO: Simplify + optimize + share duplicate code across converter methods
+                            int yo = this.ycbcrImage.GetRowYOffset(y);
+                            int co = this.ycbcrImage.GetRowCOffset(y);
 
-                            TPixel packed = default(TPixel);
-                            this.PackCmyk(ref packed, cyan, magenta, yellow, x, y);
-                            pixels[x, y] = packed;
-                        }
-                    });
+                            for (int x = 0; x < image.Width; x++)
+                            {
+                                byte cyan = this.ycbcrImage.YChannel[yo + x];
+                                byte magenta = this.ycbcrImage.CbChannel[co + (x / scale)];
+                                byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
+
+                                TPixel packed = default(TPixel);
+                                this.PackCmyk(ref packed, cyan, magenta, yellow, x, y);
+                                pixels[x, y] = packed;
+                            }
+                        });
             }
 
             this.AssignResolution(image);
@@ -691,34 +691,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 Parallel.For(
-                 0,
-                 image.Height,
-                 image.Configuration.ParallelOptions,
-                 y =>
-                 {
-                     // TODO. This Parallel loop doesn't give us the boost it should.
-                     ref byte ycRef = ref this.ycbcrImage.YChannel[0];
-                     ref byte cbRef = ref this.ycbcrImage.CbChannel[0];
-                     ref byte crRef = ref this.ycbcrImage.CrChannel[0];
-                     fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
-                     {
-                         // TODO: Simplify + optimize + share duplicate code across converter methods
-                         int yo = this.ycbcrImage.GetRowYOffset(y);
-                         int co = this.ycbcrImage.GetRowCOffset(y);
+                    0,
+                    image.Height,
+                    image.Configuration.ParallelOptions,
+                    y =>
+                        {
+                            // TODO. This Parallel loop doesn't give us the boost it should.
+                            ref byte ycRef = ref this.ycbcrImage.YChannel[0];
+                            ref byte cbRef = ref this.ycbcrImage.CbChannel[0];
+                            ref byte crRef = ref this.ycbcrImage.CrChannel[0];
+                            fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
+                            {
+                                // TODO: Simplify + optimize + share duplicate code across converter methods
+                                int yo = this.ycbcrImage.GetRowYOffset(y);
+                                int co = this.ycbcrImage.GetRowCOffset(y);
 
-                         for (int x = 0; x < image.Width; x++)
-                         {
-                             int cOff = co + (x / scale);
-                             byte yy = Unsafe.Add(ref ycRef, yo + x);
-                             byte cb = Unsafe.Add(ref cbRef, cOff);
-                             byte cr = Unsafe.Add(ref crRef, cOff);
+                                for (int x = 0; x < image.Width; x++)
+                                {
+                                    int cOff = co + (x / scale);
+                                    byte yy = Unsafe.Add(ref ycRef, yo + x);
+                                    byte cb = Unsafe.Add(ref cbRef, cOff);
+                                    byte cr = Unsafe.Add(ref crRef, cOff);
 
-                             TPixel packed = default(TPixel);
-                             YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
-                             pixels[x, y] = packed;
-                         }
-                     }
-                 });
+                                    TPixel packed = default(TPixel);
+                                    YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
+                                    pixels[x, y] = packed;
+                                }
+                            }
+                        });
             }
 
             this.AssignResolution(image);
@@ -921,12 +921,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             byte[] profile = new byte[remaining];
             this.InputProcessor.ReadFull(profile, 0, remaining);
 
-            if (profile[0] == 'E' &&
-                profile[1] == 'x' &&
-                profile[2] == 'i' &&
-                profile[3] == 'f' &&
-                profile[4] == '\0' &&
-                profile[5] == '\0')
+            if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
+                && profile[5] == '\0')
             {
                 this.isExif = true;
                 this.MetaData.ExifProfile = new ExifProfile(profile);
@@ -951,18 +947,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(identifier, 0, Icclength);
             remaining -= Icclength; // we have read it by this point
 
-            if (identifier[0] == 'I' &&
-                identifier[1] == 'C' &&
-                identifier[2] == 'C' &&
-                identifier[3] == '_' &&
-                identifier[4] == 'P' &&
-                identifier[5] == 'R' &&
-                identifier[6] == 'O' &&
-                identifier[7] == 'F' &&
-                identifier[8] == 'I' &&
-                identifier[9] == 'L' &&
-                identifier[10] == 'E' &&
-                identifier[11] == '\0')
+            if (identifier[0] == 'I' && identifier[1] == 'C' && identifier[2] == 'C' && identifier[3] == '_'
+                && identifier[4] == 'P' && identifier[5] == 'R' && identifier[6] == 'O' && identifier[7] == 'F'
+                && identifier[8] == 'I' && identifier[9] == 'L' && identifier[10] == 'E' && identifier[11] == '\0')
             {
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
@@ -999,11 +986,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             remaining -= 13;
 
             // TODO: We should be using constants for this.
-            this.isJfif = this.Temp[0] == 'J' &&
-                          this.Temp[1] == 'F' &&
-                          this.Temp[2] == 'I' &&
-                          this.Temp[3] == 'F' &&
-                          this.Temp[4] == '\x00';
+            this.isJfif = this.Temp[0] == 'J' && this.Temp[1] == 'F' && this.Temp[2] == 'I' && this.Temp[3] == 'F'
+                          && this.Temp[4] == '\x00';
 
             if (this.isJfif)
             {
@@ -1178,7 +1162,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             int width = (this.Temp[3] << 8) + this.Temp[4];
 
             this.ImageSizeInPixels = new Size(width, height);
-            
+
             if (this.Temp[5] != this.ComponentCount)
             {
                 throw new ImageFormatException("SOF has wrong length");
@@ -1204,7 +1188,43 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 component.InitializeDerivedData(this);
             }
 
+            this.ColorSpace = this.DeduceJpegColorSpace();
+
             this.SubsampleRatio = ComponentUtils.GetSubsampleRatio(this.Components);
+        }
+
+        private JpegColorSpace DeduceJpegColorSpace()
+        {
+            switch (this.ComponentCount)
+            {
+                case 1: return JpegColorSpace.GrayScale;
+                case 3: return this.IsRGB() ? JpegColorSpace.RGB : JpegColorSpace.YCbCr;
+                case 4:
+
+                    if (!this.adobeTransformValid)
+                    {
+                        throw new ImageFormatException(
+                            "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                    }
+
+                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
+                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
+                    // TODO: YCbCrA?
+                    if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
+                    {
+                        return JpegColorSpace.Ycck;
+                    }
+                    else if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        // Assume CMYK
+                        return JpegColorSpace.Cmyk;
+                    }
+
+                    goto default;
+
+                default:
+                    throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
+            }
         }
     }
 }

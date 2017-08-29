@@ -1,4 +1,7 @@
+using System;
+
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -18,6 +21,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public ParseStreamTests(ITestOutputHelper output)
         {
             this.Output = output;
+        }
+
+        [Theory]
+        [InlineData(TestImages.Jpeg.Baseline.Testorig420, JpegColorSpace.YCbCr)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg400, JpegColorSpace.GrayScale)]
+        [InlineData(TestImages.Jpeg.Baseline.Ycck, JpegColorSpace.Ycck)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorSpace.Cmyk)]
+        public void ColorSpace_IsDeducedCorrectly(string imageFile, object expectedColorSpaceValue)
+        {
+            var expecteColorSpace = (JpegColorSpace)expectedColorSpaceValue;
+
+            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
+            {
+                Assert.Equal(expecteColorSpace, decoder.ColorSpace);
+            }
         }
 
         [Fact]

@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     using System.Runtime.CompilerServices;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
     using SixLabors.Primitives;
 
     /// <summary>
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             Block8x8F.QuantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
 
-            FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.ResultBlock, ref this.data.TempBlock);
+            FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.WorkspaceBlock1, ref this.data.WorkspaceBlock2);
         }
 
         public void ProcessBlockColorsInto(
@@ -75,15 +76,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             this.QuantizeAndTransform(decoder, component, ref sourceBlock);
 
-            this.data.ResultBlock.NormalizeColorsInplace();
+            this.data.WorkspaceBlock1.NormalizeColorsInplace();
             Size divs = component.SubSamplingDivisors;
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // Unfortunately, we need to emulate this to be "more accurate" :(
-            this.data.ResultBlock.RoundInplace();
+            this.data.WorkspaceBlock1.RoundInplace();
 
-            this.data.ResultBlock.CopyTo(destArea, divs.Width, divs.Height);
+            this.data.WorkspaceBlock1.CopyTo(destArea, divs.Width, divs.Height);
         }
 
         /// <summary>
@@ -101,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             OrigJpegPixelArea destChannel = decoder.GetDestinationChannel(component.Index);
             OrigJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);
-            destArea.LoadColorsFrom(this.pointers.ResultBlock, this.pointers.TempBlock);
+            destArea.LoadColorsFrom(this.pointers.WorkspaceBlock1, this.pointers.WorkspaceBlock2);
         }
 
 
@@ -112,19 +113,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public struct ComputationData
         {
             /// <summary>
-            /// Temporal block 1 to store intermediate and/or final computation results
+            /// Source block
             /// </summary>
             public Block8x8F SourceBlock;
 
             /// <summary>
             /// Temporal block 1 to store intermediate and/or final computation results
             /// </summary>
-            public Block8x8F ResultBlock;
+            public Block8x8F WorkspaceBlock1;
 
             /// <summary>
             /// Temporal block 2 to store intermediate and/or final computation results
             /// </summary>
-            public Block8x8F TempBlock;
+            public Block8x8F WorkspaceBlock2;
 
             /// <summary>
             /// The quantization table as <see cref="Block8x8F"/>
@@ -159,14 +160,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             public Block8x8F* SourceBlock;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.ResultBlock"/>
+            /// Pointer to <see cref="ComputationData.WorkspaceBlock1"/>
             /// </summary>
-            public Block8x8F* ResultBlock;
+            public Block8x8F* WorkspaceBlock1;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.TempBlock"/>
+            /// Pointer to <see cref="ComputationData.WorkspaceBlock2"/>
             /// </summary>
-            public Block8x8F* TempBlock;
+            public Block8x8F* WorkspaceBlock2;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
@@ -185,8 +186,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             internal DataPointers(ComputationData* dataPtr)
             {
                 this.SourceBlock = &dataPtr->SourceBlock;
-                this.ResultBlock = &dataPtr->ResultBlock;
-                this.TempBlock = &dataPtr->TempBlock;
+                this.WorkspaceBlock1 = &dataPtr->WorkspaceBlock1;
+                this.WorkspaceBlock2 = &dataPtr->WorkspaceBlock2;
                 this.QuantiazationTable = &dataPtr->QuantiazationTable;
                 this.Unzig = dataPtr->Unzig.Data;
             }

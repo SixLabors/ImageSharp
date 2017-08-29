@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 

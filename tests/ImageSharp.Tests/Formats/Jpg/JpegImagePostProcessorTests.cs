@@ -1,6 +1,6 @@
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;

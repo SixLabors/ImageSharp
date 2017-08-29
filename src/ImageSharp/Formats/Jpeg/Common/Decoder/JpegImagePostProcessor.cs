@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorSapce
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     internal class JpegImagePostProcessor : IDisposable
     {

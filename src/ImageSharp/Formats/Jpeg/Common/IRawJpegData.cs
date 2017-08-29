@@ -7,6 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     {
         Size ImageSizeInPixels { get; }
 
+        // TODO: Kill this
         Size ImageSizeInBlocks { get; }
 
         int ComponentCount { get; }

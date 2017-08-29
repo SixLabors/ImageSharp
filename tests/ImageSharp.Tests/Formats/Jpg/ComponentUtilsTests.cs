@@ -5,9 +5,7 @@
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
     using SixLabors.Primitives;
 
     using Xunit;
@@ -42,6 +40,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
+        [InlineData(SubsampleRatio.Ratio410, 4, 2)]
+        [InlineData(SubsampleRatio.Ratio411, 4, 1)]
+        [InlineData(SubsampleRatio.Ratio420, 2, 2)]
+        [InlineData(SubsampleRatio.Ratio422, 2, 1)]
+        [InlineData(SubsampleRatio.Ratio440, 1, 2)]
+        [InlineData(SubsampleRatio.Ratio444, 1, 1)]
+        [InlineData(SubsampleRatio.Undefined, 1, 1)]
+        internal void GetChrominanceSubSampling(SubsampleRatio ratio, int expectedDivX, int expectedDivY)
+        {
+            (int divX, int divY) = ratio.GetChrominanceSubSampling();
+
+            Assert.Equal(expectedDivX, divX);
+            Assert.Equal(expectedDivY, divY);
+        }
+
+        [Theory]
         [InlineData(SubsampleRatio.Ratio410, 4)]
         [InlineData(SubsampleRatio.Ratio411, 4)]
         [InlineData(SubsampleRatio.Ratio420, 2)]
@@ -68,64 +82,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"{name}: Stride={channel.Stride}");
         }
 
-        [Fact]
-        public void CalculateJpegChannelSizes_Grayscale()
-        {
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Baseline.Jpeg400))
-            {
-                Size[] sizes = ComponentUtils.CalculateJpegChannelSizes(decoder.Components, decoder.SubsampleRatio);
-
-                Assert.Equal(1, sizes.Length);
-
-                Size expected = decoder.Components[0].SizeInBlocks() * 8;
-
-                Assert.Equal(expected, sizes[0]);
-            }
-        }
-
-        [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg444, 1, 1)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Exif, 2, 2)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 2, 2)]
-        public void CalculateJpegChannelSizes_YCbCr(
-            string imageFile,
-            int hDiv,
-            int vDiv)
-        {
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
-            {
-                Size[] s = ComponentUtils.CalculateJpegChannelSizes(decoder.Components, decoder.SubsampleRatio);
-
-                Assert.Equal(3, s.Length);
-
-                Size ySize = decoder.Components[0].SizeInBlocks() * 8;
-                Size cSize = ySize;
-                cSize.Width /= hDiv;
-                cSize.Height /= vDiv;
-
-                Assert.Equal(ySize, s[0]);
-                Assert.Equal(cSize, s[1]);
-                Assert.Equal(cSize, s[2]);
-            }
-        }
-
-        [Theory]
-        [InlineData(TestImages.Jpeg.Baseline.Ycck)]
-        [InlineData(TestImages.Jpeg.Baseline.Cmyk)]
-        public void CalculateJpegChannelSizes_4Chan(string imageFile)
-        {
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
-            {
-                Size[] sizes = ComponentUtils.CalculateJpegChannelSizes(decoder.Components, decoder.SubsampleRatio);
-                Assert.Equal(4, sizes.Length);
-
-                Size expected = decoder.Components[0].SizeInBlocks() * 8;
-
-                foreach (Size s in sizes)
-                {
-                    Assert.Equal(expected, s);
-                }
-            }
-        }
     }
 }

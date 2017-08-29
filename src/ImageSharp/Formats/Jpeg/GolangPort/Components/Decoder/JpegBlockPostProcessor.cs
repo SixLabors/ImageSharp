@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Pointers to elements of <see cref="data"/>
         /// </summary>
         private DataPointers pointers;
-        
+
         /// <summary>
         /// Initialize the <see cref="JpegBlockPostProcessor"/> instance on the stack.
         /// </summary>
@@ -43,9 +43,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="component">The component</param>
         public void ProcessAllBlocks(OrigJpegDecoderCore decoder, IJpegComponent component)
         {
-            for (int by = 0; by < component.HeightInBlocks; by++)
+            for (int by = 0; by < component.SizeInBlocks.Height; by++)
             {
-                for (int bx = 0; bx < component.WidthInBlocks; bx++)
+                for (int bx = 0; bx < component.SizeInBlocks.Width; bx++)
                 {
                     this.ProcessBlockColors(decoder, component, bx, by);
                 }

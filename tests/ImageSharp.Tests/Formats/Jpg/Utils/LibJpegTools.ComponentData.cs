@@ -26,14 +26,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public int Index { get; }
 
+            public Size SizeInBlocks => new Size(this.WidthInBlocks, this.HeightInBlocks);
+
+            public Size SamplingFactors => throw new NotSupportedException();
+
+            public Size SubSamplingDivisors => throw new NotSupportedException();
+
             public int HeightInBlocks { get; }
             
             public int WidthInBlocks { get; }
-
-            public int HorizontalSamplingFactor => throw new NotSupportedException();
-
-            public int VerticalSamplingFactor => throw new NotSupportedException();
-
+            
             public int QuantizationTableIndex => throw new NotSupportedException();
 
             public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
@@ -72,8 +74,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public static ComponentData Load(OrigComponent c)
             {
                 var result = new ComponentData(
-                    c.HeightInBlocks,
-                    c.WidthInBlocks,
+                    c.SizeInBlocks.Width,
+                    c.SizeInBlocks.Height,
                     c.Index
                 );
 

@@ -7,6 +7,8 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.Primitives;
+
     /// <inheritdoc cref="IJpegComponent" />
     /// <summary>
     /// Represents a single color component
@@ -27,11 +29,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <inheritdoc />
         public int Index { get; }
 
-        /// <inheritdoc />
-        public int HorizontalSamplingFactor { get; private set; }
+        public Size SizeInBlocks { get; private set; }
 
-        /// <inheritdoc />
-        public int VerticalSamplingFactor { get; private set; }
+        public Size SamplingFactors { get; private set; }
+
+        public Size SubSamplingDivisors { get; private set; } = new Size(1, 1);
+
+        public int HorizontalSamplingFactor => this.SamplingFactors.Width;
+
+        public int VerticalSamplingFactor => this.SamplingFactors.Height;
 
         /// <inheritdoc />
         public int QuantizationTableIndex { get; private set; }
@@ -45,28 +51,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
-        /// <inheritdoc />
-        public int WidthInBlocks { get; private set; }
-
-        /// <inheritdoc />
-        public int HeightInBlocks { get; private set; }
-
         /// <summary>
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        public void InitializeBlocks(OrigJpegDecoderCore decoder)
+        public void InitializeDerivedData(OrigJpegDecoderCore decoder)
         {
-            this.WidthInBlocks = decoder.MCUCountX * this.HorizontalSamplingFactor;
-            this.HeightInBlocks = decoder.MCUCountY * this.VerticalSamplingFactor;
-            this.SpectralBlocks = Buffer2D<Block8x8>.CreateClean(this.WidthInBlocks, this.HeightInBlocks);
+            this.SizeInBlocks = decoder.ImageSizeInBlocks.MultiplyBy(this.SamplingFactors);
+
+            this.SpectralBlocks = Buffer2D<Block8x8>.CreateClean(this.SizeInBlocks);
+
+            if (decoder.ComponentCount > 1 && (this.Index == 1 || this.Index == 2))
+            {
+                Size s0 = decoder.Components[0].SamplingFactors;
+                this.SubSamplingDivisors = s0.DivideBy(this.SamplingFactors);
+            }
         }
 
         /// <summary>
         /// Initializes all component data except <see cref="SpectralBlocks"/>.
         /// </summary>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        public void InitializeData(OrigJpegDecoderCore decoder)
+        public void InitializeCoreData(OrigJpegDecoderCore decoder)
         {
             // Section B.2.2 states that "the value of C_i shall be different from
             // the values of C_1 through C_(i-1)".
@@ -146,8 +152,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         case 1:
                             {
                                 // Cb.
-                                if (decoder.Components[0].HorizontalSamplingFactor % h != 0
-                                    || decoder.Components[0].VerticalSamplingFactor % v != 0)
+
+                                Size s0 = decoder.Components[0].SamplingFactors;
+
+                                if (s0.Width % h != 0 || s0.Height % v != 0)
                                 {
                                     throw new ImageFormatException("Unsupported subsampling ratio");
                                 }
@@ -158,8 +166,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         case 2:
                             {
                                 // Cr.
-                                if (decoder.Components[1].HorizontalSamplingFactor != h
-                                    || decoder.Components[1].VerticalSamplingFactor != v)
+
+                                Size s1 = decoder.Components[1].SamplingFactors;
+
+                                if (s1.Width != h || s1.Height != v)
                                 {
                                     throw new ImageFormatException("Unsupported subsampling ratio");
                                 }
@@ -199,8 +209,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                             break;
                         case 3:
-                            if (decoder.Components[0].HorizontalSamplingFactor != h
-                                || decoder.Components[0].VerticalSamplingFactor != v)
+                            Size s0 = decoder.Components[0].SamplingFactors;
+
+                            if (s0.Width != h || s0.Height != v)
                             {
                                 throw new ImageFormatException("Unsupported subsampling ratio");
                             }
@@ -211,8 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     break;
             }
 
-            this.HorizontalSamplingFactor = h;
-            this.VerticalSamplingFactor = v;
+            this.SamplingFactors = new Size(h, v);
         }
 
         public void Dispose()

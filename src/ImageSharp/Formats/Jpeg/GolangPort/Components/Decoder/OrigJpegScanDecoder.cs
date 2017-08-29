@@ -149,8 +149,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
                     {
                         this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
-                        this.hi = decoder.Components[this.ComponentIndex].HorizontalSamplingFactor;
-                        int vi = decoder.Components[this.ComponentIndex].VerticalSamplingFactor;
+                        OrigComponent component = decoder.Components[this.ComponentIndex];
+
+                        this.hi = component.HorizontalSamplingFactor;
+                        int vi = component.VerticalSamplingFactor;
 
                         for (int j = 0; j < this.hi * vi; j++)
                         {
@@ -172,7 +174,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             }
 
                             // Find the block at (bx,by) in the component's buffer:
-                            OrigComponent component = decoder.Components[this.ComponentIndex];
                             ref Block8x8 blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
 
                             // Copy block to stack

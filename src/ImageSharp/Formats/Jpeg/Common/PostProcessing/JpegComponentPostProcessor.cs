@@ -1,11 +1,10 @@
 using System;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using SixLabors.Primitives;
-
     internal class JpegComponentPostProcessor : IDisposable
     {
         private int currentComponentRowInBlocks;
@@ -18,8 +17,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
             this.ImagePostProcessor = imagePostProcessor;
             this.ColorBuffer = new Buffer2D<float>(imagePostProcessor.PostProcessorBufferSize);
 
-            this.BlockRowsPerStep = JpegImagePostProcessor.BlockRowsPerStep / this.VerticalSamplingFactor;
-            this.blockAreaSize = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor) * 8;
+            this.BlockRowsPerStep = JpegImagePostProcessor.BlockRowsPerStep / this.Component.SubSamplingDivisors.Height;
+            this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
         }
 
         public JpegImagePostProcessor ImagePostProcessor { get; }
@@ -28,13 +27,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
 
         public Buffer2D<float> ColorBuffer { get; }
 
-        public int BlocksPerRow => this.Component.WidthInBlocks;
+        public Size SizeInBlocks => this.Component.SizeInBlocks;
 
         public int BlockRowsPerStep { get; }
-
-        private int HorizontalSamplingFactor => this.Component.HorizontalSamplingFactor;
-
-        private int VerticalSamplingFactor => this.Component.VerticalSamplingFactor;
 
         public void Dispose()
         {
@@ -49,9 +44,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
                 int yBlock = this.currentComponentRowInBlocks + y;
+
+                if (yBlock >= this.SizeInBlocks.Height)
+                {
+                    break;
+                }
+
                 int yBuffer = y * this.blockAreaSize.Height;
 
-                for (int x = 0; x < this.BlocksPerRow; x++)
+                for (int x = 0; x < this.SizeInBlocks.Width; x++)
                 {
                     int xBlock = x;
                     int xBuffer = x * this.blockAreaSize.Width;

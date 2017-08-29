@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
@@ -35,13 +36,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int Pred { get; set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the horizontal sampling factor.
+        /// </summary>
         public int HorizontalSamplingFactor { get; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the vertical sampling factor.
+        /// </summary>
         public int VerticalSamplingFactor { get; }
 
         Buffer2D<Block8x8> IJpegComponent.SpectralBlocks => throw new NotImplementedException();
+
+        // TODO: Should be derived from PdfJsComponent.Scale
+        public Size SubSamplingDivisors => throw new NotImplementedException();
 
         /// <inheritdoc />
         public int QuantizationTableIndex { get; }
@@ -54,10 +62,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <inheritdoc />
         public int Index { get; }
 
-        /// <inheritdoc />
+        public Size SizeInBlocks => new Size(this.WidthInBlocks, this.HeightInBlocks);
+
+        public Size SamplingFactors => new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+
+        /// <summary>
+        /// Gets the number of blocks per line
+        /// </summary>
         public int WidthInBlocks { get; private set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the number of blocks per column
+        /// </summary>
         public int HeightInBlocks { get; private set; }
 
         /// <summary>

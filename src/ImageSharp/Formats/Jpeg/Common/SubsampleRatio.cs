@@ -3,6 +3,7 @@
     /// <summary>
     /// Provides enumeration of the various available subsample ratios.
     /// https://en.wikipedia.org/wiki/Chroma_subsampling
+    /// TODO: Not needed by new JpegImagePostprocessor
     /// </summary>
     internal enum SubsampleRatio
     {

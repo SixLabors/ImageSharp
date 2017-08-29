@@ -62,6 +62,9 @@ namespace SixLabors.ImageSharp.Memory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
+                DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
+                DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+
                 return ref this.Array[(this.Width * y) + x];
             }
         }

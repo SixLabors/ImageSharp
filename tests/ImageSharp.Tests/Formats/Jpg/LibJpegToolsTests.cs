@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // I knew this one well:
             if (testImage == TestImages.Jpeg.Progressive.Progress)
             {
-                VerifyJpeg.Components3(data.Components, 43, 61, 22, 31, 22, 31);
+                VerifyJpeg.VerifyComponentSizes3(data.Components, 43, 61, 22, 31, 22, 31);
             }
         }
     }

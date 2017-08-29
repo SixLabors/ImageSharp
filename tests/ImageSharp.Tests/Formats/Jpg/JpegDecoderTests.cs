@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+    using SixLabors.Primitives;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -68,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Progressive.Progress))
             {
-                VerifyJpeg.Components3(decoder.Components, 43, 61, 22, 31, 22, 31);
+                VerifyJpeg.VerifyComponentSizes3(decoder.Components, 43, 61, 22, 31, 22, 31);
             }
         }
 
@@ -81,10 +82,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
                 decoder.ParseStream(ms);
 
-                VerifyJpeg.Components3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
+                VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
             }
         }
-
+        
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
 
         [Theory]

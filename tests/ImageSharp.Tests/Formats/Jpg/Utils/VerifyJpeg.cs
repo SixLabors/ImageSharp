@@ -5,19 +5,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
 
     using Xunit;
     using Xunit.Abstractions;
 
     internal static class VerifyJpeg
     {
-        internal static void ComponentSize(IJpegComponent component, int expectedBlocksX, int expectedBlocksY)
+        internal static void VerifySize(IJpegComponent component, int expectedBlocksX, int expectedBlocksY)
         {
-            Assert.Equal(component.WidthInBlocks, expectedBlocksX);
-            Assert.Equal(component.HeightInBlocks, expectedBlocksY);
+            Assert.Equal(new Size(expectedBlocksX, expectedBlocksY), component.SizeInBlocks);
         }
 
-        internal static void Components3(
+        internal static void VerifyComponent(
+            IJpegComponent component,
+            Size expectedSizeInBlocks,
+            Size expectedSamplingFactors,
+            Size expectedSubsamplingDivisors)
+        {
+            Assert.Equal(expectedSizeInBlocks, component.SizeInBlocks);
+            Assert.Equal(expectedSamplingFactors, component.SamplingFactors);
+            Assert.Equal(expectedSubsamplingDivisors, component.SubSamplingDivisors);
+        }
+        
+        internal static void VerifyComponentSizes3(
             IEnumerable<IJpegComponent> components,
             int xBc0, int yBc0,
             int xBc1, int yBc1,
@@ -26,9 +37,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             IJpegComponent[] c = components.ToArray();
             Assert.Equal(3, components.Count());
 
-            ComponentSize(c[0], xBc0, yBc0);
-            ComponentSize(c[1], xBc1, yBc1);
-            ComponentSize(c[2], xBc2, yBc2);
+            VerifySize(c[0], xBc0, yBc0);
+            VerifySize(c[1], xBc1, yBc1);
+            VerifySize(c[2], xBc2, yBc2);
         }
 
         internal static void SaveSpectralImage<TPixel>(TestImageProvider<TPixel> provider, LibJpegTools.SpectralData data, ITestOutputHelper output = null)

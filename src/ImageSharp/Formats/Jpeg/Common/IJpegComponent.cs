@@ -1,4 +1,5 @@
 using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
@@ -13,24 +14,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         int Index { get; }
 
         /// <summary>
-        /// Gets the number of blocks per line
+        /// Gets the number of blocks in this component as <see cref="Size"/>
         /// </summary>
-        int WidthInBlocks { get; }
+        Size SizeInBlocks { get; }
 
         /// <summary>
-        /// Gets the number of blocks per column
+        /// Gets the horizontal and the vertical sampling factor as <see cref="Size"/>
         /// </summary>
-        int HeightInBlocks { get; }
+        Size SamplingFactors { get; }
 
         /// <summary>
-        /// Gets the horizontal sampling factor.
+        /// Gets the divisors needed to apply when calculating colors.
+        /// <see>
+        ///     <cref>https://en.wikipedia.org/wiki/Chroma_subsampling</cref>
+        /// </see>
+        /// In case of 4:2:0 subsampling the values are: Luma.SubSamplingDivisors = (1,1) Chroma.SubSamplingDivisors = (2,2)
         /// </summary>
-        int HorizontalSamplingFactor { get; }
-
-        /// <summary>
-        /// Gets the vertical sampling factor.
-        /// </summary>
-        int VerticalSamplingFactor { get; }
+        Size SubSamplingDivisors { get; }
 
         /// <summary>
         /// Gets the index of the quantization table for this block.

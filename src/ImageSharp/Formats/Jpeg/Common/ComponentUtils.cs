@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
@@ -11,14 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     /// </summary>
     internal static class ComponentUtils
     {
-        //public static Size SizeInBlocks(this IJpegComponent component) => new Size(component.WidthInBlocks, component.HeightInBlocks);
-
-        // In Jpeg these are really useful operations:
-
-        public static Size MultiplyBy(this Size a, Size b) => new Size(a.Width * b.Width, a.Height * b.Height);
-
-        public static Size DivideBy(this Size a, Size b) => new Size(a.Width / b.Width, a.Height / b.Height);
-
         public static ref Block8x8 GetBlockReference(this IJpegComponent component, int bx, int by)
         {
             return ref component.SpectralBlocks[bx, by];
@@ -74,22 +66,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             (int divX, int divY) = ratio.GetChrominanceSubSampling();
             var size = new Size(width, height);
-            return size.GetSubSampledSize(divX, divY);
+            return size.DivideRoundUp(divX, divY);
         }
 
-        // TODO: Find a better place for this method
-        public static Size GetSubSampledSize(this Size originalSize, int divX, int divY)
-        {
-            var sizeVect = (Vector2)(SizeF)originalSize;
-            sizeVect /= new Vector2(divX, divY);
-            sizeVect.X = MathF.Ceiling(sizeVect.X);
-            sizeVect.Y = MathF.Ceiling(sizeVect.Y);
 
-            return new Size((int)sizeVect.X, (int)sizeVect.Y);
-        }
-
-        public static Size GetSubSampledSize(this Size originalSize, int subsamplingDivisor) =>
-            GetSubSampledSize(originalSize, subsamplingDivisor, subsamplingDivisor);
 
         // TODO: Not needed by new JpegImagePostprocessor
         public static (int divX, int divY) GetChrominanceSubSampling(this SubsampleRatio ratio)

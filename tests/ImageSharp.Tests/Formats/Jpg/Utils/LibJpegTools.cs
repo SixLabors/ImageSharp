@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     {
                         int widthInBlocks = rdr.ReadInt16();
                         int heightInBlocks = rdr.ReadInt16();
-                        ComponentData resultComponent = new ComponentData(heightInBlocks, widthInBlocks, i);
+                        ComponentData resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
                         result[i] = resultComponent;
                     }
 

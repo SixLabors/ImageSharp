@@ -29,7 +29,9 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Png.VersioningImage1,
                 TestImages.Png.VersioningImage2,
 
-                TestImages.Png.SnakeGame
+                TestImages.Png.SnakeGame,
+                TestImages.Png.Banner7Adam7InterlaceMode,
+                TestImages.Png.Banner8Index,
             };
 
 

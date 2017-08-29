@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
     /// Various utilities for <see cref="SubsampleRatio"/> and <see cref="IJpegComponent"/>.

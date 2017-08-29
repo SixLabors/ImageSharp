@@ -1,8 +1,9 @@
-using System.Collections.Generic;
-using SixLabors.Primitives;
-
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System.Collections.Generic;
+
+    using SixLabors.Primitives;
+
     internal interface IRawJpegData
     {
         Size ImageSizeInPixels { get; }

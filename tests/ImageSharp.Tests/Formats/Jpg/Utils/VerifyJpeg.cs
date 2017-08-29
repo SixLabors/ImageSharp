@@ -1,15 +1,15 @@
+using System.Collections.Generic;
+using System.Linq;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     internal static class VerifyJpeg
     {
         internal static void VerifySize(IJpegComponent component, int expectedBlocksX, int expectedBlocksY)
@@ -27,12 +27,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             Assert.Equal(expectedSamplingFactors, component.SamplingFactors);
             Assert.Equal(expectedSubsamplingDivisors, component.SubSamplingDivisors);
         }
-        
+
         internal static void VerifyComponentSizes3(
             IEnumerable<IJpegComponent> components,
-            int xBc0, int yBc0,
-            int xBc1, int yBc1,
-            int xBc2, int yBc2)
+            int xBc0,
+            int yBc0,
+            int xBc1,
+            int yBc1,
+            int xBc2,
+            int yBc2)
         {
             IJpegComponent[] c = components.ToArray();
             Assert.Equal(3, components.Count());
@@ -42,7 +45,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             VerifySize(c[2], xBc2, yBc2);
         }
 
-        internal static void SaveSpectralImage<TPixel>(TestImageProvider<TPixel> provider, LibJpegTools.SpectralData data, ITestOutputHelper output = null)
+        internal static void SaveSpectralImage<TPixel>(
+            TestImageProvider<TPixel> provider,
+            LibJpegTools.SpectralData data,
+            ITestOutputHelper output = null)
             where TPixel : struct, IPixel<TPixel>
         {
             foreach (LibJpegTools.ComponentData comp in data.Components)

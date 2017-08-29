@@ -549,6 +549,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 {
                     val += 0.5f;
                 }
+
                 dest[i] = (short)val;
             }
         }

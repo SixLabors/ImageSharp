@@ -3,7 +3,6 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorSapce;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -16,8 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
 
         public const int PixelRowsPerStep = 4 * 8;
 
-        private JpegComponentPostProcessor[] componentProcessors;
-
         public JpegImagePostProcessor(IRawJpegData rawJpeg)
         {
             this.RawJpeg = rawJpeg;
@@ -25,8 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
-            this.componentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
+            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
         }
+
+        public JpegComponentPostProcessor[] ComponentProcessors { get; }
 
         public IRawJpegData RawJpeg { get; }
 
@@ -38,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
 
         public void Dispose()
         {
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
             {
                 cpp.Dispose();
             }
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
                 throw new NotImplementedException();
             }
 
-            foreach (JpegComponentPostProcessor cpp in this.componentProcessors)
+            foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
             {
                 cpp.CopyBlocksToColorBuffer();
             }
@@ -76,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.PostProcessing
         {
             int maxY = Math.Min(destination.Height, this.CurrentImageRowInPixels + PixelRowsPerStep);
 
-            JpegComponentPostProcessor[] cp = this.componentProcessors;
+            JpegComponentPostProcessor[] cp = this.ComponentProcessors;
 
             YCbCrAndRgbConverter converter = new YCbCrAndRgbConverter(); 
 

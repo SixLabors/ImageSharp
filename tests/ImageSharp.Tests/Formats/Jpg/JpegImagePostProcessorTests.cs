@@ -37,8 +37,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
+        private static void SaveBuffer<TPixel>(JpegComponentPostProcessor cp, TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<Rgba32> image = cp.ColorBuffer.ToGrayscaleImage(1f / 255f))
+            {
+                image.DebugSave(provider, $"-C{cp.Component.Index}-");
+            }
+
+        }
+
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
         public void DoProcessorStep<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -49,7 +60,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 pp.DoPostProcessorStep(image);
 
-                image.DebugSave(provider);
+                JpegComponentPostProcessor[] cp = pp.ComponentProcessors;
+
+                SaveBuffer(cp[0], provider);
+                SaveBuffer(cp[1], provider);
+                SaveBuffer(cp[2], provider);
             }
         }
 
@@ -78,7 +93,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
-                    this.Output.WriteLine("Difference: "+ report.DifferencePercentageString);
+                    this.Output.WriteLine($"*** {imageFile} ***");
+                    this.Output.WriteLine($"Difference: "+ report.DifferencePercentageString);
 
                     // ReSharper disable once PossibleInvalidOperationException
                     Assert.True(report.TotalNormalizedDifference.Value < 0.005f);

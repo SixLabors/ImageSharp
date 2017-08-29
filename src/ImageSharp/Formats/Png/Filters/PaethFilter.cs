@@ -31,22 +31,21 @@ namespace ImageSharp.Formats
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
 
             // Paeth(x) + PaethPredictor(Raw(x-bpp), Prior(x), Prior(x-bpp))
-            for (int x = 1; x < scanline.Length; x++)
+            int offset = bytesPerPixel + 1;
+            for (int x = 1; x < offset; x++)
             {
-                if (x - bytesPerPixel < 1)
-                {
-                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    scan = (byte)((scan + PaethPredicator(0, above, 0)) % 256);
-                }
-                else
-                {
-                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-                    byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    byte upperLeft = Unsafe.Add(ref prevBaseRef, x - bytesPerPixel);
-                    scan = (byte)((scan + PaethPredicator(left, above, upperLeft)) % 256);
-                }
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                scan = (byte)(scan + above);
+            }
+
+            for (int x = offset; x < scanline.Length; x++)
+            {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                byte upperLeft = Unsafe.Add(ref prevBaseRef, x - bytesPerPixel);
+                scan = (byte)(scan + PaethPredicator(left, above, upperLeft));
             }
         }
 

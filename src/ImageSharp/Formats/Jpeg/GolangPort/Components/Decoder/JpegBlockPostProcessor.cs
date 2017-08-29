@@ -78,6 +78,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             this.data.ResultBlock.NormalizeColorsInplace();
             Size divs = component.SubSamplingDivisors;
 
+            // To conform better to libjpeg we actually NEED TO loose precision here.
+            // This is because they store blocks as Int16 between all the operations.
+            // Unfortunately, we need to emulate this to be "more accurate" :(
             this.data.ResultBlock.RoundInplace();
 
             this.data.ResultBlock.CopyTo(destArea, divs.Width, divs.Height);

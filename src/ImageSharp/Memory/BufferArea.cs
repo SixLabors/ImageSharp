@@ -18,8 +18,8 @@ namespace SixLabors.ImageSharp.Memory
         {
             Guard.MustBeGreaterThanOrEqualTo(rectangle.X, 0, nameof(rectangle));
             Guard.MustBeGreaterThanOrEqualTo(rectangle.Y, 0, nameof(rectangle));
-            Guard.MustBeLessThan(rectangle.Width, destinationBuffer.Width, nameof(rectangle));
-            Guard.MustBeLessThan(rectangle.Height, destinationBuffer.Height, nameof(rectangle));
+            Guard.MustBeLessThanOrEqualTo(rectangle.Width, destinationBuffer.Width, nameof(rectangle));
+            Guard.MustBeLessThanOrEqualTo(rectangle.Height, destinationBuffer.Height, nameof(rectangle));
 
             this.DestinationBuffer = destinationBuffer;
             this.Rectangle = rectangle;

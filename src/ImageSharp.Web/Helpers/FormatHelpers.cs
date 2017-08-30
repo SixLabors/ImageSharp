@@ -14,7 +14,7 @@ namespace ImageSharp.Web.Helpers
     /// <summary>
     /// Helper utilities for image formats
     /// </summary>
-    internal class FormatHelpers
+    public class FormatHelpers
     {
         /// <summary>
         /// Returns the correct content type (mimetype) for the given cached image key.

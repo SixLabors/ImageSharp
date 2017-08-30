@@ -140,7 +140,9 @@ namespace ImageSharp.Web.Middleware
                 return;
             }
 
-            string uri = context.Request.Path + QueryString.Create(commands);
+            // Create a cache key based on all the components of the requested url
+            string uri = context.Request.Host.ToString().ToLowerInvariant() + "/" + context.Request.PathBase.ToString().ToLowerInvariant() + "/" + context.Request.Path + QueryString.Create(commands);
+
             string key = CacheHash.Create(uri, this.options.Configuration);
 
             CachedInfo info = await this.cache.IsExpiredAsync(key, DateTime.UtcNow.AddDays(-this.options.MaxCacheDays));

@@ -54,9 +54,9 @@ namespace ImageSharp.Web.Resolvers
         public IDictionary<string, string> Settings { get; set; } = new Dictionary<string, string>();
 
         /// <inheritdoc/>
-        public async Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger)
+        public Task<bool> IsValidRequestAsync(HttpContext context, ILogger logger)
         {
-            return await Task.FromResult(FormatHelpers.GetExtension(this.options.Configuration, context.Request.GetDisplayUrl()) != null);
+            return Task.FromResult(FormatHelpers.GetExtension(this.options.Configuration, context.Request.GetDisplayUrl()) != null);
         }
 
         /// <inheritdoc/>

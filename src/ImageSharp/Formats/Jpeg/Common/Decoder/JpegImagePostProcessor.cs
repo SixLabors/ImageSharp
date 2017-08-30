@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             this.rgbaBuffer.Dispose();
         }
 
-        public bool DoPostProcessorStep<TPixel>(Image<TPixel> destination)
+        public void DoPostProcessorStep<TPixel>(Image<TPixel> destination)
             where TPixel : struct, IPixel<TPixel>
         {
             foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
@@ -64,7 +64,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             this.ConvertColors(destination);
 
             this.CurrentImageRowInPixels += PixelRowsPerStep;
-            return this.CurrentImageRowInPixels < this.RawJpeg.ImageSizeInPixels.Height;
         }
 
         public void PostProcess<TPixel>(Image<TPixel> destination)
@@ -75,8 +74,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 throw new ArgumentException("Input image is not of the size of the processed one!");
             }
 
-            while (this.DoPostProcessorStep(destination))
+            while (this.CurrentImageRowInPixels < this.RawJpeg.ImageSizeInPixels.Height)
             {
+                this.DoPostProcessorStep(destination);
             }
         }
 

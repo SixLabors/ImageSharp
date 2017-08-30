@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             IEnumerable<ImageSimilarityReport> reports = comparer.CompareImages(expected, actual);
             if (reports.Any())
             {
-                throw new ImagePixelsAreDifferentException(reports);
+                throw new ImageDifferenceIsOverThresholdException(reports);
             }
         }
 
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
                 if (cleanedReports.Any())
                 {
-                    throw new ImagePixelsAreDifferentException(cleanedReports);
+                    throw new ImageDifferenceIsOverThresholdException(cleanedReports);
                 }
             }
         }

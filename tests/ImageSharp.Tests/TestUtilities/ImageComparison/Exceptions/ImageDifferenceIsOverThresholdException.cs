@@ -5,12 +5,12 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
     using System.Linq;
     using System.Text;
 
-    public class ImagePixelsAreDifferentException : ImagesSimilarityException
+    public class ImageDifferenceIsOverThresholdException : ImagesSimilarityException
     {
         public ImageSimilarityReport[] Reports { get; }
 
-        public ImagePixelsAreDifferentException(IEnumerable<ImageSimilarityReport> reports)
-            : base("Images are not similar enough!" + StringifyReports(reports))
+        public ImageDifferenceIsOverThresholdException(IEnumerable<ImageSimilarityReport> reports)
+            : base("Image difference is over threshold!" + StringifyReports(reports))
         {
             this.Reports = reports.ToArray();
         }

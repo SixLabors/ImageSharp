@@ -8,7 +8,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
-    /// Encapsulates the execution post-processing algorithms to be applied on a <see cref="IRawJpegData"/> to produce a valid <see cref="Image{TPixel}"/>: <br/>
+    /// Encapsulates the execution od post-processing algorithms to be applied on a <see cref="IRawJpegData"/> to produce a valid <see cref="Image{TPixel}"/>: <br/>
     /// (1) Dequantization <br/>
     /// (2) IDCT <br/>
     /// (3) Color conversion form one of the <see cref="JpegColorSpace"/>-s into a <see cref="Vector4"/> buffer of RGBA values <br/>

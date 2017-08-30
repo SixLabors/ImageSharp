@@ -1,14 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
@@ -34,22 +31,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             postProcessor->data = ComputationData.Create();
             postProcessor->pointers = new DataPointers(&postProcessor->data);
-        }
-
-        /// <summary>
-        /// Dequantize, perform the inverse DCT and store the blocks to the into the corresponding <see cref="OrigJpegPixelArea"/> instances.
-        /// </summary>
-        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        /// <param name="component">The component</param>
-        public void ProcessAllBlocks(OrigJpegDecoderCore decoder, IJpegComponent component)
-        {
-            for (int by = 0; by < component.SizeInBlocks.Height; by++)
-            {
-                for (int bx = 0; bx < component.SizeInBlocks.Width; bx++)
-                {
-                    this.ProcessBlockColors(decoder, component, bx, by);
-                }
-            }
         }
 
         public void QuantizeAndTransform(IRawJpegData decoder, IJpegComponent component, ref Block8x8 sourceBlock)
@@ -83,25 +64,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             Size divs = component.SubSamplingDivisors;
             this.data.WorkspaceBlock1.CopyTo(destArea, divs.Width, divs.Height);
         }
-
-        /// <summary>
-        /// Dequantize, perform the inverse DCT and store decodedBlock.Block to the into the corresponding <see cref="OrigJpegPixelArea"/> instance.
-        /// </summary>
-        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/></param>
-        /// <param name="component">The <see cref="OrigComponent"/></param>
-        /// <param name="bx">The x index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
-        /// <param name="by">The y index of the block in <see cref="OrigComponent.SpectralBlocks"/></param>
-        private void ProcessBlockColors(OrigJpegDecoderCore decoder, IJpegComponent component, int bx, int by)
-        {
-            ref Block8x8 sourceBlock = ref component.GetBlockReference(bx, @by);
-
-            this.QuantizeAndTransform(decoder, component, ref sourceBlock);
-
-            OrigJpegPixelArea destChannel = decoder.GetDestinationChannel(component.Index);
-            OrigJpegPixelArea destArea = destChannel.GetOffsetedSubAreaForBlock(bx, by);
-            destArea.LoadColorsFrom(this.pointers.WorkspaceBlock1, this.pointers.WorkspaceBlock2);
-        }
-
 
         /// <summary>
         /// Holds the "large" data blocks needed for computations.
@@ -140,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <returns>The <see cref="ComputationData"/></returns>
             public static ComputationData Create()
             {
-                ComputationData data = default(ComputationData);
+                var data = default(ComputationData);
                 data.Unzig = UnzigData.Create();
                 return data;
             }

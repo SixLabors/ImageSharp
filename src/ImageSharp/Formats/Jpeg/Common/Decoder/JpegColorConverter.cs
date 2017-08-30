@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     internal abstract partial class JpegColorConverter
     {
-        private static readonly JpegColorConverter[] Converters = { new FromYCbCr(), };
+        private static readonly JpegColorConverter[] Converters = { new FromYCbCr(), new FromYccK(), new FromCmyk() };
 
         protected JpegColorConverter(JpegColorSpace colorSpace)
         {

@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var rnd = new Random(42);
             Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
             for (int i = 0; i < componentCount; i++)
-            {    
+            {
                 float[] values = new float[InputBufferLength];
 
                 for (int j = 0; j < InputBufferLength; j++)
@@ -59,9 +59,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var converter = JpegColorConverter.GetConverter(JpegColorSpace.YCbCr);
 
             JpegColorConverter.ComponentValues values = CreateRandomValues(3);
-            
+
             converter.ConvertToRGBA(values, this.Result);
-            
+
             for (int i = 0; i < ResultBufferLength; i++)
             {
                 float y = values.Component0[i];
@@ -72,7 +72,51 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Vector4 rgba = this.Result[i];
                 Rgb actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 Rgb expected = ColorSpaceConverter.ToRgb(ycbcr);
-                
+
+                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(1, rgba.W);
+            }
+        }
+
+        [Fact]
+        public void ConvertFromGrayScale()
+        {
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.GrayScale);
+
+            JpegColorConverter.ComponentValues values = CreateRandomValues(1);
+
+            converter.ConvertToRGBA(values, this.Result);
+
+            for (int i = 0; i < ResultBufferLength; i++)
+            {
+                float y = values.Component0[i];
+                Vector4 rgba = this.Result[i];
+                var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
+                var expected = new Rgb(y / 255F, y / 255F, y / 255F);
+
+                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(1, rgba.W);
+            }
+        }
+
+        [Fact]
+        public void ConvertFromRgb()
+        {
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.RGB);
+
+            JpegColorConverter.ComponentValues values = CreateRandomValues(3);
+
+            converter.ConvertToRGBA(values, this.Result);
+
+            for (int i = 0; i < ResultBufferLength; i++)
+            {
+                float r = values.Component0[i];
+                float g = values.Component1[i];
+                float b = values.Component2[i];
+                Vector4 rgba = this.Result[i];
+                var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
+                var expected = new Rgb(r / 255F, g / 255F, b / 255F);
+
                 Assert.True(actual.AlmostEquals(expected, Precision));
                 Assert.Equal(1, rgba.W);
             }

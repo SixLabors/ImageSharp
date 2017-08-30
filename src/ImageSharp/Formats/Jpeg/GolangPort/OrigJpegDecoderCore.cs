@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
@@ -18,10 +16,11 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
+    /// <inheritdoc />
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal sealed unsafe class OrigJpegDecoderCore : IDisposable, IRawJpegData
+    internal sealed unsafe class OrigJpegDecoderCore : IRawJpegData
     {
         /// <summary>
         /// The maximum number of color components
@@ -44,11 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 #pragma warning restore SA401
 
         /// <summary>
-        /// Lookup tables for converting YCbCr to Rgb
-        /// </summary>
-        private static YCbCrToRgbTables yCbCrToRgbTables = YCbCrToRgbTables.Create();
-
-        /// <summary>
         /// The global configuration
         /// </summary>
         private readonly Configuration configuration;
@@ -62,16 +56,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Whether the image is in CMYK format with an App14 marker
         /// </summary>
         private bool adobeTransformValid;
-
-        /// <summary>
-        /// The black image to decode to.
-        /// </summary>
-        private OrigJpegPixelArea blackImage;
-
-        /// <summary>
-        /// A grayscale image to decode to.
-        /// </summary>
-        private OrigJpegPixelArea grayImage;
 
         /// <summary>
         /// The horizontal resolution. Calculated if the image has a JFIF header.
@@ -94,11 +78,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private short verticalResolution;
 
         /// <summary>
-        /// The full color image to decode to.
-        /// </summary>
-        private YCbCrImage ycbcrImage;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -112,11 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.Temp = new byte[2 * Block8x8F.Size];
         }
 
-        /// <summary>
-        /// Gets the <see cref="Common.SubsampleRatio"/> ratio.
-        /// </summary>
-        public SubsampleRatio SubsampleRatio { get; private set; }
-
+        /// <inheritdoc />
         public JpegColorSpace ColorSpace { get; private set; }
 
         /// <summary>
@@ -138,13 +113,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         public byte[] Temp { get; }
 
+        /// <inheritdoc />
         public Size ImageSizeInPixels { get; private set; }
 
+        /// <summary>
+        /// Gets the number of MCU blocks in the image as <see cref="Size"/>.
+        /// </summary>
         public Size ImageSizeInMCU { get; private set; }
 
-        /// <summary>
-        /// Gets the number of color components within the image.
-        /// </summary>
+        /// <inheritdoc />
         public int ComponentCount { get; private set; }
 
         IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
@@ -192,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
-        public bool IgnoreMetadata { get; private set; }
+        public bool IgnoreMetadata { get; }
 
         /// <summary>
         /// Gets the <see cref="ImageMetaData"/> decoded by this decoder instance.
@@ -211,15 +188,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             this.ParseStream(stream);
 
-#if OLDCODE
-            this.ProcessBlocksIntoJpegImageChannels();
-
-            return this.ConvertJpegPixelsToImagePixels<TPixel>();
-#else
             return this.PostProcessIntoImage<TPixel>();
-#endif
         }
-        
+
         /// <inheritdoc />
         public void Dispose()
         {
@@ -236,39 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 }
             }
 
-            this.ycbcrImage?.Dispose();
             this.InputProcessor.Dispose();
-            this.grayImage.Pixels?.Dispose();
-            this.blackImage.Pixels?.Dispose();
-        }
-
-        /// <summary>
-        /// Gets the <see cref="OrigJpegPixelArea"/> representing the channel at a given component index
-        /// </summary>
-        /// <param name="compIndex">The component index</param>
-        /// <returns>The <see cref="OrigJpegPixelArea"/> of the channel</returns>
-        public OrigJpegPixelArea GetDestinationChannel(int compIndex)
-        {
-            if (this.ComponentCount == 1)
-            {
-                return this.grayImage;
-            }
-            else
-            {
-                switch (compIndex)
-                {
-                    case 0:
-                        return new OrigJpegPixelArea(this.ycbcrImage.YChannel);
-                    case 1:
-                        return new OrigJpegPixelArea(this.ycbcrImage.CbChannel);
-                    case 2:
-                        return new OrigJpegPixelArea(this.ycbcrImage.CrChannel);
-                    case 3:
-                        return this.blackImage;
-                    default:
-                        throw new ImageFormatException("Too many components");
-                }
-            }
         }
 
         /// <summary>
@@ -452,6 +391,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         break;
                 }
             }
+
+            this.InitDerivedMetaDataProperties();
         }
 
         /// <summary>
@@ -471,295 +412,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Process the blocks in <see cref="OrigComponent.SpectralBlocks"/> into Jpeg image channels (<see cref="YCbCrImage"/> and <see cref="OrigJpegPixelArea"/>)
-        /// <see cref="OrigComponent.SpectralBlocks"/> are in a "raw" frequency-domain form. We need to apply IDCT, dequantization and unzigging to transform them into color-space blocks.
-        /// We can copy these blocks into <see cref="OrigJpegPixelArea"/>-s afterwards.
+        /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
-        private void ProcessBlocksIntoJpegImageChannels()
-        {
-            this.InitJpegImageChannels();
-
-            Parallel.For(
-                0,
-                this.ComponentCount,
-                componentIndex =>
-                    {
-                        var postProcessor = default(JpegBlockPostProcessor);
-                        JpegBlockPostProcessor.Init(&postProcessor);
-                        IJpegComponent component = this.Components[componentIndex];
-                        postProcessor.ProcessAllBlocks(this, component);
-                    });
-        }
-
-        /// <summary>
-        /// Convert the pixel data in <see cref="YCbCrImage"/> and/or <see cref="OrigJpegPixelArea"/> into pixels of <see cref="Image{TPixel}"/>
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <returns>The decoded image.</returns>
-        private Image<TPixel> ConvertJpegPixelsToImagePixels<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-        {
-            var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
-
-            if (this.grayImage.IsInitialized)
-            {
-                this.ConvertFromGrayScale(image);
-                return image;
-            }
-            else if (this.ycbcrImage != null)
-            {
-                if (this.ComponentCount == 4)
-                {
-                    if (!this.adobeTransformValid)
-                    {
-                        throw new ImageFormatException(
-                            "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
-                    }
-
-                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
-                    // TODO: YCbCrA?
-                    if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
-                    {
-                        this.ConvertFromYcck(image);
-                    }
-                    else if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
-                    {
-                        // Assume CMYK
-                        this.ConvertFromCmyk(image);
-                    }
-
-                    return image;
-                }
-
-                if (this.ComponentCount == 3)
-                {
-                    if (this.IsRGB())
-                    {
-                        this.ConvertFromRGB(image);
-                        return image;
-                    }
-
-                    this.ConvertFromYCbCr(image);
-                    return image;
-                }
-
-                throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
-            }
-            else
-            {
-                throw new ImageFormatException("Missing SOS marker.");
-            }
-        }
-
-        /// <summary>
-        /// Assigns the horizontal and vertical resolution to the image if it has a JFIF header.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image to assign the resolution to.</param>
-        private void AssignResolution<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        private void InitDerivedMetaDataProperties()
         {
             if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
             {
-                image.MetaData.HorizontalResolution = this.horizontalResolution;
-                image.MetaData.VerticalResolution = this.verticalResolution;
+                this.MetaData.HorizontalResolution = this.horizontalResolution;
+                this.MetaData.VerticalResolution = this.verticalResolution;
             }
             else if (this.isExif)
             {
-                ExifValue horizontal = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
-                ExifValue vertical = image.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
+                ExifValue horizontal = this.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
+                ExifValue vertical = this.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
                 double horizontalValue = horizontal != null ? ((Rational)horizontal.Value).ToDouble() : 0;
                 double verticalValue = vertical != null ? ((Rational)vertical.Value).ToDouble() : 0;
 
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
-                    image.MetaData.HorizontalResolution = horizontalValue;
-                    image.MetaData.VerticalResolution = verticalValue;
+                    this.MetaData.HorizontalResolution = horizontalValue;
+                    this.MetaData.VerticalResolution = verticalValue;
                 }
             }
-        }
-
-        /// <summary>
-        /// Converts the image from the original CMYK image pixels.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image.</param>
-        private void ConvertFromCmyk<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
-
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                Parallel.For(
-                    0,
-                    image.Height,
-                    y =>
-                        {
-                            // TODO: Simplify + optimize + share duplicate code across converter methods
-                            int yo = this.ycbcrImage.GetRowYOffset(y);
-                            int co = this.ycbcrImage.GetRowCOffset(y);
-
-                            for (int x = 0; x < image.Width; x++)
-                            {
-                                byte cyan = this.ycbcrImage.YChannel[yo + x];
-                                byte magenta = this.ycbcrImage.CbChannel[co + (x / scale)];
-                                byte yellow = this.ycbcrImage.CrChannel[co + (x / scale)];
-
-                                TPixel packed = default(TPixel);
-                                this.PackCmyk(ref packed, cyan, magenta, yellow, x, y);
-                                pixels[x, y] = packed;
-                            }
-                        });
-            }
-
-            this.AssignResolution(image);
-        }
-
-        /// <summary>
-        /// Converts the image from the original grayscale image pixels.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image.</param>
-        private void ConvertFromGrayScale<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Parallel.For(
-                0,
-                image.Height,
-                image.Configuration.ParallelOptions,
-                y =>
-                    {
-                        ref TPixel pixelRowBaseRef = ref image.GetPixelReference(0, y);
-
-                        int yoff = this.grayImage.GetRowOffset(y);
-
-                        for (int x = 0; x < image.Width; x++)
-                        {
-                            byte rgb = this.grayImage.Pixels[yoff + x];
-                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowBaseRef, x);
-                            pixel.PackFromRgba32(new Rgba32(rgb, rgb, rgb, 255));
-                        }
-                    });
-
-            this.AssignResolution(image);
-        }
-
-        /// <summary>
-        /// Converts the image from the original RBG image pixels.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image.</param>
-        private void ConvertFromRGB<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
-
-            Parallel.For(
-                0,
-                image.Height,
-                image.Configuration.ParallelOptions,
-                y =>
-                    {
-                        // TODO: Simplify + optimize + share duplicate code across converter methods
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-                        ref TPixel pixelRowBaseRef = ref image.GetPixelReference(0, y);
-
-                        Rgba32 rgba = new Rgba32(0, 0, 0, 255);
-
-                        for (int x = 0; x < image.Width; x++)
-                        {
-                            rgba.R = this.ycbcrImage.YChannel[yo + x];
-                            rgba.G = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            rgba.B = this.ycbcrImage.CrChannel[co + (x / scale)];
-
-                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowBaseRef, x);
-                            pixel.PackFromRgba32(rgba);
-                        }
-                    });
-
-            this.AssignResolution(image);
-        }
-
-        /// <summary>
-        /// Converts the image from the original YCbCr image pixels.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image.</param>
-        private void ConvertFromYCbCr<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                Parallel.For(
-                    0,
-                    image.Height,
-                    image.Configuration.ParallelOptions,
-                    y =>
-                        {
-                            // TODO. This Parallel loop doesn't give us the boost it should.
-                            ref byte ycRef = ref this.ycbcrImage.YChannel[0];
-                            ref byte cbRef = ref this.ycbcrImage.CbChannel[0];
-                            ref byte crRef = ref this.ycbcrImage.CrChannel[0];
-                            fixed (YCbCrToRgbTables* tables = &yCbCrToRgbTables)
-                            {
-                                // TODO: Simplify + optimize + share duplicate code across converter methods
-                                int yo = this.ycbcrImage.GetRowYOffset(y);
-                                int co = this.ycbcrImage.GetRowCOffset(y);
-
-                                for (int x = 0; x < image.Width; x++)
-                                {
-                                    int cOff = co + (x / scale);
-                                    byte yy = Unsafe.Add(ref ycRef, yo + x);
-                                    byte cb = Unsafe.Add(ref cbRef, cOff);
-                                    byte cr = Unsafe.Add(ref crRef, cOff);
-
-                                    TPixel packed = default(TPixel);
-                                    YCbCrToRgbTables.Pack(ref packed, tables, yy, cb, cr);
-                                    pixels[x, y] = packed;
-                                }
-                            }
-                        });
-            }
-
-            this.AssignResolution(image);
-        }
-
-        /// <summary>
-        /// Converts the image from the original YCCK image pixels.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image.</param>
-        private void ConvertFromYcck<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int scale = this.Components[0].HorizontalSamplingFactor / this.Components[1].HorizontalSamplingFactor;
-
-            Parallel.For(
-                0,
-                image.Height,
-                y =>
-                    {
-                        // TODO: Simplify + optimize + share duplicate code across converter methods
-                        int yo = this.ycbcrImage.GetRowYOffset(y);
-                        int co = this.ycbcrImage.GetRowCOffset(y);
-                        ref TPixel pixelRowBaseRef = ref image.GetPixelReference(0, y);
-
-                        for (int x = 0; x < image.Width; x++)
-                        {
-                            byte yy = this.ycbcrImage.YChannel[yo + x];
-                            byte cb = this.ycbcrImage.CbChannel[co + (x / scale)];
-                            byte cr = this.ycbcrImage.CrChannel[co + (x / scale)];
-
-                            ref TPixel pixel = ref Unsafe.Add(ref pixelRowBaseRef, x);
-                            this.PackYcck(ref pixel, yy, cb, cr, x, y);
-                        }
-                    });
-
-            this.AssignResolution(image);
         }
 
         /// <summary>
@@ -784,99 +458,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             return this.Components[0].Identifier == 'R' && this.Components[1].Identifier == 'G'
                    && this.Components[2].Identifier == 'B';
-        }
-
-        /// <summary>
-        /// Initializes the image channels.
-        /// </summary>
-        private void InitJpegImageChannels()
-        {
-            Size[] sizes = ComponentUtils.CalculateJpegChannelSizes(this.Components, this.SubsampleRatio);
-
-            if (this.ComponentCount == 1)
-            {
-                this.grayImage = new OrigJpegPixelArea(sizes[0]);
-            }
-            else
-            {
-                Size size = sizes[0];
-
-                this.ycbcrImage = new YCbCrImage(size.Width, size.Height, this.SubsampleRatio);
-
-                if (this.ComponentCount == 4)
-                {
-                    this.blackImage = new OrigJpegPixelArea(sizes[3]);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Optimized method to pack bytes to the image from the CMYK color space.
-        /// This is faster than implicit casting as it avoids double packing.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="packed">The packed pixel.</param>
-        /// <param name="c">The cyan component.</param>
-        /// <param name="m">The magenta component.</param>
-        /// <param name="y">The yellow component.</param>
-        /// <param name="xx">The x-position within the image.</param>
-        /// <param name="yy">The y-position within the image.</param>
-        private void PackCmyk<TPixel>(ref TPixel packed, byte c, byte m, byte y, int xx, int yy)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // Get keyline
-            float keyline = (255 - this.blackImage[xx, yy]) / 255F;
-
-            // Convert back to RGB. CMY are not inverted
-            byte r = (byte)(((c / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
-            byte g = (byte)(((m / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
-            byte b = (byte)(((y / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
-
-            packed.PackFromRgba32(new Rgba32(r, g, b));
-        }
-
-        /// <summary>
-        /// Optimized method to pack bytes to the image from the YCCK color space.
-        /// This is faster than implicit casting as it avoids double packing.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="packed">The packed pixel.</param>
-        /// <param name="y">The y luminance component.</param>
-        /// <param name="cb">The cb chroma component.</param>
-        /// <param name="cr">The cr chroma component.</param>
-        /// <param name="xx">The x-position within the image.</param>
-        /// <param name="yy">The y-position within the image.</param>
-        private void PackYcck<TPixel>(ref TPixel packed, byte y, byte cb, byte cr, int xx, int yy)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
-            // CMY, and patch in the original K. The RGB to CMY inversion cancels
-            // out the 'Adobe inversion' described in the applyBlack doc comment
-            // above, so in practice, only the fourth channel (black) is inverted.
-            int ccb = cb - 128;
-            int ccr = cr - 128;
-
-            // Speed up the algorithm by removing floating point calculation
-            // Scale by 65536, add .5F and truncate value. We use bit shifting to divide the result
-            int r0 = 91881 * ccr; // (1.402F * 65536) + .5F
-            int g0 = 22554 * ccb; // (0.34414F * 65536) + .5F
-            int g1 = 46802 * ccr; // (0.71414F  * 65536) + .5F
-            int b0 = 116130 * ccb; // (1.772F * 65536) + .5F
-
-            // First convert from YCbCr to CMY
-            float cyan = (y + (r0 >> 16)).Clamp(0, 255) / 255F;
-            float magenta = (byte)(y - (g0 >> 16) - (g1 >> 16)).Clamp(0, 255) / 255F;
-            float yellow = (byte)(y + (b0 >> 16)).Clamp(0, 255) / 255F;
-
-            // Get keyline
-            float keyline = (255 - this.blackImage[xx, yy]) / 255F;
-
-            // Convert back to RGB
-            byte r = (byte)(((1 - cyan) * (1 - keyline)).Clamp(0, 1) * 255);
-            byte g = (byte)(((1 - magenta) * (1 - keyline)).Clamp(0, 1) * 255);
-            byte b = (byte)(((1 - yellow) * (1 - keyline)).Clamp(0, 1) * 255);
-
-            packed.PackFromRgba32(new Rgba32(r, g, b));
         }
 
         /// <summary>
@@ -913,7 +494,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Processes the App1 marker retrieving any stored metadata
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <param name="metadata">The image.</param>
         private void ProcessApp1Marker(int remaining)
         {
             if (remaining < 6 || this.IgnoreMetadata)
@@ -1193,8 +773,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             this.ColorSpace = this.DeduceJpegColorSpace();
-
-            this.SubsampleRatio = ComponentUtils.GetSubsampleRatio(this.Components);
         }
 
         private JpegColorSpace DeduceJpegColorSpace()

@@ -211,11 +211,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             this.ParseStream(stream);
 
+#if OLDCODE
             this.ProcessBlocksIntoJpegImageChannels();
 
             return this.ConvertJpegPixelsToImagePixels<TPixel>();
+#else
+            return this.PostProcessIntoImage<TPixel>();
+#endif
         }
-
+        
         /// <inheritdoc />
         public void Dispose()
         {
@@ -1224,6 +1228,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 default:
                     throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
+            }
+        }
+
+        private Image<TPixel> PostProcessIntoImage<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (var postProcessor = new JpegImagePostProcessor(this))
+            {
+                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
+                postProcessor.PostProcess(image);
+                return image;
             }
         }
     }

@@ -4,6 +4,9 @@
 
 
 // ReSharper disable InconsistentNaming
+
+using System;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System.IO;
@@ -33,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Baseline.Bad.ExifUndefType,
+                TestImages.Jpeg.Baseline.Bad.ExifUndefType
             };
 
         public static string[] ProgressiveTestJpegs =
@@ -117,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
         }
-
+        
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
@@ -130,6 +133,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue214CriticalEOF, PixelTypes.Rgba32)]
+        public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow_Orig<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // TODO: We need a public ImageDecoderException class in ImageSharp!
+            Assert.ThrowsAny<Exception>(() => provider.GetImage(OrigJpegDecoder));
         }
 
         public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";

@@ -56,11 +56,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public bool DoPostProcessorStep<TPixel>(Image<TPixel> destination)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.RawJpeg.ComponentCount != 3)
-            {
-                throw new NotImplementedException();
-            }
-
             foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
             {
                 cpp.CopyBlocksToColorBuffer();

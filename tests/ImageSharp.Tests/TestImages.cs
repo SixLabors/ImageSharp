@@ -114,9 +114,9 @@ namespace SixLabors.ImageSharp.Tests
 
             public class Issues
             {
-                public const string Issue214CriticalEOF = "Jpg/issues/Issue214-CriticalEOF .jpg";
+                public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
                 public const string Issue159Girl = "Jpg/issues/Issue159Girl.jpg";
-                public const string Issue178Lemon = "Jpg/issues/Issue178.jpg";
+                public const string ProgressiveWithTooManyCoefficients178 = "Jpg/issues/Issue178Lemon-ProgressiveWithTooManyCoefficients.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

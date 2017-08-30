@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
 
             OrigDecoderErrorCode errorCode = OrigDecoderErrorCode.NoError;
-            while (length > 0)
+            while (length > 0 && errorCode == OrigDecoderErrorCode.NoError)
             {
                 if (this.Bytes.J - this.Bytes.I >= length)
                 {

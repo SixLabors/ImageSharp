@@ -7,12 +7,13 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
+    /// <inheritdoc />
     /// <summary>
     /// Manages a buffer of value type objects as a Disposable resource.
     /// The backing array is either pooled or comes from the outside.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer<T> : IDisposable
+    internal class Buffer<T> : IBuffer<T>
         where T : struct
     {
         /// <summary>
@@ -205,7 +206,8 @@ namespace SixLabors.ImageSharp.Memory
         {
             if (this.IsDisposedOrLostArrayOwnership)
             {
-                throw new InvalidOperationException("TakeArrayOwnership() is invalid: either Buffer<T> is disposed or TakeArrayOwnership() has been called multiple times!");
+                throw new InvalidOperationException(
+                    "TakeArrayOwnership() is invalid: either Buffer<T> is disposed or TakeArrayOwnership() has been called multiple times!");
             }
 
             this.IsDisposedOrLostArrayOwnership = true;

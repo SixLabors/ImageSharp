@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorSapce;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -15,6 +17,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 
         public const int PixelRowsPerStep = 4 * 8;
 
+        private readonly Buffer<Vector4> rgbaBuffer;
+
+        private JpegColorConverter colorConverter;
+
         public JpegImagePostProcessor(IRawJpegData rawJpeg)
         {
             this.RawJpeg = rawJpeg;
@@ -23,6 +29,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
             this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
+            this.rgbaBuffer = new Buffer<Vector4>(rawJpeg.ImageSizeInPixels.Width);
+            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 
         public JpegComponentPostProcessor[] ComponentProcessors { get; }
@@ -41,6 +49,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             {
                 cpp.Dispose();
             }
+
+            this.rgbaBuffer.Dispose();
         }
 
         public bool DoPostProcessorStep<TPixel>(Image<TPixel> destination)
@@ -65,6 +75,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public void PostProcess<TPixel>(Image<TPixel> destination)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (this.RawJpeg.ImageSizeInPixels != destination.Size())
+            {
+                throw new ArgumentException("Input image is not of the size of the processed one!");
+            }
+
             while (this.DoPostProcessorStep(destination))
             {
             }
@@ -75,31 +90,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         {
             int maxY = Math.Min(destination.Height, this.CurrentImageRowInPixels + PixelRowsPerStep);
 
-            JpegComponentPostProcessor[] cp = this.ComponentProcessors;
-
-            YCbCrAndRgbConverter converter = new YCbCrAndRgbConverter(); 
-
-            Vector4 rgbaVector = new Vector4(0, 0, 0, 1);
+            Buffer2D<float>[] buffers = this.ComponentProcessors.Select(cp => cp.ColorBuffer).ToArray();
 
             for (int yy = this.CurrentImageRowInPixels; yy < maxY; yy++)
             {
                 int y = yy - this.CurrentImageRowInPixels;
 
+                var values = new JpegColorConverter.ComponentValues(buffers, y);
+                this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer);
+
                 Span<TPixel> destRow = destination.GetRowSpan(yy);
 
-                for (int x = 0; x < destination.Width; x++)
-                {
-                    float colY = cp[0].ColorBuffer[x, y];
-                    float colCb = cp[1].ColorBuffer[x, y];
-                    float colCr = cp[2].ColorBuffer[x, y];
-
-                    YCbCr yCbCr = new YCbCr(colY, colCb, colCr);
-                    Rgb rgb = converter.Convert(yCbCr);
-
-                    Unsafe.As<Vector4, Vector3>(ref rgbaVector) = rgb.Vector;
-
-                    destRow[x].PackFromVector4(rgbaVector);
-                }
+                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer, destRow, destination.Width);
             }
         }
     }

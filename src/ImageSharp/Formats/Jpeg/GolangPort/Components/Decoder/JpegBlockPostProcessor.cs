@@ -1,18 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
@@ -63,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             Block8x8F* b = this.pointers.SourceBlock;
 
-            Block8x8F.QuantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
+            Block8x8F.DequantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
 
             FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.WorkspaceBlock1, ref this.data.WorkspaceBlock2);
         }
@@ -77,13 +74,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             this.QuantizeAndTransform(decoder, component, ref sourceBlock);
 
             this.data.WorkspaceBlock1.NormalizeColorsInplace();
-            Size divs = component.SubSamplingDivisors;
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // Unfortunately, we need to emulate this to be "more accurate" :(
             this.data.WorkspaceBlock1.RoundInplace();
 
+            Size divs = component.SubSamplingDivisors;
             this.data.WorkspaceBlock1.CopyTo(destArea, divs.Width, divs.Height);
         }
 

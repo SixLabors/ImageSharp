@@ -25,21 +25,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 ReadOnlySpan<float> cbVals = values.Component1;
                 ReadOnlySpan<float> crVals = values.Component2;
 
-                Vector4 rgbaVector = new Vector4(0, 0, 0, 1);
+                var v = new Vector4(0, 0, 0, 1);
+
+                Vector4 scale = new Vector4(1/255f, 1 / 255f, 1 / 255f, 1f);
 
                 for (int i = 0; i < result.Length; i++)
                 {
-                    float colY = yVals[i];
-                    float colCb = cbVals[i];
-                    float colCr = crVals[i];
+                    float y = yVals[i];
+                    float cb = cbVals[i] - 128F;
+                    float cr = crVals[i] - 128F;
 
-                    YCbCr yCbCr = new YCbCr(colY, colCb, colCr);
+                    v.X = MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero);
+                    v.Y = MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero);
+                    v.Z = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
 
-                    // Slow conversion for now:
-                    Rgb rgb = Converter.Convert(yCbCr);
+                    v *= scale;
 
-                    Unsafe.As<Vector4, Vector3>(ref rgbaVector) = rgb.Vector;
-                    result[i] = rgbaVector;
+                    result[i] = v;
                 }
             }
         }

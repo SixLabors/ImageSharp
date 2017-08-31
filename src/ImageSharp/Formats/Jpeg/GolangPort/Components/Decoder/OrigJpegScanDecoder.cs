@@ -137,6 +137,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
         public void DecodeBlocks(OrigJpegDecoderCore decoder)
         {
+            decoder.InputProcessor.ResetErrorState();
+
             int blockCount = 0;
             int mcu = 0;
             byte expectedRst = OrigJpegConstants.Markers.RST0;
@@ -364,7 +366,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     {
                         int value;
                         decoder.InputProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
-                        if (!decoder.InputProcessor.CheckEOF())
+                        if (decoder.InputProcessor.HasError)
                         {
                             return;
                         }
@@ -381,10 +383,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                             int ac;
                             decoder.InputProcessor.ReceiveExtendUnsafe(val1, out ac);
-                            if (!decoder.InputProcessor.CheckEOFEnsureNoError())
+                            if (decoder.InputProcessor.HasError)
                             {
                                 return;
                             }
+
+                            //if (!decoder.InputProcessor.CheckEOFEnsureNoError())
+                            //{
+                            //    return;
+                            //}
 
                             // b[Unzig[zig]] = ac << al;
                             value = ac << this.al;

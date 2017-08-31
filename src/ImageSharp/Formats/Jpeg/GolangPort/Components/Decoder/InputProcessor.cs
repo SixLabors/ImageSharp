@@ -245,7 +245,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             {
                 if (this.Bits.UnreadBits == 0)
                 {
-                    this.Bits.EnsureNBits(1, ref this);
+                    this.LastErrorCode = this.Bits.EnsureNBitsUnsafe(1, ref this);
+
+                    if (this.HasError)
+                    {
+                        return this.LastErrorCode;
+                    }
                 }
 
                 if ((this.Bits.Accumulator & this.Bits.Mask) != 0)

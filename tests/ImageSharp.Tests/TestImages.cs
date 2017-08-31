@@ -117,7 +117,6 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
                 public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";
-                public const string MissingFF00Gear159 = "Jpg/issues/Issue159-MissingFF00-Gear.jpg";
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
             }
 

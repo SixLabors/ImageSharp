@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             // Copy block to stack
                             this.data.Block = blockRefOnHeap;
 
-                            if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
+                            if (!decoder.InputProcessor.ReachedEOF)
                             {
                                 this.DecodeBlock(decoder, scanIndex);
                             }
@@ -197,10 +197,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     {
                         // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
                         // but this one assumes well-formed input, and hence the restart marker follows immediately.
-                        if (!decoder.InputProcessor.UnexpectedEndOfStreamReached)
+                        if (!decoder.InputProcessor.ReachedEOF)
                         {
-                            OrigDecoderErrorCode errorCode = decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
-                            if (decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                            decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
+                            if (decoder.InputProcessor.CheckEOFEnsureNoError())
                             {
                                 if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
                                 {
@@ -318,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             else
             {
                 int zig = this.zigStart;
-                OrigDecoderErrorCode errorCode;
+                //OrigDecoderErrorCode errorCode;
                 if (zig == 0)
                 {
                     zig++;
@@ -326,10 +326,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     // Decode the DC coefficient, as specified in section F.2.2.1.
                     int value;
                     int huffmanIndex = (OrigHuffmanTree.DcTableIndex * OrigHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
-                    errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(
+                    decoder.InputProcessor.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
                             out value);
-                    if (!decoder.InputProcessor.CheckEOF(errorCode))
+                    if (!decoder.InputProcessor.CheckEOF())
                     {
                         return;
                     }
@@ -340,8 +340,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     }
 
                     int deltaDC;
-                    errorCode = decoder.InputProcessor.ReceiveExtendUnsafe(value, out deltaDC);
-                    if (!decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                    decoder.InputProcessor.ReceiveExtendUnsafe(value, out deltaDC);
+                    if (!decoder.InputProcessor.CheckEOFEnsureNoError())
                     {
                         return;
                     }
@@ -363,8 +363,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     for (; zig <= this.zigEnd; zig++)
                     {
                         int value;
-                        errorCode = decoder.InputProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
-                        if (!decoder.InputProcessor.CheckEOF(errorCode))
+                        decoder.InputProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
+                        if (!decoder.InputProcessor.CheckEOF())
                         {
                             return;
                         }
@@ -380,8 +380,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             }
 
                             int ac;
-                            errorCode = decoder.InputProcessor.ReceiveExtendUnsafe(val1, out ac);
-                            if (!decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                            decoder.InputProcessor.ReceiveExtendUnsafe(val1, out ac);
+                            if (!decoder.InputProcessor.CheckEOFEnsureNoError())
                             {
                                 return;
                             }
@@ -397,8 +397,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 this.eobRun = (ushort)(1 << val0);
                                 if (val0 != 0)
                                 {
-                                    errorCode = this.DecodeEobRun(val0, ref decoder.InputProcessor);
-                                    if (!decoder.InputProcessor.CheckEOFEnsureNoError(errorCode))
+                                    this.DecodeEobRun(val0, ref decoder.InputProcessor);
+                                    if (!decoder.InputProcessor.CheckEOFEnsureNoError())
                                     {
                                         return;
                                     }
@@ -415,17 +415,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
         }
 
-        private OrigDecoderErrorCode DecodeEobRun(int count, ref InputProcessor decoder)
+        private void DecodeEobRun(int count, ref InputProcessor processor)
         {
             int bitsResult;
-            OrigDecoderErrorCode errorCode = decoder.DecodeBitsUnsafe(count, out bitsResult);
-            if (errorCode != OrigDecoderErrorCode.NoError)
+            processor.DecodeBitsUnsafe(count, out bitsResult);
+            if (processor.LastErrorCode != OrigDecoderErrorCode.NoError)
             {
-                return errorCode;
+                return;
             }
 
             this.eobRun |= bitsResult;
-            return OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -516,8 +515,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
 
                 bool bit;
-                OrigDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
-                if (!bp.CheckEOFEnsureNoError(errorCode))
+                bp.DecodeBitUnsafe(out bit);
+                if (!bp.CheckEOFEnsureNoError())
                 {
                     return;
                 }
@@ -546,8 +545,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     int z = 0;
 
                     int val;
-                    OrigDecoderErrorCode errorCode = bp.DecodeHuffmanUnsafe(ref h, out val);
-                    if (!bp.CheckEOF(errorCode))
+                    bp.DecodeHuffmanUnsafe(ref h, out val);
+                    if (!bp.CheckEOF())
                     {
                         return;
                     }
@@ -563,8 +562,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 this.eobRun = 1 << val0;
                                 if (val0 != 0)
                                 {
-                                    errorCode = this.DecodeEobRun(val0, ref bp);
-                                    if (!bp.CheckEOFEnsureNoError(errorCode))
+                                    this.DecodeEobRun(val0, ref bp);
+                                    if (!bp.CheckEOFEnsureNoError())
                                     {
                                         return;
                                     }
@@ -578,8 +577,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             z = delta;
 
                             bool bit;
-                            errorCode = bp.DecodeBitUnsafe(out bit);
-                            if (!bp.CheckEOFEnsureNoError(errorCode))
+                            bp.DecodeBitUnsafe(out bit);
+                            if (!bp.CheckEOFEnsureNoError())
                             {
                                 return;
                             }
@@ -600,7 +599,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     }
 
                     zig = this.RefineNonZeroes(ref bp, zig, val0, delta);
-                    if (bp.UnexpectedEndOfStreamReached)
+                    if (bp.ReachedEOF)
                     {
                         return;
                     }
@@ -650,8 +649,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
 
                 bool bit;
-                OrigDecoderErrorCode errorCode = bp.DecodeBitUnsafe(out bit);
-                if (!bp.CheckEOFEnsureNoError(errorCode))
+                bp.DecodeBitUnsafe(out bit);
+                if (!bp.CheckEOFEnsureNoError())
                 {
                     return int.MinValue;
                 }

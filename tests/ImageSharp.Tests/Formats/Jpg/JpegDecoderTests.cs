@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
                 TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-                TestImages.Jpeg.Issues.ProgressiveWithTooManyCoefficients178
+                TestImages.Jpeg.Issues.BadCoeffsProgressive178
             };
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
@@ -69,16 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static IImageDecoder OrigJpegDecoder => new OrigJpegDecoder();
 
         private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
-
-        [Fact(Skip = "Doesn't really matter")]
-        public void ParseStream_BasicPropertiesAreCorrect1_Orig()
-        {
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Progressive.Progress))
-            {
-                VerifyJpeg.VerifyComponentSizes3(decoder.Components, 43, 61, 22, 31, 22, 31);
-            }
-        }
-
+        
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()
         {
@@ -199,6 +190,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private void CompareJpegDecodersImpl<TPixel>(TestImageProvider<TPixel> provider, string testName)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (TestEnvironment.RunsOnCI) // Debug only test
+            {
+                return;
+            }
+
             this.Output.WriteLine(provider.SourceFileOrDescription);
             provider.Utility.TestName = testName;
 

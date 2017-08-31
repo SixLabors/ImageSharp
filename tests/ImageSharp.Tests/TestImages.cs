@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Linq;
+// ReSharper disable InconsistentNaming
 
 // ReSharper disable MemberHidesStaticFromOuterClass
 namespace SixLabors.ImageSharp.Tests
@@ -115,7 +116,8 @@ namespace SixLabors.ImageSharp.Tests
             public class Issues
             {
                 public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
-                public const string Issue159Girl = "Jpg/issues/Issue159Girl.jpg";
+                public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";
+                public const string MissingFF00Gear159 = "Jpg/issues/Issue159-MissingFF00-Gear.jpg";
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
             }
 

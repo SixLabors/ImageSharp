@@ -25,11 +25,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         public static readonly string[] BaselineTestJpegs =
             {
-                TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk,
-                TestImages.Jpeg.Baseline.Jpeg400, TestImages.Jpeg.Baseline.Jpeg444,
-                TestImages.Jpeg.Baseline.Testorig420,
-                TestImages.Jpeg.Baseline.Jpeg420Small,
-                TestImages.Jpeg.Baseline.Bad.BadEOF,
+                TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
+                TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
+                TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.Bad.ExifUndefType,
             };
 
@@ -121,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.True(totalDifference < tolerance);
         }
 
-        [Theory]
+        [Theory(Skip = "Debug/Comparison only")]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void VerifySpectralCorrectness_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

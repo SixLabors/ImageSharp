@@ -38,7 +38,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.Bad.ExifUndefType,
 
-                TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
                 TestImages.Jpeg.Issues.MissingFF00Gear159,
             };
 
@@ -46,7 +45,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
                 TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-                TestImages.Jpeg.Issues.BadCoeffsProgressive178
+                TestImages.Jpeg.Issues.BadCoeffsProgressive178,
+                TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
             };
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;

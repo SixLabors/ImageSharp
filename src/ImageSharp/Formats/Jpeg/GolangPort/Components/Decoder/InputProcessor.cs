@@ -52,6 +52,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public bool ReachedEOF => this.LastErrorCode == OrigDecoderErrorCode.UnexpectedEndOfStream;
 
+        public bool HasError => this.LastErrorCode != OrigDecoderErrorCode.NoError;
+
         public OrigDecoderErrorCode LastErrorCode { get; private set; }
 
         public void ResetErrorState() => this.LastErrorCode = OrigDecoderErrorCode.NoError;

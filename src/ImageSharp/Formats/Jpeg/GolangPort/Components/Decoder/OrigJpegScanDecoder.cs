@@ -650,7 +650,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                 bool bit;
                 bp.DecodeBitUnsafe(out bit);
-                if (!bp.CheckEOFEnsureNoError())
+                if (bp.HasError)
                 {
                     return int.MinValue;
                 }

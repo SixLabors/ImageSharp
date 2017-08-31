@@ -605,12 +605,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         return;
                     }
 
-                    if (zig > this.zigEnd)
-                    {
-                        throw new ImageFormatException($"Too many coefficients {zig} > {this.zigEnd}");
-                    }
-
-                    if (z != 0)
+                    if (z != 0 && zig <= this.zigEnd)
                     {
                         // b[Unzig[zig]] = z;
                         Block8x8.SetScalarAt(b, this.pointers.Unzig[zig], (short)z);

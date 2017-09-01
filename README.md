@@ -88,9 +88,9 @@ On platforms supporting netstandard 1.3+
 // Image.Load(string path) is a shortcut for our default type. Other pixel formats use Image.Load<TPixel>(string path))
 using (Image<Rgba32> image = Image.Load("foo.jpg"))
 {
-    image.Mutate(x=>x
-            .Resize(image.Width / 2, image.Height / 2)
-            .Grayscale());
+    image.Mutate(x => x
+         .Resize(image.Width / 2, image.Height / 2)
+         .Grayscale());
     image.Save("bar.jpg"); // automatic encoder selected based on extension.
 }
 ```
@@ -101,9 +101,9 @@ using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
 using (Image<Rgba32> image = Image.Load<Rgba32>(stream))
 {
-    image.Mutate(x=>x
-           .Resize(image.Width / 2, image.Height / 2)
-           .Grayscale());
+    image.Mutate(x => x
+         .Resize(image.Width / 2, image.Height / 2)
+         .Grayscale());
     image.Save(output);
 }
 ```
@@ -118,7 +118,7 @@ using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 }
 ```
 
-For optimized access within a loop it is recommended that the following methods are used.
+For optimized synchronous access within a loop it is recommended that the following methods are used.
 
 1. `image.GetRowSpan(y)`
 2. `image.GetRowSpan(x, y)`
@@ -142,9 +142,7 @@ Grand High Eternal Dictator
 
 Core Team
 - [Dirk Lemstra](https://github.com/dlemstra)
-- [Jeavon Leopold](https://github.com/jeavon)
 - [Anton Firsov](https://github.com/antonfirsov)
-- [Olivia Ifrim](https://github.com/olivif)
 - [Scott Williams](https://github.com/tocsoft)
 
 ### Backers

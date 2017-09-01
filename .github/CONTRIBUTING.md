@@ -1,4 +1,4 @@
-# How to contribute to ImageSHarp
+# How to contribute to ImageSharp
 
 #### **Did you find a bug?**
 

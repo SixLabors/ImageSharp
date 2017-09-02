@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ExtractSpectralData<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (!TestEnvironment.IsWindows)
+            {
+                return;
+            }
+
             string testImage = provider.SourceFileOrDescription;
             LibJpegTools.SpectralData data = LibJpegTools.ExtractSpectralData(testImage);
 

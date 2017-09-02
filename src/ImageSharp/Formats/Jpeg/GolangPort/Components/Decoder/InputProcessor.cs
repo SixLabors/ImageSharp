@@ -62,8 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// If errorCode indicates unexpected EOF, sets <see cref="ReachedEOF"/> to true and returns false.
         /// Calls <see cref="DecoderThrowHelper.EnsureNoError"/> and returns true otherwise.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
-        /// <returns><see cref="bool"/> indicating whether everything is OK</returns>
+        /// <returns>A <see cref="bool"/> indicating whether EOF reached</returns>
         public bool CheckEOFEnsureNoError()
         {
             if (this.LastErrorCode == OrigDecoderErrorCode.UnexpectedEndOfStream)
@@ -79,8 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// If errorCode indicates unexpected EOF, sets <see cref="ReachedEOF"/> to true and returns false.
         /// Returns true otherwise.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
-        /// <returns><see cref="bool"/> indicating whether everything is OK</returns>
+        /// <returns>A <see cref="bool"/> indicating whether EOF reached</returns>
         public bool CheckEOF()
         {
             if (this.LastErrorCode == OrigDecoderErrorCode.UnexpectedEndOfStream)

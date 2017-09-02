@@ -63,8 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                         xBuffer,
                         yBuffer,
                         this.blockAreaSize.Width,
-                        this.blockAreaSize.Height
-                    );
+                        this.blockAreaSize.Height);
 
                     blockPp.ProcessBlockColorsInto(this.ImagePostProcessor.RawJpeg, this.Component, ref block, destArea);
                 }

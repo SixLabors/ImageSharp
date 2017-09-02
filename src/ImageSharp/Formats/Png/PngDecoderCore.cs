@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
         private static Span<byte> ToArrayByBitsLength(Span<byte> source, int bytesPerScanline, int bits)
         {
-            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThan(source.Length, 0, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
 
             if (bits >= 8)
@@ -515,7 +515,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     this.currentRowBytesRead = 0;
 
                     Span<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
-                    Span<byte> prevSpan = this.previousScanline.Span.Slice(0, bytesPerInterlaceScanline);
+                    Span<byte> prevSpan = this.previousScanline.Slice(0, bytesPerInterlaceScanline);
                     var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
@@ -556,12 +556,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 this.pass++;
+                this.previousScanline.Clear();
+
                 if (this.pass < 7)
                 {
                     this.currentRow = Adam7FirstRow[this.pass];
                 }
                 else
                 {
+                    this.pass = 0;
                     break;
                 }
             }

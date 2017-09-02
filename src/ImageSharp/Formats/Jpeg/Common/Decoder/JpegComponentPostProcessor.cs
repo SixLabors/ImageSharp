@@ -1,16 +1,27 @@
 using System;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    /// <summary>
+    /// Encapsulates postprocessing data for one component for <see cref="JpegImagePostProcessor"/>.
+    /// </summary>
     internal class JpegComponentPostProcessor : IDisposable
     {
+        /// <summary>
+        /// Points to the current row in <see cref="Component"/>.
+        /// </summary>
         private int currentComponentRowInBlocks;
 
+        /// <summary>
+        /// The size of the area in <see cref="ColorBuffer"/> corrsponding to one 8x8 Jpeg block
+        /// </summary>
         private readonly Size blockAreaSize;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JpegComponentPostProcessor"/> class.
+        /// </summary>
         public JpegComponentPostProcessor(JpegImagePostProcessor imagePostProcessor, IJpegComponent component)
         {
             this.Component = component;
@@ -21,21 +32,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
         }
 
+        /// <summary>
+        /// Gets the <see cref="JpegImagePostProcessor"/>
+        /// </summary>
         public JpegImagePostProcessor ImagePostProcessor { get; }
 
+        /// <summary>
+        /// Gets the <see cref="Component"/>
+        /// </summary>
         public IJpegComponent Component { get; }
 
+        /// <summary>
+        /// Gets the temporal working buffer of color values.
+        /// </summary>
         public Buffer2D<float> ColorBuffer { get; }
 
+        /// <summary>
+        /// Gets <see cref="IJpegComponent.SizeInBlocks"/>
+        /// </summary>
         public Size SizeInBlocks => this.Component.SizeInBlocks;
 
+        /// <summary>
+        /// Gets the maximal number of block rows being processed in one step.
+        /// </summary>
         public int BlockRowsPerStep { get; }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             this.ColorBuffer.Dispose();
         }
 
+        /// <summary>
+        /// Invoke <see cref="JpegBlockPostProcessor"/> for <see cref="BlockRowsPerStep"/> block rows, copy the result into <see cref="ColorBuffer"/>.
+        /// </summary>
         public unsafe void CopyBlocksToColorBuffer()
         {
             var blockPp = default(JpegBlockPostProcessor);

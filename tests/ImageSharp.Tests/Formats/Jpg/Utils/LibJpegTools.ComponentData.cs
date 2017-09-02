@@ -13,6 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
     internal static partial class LibJpegTools
     {
+        /// <summary>
+        /// Stores spectral blocks for jpeg components.
+        /// </summary>
         public class ComponentData : IEquatable<ComponentData>, IJpegComponent
         {
             public ComponentData(int widthInBlocks, int heightInBlocks, int index)

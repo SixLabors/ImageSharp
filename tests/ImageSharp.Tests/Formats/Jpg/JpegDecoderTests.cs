@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static IImageDecoder OrigJpegDecoder => new OrigJpegDecoder();
 
-        private static IImageDecoder PdfJsJpegDecoder => new JpegDecoder();
+        private static IImageDecoder PdfJsJpegDecoder => new PdfJsJpegDecoder();
         
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()

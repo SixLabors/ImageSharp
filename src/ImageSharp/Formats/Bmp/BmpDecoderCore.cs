@@ -373,9 +373,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             // read header size
             this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
             int headerSize = BitConverter.ToInt32(data, 0);
-            if (headerSize < BmpInfoHeader.HeaderSizeSize || headerSize > BmpInfoHeader.MaxHeaderSize)
+            if (headerSize < BmpInfoHeader.BitmapCoreHeaderSize)
             {
                 throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
+
+            int skipAmmount = 0;
+            if (headerSize > BmpInfoHeader.MaxHeaderSize)
+            {
+                skipAmmount = headerSize - BmpInfoHeader.MaxHeaderSize;
+                headerSize = BmpInfoHeader.MaxHeaderSize;
             }
 
             // read the rest of the header
@@ -386,14 +393,23 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 case BmpInfoHeader.BitmapCoreHeaderSize:
                     this.infoHeader = this.ParseBitmapCoreHeader(data);
                     break;
-
                 case BmpInfoHeader.BitmapInfoHeaderSize:
                     this.infoHeader = this.ParseBitmapInfoHeader(data);
                     break;
-
                 default:
-                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    if (headerSize > BmpInfoHeader.BitmapInfoHeaderSize)
+                    {
+                        this.infoHeader = this.ParseBitmapInfoHeader(data);
+                        break;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    }
             }
+
+            // skip the remaining header because we can't read those parts
+            this.currentStream.Skip(skipAmmount);
         }
 
         /// <summary>

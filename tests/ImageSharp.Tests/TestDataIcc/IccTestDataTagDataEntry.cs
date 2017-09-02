@@ -454,15 +454,46 @@ namespace SixLabors.ImageSharp.Tests
 
         #region MultiLocalizedUnicodeTagDataEntry
 
-        private static readonly IccLocalizedString LocalizedString_Rand_enUs = new IccLocalizedString(new CultureInfo("en-US"), IccTestDataPrimitives.Unicode_ValRand2);
-        private static readonly IccLocalizedString LocalizedString_Rand_deDE = new IccLocalizedString(new CultureInfo("de-DE"), IccTestDataPrimitives.Unicode_ValRand3);
-        private static readonly IccLocalizedString LocalizedString_Rand2_deDE = new IccLocalizedString(new CultureInfo("de-DE"), IccTestDataPrimitives.Unicode_ValRand2);
-        private static readonly IccLocalizedString LocalizedString_Rand_en = new IccLocalizedString(new CultureInfo("en"), IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand_enUS = CreateLocalizedString("en", "US", IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand_deDE = CreateLocalizedString("de", "DE", IccTestDataPrimitives.Unicode_ValRand3);
+        private static readonly IccLocalizedString LocalizedString_Rand2_deDE = CreateLocalizedString("de", "DE", IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand2_esXL = CreateLocalizedString("es", "XL", IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand2_xyXL = CreateLocalizedString("xy", "XL", IccTestDataPrimitives.Unicode_ValRand2);
+        private static readonly IccLocalizedString LocalizedString_Rand_en = CreateLocalizedString("en", null, IccTestDataPrimitives.Unicode_ValRand2);
         private static readonly IccLocalizedString LocalizedString_Rand_Invariant = new IccLocalizedString(CultureInfo.InvariantCulture, IccTestDataPrimitives.Unicode_ValRand3);
 
-        private static readonly IccLocalizedString[] LocalizedString_RandArr_enUs_deDE = new IccLocalizedString[]
+        private static IccLocalizedString CreateLocalizedString(string language, string country, string text)
         {
-            LocalizedString_Rand_enUs,
+            CultureInfo culture;
+            if (country == null)
+            {
+                try
+                {
+                    culture = new CultureInfo(language);
+                }
+                catch (CultureNotFoundException)
+                {
+                    culture = CultureInfo.InvariantCulture;
+                }
+            }
+            else
+            {
+                try
+                {
+                    culture = new CultureInfo($"{language}-{country}");
+                }
+                catch (CultureNotFoundException)
+                {
+                    return CreateLocalizedString(language, null, text);
+                }
+            }
+
+            return new IccLocalizedString(culture, text);
+        }
+
+        private static readonly IccLocalizedString[] LocalizedString_RandArr_enUS_deDE = new IccLocalizedString[]
+        {
+            LocalizedString_Rand_enUS,
             LocalizedString_Rand_deDE,
         };
         private static readonly IccLocalizedString[] LocalizedString_RandArr_en_Invariant = new IccLocalizedString[]
@@ -470,13 +501,15 @@ namespace SixLabors.ImageSharp.Tests
             LocalizedString_Rand_en,
             LocalizedString_Rand_Invariant,
         };
-        private static readonly IccLocalizedString[] LocalizedString_SameArr_enUs_deDE = new IccLocalizedString[]
+        private static readonly IccLocalizedString[] LocalizedString_SameArr_enUS_deDE_esXL_xyXL = new IccLocalizedString[]
         {
-            LocalizedString_Rand_enUs,
-            LocalizedString_Rand2_deDE
+            LocalizedString_Rand_enUS,
+            LocalizedString_Rand2_deDE,
+            LocalizedString_Rand2_esXL,
+            LocalizedString_Rand2_xyXL,
         };
 
-        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr_enUs_deDE);
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr_enUS_deDE);
         public static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat
         (
             IccTestDataPrimitives.UInt32_2,
@@ -529,19 +562,27 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.Unicode_Rand3
         );
 
-        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val3 = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_SameArr_enUs_deDE);
+        public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val3 = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_SameArr_enUS_deDE_esXL_xyXL);
         public static readonly byte[] MultiLocalizedUnicode_Arr3 = ArrayHelper.Concat
         (
-            IccTestDataPrimitives.UInt32_2,
+            IccTestDataPrimitives.UInt32_4,
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
 
             new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
-            new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
+            new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
 
             new byte[] { (byte)'d', (byte)'e', (byte)'D', (byte)'E' },
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
-            new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
+            new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
+
+            new byte[] { (byte)'e', (byte)'s', (byte)'X', (byte)'L' },
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+            new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
+
+            new byte[] { (byte)'x', (byte)'y', (byte)'X', (byte)'L' },
+            new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+            new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
 
             IccTestDataPrimitives.Unicode_Rand2
         );
@@ -669,8 +710,8 @@ namespace SixLabors.ImageSharp.Tests
         (
             new IccProfileSequenceIdentifier[]
             {
-                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUs_deDE),
-                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUs_deDE),
+                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
+                new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
             }
         );
         public static readonly byte[] ProfileSequenceIdentifier_Arr = ArrayHelper.Concat

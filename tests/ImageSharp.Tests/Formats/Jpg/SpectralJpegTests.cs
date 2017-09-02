@@ -124,6 +124,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void VerifySpectralCorrectness_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (!TestEnvironment.IsWindows)
+            {
+                return;
+            }
+
             PdfJsJpegDecoderCore decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
@@ -142,6 +147,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void VerifySpectralResults_OriginalDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (!TestEnvironment.IsWindows)
+            {
+                return;
+            }
+
             OrigJpegDecoderCore decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;

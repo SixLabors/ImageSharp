@@ -474,19 +474,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 string languageCode = this.ReadAsciiString(2);
                 string countryCode = this.ReadAsciiString(2);
 
-                if (string.IsNullOrWhiteSpace(languageCode))
-                {
-                    culture[i] = CultureInfo.InvariantCulture;
-                }
-                else if (string.IsNullOrWhiteSpace(countryCode))
-                {
-                    culture[i] = new CultureInfo(languageCode);
-                }
-                else
-                {
-                    culture[i] = new CultureInfo($"{languageCode}-{countryCode}");
-                }
-
+                culture[i] = ReadCulture(languageCode, countryCode);
                 length[i] = this.ReadUInt32();
                 offset[i] = this.ReadUInt32();
             }
@@ -498,6 +486,36 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
 
             return new IccMultiLocalizedUnicodeTagDataEntry(text);
+
+            CultureInfo ReadCulture(string language, string country)
+            {
+                if (string.IsNullOrWhiteSpace(language))
+                {
+                    return CultureInfo.InvariantCulture;
+                }
+                else if (string.IsNullOrWhiteSpace(country))
+                {
+                    try
+                    {
+                        return new CultureInfo(language);
+                    }
+                    catch (CultureNotFoundException)
+                    {
+                        return CultureInfo.InvariantCulture;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        return new CultureInfo($"{language}-{country}");
+                    }
+                    catch (CultureNotFoundException)
+                    {
+                        return ReadCulture(language, null);
+                    }
+                }
+            }
         }
 
         /// <summary>

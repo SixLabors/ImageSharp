@@ -8,6 +8,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     internal static partial class ReferenceImplementations
     {
         /// <summary>
+        /// TODO: produces really bad results for bigger values!
+        /// 
         /// Contains the "original" golang based DCT/IDCT implementations as reference implementations.
         /// 1. ===== Forward DCT =====
         /// **** The original golang source claims:
@@ -76,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return result;
             }
 
-            [Obsolete("Looks like this method produces really bad results for bigger values!")]
+            // [Obsolete("Looks like this method produces really bad results for bigger values!")]
             public static Block8x8 TransformIDCT(ref Block8x8 block)
             {
                 int[] temp = new int[Block8x8.Size];
@@ -233,7 +235,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             /// ASSP, Vol. ASSP- 32, pp. 803-816, Aug. 1984.
             /// </summary>
             /// <param name="src">The source block of coefficients</param>
-            [Obsolete("Looks like this method produces really bad results for bigger values!")]
+            // [Obsolete("Looks like this method produces really bad results for bigger values!")]
             public static void TransformIDCTInplace(Span<int> src)
             {
                 // Horizontal 1-D IDCT.

@@ -71,6 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return r;
             }
 
+#pragma warning disable 219
+
             /// <summary>
             /// https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L200
             /// </summary>
@@ -82,6 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float z0, z1, z2, z3, z4;
 
                 // see: PrintConstants()
+
                 float r0 = 1.41421354f;
                 float r1 = 1.3870399f;
                 float r2 = 1.306563f;

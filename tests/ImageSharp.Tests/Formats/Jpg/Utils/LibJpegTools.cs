@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
 
+    /// <summary>
+    /// Utilities to read raw libjpeg data for reference conversion.
+    /// </summary>
     internal static partial class LibJpegTools
     {
         public static (double total, double average) CalculateDifference(ComponentData expected, ComponentData actual)
@@ -47,13 +50,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             TestEnvironment.ToolsDirectoryFullPath,
             @"jpeg\dump-jpeg-coeffs.exe");
 
+        /// <summary>
+        /// Executes 'dump-jpeg-coeffs.exe' for the given jpeg image file, saving the libjpeg spectral data into 'destFile'. Windows only!
+        /// See:
+        /// <see>
+        ///     <cref>https://github.com/SixLabors/Imagesharp.Tests.Images/blob/master/tools/jpeg/README.md</cref>
+        /// </see>
+        /// </summary>
         public static void RunDumpJpegCoeffsTool(string sourceFile, string destFile)
         {
+            if (!TestEnvironment.IsWindows)
+            {
+                throw new InvalidOperationException("Can't run dump-jpeg-coeffs.exe in non-Windows environment. Skip this test on Linux/Unix!");
+            }
+
             string args = $@"""{sourceFile}"" ""{destFile}""";
             var process = Process.Start(DumpToolFullPath, args);
             process.WaitForExit();
         }
 
+        /// <summary>
+        /// Extract libjpeg <see cref="SpectralData"/> from the given jpg file with  'dump-jpeg-coeffs.exe'. Windows only!
+        /// See:
+        /// https://github.com/SixLabors/Imagesharp.Tests.Images/blob/master/tools/jpeg/README.md
+        /// </summary>
         public static SpectralData ExtractSpectralData(string inputFile)
         {
             TestFile testFile = TestFile.Create(inputFile);

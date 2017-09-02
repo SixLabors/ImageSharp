@@ -41,6 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
 
+            // TODO: This test occasionally fails. Don't get the reason, BufferArea.CopyTo() is totally OK.
             [Fact]
             public void Unscaled()
             {
@@ -61,6 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
 
+            // TODO: This test occasionally fails. Don't get the reason, BufferArea.CopyTo() is totally OK.
             [Theory]
             [InlineData(1, 1)]
             [InlineData(1, 2)]

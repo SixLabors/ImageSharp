@@ -16,8 +16,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         public const int Size = 64;
 
+        /// <summary>
+        /// A fixed size buffer holding the values.
+        /// See: <see>
+        ///         <cref>https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/unsafe-code-pointers/fixed-size-buffers</cref>
+        ///     </see>
+        /// </summary>
         private fixed short data[Size];
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Block8x8"/> struct.
+        /// </summary>
+        /// <param name="coefficients">A <see cref="Span{T}"/> of coefficients</param>
         public Block8x8(Span<short> coefficients)
         {
             ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
@@ -25,6 +35,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             Unsafe.CopyBlock(ref selfRef, ref sourceRef, Size * sizeof(short));
         }
 
+        /// <summary>
+        /// Gets or sets a <see cref="short"/> value at the given index
+        /// </summary>
+        /// <param name="idx">The index</param>
+        /// <returns>The value</returns>
         public short this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,6 +59,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value in a row+coulumn of the 8x8 block
+        /// </summary>
+        /// <param name="x">The x position index in the row</param>
+        /// <param name="y">The column index</param>
+        /// <returns>The value</returns>
         public short this[int x, int y]
         {
             get => this[(y * 8) + x];
@@ -60,6 +81,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Multiply all elements by a given <see cref="int"/>
+        /// </summary>
         public static Block8x8 operator *(Block8x8 block, int value)
         {
             Block8x8 result = block;
@@ -73,6 +97,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        /// <summary>
+        /// Divide all elements by a given <see cref="int"/>
+        /// </summary>
         public static Block8x8 operator /(Block8x8 block, int value)
         {
             Block8x8 result = block;
@@ -86,6 +113,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        /// <summary>
+        /// Add an <see cref="int"/> to all elements
+        /// </summary>
         public static Block8x8 operator +(Block8x8 block, int value)
         {
             Block8x8 result = block;
@@ -99,6 +129,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        /// <summary>
+        /// Subtract an <see cref="int"/> from all elements
+        /// </summary>
         public static Block8x8 operator -(Block8x8 block, int value)
         {
             Block8x8 result = block;
@@ -142,6 +175,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             fp[idx] = value;
         }
 
+        /// <summary>
+        /// Convert into <see cref="Block8x8F"/>
+        /// </summary>
         public Block8x8F AsFloatBlock()
         {
             // TODO: Optimize this
@@ -154,6 +190,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        /// <summary>
+        /// Copy all elements to an array of <see cref="short"/>.
+        /// </summary>
         public short[] ToArray()
         {
             short[] result = new short[Size];
@@ -161,6 +200,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
+        /// <summary>
+        /// Copy elements into 'destination' Span of <see cref="short"/> values
+        /// </summary>
         public void CopyTo(Span<short> destination)
         {
             ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
@@ -168,6 +210,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             Unsafe.CopyBlock(ref destRef, ref selfRef, Size * sizeof(short));
         }
 
+        /// <summary>
+        /// Copy elements into 'destination' Span of <see cref="int"/> values
+        /// </summary>
         public void CopyTo(Span<int> destination)
         {
             for (int i = 0; i < Size; i++)
@@ -176,6 +221,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
+        /// <summary>
+        /// Cast and copy <see cref="Size"/> <see cref="int"/>-s from the beginning of 'source' span.
+        /// </summary>
         public void LoadFrom(Span<int> source)
         {
             for (int i = 0; i < Size; i++)
@@ -191,6 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
         }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             var bld = new StringBuilder();
@@ -208,6 +257,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return bld.ToString();
         }
 
+        /// <inheritdoc />
         public bool Equals(Block8x8 other)
         {
             for (int i = 0; i < Size; i++)
@@ -221,6 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return true;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
@@ -231,11 +282,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return obj is Block8x8 && this.Equals((Block8x8)obj);
         }
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             return (this[0] * 31) + this[1];
         }
 
+        /// <summary>
+        /// Calculate the total sum of absoulute differences of elements in 'a' and 'b'.
+        /// </summary>
         public static long TotalDifference(ref Block8x8 a, ref Block8x8 b)
         {
             long result = 0;

@@ -24,22 +24,21 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Png.Splash, TestImages.Png.Indexed,
                 TestImages.Png.FilterVar,
                 TestImages.Png.Bad.ChunkLength1,
-                
+
                 TestImages.Png.VimImage1,
                 TestImages.Png.VersioningImage1,
                 TestImages.Png.VersioningImage2,
 
-                // BUG !!! Should work. TODO: Fix it !!!!
-                // TestImages.Png.SnakeGame
+                TestImages.Png.SnakeGame,
+                TestImages.Png.Banner7Adam7InterlaceMode,
+                TestImages.Png.Banner8Index,
             };
-        
+
 
         public static readonly string[] TestImages48Bpp =
             {
                 TestImages.Png.Rgb48Bpp,
-
-                // TODO: Re enable, when Decode_Interlaced is fixed!!!!
-                // TestImages.Png.Rgb48BppInterlaced
+                TestImages.Png.Rgb48BppInterlaced
             };
 
         // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
@@ -79,21 +78,19 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
         public void Decode_Interlaced_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Ok, it's incorrect, but at least let's run our decoder on interlaced images! (Single-fact AAA :P)
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 image.DebugSave(provider);
             }
         }
 
-        // BUG in decoding interlaced images !!! TODO: Fix it!
-        [Theory(Skip = "Bug in decoding interlaced images.")]
+        [Theory]
         [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
         public void Decode_Interlaced_ImageIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -104,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
                 image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
-        
+
         // TODO: We need to decode these into Rgba64 properly, and do 'CompareToOriginal' in a Rgba64 mode! (See #285)
         [Theory]
         [WithFileCollection(nameof(TestImages48Bpp), PixelTypes.Rgba32)]
@@ -122,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes)]
         public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)

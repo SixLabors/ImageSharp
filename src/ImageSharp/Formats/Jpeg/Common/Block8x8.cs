@@ -5,8 +5,6 @@ using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Represents a Jpeg block with <see cref="short"/> coefficiens.
     /// </summary>
@@ -249,6 +247,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             return result;
         }
-
     }
 }

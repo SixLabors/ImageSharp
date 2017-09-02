@@ -3,13 +3,12 @@
 
 using System;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.Primitives;
-
     /// <inheritdoc cref="IJpegComponent" />
     /// <summary>
     /// Represents a single color component
@@ -67,7 +66,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             // and Y channels subsample, they subsample both horizontally and
             // vertically.
             // - for YCbCrK, the Y and K channels have full samples.
-
             this.SizeInBlocks = decoder.ImageSizeInMCU.MultiplyBy(this.SamplingFactors);
 
             if (this.Index == 0 || this.Index == 3)
@@ -167,7 +165,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         case 1:
                             {
                                 // Cb.
-
                                 Size s0 = decoder.Components[0].SamplingFactors;
 
                                 if (s0.Width % h != 0 || s0.Height % v != 0)
@@ -181,7 +178,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         case 2:
                             {
                                 // Cr.
-
                                 Size s1 = decoder.Components[1].SamplingFactors;
 
                                 if (s1.Width != h || s1.Height != v)

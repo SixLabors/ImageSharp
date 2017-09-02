@@ -6,12 +6,11 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>

@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         /// <summary>
         /// Read Huffman data from Jpeg scans in <see cref="OrigJpegDecoderCore.InputStream"/>,
-        /// and decode it as <see cref="Block8x8F"/> into <see cref="OrigJpegDecoderCore.DecodedBlocks"/>.
+        /// and decode it as <see cref="Block8x8"/> into <see cref="OrigComponent.SpectralBlocks"/>.
         ///
         /// The blocks are traversed one MCU at a time. For 4:2:0 chroma
         /// subsampling, there are four Y 8x8 blocks in every 16x16 MCU.
@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             else
             {
                 int zig = this.zigStart;
-                //OrigDecoderErrorCode errorCode;
+
                 if (zig == 0)
                 {
                     zig++;
@@ -352,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                     // b[0] = dc[compIndex] << al;
                     value = this.pointers.Dc[this.ComponentIndex] << this.al;
-                    Block8x8.SetScalarAt(b, 0, (short) value);
+                    Block8x8.SetScalarAt(b, 0, (short)value);
                 }
 
                 if (zig <= this.zigEnd && this.eobRun > 0)
@@ -387,11 +387,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                             {
                                 return;
                             }
-
-                            //if (!decoder.InputProcessor.CheckEOFEnsureNoError())
-                            //{
-                            //    return;
-                            //}
 
                             // b[Unzig[zig]] = ac << al;
                             value = ac << this.al;
@@ -435,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Gets the block index used to retieve blocks from in <see cref="OrigJpegDecoderCore.DecodedBlocks"/>
+        /// Gets the block index used to retieve blocks from in <see cref="OrigComponent.SpectralBlocks"/>
         /// </summary>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
         /// <returns>The index</returns>

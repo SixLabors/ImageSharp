@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <content>
     /// Conains the definition of <see cref="DataPointers"/>
     /// </content>

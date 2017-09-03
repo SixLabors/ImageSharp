@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Advanced.Unsafe
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Extension methods over Image{TPixel}

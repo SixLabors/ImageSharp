@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using System.Threading.Tasks;
 
     using BenchmarkDotNet.Attributes;
-    using SixLabors.ImageSharp.Advanced.Unsafe;
+    using SixLabors.ImageSharp.Advanced;
     using SixLabors.ImageSharp.Memory;
 
     public class CopyPixels : BenchmarkBase

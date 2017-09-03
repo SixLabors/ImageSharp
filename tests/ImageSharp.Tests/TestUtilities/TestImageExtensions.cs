@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 namespace SixLabors.ImageSharp.Tests
 {
     using System.Numerics;
-    using SixLabors.ImageSharp.Advanced.Unsafe;
+    using SixLabors.ImageSharp.Advanced;
     using SixLabors.ImageSharp.Memory;
 
     public static class TestImageExtensions

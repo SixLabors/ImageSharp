@@ -3,7 +3,7 @@
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.Memory;

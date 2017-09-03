@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using Moq;
 using Xunit;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 
 namespace SixLabors.ImageSharp.Tests
 {

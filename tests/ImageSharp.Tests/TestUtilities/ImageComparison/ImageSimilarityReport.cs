@@ -20,11 +20,12 @@
         }
 
         public static ImageSimilarityReport Empty =>
-            new ImageSimilarityReport(null, null, Enumerable.Empty<PixelDifference>(), null);
+            new ImageSimilarityReport(null, null, Enumerable.Empty<PixelDifference>(), 0f);
 
+        // TODO: This should not be a nullable value!
         public float? TotalNormalizedDifference { get; }
 
-        public string DifferencePercentage => this.TotalNormalizedDifference.HasValue
+        public string DifferencePercentageString => this.TotalNormalizedDifference.HasValue
                                                   ? $"{this.TotalNormalizedDifference.Value * 100:0.0000}%"
                                                   : "?";
 
@@ -46,7 +47,7 @@
             var sb = new StringBuilder();
             if (this.TotalNormalizedDifference.HasValue)
             {
-                sb.AppendLine($"Total difference: {this.DifferencePercentage}");
+                sb.AppendLine($"Total difference: {this.DifferencePercentageString}");
             }
             int max = Math.Min(5, this.Differences.Length);
 

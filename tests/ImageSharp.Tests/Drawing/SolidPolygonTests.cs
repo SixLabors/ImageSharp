@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonWithPattern()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonNoAntialias()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonImage()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledRectangle()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledTriangle()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(100, 100))
             {
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledSeptagon()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledEllipse()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedBySquareWithCornerClipped()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;

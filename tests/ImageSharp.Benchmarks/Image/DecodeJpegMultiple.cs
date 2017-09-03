@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
             {
                 Guard.NotNull(stream, "stream");
 
-                using (var decoder = new OldJpegDecoderCore(configuration, this))
+                using (var decoder = new OrigJpegDecoderCore(configuration, this))
                 {
                     return decoder.Decode<TPixel>(stream);
                 }

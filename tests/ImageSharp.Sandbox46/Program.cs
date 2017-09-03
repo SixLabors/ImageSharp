@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Sandbox46
 
     using SixLabors.ImageSharp.Tests;
     using SixLabors.ImageSharp.Tests.Colors;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg;
     using SixLabors.ImageSharp.Tests.PixelFormats;
     using SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
     using SixLabors.ImageSharp.Tests.Processing.Transforms;

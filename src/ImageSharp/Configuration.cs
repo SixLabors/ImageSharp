@@ -78,6 +78,11 @@ namespace SixLabors.ImageSharp
         public ParallelOptions ParallelOptions { get; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
         /// <summary>
+        /// Gets the currently registered <see cref="IImageFormat"/>s.
+        /// </summary>
+        public IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
+
+        /// <summary>
         /// Gets the maximum header size of all the formats.
         /// </summary>
         internal int MaxHeaderSize { get; private set; }
@@ -96,11 +101,6 @@ namespace SixLabors.ImageSharp
         /// Gets the currently registered <see cref="IImageEncoder"/>s.
         /// </summary>
         internal IEnumerable<KeyValuePair<IImageFormat, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
-
-        /// <summary>
-        /// Gets the currently registered <see cref="IImageFormat"/>s.
-        /// </summary>
-        internal IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
 
 #if !NETSTANDARD1_1
         /// <summary>
@@ -202,28 +202,11 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
-        /// <para><see cref="PngConfigurationModule"/></para>
-        /// <para><see cref="JpegConfigurationModule"/></para>
-        /// <para><see cref="GifConfigurationModule"/></para>
-        /// <para><see cref="BmpConfigurationModule"/></para>
-        /// </summary>
-        /// <returns>The default configuration of <see cref="Configuration"/></returns>
-        internal static Configuration CreateDefaultInstance()
-        {
-            return new Configuration(
-                new PngConfigurationModule(),
-                new JpegConfigurationModule(),
-                new GifConfigurationModule(),
-                new BmpConfigurationModule());
-        }
-
-        /// <summary>
         /// For the specified mime type find the decoder.
         /// </summary>
         /// <param name="format">The format to discover</param>
         /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-        internal IImageDecoder FindDecoder(IImageFormat format)
+        public IImageDecoder FindDecoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             if (this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder))
@@ -239,7 +222,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="format">The format to discover</param>
         /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-        internal IImageEncoder FindEncoder(IImageFormat format)
+        public IImageEncoder FindEncoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             if (this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder))
@@ -248,6 +231,23 @@ namespace SixLabors.ImageSharp
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
+        /// <para><see cref="PngConfigurationModule"/></para>
+        /// <para><see cref="JpegConfigurationModule"/></para>
+        /// <para><see cref="GifConfigurationModule"/></para>
+        /// <para><see cref="BmpConfigurationModule"/></para>
+        /// </summary>
+        /// <returns>The default configuration of <see cref="Configuration"/></returns>
+        internal static Configuration CreateDefaultInstance()
+        {
+            return new Configuration(
+                new PngConfigurationModule(),
+                new JpegConfigurationModule(),
+                new GifConfigurationModule(),
+                new BmpConfigurationModule());
         }
 
         /// <summary>

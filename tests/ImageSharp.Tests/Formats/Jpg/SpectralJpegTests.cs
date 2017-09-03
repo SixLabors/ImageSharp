@@ -1,15 +1,15 @@
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System.Collections.Generic;
+    using System;
     using System.IO;
     using System.Linq;
 
-    using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -25,10 +25,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public static readonly string[] BaselineTestJpegs =
             {
-                TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk,
-                TestImages.Jpeg.Baseline.Jpeg400, TestImages.Jpeg.Baseline.Jpeg444,
-                TestImages.Jpeg.Baseline.Testimgorig,
-                TestImages.Jpeg.Baseline.Bad.BadEOF,
+                TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
+                TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
+                TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.Bad.ExifUndefType,
             };
 
@@ -39,30 +38,13 @@ namespace SixLabors.ImageSharp.Tests
             };
 
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
-
+        
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void BuildLibJpegSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
+        public void PdfJsDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-
-            using (var ms = new MemoryStream(sourceBytes))
-            {
-                LibJpegTools.SpectralData data = LibJpegTools.SpectralData.Load(ms);
-                Assert.True(data.ComponentCount > 0);
-                this.Output.WriteLine($"ComponentCount: {data.ComponentCount}");
-
-                this.SaveSpectralImage(provider, data);
-            }   
-        }
-
-        [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void JpegDecoderCore_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            JpegDecoderCore decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            PdfJsJpegDecoderCore decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -71,16 +53,83 @@ namespace SixLabors.ImageSharp.Tests
                 decoder.ParseStream(ms);
 
                 var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-                this.SaveSpectralImage(provider, data);
+                VerifyJpeg.SaveSpectralImage(provider, data);
             }
         }
 
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void CompareSpectralResults<TPixel>(TestImageProvider<TPixel> provider)
+        public void OriginalDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            JpegDecoderCore decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            OrigJpegDecoderCore decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
+
+            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+            using (var ms = new MemoryStream(sourceBytes))
+            {
+                decoder.ParseStream(ms, false);
+
+                var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
+                VerifyJpeg.SaveSpectralImage(provider, data);
+            }
+        }
+
+        private void VerifySpectralCorrectness<TPixel>(
+            TestImageProvider<TPixel> provider,
+            LibJpegTools.SpectralData imageSharpData)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
+
+            bool equality = libJpegData.Equals(imageSharpData);
+            this.Output.WriteLine("Spectral data equality: " + equality);
+
+            int componentCount = imageSharpData.ComponentCount;
+            if (libJpegData.ComponentCount != componentCount)
+            {
+                throw new Exception("libJpegData.ComponentCount != componentCount");
+            }
+
+            double averageDifference = 0;
+            double totalDifference = 0;
+            double tolerance = 0; 
+
+            this.Output.WriteLine("*** Differences ***");
+            for (int i = 0; i < componentCount; i++)
+            {
+                LibJpegTools.ComponentData libJpegComponent = libJpegData.Components[i];
+                LibJpegTools.ComponentData imageSharpComponent = imageSharpData.Components[i];
+
+                (double total, double average) diff = LibJpegTools.CalculateDifference(libJpegComponent, imageSharpComponent);
+
+                this.Output.WriteLine($"Component{i}: {diff}");
+                averageDifference += diff.average;
+                totalDifference += diff.total;
+                tolerance += libJpegComponent.SpectralBlocks.Length;
+            }
+            averageDifference /= componentCount;
+
+            tolerance /= 64; // fair enough?
+
+            this.Output.WriteLine($"AVERAGE: {averageDifference}");
+            this.Output.WriteLine($"TOTAL: {totalDifference}");
+            this.Output.WriteLine($"TOLERANCE = totalNumOfBlocks / 64 = {tolerance}");
+            
+            Assert.True(totalDifference < tolerance);
+        }
+
+        [Theory(Skip = "Debug/Comparison only")]
+        [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
+        public void VerifySpectralCorrectness_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (!TestEnvironment.IsWindows)
+            {
+                return;
+            }
+
+            PdfJsJpegDecoderCore decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -89,40 +138,31 @@ namespace SixLabors.ImageSharp.Tests
                 decoder.ParseStream(ms);
                 var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
                 
-                ms.Seek(0, SeekOrigin.Begin);
-                var libJpegData = LibJpegTools.SpectralData.Load(ms);
-
-                bool equality = libJpegData.Equals(imageSharpData);
-                this.Output.WriteLine("Spectral data equality: " + equality);
-
-                // Assert.Equal(libJpegData, imageSharpData);
+                this.VerifySpectralCorrectness<TPixel>(provider, imageSharpData);
             }
         }
 
-
-        private void SaveSpectralImage<TPixel>(TestImageProvider<TPixel> provider, LibJpegTools.SpectralData data)
+        [Theory]
+        [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
+        public void VerifySpectralResults_OriginalDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            foreach (LibJpegTools.ComponentData comp in data.Components)
+            if (!TestEnvironment.IsWindows)
             {
-                this.Output.WriteLine("Min: " + comp.MinVal);
-                this.Output.WriteLine("Max: " + comp.MaxVal);
-
-                using (Image<Rgba32> image = comp.CreateGrayScaleImage())
-                {
-                    string details = $"C{comp.Index}";
-                    image.DebugSave(provider, details, appendPixelTypeToFileName: false);
-                }
+                return;
             }
 
-            Image<Rgba32> fullImage = data.TryCreateRGBSpectralImage();
+            OrigJpegDecoderCore decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
-            if (fullImage != null)
+            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
+
+            using (var ms = new MemoryStream(sourceBytes))
             {
-                fullImage.DebugSave(provider, "FULL", appendPixelTypeToFileName: false);
-                fullImage.Dispose();
+                decoder.ParseStream(ms);
+                var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
+
+                this.VerifySpectralCorrectness<TPixel>(provider, imageSharpData);
             }
         }
-
     }
 }

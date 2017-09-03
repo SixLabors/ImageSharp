@@ -12,19 +12,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     internal static class DecoderThrowHelper
     {
         /// <summary>
-        /// Throws an exception that belongs to the given <see cref="OldDecoderErrorCode"/>
+        /// Throws an exception that belongs to the given <see cref="OrigDecoderErrorCode"/>
         /// </summary>
-        /// <param name="errorCode">The <see cref="OldDecoderErrorCode"/></param>
+        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowExceptionForErrorCode(this OldDecoderErrorCode errorCode)
+        public static void ThrowExceptionForErrorCode(this OrigDecoderErrorCode errorCode)
         {
             switch (errorCode)
             {
-                case OldDecoderErrorCode.NoError:
+                case OrigDecoderErrorCode.NoError:
                     throw new ArgumentException("ThrowExceptionForErrorCode() called with NoError!", nameof(errorCode));
-                case OldDecoderErrorCode.MissingFF00:
+                case OrigDecoderErrorCode.MissingFF00:
                     throw new MissingFF00Exception();
-                case OldDecoderErrorCode.UnexpectedEndOfStream:
+                case OrigDecoderErrorCode.UnexpectedEndOfStream:
                     throw new EOFException();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(errorCode), errorCode, null);
@@ -32,26 +32,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Throws an exception if the given <see cref="OldDecoderErrorCode"/> defines an error.
+        /// Throws an exception if the given <see cref="OrigDecoderErrorCode"/> defines an error.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OldDecoderErrorCode"/></param>
+        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureNoError(this OldDecoderErrorCode errorCode)
+        public static void EnsureNoError(this OrigDecoderErrorCode errorCode)
         {
-            if (errorCode != OldDecoderErrorCode.NoError)
+            if (errorCode != OrigDecoderErrorCode.NoError)
             {
                 ThrowExceptionForErrorCode(errorCode);
             }
         }
 
         /// <summary>
-        /// Throws an exception if the given <see cref="OldDecoderErrorCode"/> is <see cref="OldDecoderErrorCode.UnexpectedEndOfStream"/>.
+        /// Throws an exception if the given <see cref="OrigDecoderErrorCode"/> is <see cref="OrigDecoderErrorCode.UnexpectedEndOfStream"/>.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OldDecoderErrorCode"/></param>
+        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureNoEOF(this OldDecoderErrorCode errorCode)
+        public static void EnsureNoEOF(this OrigDecoderErrorCode errorCode)
         {
-            if (errorCode == OldDecoderErrorCode.UnexpectedEndOfStream)
+            if (errorCode == OrigDecoderErrorCode.UnexpectedEndOfStream)
             {
                 errorCode.ThrowExceptionForErrorCode();
             }

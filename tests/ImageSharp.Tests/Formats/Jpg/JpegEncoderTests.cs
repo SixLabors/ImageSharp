@@ -1,22 +1,23 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using System.IO;
 
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
-
-using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using System.Collections.Generic;
+    using System.IO;
+
+    using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.Primitives;
+
+    using Xunit;
+    using Xunit.Abstractions;
+
     public class JpegEncoderTests : MeasureFixture
     {
         public static IEnumerable<string> AllBmpFiles => TestImages.Bmp.All;

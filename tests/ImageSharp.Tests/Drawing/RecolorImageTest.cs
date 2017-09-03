@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ImageShouldRecolorYellowToHotPink()
         {
-            string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "RecolorImage");
 
             RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ImageShouldRecolorYellowToHotPinkInARectangle()
         {
-            string path = this.CreateOutputDirectory("Drawing", "RecolorImage");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "RecolorImage");
 
             RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 

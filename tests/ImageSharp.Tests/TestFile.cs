@@ -39,38 +39,33 @@ namespace SixLabors.ImageSharp.Tests
         private byte[] bytes;
 
         /// <summary>
-        /// The file.
-        /// </summary>
-        private readonly string file;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TestFile"/> class.
         /// </summary>
         /// <param name="file">The file.</param>
         private TestFile(string file)
         {
-            this.file = file;
+            this.FullPath = file;
         }
 
         /// <summary>
         /// Gets the image bytes.
         /// </summary>
-        public byte[] Bytes => this.bytes ?? (this.bytes = File.ReadAllBytes(this.file));
+        public byte[] Bytes => this.bytes ?? (this.bytes = File.ReadAllBytes(this.FullPath));
+
+        /// <summary>
+        /// The full path to file.
+        /// </summary>
+        public string FullPath { get; }
 
         /// <summary>
         /// The file name.
         /// </summary>
-        public string FilePath => this.file;
-
-        /// <summary>
-        /// The file name.
-        /// </summary>
-        public string FileName => Path.GetFileName(this.file);
+        public string FileName => Path.GetFileName(this.FullPath);
 
         /// <summary>
         /// The file name without extension.
         /// </summary>
-        public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.file);
+        public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.FullPath);
 
         /// <summary>
         /// Gets the image with lazy initialization.
@@ -116,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         public string GetFileName(object value)
         {
-            return $"{this.FileNameWithoutExtension}-{value}{Path.GetExtension(this.file)}";
+            return $"{this.FileNameWithoutExtension}-{value}{Path.GetExtension(this.FullPath)}";
         }
 
         /// <summary>

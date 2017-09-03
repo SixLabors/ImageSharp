@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ImageCanEncodeToString()
         {
-            string path = this.CreateOutputDirectory("ToString");
+            string path = TestEnvironment.CreateOutputDirectory("ToString");
 
             foreach (TestFile file in Files)
             {
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
-            string path = this.CreateOutputDirectory("Encode");
+            string path = TestEnvironment.CreateOutputDirectory("Encode");
 
             foreach (TestFile file in Files)
             {
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void QuantizeImageShouldPreserveMaximumColorPrecision()
         {
-            string path = this.CreateOutputDirectory("Quantize");
+            string path = TestEnvironment.CreateOutputDirectory("Quantize");
 
             foreach (TestFile file in Files)
             {
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ImageCanConvertFormat()
         {
-            string path = this.CreateOutputDirectory("Format");
+            string path = TestEnvironment.CreateOutputDirectory("Format");
 
             foreach (TestFile file in Files)
             {
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ImageShouldPreservePixelByteOrderWhenSerialized()
         {
-            string path = this.CreateOutputDirectory("Serialized");
+            string path = TestEnvironment.CreateOutputDirectory("Serialized");
 
             foreach (TestFile file in Files)
             {

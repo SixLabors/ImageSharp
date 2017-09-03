@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [GlobalSetup]
         public void Setup()
         {
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 this.inputDividend[i] = i*44.8f;
                 this.inputDivisior[i] = 100 - i;
@@ -44,18 +44,18 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             float* pDividend = (float*)&b1;
             float* pDivisor = (float*)&b2;
 
-            int* result = stackalloc int[Block8x8F.ScalarCount];
+            int* result = stackalloc int[Block8x8F.Size];
 
             for (int cnt = 0; cnt < ExecutionCount; cnt++)
             {
                 sum = 0;
-                for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     int a = (int) pDividend[i];
                     int b = (int) pDivisor;
                     result[i] = RationalRound(a, b);
                 }
-                for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     sum += result[i];
                 }
@@ -77,12 +77,12 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             for (int cnt = 0; cnt < ExecutionCount; cnt++)
             {
                 sum = 0;
-                for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     double value = pDividend[i] / pDivisor[i];
                     pDividend[i] = (float) System.Math.Round(value);
                 }
-                for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     sum += (int) pDividend[i];
                 }
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             {
                 sum = 0;
                 DivideRoundAll(ref bDividend, ref bDivisor);
-                for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     sum += (int)pDividend[i];
                 }

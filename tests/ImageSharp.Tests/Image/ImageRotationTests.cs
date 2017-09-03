@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests
         private static (Size original, Size rotated) Rotate(int angle)
         {
             var file = TestFile.Create(TestImages.Bmp.Car);
-            using (var image = Image.Load<Rgba32>(file.FilePath))
+            using (var image = Image.Load<Rgba32>(file.FullPath))
             {
                 Size original = image.Bounds().Size;
                 image.Mutate(x => x.Rotate(angle));

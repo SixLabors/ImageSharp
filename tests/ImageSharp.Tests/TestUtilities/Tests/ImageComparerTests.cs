@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests
 
                     var comparer = ImageComparer.Tolerant();
 
-                    ImagePixelsAreDifferentException ex = Assert.ThrowsAny<ImagePixelsAreDifferentException>(
+                    ImageDifferenceIsOverThresholdException ex = Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(
                         () =>
                             {
                                 comparer.VerifySimilarity(image, clone);

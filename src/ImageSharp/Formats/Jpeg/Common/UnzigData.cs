@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
     /// <summary>
+    /// TODO: This should be simply just a <see cref="Block8x8"/>!
     /// Holds the Jpeg UnZig array in a value/stack type.
     /// Unzig maps from the zigzag ordering to the natural ordering. For example,
     /// unzig[3] is the column and row of the fourth element in zigzag order. The

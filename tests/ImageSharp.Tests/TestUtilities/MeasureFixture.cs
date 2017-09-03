@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests
     /// <summary>
     /// Utility class to measure the execution of an operation. It can be used either by inheritance or by composition.
     /// </summary>
-    public class MeasureFixture : TestBase
+    public class MeasureFixture
     {
         /// <summary>
         /// Value indicating whether priniting is enabled.

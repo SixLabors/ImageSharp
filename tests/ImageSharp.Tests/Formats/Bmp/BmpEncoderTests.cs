@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests
         [MemberData(nameof(BitsPerPixel))]
         public void BitmapCanEncodeDifferentBitRates(BmpBitsPerPixel bitsPerPixel)
         {
-            string path = this.CreateOutputDirectory("Bmp");
+            string path = TestEnvironment.CreateOutputDirectory("Bmp");
 
             foreach (TestFile file in Files)
             {

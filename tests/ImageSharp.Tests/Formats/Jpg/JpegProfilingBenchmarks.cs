@@ -1,18 +1,18 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Numerics;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
-using Xunit.Abstractions;
-
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using System;
+    using System.IO;
+    using System.Linq;
+    using System.Numerics;
+
+    using SixLabors.ImageSharp.Formats.Jpeg;
+
+    using Xunit;
+    using Xunit.Abstractions;
+
     public class JpegProfilingBenchmarks : MeasureFixture
     {
         public JpegProfilingBenchmarks(ITestOutputHelper output)
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
             TestImages.Jpeg.Baseline.Ycck,
             TestImages.Jpeg.Baseline.Calliphora,
             TestImages.Jpeg.Baseline.Jpeg400,
-            TestImages.Jpeg.Baseline.Jpeg420,
+            TestImages.Jpeg.Baseline.Jpeg420Exif,
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 

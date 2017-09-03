@@ -13,6 +13,10 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System.Numerics;
+
+    using SixLabors.ImageSharp.Memory;
+
     public static class TestImageExtensions
     {
         /// <summary>
@@ -183,6 +187,22 @@ namespace SixLabors.ImageSharp.Tests
             using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
             {
                 comparer.VerifySimilarity(original, image);
+            }
+
+            return image;
+        }
+
+        internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
+        {
+            var image = new Image<Rgba32>(buffer.Width, buffer.Height);
+
+            Span<Rgba32> pixels = image.Pixels;
+
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                float value = buffer[i] * scale;
+                var v = new Vector4(value, value, value, 1f);
+                pixels[i].PackFromVector4(v);
             }
 
             return image;

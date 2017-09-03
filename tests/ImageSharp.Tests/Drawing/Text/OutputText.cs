@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             {
                 img.Mutate(x => x.Fill(Rgba32.DarkBlue)
                    .DrawText("AB\nAB", new Font(this.Font, 50), Rgba32.Red, new Vector2(0, 0)));
-                img.Save($"{this.CreateOutputDirectory("Drawing", "Text")}/AB.png");
+                img.Save($"{TestEnvironment.CreateOutputDirectory("Drawing", "Text")}/AB.png");
             }
         }
     }

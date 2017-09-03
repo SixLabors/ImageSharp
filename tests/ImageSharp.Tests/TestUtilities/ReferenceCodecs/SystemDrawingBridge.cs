@@ -4,7 +4,7 @@
 using System;
 using System.Drawing.Imaging;
 
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 

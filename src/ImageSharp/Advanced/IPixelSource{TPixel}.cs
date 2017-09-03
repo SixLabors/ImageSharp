@@ -4,7 +4,7 @@
 using System;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Advanced.Unsafe
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Allows access to the pixels as an area of contiguous memory in the given pixel format.

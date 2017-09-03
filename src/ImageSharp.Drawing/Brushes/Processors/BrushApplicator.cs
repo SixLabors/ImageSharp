@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 

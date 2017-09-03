@@ -3,7 +3,7 @@
 
 using System;
 using System.Buffers;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;

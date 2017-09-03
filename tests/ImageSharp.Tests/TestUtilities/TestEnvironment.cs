@@ -27,13 +27,15 @@ namespace SixLabors.ImageSharp.Tests
 
         private const string ReferenceOutputDirectoryRelativePath = @"tests\Images\External\ReferenceOutput";
 
+        private const string ToolsDirectoryRelativePath = @"tests\Images\External\tools";
+
         private static Lazy<string> solutionDirectoryFullPath = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
         private static Lazy<bool> runsOnCi = new Lazy<bool>(
             () =>
                 {
                     bool isCi;
-                    return bool.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
+                    return Boolean.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
                 });
 
         private static Lazy<Configuration> configuration = new Lazy<Configuration>(CreateDefaultConfiguration);
@@ -120,25 +122,26 @@ namespace SixLabors.ImageSharp.Tests
             return directory.FullName;
         }
 
+        private static string GetFullPath(string relativePath) => 
+            Path.Combine(SolutionDirectoryFullPath, relativePath)
+            .Replace('\\', Path.DirectorySeparatorChar);
+
         /// <summary>
         /// Gets the correct full path to the Input Images directory.
         /// </summary>
-        internal static string InputImagesDirectoryFullPath =>
-            Path.Combine(SolutionDirectoryFullPath, InputImagesRelativePath).Replace('\\', Path.DirectorySeparatorChar);
-
+        internal static string InputImagesDirectoryFullPath => GetFullPath(InputImagesRelativePath);
+        
         /// <summary>
         /// Gets the correct full path to the Actual Output directory. (To be written to by the test cases.)
         /// </summary>
-        internal static string ActualOutputDirectoryFullPath => Path.Combine(
-            SolutionDirectoryFullPath,
-            ActualOutputDirectoryRelativePath).Replace('\\', Path.DirectorySeparatorChar);
+        internal static string ActualOutputDirectoryFullPath => GetFullPath(ActualOutputDirectoryRelativePath);
 
         /// <summary>
         /// Gets the correct full path to the Expected Output directory. (To compare the test results to.)
         /// </summary>
-        internal static string ReferenceOutputDirectoryFullPath => Path.Combine(
-            SolutionDirectoryFullPath,
-            ReferenceOutputDirectoryRelativePath).Replace('\\', Path.DirectorySeparatorChar);
+        internal static string ReferenceOutputDirectoryFullPath => GetFullPath(ReferenceOutputDirectoryRelativePath);
+
+        internal static string ToolsDirectoryFullPath => GetFullPath(ToolsDirectoryRelativePath);
 
         internal static string GetReferenceOutputFileName(string actualOutputFileName) =>
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
@@ -163,7 +166,33 @@ namespace SixLabors.ImageSharp.Tests
             return format;
         }
 
-        internal static bool IsLinux =>
-            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+        internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
+        internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        /// <summary>
+        /// Creates the image output directory.
+        /// </summary>
+        /// <param name="path">The path.</param>
+        /// <param name="pathParts">The path parts.</param>
+        /// <returns>
+        /// The <see cref="string"/>.
+        /// </returns>
+        internal static string CreateOutputDirectory(string path, params string[] pathParts)
+        {
+            path = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, path);
+
+            if (pathParts != null && pathParts.Length > 0)
+            {
+                path = Path.Combine(path, Path.Combine(pathParts));
+            }
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return path;
+        }
     }
 }

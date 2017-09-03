@@ -85,8 +85,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="inputStream">Input stream</param>
         /// <param name="x">The result byte as <see cref="int"/></param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode ReadByteStuffedByteUnsafe(Stream inputStream, out int x)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode ReadByteStuffedByteUnsafe(Stream inputStream, out int x)
         {
             // Take the fast path if bytes.buf contains at least two bytes.
             if (this.I + 2 <= this.J)
@@ -94,50 +94,50 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 x = this.BufferAsInt[this.I];
                 this.I++;
                 this.UnreadableBytes = 1;
-                if (x != OldJpegConstants.Markers.XFFInt)
+                if (x != OrigJpegConstants.Markers.XFFInt)
                 {
-                    return OldDecoderErrorCode.NoError;
+                    return OrigDecoderErrorCode.NoError;
                 }
 
                 if (this.BufferAsInt[this.I] != 0x00)
                 {
-                    return OldDecoderErrorCode.MissingFF00;
+                    return OrigDecoderErrorCode.MissingFF00;
                 }
 
                 this.I++;
                 this.UnreadableBytes = 2;
-                x = OldJpegConstants.Markers.XFF;
-                return OldDecoderErrorCode.NoError;
+                x = OrigJpegConstants.Markers.XFF;
+                return OrigDecoderErrorCode.NoError;
             }
 
             this.UnreadableBytes = 0;
 
-            OldDecoderErrorCode errorCode = this.ReadByteAsIntUnsafe(inputStream, out x);
+            OrigDecoderErrorCode errorCode = this.ReadByteAsIntUnsafe(inputStream, out x);
             this.UnreadableBytes = 1;
-            if (errorCode != OldDecoderErrorCode.NoError)
+            if (errorCode != OrigDecoderErrorCode.NoError)
             {
                 return errorCode;
             }
 
-            if (x != OldJpegConstants.Markers.XFF)
+            if (x != OrigJpegConstants.Markers.XFF)
             {
-                return OldDecoderErrorCode.NoError;
+                return OrigDecoderErrorCode.NoError;
             }
 
             errorCode = this.ReadByteAsIntUnsafe(inputStream, out x);
             this.UnreadableBytes = 2;
-            if (errorCode != OldDecoderErrorCode.NoError)
+            if (errorCode != OrigDecoderErrorCode.NoError)
             {
                 return errorCode;
             }
 
             if (x != 0x00)
             {
-                return OldDecoderErrorCode.MissingFF00;
+                return OrigDecoderErrorCode.MissingFF00;
             }
 
-            x = OldJpegConstants.Markers.XFF;
-            return OldDecoderErrorCode.NoError;
+            x = OrigJpegConstants.Markers.XFF;
+            return OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -149,25 +149,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public byte ReadByte(Stream inputStream)
         {
             byte result;
-            OldDecoderErrorCode errorCode = this.ReadByteUnsafe(inputStream, out result);
+            OrigDecoderErrorCode errorCode = this.ReadByteUnsafe(inputStream, out result);
             errorCode.EnsureNoError();
             return result;
         }
 
         /// <summary>
         /// Extracts the next byte, whether buffered or not buffered into the result out parameter. It does not care about byte stuffing.
-        /// This method does not throw on format error, it returns a <see cref="OldDecoderErrorCode"/> instead.
+        /// This method does not throw on format error, it returns a <see cref="OrigDecoderErrorCode"/> instead.
         /// </summary>
         /// <param name="inputStream">Input stream</param>
         /// <param name="result">The result <see cref="byte"/> as out parameter</param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode ReadByteUnsafe(Stream inputStream, out byte result)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode ReadByteUnsafe(Stream inputStream, out byte result)
         {
-            OldDecoderErrorCode errorCode = OldDecoderErrorCode.NoError;
+            OrigDecoderErrorCode errorCode = OrigDecoderErrorCode.NoError;
             while (this.I == this.J)
             {
                 errorCode = this.FillUnsafe(inputStream);
-                if (errorCode != OldDecoderErrorCode.NoError)
+                if (errorCode != OrigDecoderErrorCode.NoError)
                 {
                     result = 0;
                     return errorCode;
@@ -185,15 +185,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="inputStream">The input stream</param>
         /// <param name="result">The result <see cref="int"/></param>
-        /// <returns>A <see cref="OldDecoderErrorCode"/></returns>
+        /// <returns>A <see cref="OrigDecoderErrorCode"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public OldDecoderErrorCode ReadByteAsIntUnsafe(Stream inputStream, out int result)
+        public OrigDecoderErrorCode ReadByteAsIntUnsafe(Stream inputStream, out int result)
         {
-            OldDecoderErrorCode errorCode = OldDecoderErrorCode.NoError;
+            OrigDecoderErrorCode errorCode = OrigDecoderErrorCode.NoError;
             while (this.I == this.J)
             {
                 errorCode = this.FillUnsafe(inputStream);
-                if (errorCode != OldDecoderErrorCode.NoError)
+                if (errorCode != OrigDecoderErrorCode.NoError)
                 {
                     result = 0;
                     return errorCode;
@@ -215,18 +215,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Fill(Stream inputStream)
         {
-            OldDecoderErrorCode errorCode = this.FillUnsafe(inputStream);
+            OrigDecoderErrorCode errorCode = this.FillUnsafe(inputStream);
             errorCode.EnsureNoError();
         }
 
         /// <summary>
         /// Fills up the bytes buffer from the underlying stream.
         /// It should only be called when there are no unread bytes in bytes.
-        /// This method does not throw <see cref="EOFException"/>, returns a <see cref="OldDecoderErrorCode"/> instead!
+        /// This method does not throw <see cref="EOFException"/>, returns a <see cref="OrigDecoderErrorCode"/> instead!
         /// </summary>
         /// <param name="inputStream">Input stream</param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode FillUnsafe(Stream inputStream)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode FillUnsafe(Stream inputStream)
         {
             if (this.I != this.J)
             {
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             int n = inputStream.Read(this.Buffer, this.J, this.Buffer.Length - this.J);
             if (n == 0)
             {
-                return OldDecoderErrorCode.UnexpectedEndOfStream;
+                return OrigDecoderErrorCode.UnexpectedEndOfStream;
             }
 
             this.J += n;
@@ -258,7 +258,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.BufferAsInt[i] = this.Buffer[i];
             }
 
-            return OldDecoderErrorCode.NoError;
+            return OrigDecoderErrorCode.NoError;
         }
     }
 }

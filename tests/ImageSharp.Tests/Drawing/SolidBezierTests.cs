@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledBezier");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledBezier");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledBezier");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledBezier");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 400),
                         new Vector2(30, 10),

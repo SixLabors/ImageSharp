@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FullPath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Save_DetecedEncoding()
         {
-            string dir = this.CreateOutputDirectory(nameof(ImageTests));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = System.IO.Path.Combine(dir, "Save_DetecedEncoding.png");
 
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Save_WhenExtensionIsUnknown_Throws()
         {
-            string dir = this.CreateOutputDirectory(nameof(ImageTests));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = System.IO.Path.Combine(dir, "Save_UnknownExtensionsEncoding_Throws.tmp");
 
             NotSupportedException ex = Assert.Throws<NotSupportedException>(
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Save_SetEncoding()
         {
-            string dir = this.CreateOutputDirectory(nameof(ImageTests));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = System.IO.Path.Combine(dir, "Save_SetEncoding.dat");
 
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithColorOnDefaultBackground()
         {
-            string path = this.CreateOutputDirectory("Fill", "SolidBrush");
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "SolidBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithColor()
         {
-            string path = this.CreateOutputDirectory("Fill", "SolidBrush");
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "SolidBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeFloodFilledWithColorOpacity()
         {
-            string path = this.CreateOutputDirectory("Fill", "SolidBrush");
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "SolidBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);

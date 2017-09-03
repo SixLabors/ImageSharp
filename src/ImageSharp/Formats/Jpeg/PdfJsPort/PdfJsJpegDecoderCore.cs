@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;

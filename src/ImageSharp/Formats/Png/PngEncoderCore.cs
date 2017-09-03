@@ -6,7 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;

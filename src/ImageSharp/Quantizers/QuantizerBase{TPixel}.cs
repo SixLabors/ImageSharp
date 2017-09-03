@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced.Unsafe;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 

@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
                     overlay[i] = this[x + i, y];
                 }
 
-                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(x).Slice(y, scanline.Length);
+                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                 this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
             }
         }

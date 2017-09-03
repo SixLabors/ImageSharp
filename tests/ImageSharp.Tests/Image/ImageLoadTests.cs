@@ -318,6 +318,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+
         [Fact]
         public void LoadsImageWithoutThrowingCrcException()
         {

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -31,9 +32,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
             {
                 image.Mutate(x => x.Grayscale(value));
                 byte[] data = new byte[3];
-                for (int i = 0; i < image.Pixels.Length; i++)
+                for (int i = 0; i < image.GetPixelSpan().Length; i++)
                 {
-                    image.Pixels[i].ToXyzBytes(data, 0);
+                    image.GetPixelSpan()[i].ToXyzBytes(data, 0);
                     Assert.Equal(data[0], data[1]);
                     Assert.Equal(data[1], data[2]);
                 }

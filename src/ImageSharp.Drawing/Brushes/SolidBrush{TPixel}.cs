@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.Memory;
@@ -91,16 +92,23 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
-
-                using (var amountBuffer = new Buffer<float>(scanline.Length))
+                try
                 {
-                    for (int i = 0; i < scanline.Length; i++)
-                    {
-                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
-                    }
+                    Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
+                    using (var amountBuffer = new Buffer<float>(scanline.Length))
+                    {
+                        for (int i = 0; i < scanline.Length; i++)
+                        {
+                            amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
+                        }
+
+                        this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
+                    }
+                }
+                catch (Exception)
+                {
+                    throw;
                 }
             }
         }

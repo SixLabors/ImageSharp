@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -69,7 +70,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
             var image = new Image<TPixel>(config, width, height);
-            SpanHelper.Copy(data, image.Pixels, count);
+            SpanHelper.Copy(data, image.GetPixelSpan(), count);
 
             return image;
         }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -77,7 +78,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
                     overlay[i] = this[x + i, y];
                 }
 
-                Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(x).Slice(y, scanline.Length);
                 this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
             }
         }

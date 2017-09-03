@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
 
 namespace SixLabors.ImageSharp
 {

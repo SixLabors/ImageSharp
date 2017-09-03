@@ -4,6 +4,7 @@
 using System;
 using System.Drawing.Imaging;
 
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -100,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 var destPtr = (Argb32*)workBuffer.Pin();
                 for (int y = 0; y < h; y++)
                 {
-                    Span<TPixel> row = image.GetRowSpan(y);
+                    Span<TPixel> row = image.GetPixelRowSpan(y);
 
                     byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
@@ -142,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 var destPtr = (Rgb24*)workBuffer.Pin();
                 for (int y = 0; y < h; y++)
                 {
-                    Span<TPixel> row = image.GetRowSpan(y);
+                    Span<TPixel> row = image.GetPixelRowSpan(y);
 
                     byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
@@ -175,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
                 for (int y = 0; y < h; y++)
                 {
-                    Span<TPixel> row = image.GetRowSpan(y);
+                    Span<TPixel> row = image.GetPixelRowSpan(y);
                     ToArgb32(row, workBuffer);
                     byte* destPtr = destPtrBase + data.Stride * y;
 

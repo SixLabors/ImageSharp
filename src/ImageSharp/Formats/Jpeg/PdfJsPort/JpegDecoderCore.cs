@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
@@ -860,7 +861,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
                 Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
 
                 for (int x = 0; x < image.Width; x++)
@@ -879,7 +880,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
                 Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
                 for (int x = 0, o = 0; x < image.Width; x++, o += 3)
                 {
@@ -898,7 +899,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
                 Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
                 for (int x = 0, o = 0; x < image.Width; x++, o += 4)
                 {
@@ -919,7 +920,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
                 Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
                 for (int x = 0, o = 0; x < image.Width; x++, o += 4)
                 {
@@ -945,7 +946,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetRowSpan(y);
+                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
                 Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
 
                 PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(areaRowSpan, imageRowSpan, image.Width);

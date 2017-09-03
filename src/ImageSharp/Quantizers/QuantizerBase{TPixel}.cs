@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -92,7 +93,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
             // Loop through each row
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y);
+                Span<TPixel> row = source.GetPixelRowSpan(y);
 
                 // And loop through each column
                 for (int x = 0; x < width; x++)

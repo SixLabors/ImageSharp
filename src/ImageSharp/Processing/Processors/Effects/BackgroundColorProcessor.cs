@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     source.Configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> destination = source.GetRowSpan(y - startY).Slice(minX - startX, width);
+                        Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
 
                         // This switched color & destination in the 2nd and 3rd places because we are applying the target colour under the current one
                         blender.Blend(destination, colors, destination, amount);

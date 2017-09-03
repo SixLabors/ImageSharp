@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -69,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             for (int y = startY; y < endY; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y);
+                Span<TPixel> row = source.GetPixelRowSpan(y);
 
                 for (int x = startX; x < endX; x++)
                 {

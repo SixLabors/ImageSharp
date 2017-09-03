@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Common;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -84,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             offsetPy--;
                         }
 
-                        Span<TPixel> row = source.GetRowSpan(offsetY + offsetPy);
+                        Span<TPixel> row = source.GetPixelRowSpan(offsetY + offsetPy);
 
                         for (int x = minX; x < maxX; x += size)
                         {

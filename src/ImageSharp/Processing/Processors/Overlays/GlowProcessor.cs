@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -104,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 amounts[i] = (this.options.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
                             }
 
-                            Span<TPixel> destination = source.GetRowSpan(offsetY).Slice(offsetX, width);
+                            Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
 
                             this.blender.Blend(destination, destination, rowColors, amounts);
                         }

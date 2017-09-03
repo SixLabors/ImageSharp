@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
 
 namespace SixLabors.ImageSharp.Memory
 {

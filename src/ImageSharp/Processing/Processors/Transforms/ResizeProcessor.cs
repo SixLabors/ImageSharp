@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
             {
                 // the cloned will be blank here copy all the pixel data over
-                source.Pixels.CopyTo(cloned.Pixels);
+                source.GetPixelSpan().CopyTo(cloned.GetPixelSpan());
                 return;
             }
 
@@ -104,8 +105,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     y =>
                     {
                         // Y coordinates of source points
-                        Span<TPixel> sourceRow = source.GetRowSpan((int)(((y - startY) * heightFactor) + sourceY));
-                        Span<TPixel> targetRow = cloned.GetRowSpan(y);
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
+                        Span<TPixel> targetRow = cloned.GetPixelRowSpan(y);
 
                         for (int x = minX; x < maxX; x++)
                         {
@@ -136,7 +137,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
                             {
                                 Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
-                                Span<TPixel> sourceRow = source.GetRowSpan(y);
+                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                                 PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
 
                                 if (this.Compand)
@@ -167,7 +168,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     {
                         // Ensure offsets are normalised for cropping and padding.
                         WeightsWindow window = this.VerticalWeights.Weights[y - startY];
-                        Span<TPixel> targetRow = cloned.GetRowSpan(y);
+                        Span<TPixel> targetRow = cloned.GetPixelRowSpan(y);
 
                         if (this.Compand)
                         {

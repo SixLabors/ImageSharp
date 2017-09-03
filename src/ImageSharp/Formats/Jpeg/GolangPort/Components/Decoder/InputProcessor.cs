@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
-    /// Encapsulates stream reading and processing data and operations for <see cref="OldJpegDecoderCore"/>.
+    /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
     /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
     /// </summary>
     internal struct InputProcessor : IDisposable
@@ -27,14 +27,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Initializes a new instance of the <see cref="InputProcessor"/> struct.
         /// </summary>
         /// <param name="inputStream">The input <see cref="Stream"/></param>
-        /// <param name="temp">Temporal buffer, same as <see cref="OldJpegDecoderCore.Temp"/></param>
+        /// <param name="temp">Temporal buffer, same as <see cref="OrigJpegDecoderCore.Temp"/></param>
         public InputProcessor(Stream inputStream, byte[] temp)
         {
             this.Bits = default(Bits);
             this.Bytes = Bytes.Create();
             this.InputStream = inputStream;
             this.Temp = temp;
-            this.UnexpectedEndOfStreamReached = false;
+            this.LastErrorCode = OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -43,53 +43,53 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public Stream InputStream { get; }
 
         /// <summary>
-        /// Gets the temporal buffer, same instance as <see cref="OldJpegDecoderCore.Temp"/>
+        /// Gets the temporal buffer, same instance as <see cref="OrigJpegDecoderCore.Temp"/>
         /// </summary>
         public byte[] Temp { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether an unexpected EOF reached in <see cref="InputStream"/>.
+        /// Gets a value indicating whether an unexpected EOF reached in <see cref="InputStream"/>.
         /// </summary>
-        public bool UnexpectedEndOfStreamReached { get; set; }
+        public bool ReachedEOF => this.LastErrorCode == OrigDecoderErrorCode.UnexpectedEndOfStream;
+
+        public bool HasError => this.LastErrorCode != OrigDecoderErrorCode.NoError;
+
+        public OrigDecoderErrorCode LastErrorCode { get; private set; }
+
+        public void ResetErrorState() => this.LastErrorCode = OrigDecoderErrorCode.NoError;
 
         /// <summary>
-        /// If errorCode indicates unexpected EOF, sets <see cref="UnexpectedEndOfStreamReached"/> to true and returns false.
+        /// If errorCode indicates unexpected EOF, sets <see cref="ReachedEOF"/> to true and returns false.
         /// Calls <see cref="DecoderThrowHelper.EnsureNoError"/> and returns true otherwise.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OldDecoderErrorCode"/></param>
-        /// <returns><see cref="bool"/> indicating whether everything is OK</returns>
-        public bool CheckEOFEnsureNoError(OldDecoderErrorCode errorCode)
+        /// <returns>A <see cref="bool"/> indicating whether EOF reached</returns>
+        public bool CheckEOFEnsureNoError()
         {
-            if (errorCode == OldDecoderErrorCode.UnexpectedEndOfStream)
+            if (this.LastErrorCode == OrigDecoderErrorCode.UnexpectedEndOfStream)
             {
-                this.UnexpectedEndOfStreamReached = true;
                 return false;
             }
 
-            errorCode.EnsureNoError();
+            this.LastErrorCode.EnsureNoError();
             return true;
         }
 
         /// <summary>
-        /// If errorCode indicates unexpected EOF, sets <see cref="UnexpectedEndOfStreamReached"/> to true and returns false.
+        /// If errorCode indicates unexpected EOF, sets <see cref="ReachedEOF"/> to true and returns false.
         /// Returns true otherwise.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OldDecoderErrorCode"/></param>
-        /// <returns><see cref="bool"/> indicating whether everything is OK</returns>
-        public bool CheckEOF(OldDecoderErrorCode errorCode)
+        /// <returns>A <see cref="bool"/> indicating whether EOF reached</returns>
+        public bool CheckEOF()
         {
-            if (errorCode == OldDecoderErrorCode.UnexpectedEndOfStream)
+            if (this.LastErrorCode == OrigDecoderErrorCode.UnexpectedEndOfStream)
             {
-                this.UnexpectedEndOfStreamReached = true;
                 return false;
             }
 
             return true;
         }
 
-        /// <summary>
-        /// Dispose
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
             this.Bytes.Dispose();
@@ -110,34 +110,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// TODO: This method (and also the usages) could be optimized by batching!
         /// </summary>
         /// <param name="result">The decoded bit as a <see cref="bool"/></param>
-        /// <returns>The <see cref="OldDecoderErrorCode" /></returns>
-        public OldDecoderErrorCode DecodeBitUnsafe(out bool result)
+        /// <returns>The <see cref="OrigDecoderErrorCode" /></returns>
+        public OrigDecoderErrorCode DecodeBitUnsafe(out bool result)
         {
             if (this.Bits.UnreadBits == 0)
             {
-                OldDecoderErrorCode errorCode = this.Bits.Ensure1BitUnsafe(ref this);
-                if (errorCode != OldDecoderErrorCode.NoError)
+                this.LastErrorCode = this.Bits.Ensure1BitUnsafe(ref this);
+                if (this.LastErrorCode != OrigDecoderErrorCode.NoError)
                 {
                     result = false;
-                    return errorCode;
+                    return this.LastErrorCode;
                 }
             }
 
             result = (this.Bits.Accumulator & this.Bits.Mask) != 0;
             this.Bits.UnreadBits--;
             this.Bits.Mask >>= 1;
-            return OldDecoderErrorCode.NoError;
+            return this.LastErrorCode = OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
         /// Reads exactly length bytes into data. It does not care about byte stuffing.
-        /// Does not throw on errors, returns <see cref="OldJpegDecoderCore"/> instead!
+        /// Does not throw on errors, returns <see cref="OrigJpegDecoderCore"/> instead!
         /// </summary>
         /// <param name="data">The data to write to.</param>
         /// <param name="offset">The offset in the source buffer</param>
         /// <param name="length">The number of bytes to read</param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode ReadFullUnsafe(byte[] data, int offset, int length)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode ReadFullUnsafe(byte[] data, int offset, int length)
         {
             // Unread the overshot bytes, if any.
             if (this.Bytes.UnreadableBytes != 0)
@@ -150,8 +150,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.Bytes.UnreadableBytes = 0;
             }
 
-            OldDecoderErrorCode errorCode = OldDecoderErrorCode.NoError;
-            while (length > 0)
+            this.LastErrorCode = OrigDecoderErrorCode.NoError;
+            while (length > 0 && this.LastErrorCode == OrigDecoderErrorCode.NoError)
             {
                 if (this.Bytes.J - this.Bytes.I >= length)
                 {
@@ -166,11 +166,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     length -= this.Bytes.J - this.Bytes.I;
                     this.Bytes.I += this.Bytes.J - this.Bytes.I;
 
-                    errorCode = this.Bytes.FillUnsafe(this.InputStream);
+                    this.LastErrorCode = this.Bytes.FillUnsafe(this.InputStream);
                 }
             }
 
-            return errorCode;
+            return this.LastErrorCode;
         }
 
         /// <summary>
@@ -178,19 +178,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="count">The number of bits to decode.</param>
         /// <param name="result">The <see cref="uint" /> result</param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode DecodeBitsUnsafe(int count, out int result)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode DecodeBitsUnsafe(int count, out int result)
         {
             if (this.Bits.UnreadBits < count)
             {
-                this.Bits.EnsureNBits(count, ref this);
+                this.LastErrorCode = this.Bits.EnsureNBitsUnsafe(count, ref this);
+                if (this.LastErrorCode != OrigDecoderErrorCode.NoError)
+                {
+                    result = 0;
+                    return this.LastErrorCode;
+                }
             }
 
             result = this.Bits.Accumulator >> (this.Bits.UnreadBits - count);
             result = result & ((1 << count) - 1);
             this.Bits.UnreadBits -= count;
             this.Bits.Mask >>= count;
-            return OldDecoderErrorCode.NoError;
+            return this.LastErrorCode = OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -198,8 +203,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="huffmanTree">The huffman value</param>
         /// <param name="result">The decoded <see cref="byte" /></param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode DecodeHuffmanUnsafe(ref OldHuffmanTree huffmanTree, out int result)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode DecodeHuffmanUnsafe(ref OrigHuffmanTree huffmanTree, out int result)
         {
             result = 0;
 
@@ -210,11 +215,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             if (this.Bits.UnreadBits < 8)
             {
-                OldDecoderErrorCode errorCode = this.Bits.Ensure8BitsUnsafe(ref this);
+                this.LastErrorCode = this.Bits.Ensure8BitsUnsafe(ref this);
 
-                if (errorCode == OldDecoderErrorCode.NoError)
+                if (this.LastErrorCode == OrigDecoderErrorCode.NoError)
                 {
-                    int lutIndex = (this.Bits.Accumulator >> (this.Bits.UnreadBits - OldHuffmanTree.LutSizeLog2)) & 0xFF;
+                    int lutIndex = (this.Bits.Accumulator >> (this.Bits.UnreadBits - OrigHuffmanTree.LutSizeLog2)) & 0xFF;
                     int v = huffmanTree.Lut[lutIndex];
 
                     if (v != 0)
@@ -223,22 +228,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         this.Bits.UnreadBits -= n;
                         this.Bits.Mask >>= n;
                         result = v >> 8;
-                        return errorCode;
+                        return this.LastErrorCode;
                     }
                 }
                 else
                 {
                     this.UnreadByteStuffedByte();
-                    return errorCode;
+                    return this.LastErrorCode;
                 }
             }
 
             int code = 0;
-            for (int i = 0; i < OldHuffmanTree.MaxCodeLength; i++)
+            for (int i = 0; i < OrigHuffmanTree.MaxCodeLength; i++)
             {
                 if (this.Bits.UnreadBits == 0)
                 {
-                    this.Bits.EnsureNBits(1, ref this);
+                    this.LastErrorCode = this.Bits.EnsureNBitsUnsafe(1, ref this);
+
+                    if (this.HasError)
+                    {
+                        return this.LastErrorCode;
+                    }
                 }
 
                 if ((this.Bits.Accumulator & this.Bits.Mask) != 0)
@@ -252,7 +262,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 if (code <= huffmanTree.MaxCodes[i])
                 {
                     result = huffmanTree.GetValue(code, i);
-                    return OldDecoderErrorCode.NoError;
+                    return this.LastErrorCode = OrigDecoderErrorCode.NoError;
                 }
 
                 code <<= 1;
@@ -262,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             DecoderThrowHelper.ThrowImageFormatException.BadHuffmanCode();
 
             // DUMMY RETURN! C# doesn't know we have thrown an exception!
-            return OldDecoderErrorCode.NoError;
+            return OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -272,17 +282,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Skip(int count)
         {
-            OldDecoderErrorCode errorCode = this.SkipUnsafe(count);
-            errorCode.EnsureNoError();
+            this.LastErrorCode = this.SkipUnsafe(count);
+            this.LastErrorCode.EnsureNoError();
         }
 
         /// <summary>
         /// Skips the next n bytes.
-        /// Does not throw, returns <see cref="OldDecoderErrorCode"/> instead!
+        /// Does not throw, returns <see cref="OrigDecoderErrorCode"/> instead!
         /// </summary>
         /// <param name="count">The number of bytes to ignore.</param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode SkipUnsafe(int count)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode SkipUnsafe(int count)
         {
             // Unread the overshot bytes, if any.
             if (this.Bytes.UnreadableBytes != 0)
@@ -310,14 +320,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     break;
                 }
 
-                OldDecoderErrorCode errorCode = this.Bytes.FillUnsafe(this.InputStream);
-                if (errorCode != OldDecoderErrorCode.NoError)
+                this.LastErrorCode = this.Bytes.FillUnsafe(this.InputStream);
+                if (this.LastErrorCode != OrigDecoderErrorCode.NoError)
                 {
-                    return errorCode;
+                    return this.LastErrorCode;
                 }
             }
 
-            return OldDecoderErrorCode.NoError;
+            return this.LastErrorCode = OrigDecoderErrorCode.NoError;
         }
 
         /// <summary>
@@ -329,8 +339,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReadFull(byte[] data, int offset, int length)
         {
-            OldDecoderErrorCode errorCode = this.ReadFullUnsafe(data, offset, length);
-            errorCode.EnsureNoError();
+            this.LastErrorCode = this.ReadFullUnsafe(data, offset, length);
+            this.LastErrorCode.EnsureNoError();
         }
 
         /// <summary>
@@ -357,10 +367,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="t">Byte</param>
         /// <param name="x">Read bits value</param>
-        /// <returns>The <see cref="OldDecoderErrorCode"/></returns>
-        public OldDecoderErrorCode ReceiveExtendUnsafe(int t, out int x)
+        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
+        public OrigDecoderErrorCode ReceiveExtendUnsafe(int t, out int x)
         {
-            return this.Bits.ReceiveExtendUnsafe(t, ref this, out x);
+            this.LastErrorCode = this.Bits.ReceiveExtendUnsafe(t, ref this, out x);
+            return this.LastErrorCode;
         }
     }
 }

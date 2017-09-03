@@ -18,9 +18,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public string DefaultMimeType => "image/jpeg";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => OldJpegConstants.MimeTypes;
+        public IEnumerable<string> MimeTypes => OrigJpegConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => OldJpegConstants.FileExtensions;
+        public IEnumerable<string> FileExtensions => OrigJpegConstants.FileExtensions;
     }
 }

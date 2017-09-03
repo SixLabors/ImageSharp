@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Polygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Polygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Polygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Polygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByRectangleOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Polygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Polygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {

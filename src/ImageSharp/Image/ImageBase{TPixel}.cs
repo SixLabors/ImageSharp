@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// images in different pixel formats.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public abstract class ImageBase<TPixel> : IImageBase<TPixel>
+    public abstract class ImageBase<TPixel> : IImageBase, IDisposable, IPixelSource<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
 #pragma warning disable SA1401 // Fields must be private
@@ -92,11 +93,11 @@ namespace SixLabors.ImageSharp
             // Rent then copy the pixels. Unsafe.CopyBlock gives us a nice speed boost here.
             this.RentPixels();
 
-            other.Pixels.CopyTo(this.Pixels);
+            other.GetPixelSpan().CopyTo(this.GetPixelSpan());
         }
 
         /// <inheritdoc/>
-        public Span<TPixel> Pixels => new Span<TPixel>(this.PixelBuffer, 0, this.Width * this.Height);
+        Span<TPixel> IPixelSource<TPixel>.Span => new Span<TPixel>(this.PixelBuffer, 0, this.Width * this.Height);
 
         /// <inheritdoc/>
         public int Width { get; private set; }
@@ -139,35 +140,10 @@ namespace SixLabors.ImageSharp
         /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref TPixel GetPixelReference(int x, int y)
+        internal ref TPixel GetPixelReference(int x, int y)
         {
             this.CheckCoordinates(x, y);
             return ref this.PixelBuffer[(y * this.Width) + x];
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{TPixal}"/> representing the row 'y' beginning from the the first pixel on that row.
-        /// </summary>
-        /// <param name="y">The y-coordinate of the pixel row. Must be greater than or equal to zero and less than the height of the image.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<TPixel> GetRowSpan(int y)
-        {
-            this.CheckCoordinates(y);
-            return this.Pixels.Slice(y * this.Width, this.Width);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
-        /// </summary>
-        /// <param name="x">The x coordinate (position in the row)</param>
-        /// <param name="y">The y (row) coordinate</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<TPixel> GetRowSpan(int x, int y)
-        {
-            this.CheckCoordinates(x, y);
-            return this.Pixels.Slice((y * this.Width) + x, this.Width - x);
         }
 
         /// <summary>
@@ -210,7 +186,7 @@ namespace SixLabors.ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            SpanHelper.Copy(this.Pixels, target.PixelBuffer.Span);
+            SpanHelper.Copy(this.GetPixelSpan(), target.PixelBuffer.Span);
         }
 
         /// <summary>

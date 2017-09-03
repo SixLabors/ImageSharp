@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -579,7 +580,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             throw new ImageFormatException("Unknown filter type.");
                     }
 
-                    Span<TPixel> rowSpan = image.GetRowSpan(this.currentRow);
+                    Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
                     this.ProcessInterlacedDefilteredScanline(this.scanline.Array, rowSpan, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
 
                     Swap(ref this.scanline, ref this.previousScanline);
@@ -612,7 +613,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
-            Span<TPixel> rowSpan = pixels.GetRowSpan(this.currentRow);
+            Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
             var scanlineBuffer = new Span<byte>(defilteredScanline, 1);

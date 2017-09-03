@@ -6,6 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -676,7 +677,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        Buffer<byte> r = this.EncodePixelRow(pixels.GetRowSpan(y), y);
+                        Buffer<byte> r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         Swap(ref this.rawScanline, ref this.previousScanline);

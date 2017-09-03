@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using System.Threading.Tasks;
 
     using BenchmarkDotNet.Attributes;
-
+    using SixLabors.ImageSharp.Advanced.Unsafe;
     using SixLabors.ImageSharp.Memory;
 
     public class CopyPixels : BenchmarkBase
@@ -103,8 +103,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
                     Configuration.Default.ParallelOptions,
                     y =>
                     {
-                        Span<Rgba32> sourceRow = source.GetRowSpan(y);
-                        Span<Rgba32> targetRow = target.GetRowSpan(y);
+                        Span<Rgba32> sourceRow = source.GetPixelRowSpan(y);
+                        Span<Rgba32> targetRow = target.GetPixelRowSpan(y);
 
                         for (int x = 0; x < source.Width; x++)
                         {

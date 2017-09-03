@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -78,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             byte[] bytes = new byte[4];
             for (int y = startY; y < endY; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y);
+                Span<TPixel> row = source.GetPixelRowSpan(y);
 
                 for (int x = startX; x < endX; x++)
                 {

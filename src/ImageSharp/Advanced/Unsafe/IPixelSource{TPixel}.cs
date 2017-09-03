@@ -4,18 +4,18 @@
 using System;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Advanced.Unsafe
 {
     /// <summary>
-    /// Encapsulates the basic properties and methods required to manipulate images in varying formats.
+    /// Allows access to the pixels as an area of contiguous memory in the given pixel format.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public interface IImageBase<TPixel> : IImageBase, IDisposable
+    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    internal interface IPixelSource<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
         /// </summary>
-        Span<TPixel> Pixels { get; }
+        Span<TPixel> Span { get; }
     }
 }

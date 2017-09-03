@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -95,7 +96,7 @@ namespace SixLabors.ImageSharp.Dithering.Base
                 int matrixY = y + row;
                 if (matrixY > minY && matrixY < maxY)
                 {
-                    Span<TPixel> rowSpan = image.GetRowSpan(matrixY);
+                    Span<TPixel> rowSpan = image.GetPixelRowSpan(matrixY);
 
                     for (int col = 0; col < this.matrixWidth; col++)
                     {

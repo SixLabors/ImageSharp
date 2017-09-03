@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -65,8 +66,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     y =>
                         {
                             int newY = height - y - 1;
-                            Span<TPixel> sourceRow = source.GetRowSpan(y);
-                            Span<TPixel> altSourceRow = source.GetRowSpan(newY);
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                            Span<TPixel> altSourceRow = source.GetPixelRowSpan(newY);
                             Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
                             Span<TPixel> altTargetRow = targetPixels.GetRowSpan(newY);
 
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     source.Configuration.ParallelOptions,
                     y =>
                         {
-                            Span<TPixel> sourceRow = source.GetRowSpan(y);
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                             Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                             for (int x = 0; x < halfWidth; x++)

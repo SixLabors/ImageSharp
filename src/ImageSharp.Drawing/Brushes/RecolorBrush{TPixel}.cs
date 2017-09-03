@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.Memory;
@@ -157,7 +158,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                         overlay[i] = this[offsetX, y];
                     }
 
-                    Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }

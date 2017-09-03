@@ -2,7 +2,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     using System;
     using System.Collections.Generic;
-
+    using SixLabors.ImageSharp.Advanced.Unsafe;
     using SixLabors.ImageSharp.PixelFormats;
 
     using SixLabors.Primitives;
@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             for (int y = 0; y < actual.Height; y++)
             {
-                Span<TPixelA> aSpan = expected.GetRowSpan(y);
-                Span<TPixelB> bSpan = actual.GetRowSpan(y);
+                Span<TPixelA> aSpan = expected.GetPixelRowSpan(y);
+                Span<TPixelB> bSpan = actual.GetPixelRowSpan(y);
 
                 PixelOperations<TPixelA>.Instance.ToRgba32(aSpan, aBuffer, width);
                 PixelOperations<TPixelB>.Instance.ToRgba32(bSpan, bBuffer, width);

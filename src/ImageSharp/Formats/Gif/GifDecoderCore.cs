@@ -6,6 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -440,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
-                Span<TPixel> rowSpan = image.GetRowSpan(writeY);
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(writeY);
 
                 Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 

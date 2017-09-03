@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 namespace SixLabors.ImageSharp.Tests
 {
     using System.Numerics;
-
+    using SixLabors.ImageSharp.Advanced.Unsafe;
     using SixLabors.ImageSharp.Memory;
 
     public static class TestImageExtensions
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
 
-            Span<Rgba32> pixels = image.Pixels;
+            Span<Rgba32> pixels = image.GetPixelSpan();
 
             for (int i = 0; i < buffer.Length; i++)
             {

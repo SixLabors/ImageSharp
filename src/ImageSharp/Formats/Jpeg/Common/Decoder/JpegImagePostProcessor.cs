@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Numerics;
+using SixLabors.ImageSharp.Advanced.Unsafe;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -149,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
                 this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer);
 
-                Span<TPixel> destRow = destination.GetRowSpan(yy);
+                Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
                 PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer, destRow, destination.Width);
             }

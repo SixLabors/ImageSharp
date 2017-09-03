@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
-            string path = this.CreateOutputDirectory("Fill", "PatternBrush");
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "PatternBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(20, 20))
             {
                 image.Mutate(x => x

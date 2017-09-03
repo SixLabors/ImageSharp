@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Path");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 LinearLineSegment linerSegemnt = new LinearLineSegment(
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPathWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Path");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
 
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void PathExtendingOffEdgeOfImageShouldNotBeCropped()
         {
 
-            string path = this.CreateOutputDirectory("Drawing", "Path");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
             using (var image = new Image<Rgba32>(256, 256))
             {
                 image.Mutate(x => x.Fill(Rgba32.Black));

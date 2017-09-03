@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 ImagingTestCaseUtility.ModifyPixel(image, 3, 1, 1);
 
-                Assert.ThrowsAny<ImagePixelsAreDifferentException>(
+                Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(
                     () =>
                         {
                             image.CompareToOriginal(provider, ImageComparer.Exact);

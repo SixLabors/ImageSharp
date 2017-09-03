@@ -14,6 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components
         /// <summary>
         /// The value-type <see cref="float"/> buffer sized for 4 <see cref="Common.Block8x8F"/> instances.
         /// </summary>
-        public fixed float Data[4 * Block8x8F.ScalarCount];
+        public fixed float Data[4 * Block8x8F.Size];
     }
 }

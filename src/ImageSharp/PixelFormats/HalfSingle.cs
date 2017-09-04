@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToScaledVector4()
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);

@@ -280,12 +280,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
         {
-            JpegDecoder decoder = new JpegDecoder()
+            var decoder = new JpegDecoder()
             {
                 IgnoreMetadata = false
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
             using (Image<Rgba32> image = testFile.CreateImage(decoder))
             {
@@ -296,12 +296,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            JpegDecoder options = new JpegDecoder()
+            var options = new JpegDecoder()
             {
                 IgnoreMetadata = true
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {

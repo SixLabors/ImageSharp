@@ -28,10 +28,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                PngEncoder options = new PngEncoder()
-                                                {
-                                                    PngColorType = pngColorType
-                                                };
+                var options = new PngEncoder()
+                {
+                    PngColorType = pngColorType
+                };
                 provider.Utility.TestName += "_" + pngColorType;
 
                 provider.Utility.SaveTestOutputFile(image, "png", options);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 image.Save(ms, new PngEncoder());
                 

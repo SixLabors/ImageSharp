@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -14,13 +12,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AutoRotateProcessor<TPixel> : ImageProcessor<TPixel>
+    internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AutoRotateProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
         /// </summary>
-        public AutoRotateProcessor()
+        public AutoOrientProcessor()
         {
         }
 

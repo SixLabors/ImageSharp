@@ -128,10 +128,10 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static Rectangle GetBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
         {
-            Vector2 leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
-            Vector2 rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
-            Vector2 leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
-            Vector2 rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
+            var leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
+            var rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
+            var leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
+            var rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
 
             Vector2[] allCorners = { leftTop, rightTop, leftBottom, rightBottom };
             float extentX = allCorners.Select(v => v.X).Max() - allCorners.Select(v => v.X).Min();

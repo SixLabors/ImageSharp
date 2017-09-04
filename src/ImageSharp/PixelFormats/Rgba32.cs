@@ -429,7 +429,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Pack(float x, float y, float z, float w)
         {
-            Vector4 value = new Vector4(x, y, z, w);
+            var value = new Vector4(x, y, z, w);
             this.Pack(ref value);
         }
 
@@ -440,7 +440,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Pack(ref Vector3 vector)
         {
-            Vector4 value = new Vector4(vector, 1);
+            var value = new Vector4(vector, 1);
             this.Pack(ref value);
         }
 

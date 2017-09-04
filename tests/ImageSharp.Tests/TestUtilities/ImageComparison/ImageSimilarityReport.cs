@@ -8,8 +8,8 @@
     public class ImageSimilarityReport
     {
         public ImageSimilarityReport(
-            IImageBase expectedImage,
-            IImageBase actualImage,
+            IImageFrame expectedImage,
+            IImageFrame actualImage,
             IEnumerable<PixelDifference> differences,
             float? totalNormalizedDifference = null)
         {
@@ -29,9 +29,9 @@
                                                   ? $"{this.TotalNormalizedDifference.Value * 100:0.0000}%"
                                                   : "?";
 
-        public IImageBase ExpectedImage { get; }
+        public IImageFrame ExpectedImage { get; }
 
-        public IImageBase ActualImage { get; }
+        public IImageFrame ActualImage { get; }
 
         public PixelDifference[] Differences { get; }
 

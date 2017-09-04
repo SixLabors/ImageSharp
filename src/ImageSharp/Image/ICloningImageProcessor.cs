@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/>.
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">

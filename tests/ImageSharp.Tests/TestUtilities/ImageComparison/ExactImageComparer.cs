@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         public static ExactImageComparer Instance { get; } = new ExactImageComparer();
 
         public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
-            ImageBase<TPixelA> expected,
-            ImageBase<TPixelB> actual)
+            ImageFrame<TPixelA> expected,
+            ImageFrame<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {

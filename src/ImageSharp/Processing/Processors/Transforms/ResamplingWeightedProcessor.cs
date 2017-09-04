@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc />
-        protected override void AfterApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle)
         {
             base.AfterApply(source, destination, sourceRectangle);
             this.HorizontalWeights?.Dispose();

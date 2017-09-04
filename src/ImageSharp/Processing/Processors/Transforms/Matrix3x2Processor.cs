@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <returns>
         /// The <see cref="Matrix3x2"/>.
         /// </returns>
-        protected Matrix3x2 GetCenteredMatrix(ImageBase<TPixel> source, Matrix3x2 matrix)
+        protected Matrix3x2 GetCenteredMatrix(ImageFrame<TPixel> source, Matrix3x2 matrix)
         {
             var translationToTargetCenter = Matrix3x2.CreateTranslation(-this.CanvasRectangle.Width * .5F, -this.CanvasRectangle.Height * .5F);
             var translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);

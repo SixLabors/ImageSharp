@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             Fast2DArray<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // we need a clean copy for each pass to start from
-            using (ImageBase<TPixel> cleanCopy = source.Clone())
+            using (ImageFrame<TPixel> cleanCopy = source.Clone())
             {
                 new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle);
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 // ReSharper disable once ForCanBeConvertedToForeach
                 for (int i = 1; i < kernels.Length; i++)
                 {
-                    using (ImageBase<TPixel> pass = cleanCopy.Clone())
+                    using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
                         new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle);
 
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             Parallel.For(
                                 minY,
                                 maxY,
-                                source.Configuration.ParallelOptions,
+                                source.Configuration().ParallelOptions,
                                 y =>
                                 {
                                     int offsetY = y - shiftY;

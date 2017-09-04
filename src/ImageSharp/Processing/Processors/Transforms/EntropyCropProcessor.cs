@@ -34,9 +34,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public float Threshold { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
-            using (ImageBase<TPixel> temp = source.Clone())
+            using (ImageFrame<TPixel> temp = source.Clone())
             {
                 // Detect the edges.
                 new SobelProcessor<TPixel>().Apply(temp, sourceRectangle);

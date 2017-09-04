@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                         {
                             Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             this.processMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, new Point(0, 0));
             if (this.Expand)

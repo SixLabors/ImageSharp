@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public ValueSize RadiusY { get; set; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                         {
                             using (var amounts = new Buffer<float>(width))

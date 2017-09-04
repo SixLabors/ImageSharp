@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageBase<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageFrame<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = bitmap.Width;
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp
             var topLeft = default(Point);
             var bottomRight = default(Point);
 
-            Func<ImageBase<TPixel>, int, int, float, bool> delegateFunc;
+            Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp
                     break;
             }
 
-            int GetMinY(ImageBase<TPixel> pixels)
+            int GetMinY(ImageFrame<TPixel> pixels)
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp
                 return 0;
             }
 
-            int GetMaxY(ImageBase<TPixel> pixels)
+            int GetMaxY(ImageFrame<TPixel> pixels)
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp
                 return height;
             }
 
-            int GetMinX(ImageBase<TPixel> pixels)
+            int GetMinX(ImageFrame<TPixel> pixels)
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp
                 return 0;
             }
 
-            int GetMaxX(ImageBase<TPixel> pixels)
+            int GetMaxX(ImageFrame<TPixel> pixels)
             {
                 for (int x = width - 1; x > -1; x--)
                 {

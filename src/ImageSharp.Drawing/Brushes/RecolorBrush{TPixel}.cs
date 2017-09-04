@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         public TPixel TargeTPixel { get; }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             return new RecolorBrushApplicator(source, this.SourceColor, this.TargeTPixel, this.Threshold, options);
         }
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <param name="targetColor">Color of the target.</param>
             /// <param name="threshold">The threshold .</param>
             /// <param name="options">The options</param>
-            public RecolorBrushApplicator(ImageBase<TPixel> source, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
+            public RecolorBrushApplicator(ImageFrame<TPixel> source, TPixel sourceColor, TPixel targetColor, float threshold, GraphicsOptions options)
                 : base(source, options)
             {
                 this.sourceColor = sourceColor.ToVector4();

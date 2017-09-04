@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">the source image</param>
         /// <param name="sourceRectangle">the target</param>
-        public void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        public void Apply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             try
             {
@@ -91,19 +91,19 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected virtual void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected abstract void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle);
+        protected abstract void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="sourceRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
-        protected virtual void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected virtual void AfterApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
         }
 

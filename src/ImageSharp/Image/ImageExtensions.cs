@@ -24,7 +24,27 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>Returns the bounds of the image</returns>
-        public static Rectangle Bounds<TPixel>(this ImageBase<TPixel> source)
+        public static Configuration Configuration<TPixel>(this ImageFrame<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Parent?.Configuration ?? SixLabors.ImageSharp.Configuration.Default;
+
+        /// <summary>
+        /// Gets the bounds of the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the bounds of the image</returns>
+        public static Rectangle Bounds<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => new Rectangle(0, 0, source.Width, source.Height);
+
+        /// <summary>
+        /// Gets the bounds of the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the bounds of the image</returns>
+        public static Rectangle Bounds<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => new Rectangle(0, 0, source.Width, source.Height);
 
@@ -34,7 +54,17 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>Returns the bounds of the image</returns>
-        public static Size Size<TPixel>(this ImageBase<TPixel> source)
+        public static Size Size<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => new Size(source.Width, source.Height);
+
+        /// <summary>
+        /// Gets the size of the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the bounds of the image</returns>
+        public static Size Size<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => new Size(source.Width, source.Height);
 
@@ -129,6 +159,22 @@ namespace SixLabors.ImageSharp
             }
 
             source.Save(stream, encoder);
+        }
+
+        /// <summary>
+        /// Saves the raw image to the given bytes.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source image</param>
+        /// <param name="buffer">The buffer to save the raw pixel data to.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
+        public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, Span<byte> buffer)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Span<byte> byteBuffer = source.GetPixelSpan().AsBytes();
+            Guard.MustBeGreaterThanOrEqualTo(buffer.Length, byteBuffer.Length, nameof(buffer));
+
+            byteBuffer.CopyTo(buffer);
         }
 
         /// <summary>

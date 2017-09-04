@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Dithering
         /// <param name="x">The column index.</param>
         /// <param name="y">The row index.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y)
+        void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

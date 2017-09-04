@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             public float Radius { get; set; }
 
             /// <inheritdoc/>
-            protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+            protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
             {
                 int startY = sourceRectangle.Y;
                 int endY = sourceRectangle.Bottom;
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     Parallel.For(
                         minY,
                         maxY,
-                        source.Configuration.ParallelOptions,
+                        source.Configuration().ParallelOptions,
                         y =>
                         {
                             int offsetY = y - startY;

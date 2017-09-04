@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> sourceBase, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> sourceBase, Rectangle sourceRectangle)
         {
             // can only apply to the origional image
             var source = sourceBase as Image<TPixel>;

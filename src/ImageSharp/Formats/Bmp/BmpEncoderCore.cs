@@ -33,12 +33,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TPixel}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(ImageBase<TPixel> image, Stream stream)
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
@@ -125,9 +125,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="image">
-        /// The <see cref="ImageBase{TPixel}"/> containing pixel data.
+        /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TPixel>(EndianBinaryWriter writer, ImageBase<TPixel> image)
+        private void WriteImage<TPixel>(EndianBinaryWriter writer, IImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())

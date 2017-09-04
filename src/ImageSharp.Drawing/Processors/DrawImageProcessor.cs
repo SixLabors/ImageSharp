@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             Image<TPixel> disposableImage = null;
             Image<TPixel> targetImage = this.Image;
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                     Parallel.For(
                         minY,
                         maxY,
-                        source.Configuration.ParallelOptions,
+                        source.Configuration().ParallelOptions,
                         y =>
                             {
                                 Span<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);

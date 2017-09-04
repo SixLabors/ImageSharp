@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public FlipType FlipType { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             switch (this.FlipType)
             {
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// at half the height of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
-        private void FlipX(ImageBase<TPixel> source)
+        private void FlipX(ImageFrame<TPixel> source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     halfHeight,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                         {
                             int newY = height - y - 1;
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// at half of the width of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
-        private void FlipY(ImageBase<TPixel> source)
+        private void FlipY(ImageFrame<TPixel> source)
         {
             int width = source.Width;
             int height = source.Height;
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                         {
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

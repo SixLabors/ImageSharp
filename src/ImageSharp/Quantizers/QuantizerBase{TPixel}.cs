@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         public IErrorDiffuser DitherType { get; set; } = new SierraLiteDiffuser();
 
         /// <inheritdoc/>
-        public virtual QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
+        public virtual QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
             if (this.Dither)
             {
                 // We clone the image as we don't want to alter the original.
-                using (ImageBase<TPixel> clone = image.Clone())
+                using (ImageFrame<TPixel> clone = image.Clone())
                 {
                     this.SecondPass(clone, quantizedPixels, width, height);
                 }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         /// <param name="source">The source data</param>
         /// <param name="width">The width in pixels of the image.</param>
         /// <param name="height">The height in pixels of the image.</param>
-        protected virtual void FirstPass(ImageBase<TPixel> source, int width, int height)
+        protected virtual void FirstPass(ImageFrame<TPixel> source, int width, int height)
         {
             // Loop through each row
             for (int y = 0; y < height; y++)
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected abstract void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height);
+        protected abstract void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height);
 
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm

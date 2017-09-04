@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
+        public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -221,7 +221,7 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void FirstPass(ImageBase<TPixel> source, int width, int height)
+        protected override void FirstPass(ImageFrame<TPixel> source, int width, int height)
         {
             // Build up the 3-D color histogram
             // Loop through each row
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.

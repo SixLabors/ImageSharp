@@ -23,13 +23,22 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         }
 
         public abstract ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
-            ImageBase<TPixelA> expected,
-            ImageBase<TPixelB> actual)
+            ImageFrame<TPixelA> expected,
+            ImageFrame<TPixelB> actual)
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>;
     }
 
     public static class ImageComparerExtensions
     {
+        public static ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+        {
+            return comparer.CompareImagesOrFrames((ImageFrame<TPixelA>)expected, (ImageFrame<TPixelB>)actual);
+        }
+
         public static IEnumerable<ImageSimilarityReport> CompareImages<TPixelA, TPixelB>(
             this ImageComparer comparer,
             Image<TPixelA> expected,
@@ -37,12 +46,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
         {
             var result = new List<ImageSimilarityReport>();
-            ImageSimilarityReport report = comparer.CompareImagesOrFrames(expected, actual);
-
-            if (!report.IsEmpty)
-            {
-                result.Add(report);
-            }
 
             if (expected.Frames.Count != actual.Frames.Count)
             {
@@ -50,12 +53,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             }
             for (int i = 0; i < expected.Frames.Count; i++)
             {
-                report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
+                ImageSimilarityReport report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
                 if (!report.IsEmpty)
                 {
                     result.Add(report);
                 }
             }
+
             return result;
         }
 

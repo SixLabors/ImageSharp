@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp
                             }
                         });
 
-                    img.SwapPixelsBuffers(pixels);
+                    img.Frames[0].SwapPixelsBuffers(pixels);
                 }
             });
         }

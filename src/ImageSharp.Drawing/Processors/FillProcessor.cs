@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                     Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                     {
                         int offsetY = y - startY;

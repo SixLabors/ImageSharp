@@ -45,7 +45,7 @@
         /// </summary>
         public int PerPixelManhattanThreshold { get; }
         
-        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
+        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {

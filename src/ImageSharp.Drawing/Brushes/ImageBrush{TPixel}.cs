@@ -21,19 +21,19 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         /// <summary>
         /// The image to paint.
         /// </summary>
-        private readonly ImageBase<TPixel> image;
+        private readonly ImageFrame<TPixel> image;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image.</param>
-        public ImageBrush(ImageBase<TPixel> image)
+        public ImageBrush(ImageFrame<TPixel> image)
         {
             this.image = image;
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             return new ImageBrushApplicator(source, this.image, region, options);
         }
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <summary>
             /// The source image.
             /// </summary>
-            private readonly ImageBase<TPixel> source;
+            private readonly ImageFrame<TPixel> source;
 
             /// <summary>
             /// The y-length.
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <param name="image">The image.</param>
             /// <param name="region">The region.</param>
             /// <param name="options">The options</param>
-            public ImageBrushApplicator(ImageBase<TPixel> target, ImageBase<TPixel> image, RectangleF region, GraphicsOptions options)
+            public ImageBrushApplicator(ImageFrame<TPixel> target, ImageFrame<TPixel> image, RectangleF region, GraphicsOptions options)
                 : base(target, options)
             {
                 this.source = image;

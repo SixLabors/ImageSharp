@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
@@ -55,20 +56,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // ------------
             // For resize we know we are going to populate every pixel with fresh data and we want a different target size so
             // let's manually clone an empty set of images at the correct target and then have the base class processs them in turn.
-            var image = new Image<TPixel>(source.Configuration, this.Width, this.Height, source.MetaData.Clone());
-
-            // Now 'clone' the ImageFrames
-            foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
-            {
-                var targetFrame = new ImageFrame<TPixel>(sourceFrame.Configuration, this.Width, this.Height, sourceFrame.MetaData.Clone());
-                image.Frames.Add(targetFrame);
-            }
+            var frames = source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
+            var image = new Image<TPixel>(source.Configuration, this.Width, this.Height, source.MetaData.Clone(), frames); // base the place holder images in to prevet a extra frame being added
 
             return image;
         }
 
         /// <inheritdoc/>
-        protected override unsafe void OnApply(ImageBase<TPixel> source, ImageBase<TPixel> cloned, Rectangle sourceRectangle)
+        protected override unsafe void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
@@ -101,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                     {
                         // Y coordinates of source points
@@ -130,7 +125,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     sourceRectangle.Bottom,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
@@ -163,7 +158,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    source.Configuration().ParallelOptions,
                     y =>
                     {
                         // Ensure offsets are normalised for cropping and padding.

@@ -22,7 +22,17 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelSpan<TPixel>(this ImageBase<TPixel> source)
+        public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => GetSpan(source);
+
+        /// <summary>
+        /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => GetSpan(source);
 
@@ -33,7 +43,18 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageBase<TPixel> source, int row)
+        public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int row)
+            where TPixel : struct, IPixel<TPixel>
+            => GetSpan(source).Slice(row * source.Width, source.Width);
+
+        /// <summary>
+        /// Gets a <see cref="Span{TPixal}"/> representing the row 'y' beginning from the the first pixel on that row.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="row">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
             => GetSpan(source).Slice(row * source.Width, source.Width);
 
@@ -43,8 +64,8 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
         /// <returns>The span retuned from Pixel source</returns>
-        private static Span<TPixel> GetSpan<TPixel>(IPixelSource<TPixel> source)
+        private static Span<TPixel> GetSpan<TPixel>(IImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.Span;
+            => source.PixelBuffer.Span;
     }
 }

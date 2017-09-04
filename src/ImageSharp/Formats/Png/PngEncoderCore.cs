@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Collect the indexed pixel data
             if (this.pngColorType == PngColorType.Palette)
             {
-                this.CollectIndexedBytes(image, stream, header);
+                this.CollectIndexedBytes<TPixel>(image, stream, header);
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -304,7 +304,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="image">The image to encode.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
-        private void CollectIndexedBytes<TPixel>(ImageBase<TPixel> image, Stream stream, PngHeader header)
+        private void CollectIndexedBytes<TPixel>(ImageFrame<TPixel> image, Stream stream, PngHeader header)
             where TPixel : struct, IPixel<TPixel>
         {
             // Quantize the image and get the pixels.
@@ -529,7 +529,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
         /// <returns>The <see cref="QuantizedImage{TPixel}"/></returns>
-        private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageBase<TPixel> image)
+        private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.paletteSize > 256)

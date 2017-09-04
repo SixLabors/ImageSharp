@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             if (this.Grayscale)
             {
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             new ConvolutionProcessor<TPixel>(this.KernelXY).Apply(source, sourceRectangle);
         }

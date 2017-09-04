@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         public GraphicsOptions Options { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
         {
             Region region = this.Region;
             Rectangle rect = region.Bounds;

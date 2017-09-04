@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Get the number of bits.
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSize);
 
-            this.hasFrames = image.Frames.Any();
+            this.hasFrames = image.Frames.Count > 1;
 
             // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
             var ditheredQuantizer = (IQuantizer<TPixel>)this.quantizer;
@@ -114,28 +114,29 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteLogicalScreenDescriptor(image, writer, index);
 
             // Write the first frame.
-            this.WriteGraphicalControlExtension(image.MetaData, writer, index);
             this.WriteComments(image, writer);
-            this.WriteImageDescriptor(image, writer);
-            this.WriteColorTable(quantized, writer);
-            this.WriteImageData(quantized, writer);
 
             // Write additional frames.
             if (this.hasFrames)
             {
                 this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
+            }
 
-                // ReSharper disable once ForCanBeConvertedToForeach
-                for (int i = 0; i < image.Frames.Count; i++)
+            // ReSharper disable once ForCanBeConvertedToForeach
+            for (int i = 0; i < image.Frames.Count; i++)
+            {
+                ImageFrame<TPixel> frame = image.Frames[i];
+                if (quantized == null)
                 {
-                    ImageFrame<TPixel> frame = image.Frames[i];
-                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, paletteSize);
-
-                    this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantizedFrame));
-                    this.WriteImageDescriptor(frame, writer);
-                    this.WriteColorTable(quantizedFrame, writer);
-                    this.WriteImageData(quantizedFrame, writer);
+                    quantized = ditheredQuantizer.Quantize(frame, paletteSize);
                 }
+
+                this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));
+                this.WriteImageDescriptor(frame, writer);
+                this.WriteColorTable(quantized, writer);
+                this.WriteImageData(quantized, writer);
+
+                quantized = null; // so next frame can regenerate it
             }
 
             // TODO: Write extension etc
@@ -253,7 +254,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the image comments to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to be encoded.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
@@ -321,9 +322,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the image descriptor to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to be encoded.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
-        private void WriteImageDescriptor<TPixel>(ImageBase<TPixel> image, EndianBinaryWriter writer)
+        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
@@ -347,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the color table to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
         private void WriteColorTable<TPixel>(QuantizedImage<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>

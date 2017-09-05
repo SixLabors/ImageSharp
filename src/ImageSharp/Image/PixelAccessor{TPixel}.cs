@@ -418,6 +418,7 @@ namespace SixLabors.ImageSharp
         /// Sets the pixel buffer in an unsafe manor this should not be used unless you know what its doing!!!
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
+        /// <param name="ownedBuffer">if set to <c>true</c> then this instance ownes the buffer and thus should dispose of it afterwards.</param>
         private void SetPixelBufferUnsafe(Buffer2D<TPixel> pixels, bool ownedBuffer)
         {
             this.PixelBuffer = pixels;

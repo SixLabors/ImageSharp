@@ -75,8 +75,6 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            this.Width = pixelSource.Width;
-            this.Height = pixelSource.Height;
             int newHeight = pixelSource.Height;
 
             for (int i = 0; i < this.Frames.Count; i++)
@@ -84,7 +82,6 @@ namespace SixLabors.ImageSharp
                 this.Frames[i].SwapPixelsBuffers(pixelSource.Frames[i]);
             }
         }
-
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}" /> class
@@ -97,9 +94,7 @@ namespace SixLabors.ImageSharp
         /// <param name="frames">The frames that will be owned by this image instance.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetaData metadata, IEnumerable<ImageFrame<TPixel>> frames)
         {
-            this.Configuration = configuration ?? Configuration.Default;
-            this.Width = width;
-            this.Height = height;
+            this.ImageConfiguration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
             this.Frames = new ImageFrameCollection<TPixel>(this);
@@ -114,7 +109,7 @@ namespace SixLabors.ImageSharp
 
             if (this.Frames.Count == 0)
             {
-                this.Frames.Add(new ImageFrame<TPixel>(this.Width, this.Height));
+                this.Frames.Add(new ImageFrame<TPixel>(width, height));
             }
         }
 
@@ -124,17 +119,17 @@ namespace SixLabors.ImageSharp
         /// <value>
         /// The configuration.
         /// </value>
-        public Configuration Configuration { get; }
+        internal Configuration ImageConfiguration { get; }
 
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width { get; private set; }
+        public int Width => this.RootFrame?.Width ?? 0;
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height { get; private set; }
+        public int Height => this.RootFrame?.Height ?? 0;
 
         /// <summary>
         /// Gets the meta data of the image.
@@ -149,7 +144,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IImageFrame<TPixel> RootFrame => this.Frames[0];
+        private IImageFrame<TPixel> RootFrame => this.Frames.RootFrame;
 
         /// <inheritdoc/>
         Buffer2D<TPixel> IImageFrame<TPixel>.PixelBuffer => this.RootFrame.PixelBuffer;
@@ -201,7 +196,7 @@ namespace SixLabors.ImageSharp
         {
             IEnumerable<ImageFrame<TPixel>> frames = this.Frames.Select(x => x.Clone()).ToArray();
 
-            return new Image<TPixel>(this.Configuration, this.Width, this.Height, this.MetaData.Clone(), frames);
+            return new Image<TPixel>(this.ImageConfiguration, this.Width, this.Height, this.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
@@ -219,7 +214,7 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>
         {
             IEnumerable<ImageFrame<TPixel2>> frames = this.Frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
-            var target = new Image<TPixel2>(this.Configuration, this.Width, this.Height, this.MetaData, frames);
+            var target = new Image<TPixel2>(this.ImageConfiguration, this.Width, this.Height, this.MetaData, frames);
 
             return target;
         }

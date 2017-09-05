@@ -38,6 +38,22 @@ namespace SixLabors.ImageSharp
         public int Count { get => this.frames.Count; }
 
         /// <summary>
+        /// Gets the root frame.
+        /// </summary>
+        public ImageFrame<TPixel> RootFrame
+        {
+            get
+            {
+                if (this.frames.Count > 0)
+                {
+                    return this.frames[0];
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the <see cref="ImageFrame{TPixel}"/> at the specified index.
         /// </summary>
         /// <value>
@@ -105,9 +121,12 @@ namespace SixLabors.ImageSharp
 
         private void ValidateFrameSize(ImageFrame<TPixel> frame)
         {
-            if (this.parent.Width != frame.Width || this.parent.Height != frame.Height)
+            if (this.Count != 0)
             {
-                throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
+                if (this.parent.Width != frame.Width || this.parent.Height != frame.Height)
+                {
+                    throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
+                }
             }
         }
 

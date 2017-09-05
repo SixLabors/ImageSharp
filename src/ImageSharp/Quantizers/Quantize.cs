@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
@@ -65,7 +66,7 @@ namespace SixLabors.ImageSharp
                     Parallel.For(
                         0,
                         pixels.Height,
-                        img.Configuration.ParallelOptions,
+                        img.Configuration().ParallelOptions,
                         y =>
                         {
                             for (int x = 0; x < pixels.Width; x++)

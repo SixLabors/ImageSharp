@@ -4,6 +4,7 @@
 using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 

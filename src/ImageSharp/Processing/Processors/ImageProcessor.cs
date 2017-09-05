@@ -22,10 +22,6 @@ namespace SixLabors.ImageSharp.Processing
             {
                 this.BeforeImageApply(source, sourceRectangle);
 
-                this.BeforeApply(source, sourceRectangle);
-                this.OnApply(source, sourceRectangle);
-                this.AfterApply(source, sourceRectangle);
-
                 foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
                 {
                     this.BeforeApply(sourceFrame, sourceRectangle);

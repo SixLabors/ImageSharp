@@ -49,8 +49,6 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(height, 0, nameof(height));
             Guard.NotNull(metaData, nameof(metaData));
 
-            this.Width = width;
-            this.Height = height;
             this.pixelBuffer = Buffer2D<TPixel>.CreateClean(width, height);
             this.MetaData = metaData;
         }
@@ -61,9 +59,7 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source.</param>
         internal ImageFrame(ImageFrame<TPixel> source)
         {
-            this.Width = source.Width;
-            this.Height = source.Height;
-            this.pixelBuffer = new Buffer2D<TPixel>(source.Width, source.Height);
+            this.pixelBuffer = new Buffer2D<TPixel>(source.pixelBuffer.Width, source.pixelBuffer.Height);
             source.pixelBuffer.Span.CopyTo(this.pixelBuffer.Span);
             this.MetaData = source.MetaData.Clone();
         }
@@ -72,10 +68,10 @@ namespace SixLabors.ImageSharp
         Buffer2D<TPixel> IImageFrame<TPixel>.PixelBuffer => this.pixelBuffer;
 
         /// <inheritdoc/>
-        public int Width { get; private set; }
+        public int Width => this.pixelBuffer.Width;
 
         /// <inheritdoc/>
-        public int Height { get; private set; }
+        public int Height => this.pixelBuffer.Height;
 
         /// <summary>
         /// Gets the configuration providing initialization code which allows extending the library.
@@ -158,13 +154,8 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            int newWidth = pixelSource.Width;
-            int newHeight = pixelSource.Height;
-
             // Push my memory into the accessor (which in turn unpins the old buffer ready for the images use)
             var newPixels = pixelSource.SwapBufferOwnership(this.pixelBuffer);
-            this.Width = newWidth;
-            this.Height = newHeight;
             this.pixelBuffer = newPixels;
         }
 
@@ -181,11 +172,7 @@ namespace SixLabors.ImageSharp
             var newPixels = pixelSource.pixelBuffer;
 
             pixelSource.pixelBuffer = this.pixelBuffer;
-            pixelSource.Width = this.Width;
-            pixelSource.Height = this.Height;
 
-            this.Width = newWidth;
-            this.Height = newHeight;
             this.pixelBuffer = newPixels;
         }
 

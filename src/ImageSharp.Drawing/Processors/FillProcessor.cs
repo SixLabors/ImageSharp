@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
@@ -64,10 +65,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
             }
 
             int width = maxX - minX;
-
-            // We could possibly do some optimization by having knowledge about the individual brushes operate
-            // for example If brush is SolidBrush<TPixel> then we could just get the color upfront
-            // and skip using the IBrushApplicator<TPixel>?.
+            
             using (var amount = new Buffer<float>(width))
             using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(source, sourceRectangle, this.options))
             {

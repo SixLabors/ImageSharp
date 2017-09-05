@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     using SixLabors.ImageSharp.Memory;
     using SixLabors.Primitives;
+    using SixLabors.ImageSharp.Helpers;
+    using SixLabors.ImageSharp.Advanced;
 
     public class Glow : BenchmarkBase
     {
@@ -35,7 +37,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                bulk.Apply(image, image.Bounds());
+                this.bulk.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
             }
         }
@@ -45,7 +47,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                parallel.Apply(image, image.Bounds());
+                this.parallel.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
             }
         }

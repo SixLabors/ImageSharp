@@ -20,7 +20,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array in <typeparamref name="TPixel"/> format.
         /// </summary>
-        /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="width">The width of the final image.</param>
         /// <param name="height">The height of the final image.</param>
@@ -33,7 +32,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the raw <typeparamref name="TPixel"/> data.
         /// </summary>
-        /// <param name="config">The config for the decoder.</param>
         /// <param name="data">The Span containing the image Pixel data.</param>
         /// <param name="width">The width of the final image.</param>
         /// <param name="height">The height of the final image.</param>

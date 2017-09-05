@@ -18,7 +18,6 @@ namespace SixLabors.ImageSharp.Helpers
     /// </summary>
     public static partial class ImageExtensions
     {
-
         /// <summary>
         /// Gets the bounds of the image.
         /// </summary>
@@ -58,6 +57,5 @@ namespace SixLabors.ImageSharp.Helpers
         public static Size Size<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => new Size(source.Width, source.Height);
-
     }
 }

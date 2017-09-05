@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
             }
 
             int width = maxX - minX;
-            
+
             using (var amount = new Buffer<float>(width))
             using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(source, sourceRectangle, this.options))
             {

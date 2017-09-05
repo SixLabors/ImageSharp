@@ -68,22 +68,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
-        /// </summary>
-        /// <param name="pixelSource">The pixel source.</param>
-        internal void SwapPixelsBuffers(Image<TPixel> pixelSource)
-        {
-            Guard.NotNull(pixelSource, nameof(pixelSource));
-
-            int newHeight = pixelSource.Height;
-
-            for (int i = 0; i < this.Frames.Count; i++)
-            {
-                this.Frames[i].SwapPixelsBuffers(pixelSource.Frames[i]);
-            }
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}" /> class
         /// with the height and the width of the image.
         /// </summary>
@@ -227,6 +211,22 @@ namespace SixLabors.ImageSharp
             for (int i = 0; i < this.Frames.Count; i++)
             {
                 this.Frames[i].Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+        /// </summary>
+        /// <param name="pixelSource">The pixel source.</param>
+        internal void SwapPixelsBuffers(Image<TPixel> pixelSource)
+        {
+            Guard.NotNull(pixelSource, nameof(pixelSource));
+
+            int newHeight = pixelSource.Height;
+
+            for (int i = 0; i < this.Frames.Count; i++)
+            {
+                this.Frames[i].SwapPixelsBuffers(pixelSource.Frames[i]);
             }
         }
     }

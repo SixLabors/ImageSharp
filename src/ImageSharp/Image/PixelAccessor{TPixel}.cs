@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Unsafe = System.Runtime.CompilerServices.Unsafe;
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
             this.SetPixelBufferUnsafe(image.PixelBuffer, false);
-            Configuration config = image.Parent?.Configuration ?? Configuration.Default;
+            Configuration config = image.Parent.Configuration();
             this.ParallelOptions = config.ParallelOptions;
         }
 

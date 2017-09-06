@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
-        public void PostProcess<TPixel>(Image<TPixel> destination)
+        public void PostProcess<TPixel>(ImageFrame<TPixel> destination)
             where TPixel : struct, IPixel<TPixel>
         {
             this.PixelRowCounter = 0;
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image.</param>
-        public void DoPostProcessorStep<TPixel>(Image<TPixel> destination)
+        public void DoPostProcessorStep<TPixel>(ImageFrame<TPixel> destination)
             where TPixel : struct, IPixel<TPixel>
         {
             foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
-        private void ConvertColorsInto<TPixel>(Image<TPixel> destination)
+        private void ConvertColorsInto<TPixel>(ImageFrame<TPixel> destination)
             where TPixel : struct, IPixel<TPixel>
         {
             int maxY = Math.Min(destination.Height, this.PixelRowCounter + PixelRowsPerStep);

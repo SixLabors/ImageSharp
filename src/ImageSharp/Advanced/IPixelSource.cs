@@ -7,26 +7,18 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Encapsulates the basic properties and methods required to manipulate images.
     /// </summary>
-    public interface IImageFrame : IDisposable
+    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    internal interface IPixelSource<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the meta data of the image.
+        /// Gets the pixel buffer.
         /// </summary>
-        ImageFrameMetaData MetaData { get; }
-
-        /// <summary>
-        /// Gets the width.
-        /// </summary>
-        int Width { get; }
-
-        /// <summary>
-        /// Gets the height.
-        /// </summary>
-        int Height { get; }
+        Buffer2D<TPixel> PixelBuffer { get; }
     }
 }

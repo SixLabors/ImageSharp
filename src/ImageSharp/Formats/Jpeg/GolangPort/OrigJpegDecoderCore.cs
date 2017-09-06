@@ -815,7 +815,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             using (var postProcessor = new JpegImagePostProcessor(this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
-                postProcessor.PostProcess(image);
+                postProcessor.PostProcess(image.Frames.RootFrame);
                 return image;
             }
         }

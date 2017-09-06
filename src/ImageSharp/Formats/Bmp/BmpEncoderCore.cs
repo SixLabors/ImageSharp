@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             WriteHeader(writer, fileHeader);
             this.WriteInfo(writer, infoHeader);
-            this.WriteImage(writer, image);
+            this.WriteImage(writer, image.Frames.RootFrame);
 
             writer.Flush();
         }
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="image">
         /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TPixel>(EndianBinaryWriter writer, IImageFrame<TPixel> image)
+        private void WriteImage<TPixel>(EndianBinaryWriter writer, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())

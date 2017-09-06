@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 this.SetFrameMetaData(this.metaData);
 
-                image = (ImageFrame<TPixel>)this.image;
+                image = this.image.Frames.RootFrame;
             }
             else
             {
@@ -471,7 +471,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            this.previousFrame = currentFrame == null ? this.image : currentFrame;
+            this.previousFrame = currentFrame == null ? this.image.Frames.RootFrame : currentFrame;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)

@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IImageFrame<TPixel> RootFrame => this.Frames.RootFrame;
+        private IImageFrame<TPixel> RootFrame => this.Frames?.RootFrame;
 
         /// <inheritdoc/>
         Buffer2D<TPixel> IImageFrame<TPixel>.PixelBuffer => this.RootFrame.PixelBuffer;
@@ -144,15 +144,9 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         public TPixel this[int x, int y]
         {
-            get
-            {
-                return this.RootFrame.PixelBuffer[x, y];
-            }
+            get => this.RootFrame.PixelBuffer[x, y];
 
-            set
-            {
-                this.RootFrame.PixelBuffer[x, y] = value;
-            }
+            set => this.RootFrame.PixelBuffer[x, y] = value;
         }
 
         /// <summary>

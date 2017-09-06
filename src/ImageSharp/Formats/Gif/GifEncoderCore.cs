@@ -122,10 +122,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
             }
 
-            // ReSharper disable once ForCanBeConvertedToForeach
-            for (int i = 0; i < image.Frames.Count; i++)
+            foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                ImageFrame<TPixel> frame = image.Frames[i];
                 if (quantized == null)
                 {
                     quantized = ditheredQuantizer.Quantize(frame, paletteSize);

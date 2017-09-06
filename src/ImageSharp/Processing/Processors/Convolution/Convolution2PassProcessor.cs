@@ -41,11 +41,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
-            ParallelOptions parallelOptions = source.Configuration().ParallelOptions;
+            ParallelOptions parallelOptions = configuration.ParallelOptions;
 
             using (var firstPassPixels = new PixelAccessor<TPixel>(width, height))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())

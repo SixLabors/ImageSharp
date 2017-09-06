@@ -46,7 +46,7 @@
         /// </summary>
         public int PerPixelManhattanThreshold { get; }
         
-        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
+        public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {
@@ -91,11 +91,11 @@
             
             if (normalizedDifference > this.ImageThreshold)
             {
-                return new ImageSimilarityReport(expected, actual, differences, normalizedDifference);
+                return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences, normalizedDifference);
             }
             else
             {
-                return ImageSimilarityReport.Empty;
+                return ImageSimilarityReport<TPixelA, TPixelB>.Empty;
             }
         }
 

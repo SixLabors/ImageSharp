@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
     {
         public static ExactImageComparer Instance { get; } = new ExactImageComparer();
 
-        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
+        public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
             ImageFrame<TPixelA> expected,
             ImageFrame<TPixelB> actual)
         {
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 }
             }
 
-            return new ImageSimilarityReport(expected, actual, differences);
+            return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences);
         }
     }
 }

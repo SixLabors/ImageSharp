@@ -17,14 +17,6 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
-        private readonly int parentWidth;
-        private readonly int parentHeight;
-
-        internal ImageFrameCollection(Image<TPixel> parent)
-        {
-            this.parentWidth = parent.Width;
-            this.parentHeight = parent.Height;
-        }
 
         /// <summary>
         /// Gets the count.
@@ -103,7 +95,7 @@ namespace SixLabors.ImageSharp
         {
             if (this.Count != 0)
             {
-                if (this.parentWidth != frame.Width || this.parentHeight != frame.Height)
+                if (this.RootFrame.Width != frame.Width || this.RootFrame.Height != frame.Height)
                 {
                     throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
                 }

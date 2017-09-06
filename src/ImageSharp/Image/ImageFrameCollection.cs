@@ -91,17 +91,6 @@ namespace SixLabors.ImageSharp
             this.frames.Add(frame);
         }
 
-        private void ValidateFrameSize(ImageFrame<TPixel> frame)
-        {
-            if (this.Count != 0)
-            {
-                if (this.RootFrame.Width != frame.Width || this.RootFrame.Height != frame.Height)
-                {
-                    throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
-                }
-            }
-        }
-
         /// <summary>
         /// Determines whether the <seealso cref="Image{TPixel}"/> contains the <paramref name="frame"/>.
         /// </summary>
@@ -122,7 +111,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidOperationException">Cannot remove last frame</exception>
         public bool Remove(ImageFrame<TPixel> frame)
         {
-            if (this.frames.Count == 1 && this.frames.Contains(frame))
+            if (this.Count == 1 && this.frames.Contains(frame))
             {
                 throw new InvalidOperationException("Cannot remove last frame");
             }
@@ -135,5 +124,18 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this.frames).GetEnumerator();
+
+        private void ValidateFrameSize(ImageFrame<TPixel> frame)
+        {
+            Guard.NotNull(frame, nameof(frame));
+
+            if (this.Count != 0)
+            {
+                if (this.RootFrame.Width != frame.Width || this.RootFrame.Height != frame.Height)
+                {
+                    throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
+                }
+            }
+        }
     }
 }

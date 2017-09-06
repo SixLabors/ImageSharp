@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// Represents a single frame in a animation.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class ImageFrame<TPixel> : IImageFrame, IPixelSource<TPixel>
+    public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -67,10 +67,14 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.pixelBuffer;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
         public int Width => this.pixelBuffer.Width;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Gets the height.
+        /// </summary>
         public int Height => this.pixelBuffer.Height;
 
         /// <summary>

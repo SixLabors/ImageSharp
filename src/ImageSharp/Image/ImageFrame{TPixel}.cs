@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
             // Push my memory into the accessor (which in turn unpins the old buffer ready for the images use)
-            var newPixels = pixelSource.SwapBufferOwnership(this.pixelBuffer);
+            Buffer2D<TPixel> newPixels = pixelSource.SwapBufferOwnership(this.pixelBuffer);
             this.pixelBuffer = newPixels;
         }
 
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp
 
             int newWidth = pixelSource.Width;
             int newHeight = pixelSource.Height;
-            var newPixels = pixelSource.pixelBuffer;
+            Buffer2D<TPixel> newPixels = pixelSource.pixelBuffer;
 
             pixelSource.pixelBuffer = this.pixelBuffer;
 
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp
                     {
                         for (int x = 0; x < target.Width; x++)
                         {
-                            TPixel2 color = default(TPixel2);
+                            var color = default(TPixel2);
                             color.PackFromVector4(scaleFunc(pixels[x, y].ToVector4()));
                             targetPixels[x, y] = color;
                         }

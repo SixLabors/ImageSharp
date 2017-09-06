@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.Processing
                 foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
                 {
                     this.BeforeApply(sourceFrame, sourceRectangle);
-
                     this.OnApply(sourceFrame, sourceRectangle);
                     this.AfterApply(sourceFrame, sourceRectangle);
                 }

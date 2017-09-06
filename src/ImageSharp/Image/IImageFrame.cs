@@ -17,11 +17,6 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the parent.
-        /// </summary>
-        Image<TPixel> Parent { get; }
-
-        /// <summary>
         /// Gets the pixel buffer.
         /// </summary>
         Buffer2D<TPixel> PixelBuffer { get; }

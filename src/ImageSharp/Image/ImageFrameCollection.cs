@@ -4,16 +4,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData;
+
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -24,34 +16,25 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrameCollection<TPixel> : IEnumerable<ImageFrame<TPixel>>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
-        private readonly Image<TPixel> parent;
+        private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
+        private readonly int parentWidth;
+        private readonly int parentHeight;
 
         internal ImageFrameCollection(Image<TPixel> parent)
         {
-            this.parent = parent;
+            this.parentWidth = parent.Width;
+            this.parentHeight = parent.Height;
         }
 
         /// <summary>
         /// Gets the count.
         /// </summary>
-        public int Count { get => this.frames.Count; }
+        public int Count => this.frames.Count;
 
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        public ImageFrame<TPixel> RootFrame
-        {
-            get
-            {
-                if (this.frames.Count > 0)
-                {
-                    return this.frames[0];
-                }
-
-                return null;
-            }
-        }
+        public ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
 
         /// <summary>
         /// Gets or sets the <see cref="ImageFrame{TPixel}"/> at the specified index.
@@ -63,10 +46,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ImageFrame{TPixel}"/> at the specified index.</returns>
         public ImageFrame<TPixel> this[int index]
         {
-            get
-            {
-                return this.frames[index];
-            }
+            get => this.frames[index];
 
             set
             {
@@ -123,7 +103,7 @@ namespace SixLabors.ImageSharp
         {
             if (this.Count != 0)
             {
-                if (this.parent.Width != frame.Width || this.parent.Height != frame.Height)
+                if (this.parentWidth != frame.Width || this.parentHeight != frame.Height)
                 {
                     throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
                 }

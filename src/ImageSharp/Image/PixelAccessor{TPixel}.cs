@@ -4,8 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
+
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Unsafe = System.Runtime.CompilerServices.Unsafe;
@@ -49,8 +48,6 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(image.Height, 0, "image height");
 
             this.SetPixelBufferUnsafe(image.PixelBuffer, false);
-            Configuration config = image.Parent.Configuration();
-            this.ParallelOptions = config.ParallelOptions;
         }
 
         /// <summary>
@@ -77,8 +74,6 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.SetPixelBufferUnsafe(pixels, ownedBuffer);
-
-            this.ParallelOptions = Configuration.Default.ParallelOptions;
         }
 
         /// <summary>
@@ -104,20 +99,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public int RowStride { get; private set; }
 
-        /// <summary>
-        /// Gets the width of the image.
-        /// </summary>
+        /// <inheritdoc />
         public int Width { get; private set; }
 
-        /// <summary>
-        /// Gets the height of the image.
-        /// </summary>
+        /// <inheritdoc />
         public int Height { get; private set; }
-
-        /// <summary>
-        /// Gets the global parallel options for processing tasks in parallel.
-        /// </summary>
-        public ParallelOptions ParallelOptions { get; }
 
         /// <inheritdoc />
         Span<TPixel> IBuffer2D<TPixel>.Span => this.PixelBuffer;
@@ -147,9 +133,7 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
             if (this.isDisposed || !this.ownedBuffer)
@@ -245,7 +229,7 @@ namespace SixLabors.ImageSharp
         /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
         internal Buffer2D<TPixel> SwapBufferOwnership(Buffer2D<TPixel> pixels)
         {
-            var oldPixels = this.PixelBuffer;
+            Buffer2D<TPixel> oldPixels = this.PixelBuffer;
             this.SetPixelBufferUnsafe(pixels, this.ownedBuffer);
             return oldPixels;
         }

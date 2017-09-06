@@ -39,6 +39,16 @@ namespace SixLabors.ImageSharp.Advanced
             => GetSpan(source, row);
 
         /// <summary>
+        /// Gets the configuration.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the configuration.</returns>
+        public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => GetConfiguration(source);
+
+        /// <summary>
         /// Gets the span.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
@@ -73,5 +83,13 @@ namespace SixLabors.ImageSharp.Advanced
         private static Span<TPixel> GetSpan<TPixel>(Buffer2D<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
             => source.Span.Slice(row * source.Width, source.Width);
+
+        /// <summary>
+        /// Gets the configuration.
+        /// </summary>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the bounds of the image</returns>
+        private static Configuration GetConfiguration(IConfigurable source)
+            => source?.Configuration ?? Configuration.Default;
     }
 }

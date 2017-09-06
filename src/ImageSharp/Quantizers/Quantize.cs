@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp
                     Parallel.For(
                         0,
                         pixels.Height,
-                        img.Configuration().ParallelOptions,
+                        img.GetConfiguration().ParallelOptions,
                         y =>
                         {
                             for (int x = 0; x < pixels.Width; x++)

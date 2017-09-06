@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing
         {
             try
             {
-                var config = source.Configuration();
+                var config = source.GetConfiguration();
                 this.BeforeImageApply(source, sourceRectangle);
 
                 foreach (ImageFrame<TPixel> sourceFrame in source.Frames)

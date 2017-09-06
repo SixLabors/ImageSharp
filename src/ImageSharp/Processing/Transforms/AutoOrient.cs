@@ -20,6 +20,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> AutoOrient<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new Processing.Processors.AutoRotateProcessor<TPixel>());
+            => source.ApplyProcessor(new Processing.Processors.AutoOrientProcessor<TPixel>());
     }
 }

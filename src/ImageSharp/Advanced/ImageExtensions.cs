@@ -80,18 +80,16 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>Returns the bounds of the image</returns>
-        public static Configuration Configuration<TPixel>(this ImageFrame<TPixel> source)
+        public static Configuration Configuration<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source?.Parent?.ImageConfiguration ?? SixLabors.ImageSharp.Configuration.Default;
+            => GetConfiguration(source);
 
         /// <summary>
         /// Gets the bounds of the image.
         /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>Returns the bounds of the image</returns>
-        public static Configuration Configuration<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source?.ImageConfiguration ?? SixLabors.ImageSharp.Configuration.Default;
+        private static Configuration GetConfiguration(IConfigurable source)
+            => source?.Configuration ?? SixLabors.ImageSharp.Configuration.Default;
     }
 }

@@ -74,11 +74,6 @@ namespace SixLabors.ImageSharp
         public int Height => this.pixelBuffer.Height;
 
         /// <summary>
-        /// Gets the configuration providing initialization code which allows extending the library.
-        /// </summary>
-        public Image<TPixel> Parent { get; private set; }
-
-        /// <summary>
         /// Gets the meta data of the frame.
         /// </summary>
         public ImageFrameMetaData MetaData { get; private set; }
@@ -222,7 +217,7 @@ namespace SixLabors.ImageSharp
                 Parallel.For(
                     0,
                     target.Height,
-                    this.Configuration().ParallelOptions,
+                    Configuration.Default.ParallelOptions,
                     y =>
                     {
                         for (int x = 0; x < target.Width; x++)

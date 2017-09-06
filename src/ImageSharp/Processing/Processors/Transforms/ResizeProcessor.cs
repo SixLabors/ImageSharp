@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override unsafe void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle)
+        protected override unsafe void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration().ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         // Y coordinates of source points
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     sourceRectangle.Bottom,
-                    source.Configuration().ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration().ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         // Ensure offsets are normalised for cropping and padding.

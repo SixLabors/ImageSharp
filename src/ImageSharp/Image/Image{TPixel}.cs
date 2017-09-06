@@ -17,9 +17,11 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed partial class Image<TPixel> : IDisposable
+    public sealed partial class Image<TPixel> : IDisposable, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
+        private Configuration configuration;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
@@ -71,7 +73,7 @@ namespace SixLabors.ImageSharp
         /// <param name="frames">The frames that will be owned by this image instance.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetaData metadata, IEnumerable<ImageFrame<TPixel>> frames)
         {
-            this.ImageConfiguration = configuration ?? Configuration.Default;
+            this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
             this.Frames = new ImageFrameCollection<TPixel>();
@@ -91,12 +93,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the configuration.
+        /// Gets the pixel buffer.
         /// </summary>
-        /// <value>
-        /// The configuration.
-        /// </value>
-        internal Configuration ImageConfiguration { get; }
+        Configuration IConfigurable.Configuration => this.configuration;
 
         /// <summary>
         /// Gets the width.
@@ -158,7 +157,7 @@ namespace SixLabors.ImageSharp
         {
             IEnumerable<ImageFrame<TPixel>> frames = this.Frames.Select(x => x.Clone()).ToArray();
 
-            return new Image<TPixel>(this.ImageConfiguration, this.Width, this.Height, this.MetaData.Clone(), frames);
+            return new Image<TPixel>(this.configuration, this.Width, this.Height, this.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
@@ -176,7 +175,7 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>
         {
             IEnumerable<ImageFrame<TPixel2>> frames = this.Frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
-            var target = new Image<TPixel2>(this.ImageConfiguration, this.Width, this.Height, this.MetaData, frames);
+            var target = new Image<TPixel2>(this.configuration, this.Width, this.Height, this.MetaData, frames);
 
             return target;
         }

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            Configuration config = source.Configuration();
+            Configuration config = source.GetConfiguration();
 
             // We will always be creating the clone even for mutate because thats the way this base processor works
             // ------------

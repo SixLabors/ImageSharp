@@ -1,22 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -81,7 +73,7 @@ namespace SixLabors.ImageSharp
             this.ImageConfiguration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
-            this.Frames = new ImageFrameCollection<TPixel>(this);
+            this.Frames = new ImageFrameCollection<TPixel>();
 
             if (frames != null)
             {

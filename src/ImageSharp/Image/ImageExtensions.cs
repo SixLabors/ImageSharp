@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static byte[] SavePixelData<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => source.GetPixelSpan().AsBytes().ToArray();
+         => source.Frames.RootFrame.SavePixelData();
 
         /// <summary>
         /// Saves the raw image to the given bytes.
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SavePixelData<TPixel>(this Image<TPixel> source, byte[] buffer)
             where TPixel : struct, IPixel<TPixel>
-            => SavePixelData(source, new Span<byte>(buffer));
+            => source.Frames.RootFrame.SavePixelData(buffer);
 
         /// <summary>
         /// Saves the raw image to the given bytes.
@@ -180,12 +180,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
             where TPixel : struct, IPixel<TPixel>
-        {
-            Span<byte> byteBuffer = source.GetPixelSpan().AsBytes();
-            Guard.MustBeGreaterThanOrEqualTo(buffer.Length, byteBuffer.Length, nameof(buffer));
-
-            byteBuffer.CopyTo(buffer);
-        }
+            => source.Frames.RootFrame.SavePixelData(buffer);
 
         /// <summary>
         /// Returns a Base64 encoded string from the given image.

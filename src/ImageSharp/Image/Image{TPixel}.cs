@@ -1,10 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed partial class Image<TPixel> : IImageFrame<TPixel>
+    public sealed partial class Image<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -100,12 +101,12 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width => this.RootFrame?.Width ?? 0;
+        public int Width => this.Frames.RootFrame.Width;
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height => this.RootFrame?.Height ?? 0;
+        public int Height => this.Frames.RootFrame.Height;
 
         /// <summary>
         /// Gets the meta data of the image.
@@ -120,13 +121,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IImageFrame<TPixel> RootFrame => this.Frames?.RootFrame;
-
-        /// <inheritdoc/>
-        Buffer2D<TPixel> IImageFrame<TPixel>.PixelBuffer => this.RootFrame.PixelBuffer;
-
-        /// <inheritdoc/>
-        ImageFrameMetaData IImageFrame.MetaData => this.RootFrame.MetaData;
+        private IPixelSource<TPixel> PixelSource => this.Frames?.RootFrame;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -136,9 +131,9 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         public TPixel this[int x, int y]
         {
-            get => this.RootFrame.PixelBuffer[x, y];
+            get => this.PixelSource.PixelBuffer[x, y];
 
-            set => this.RootFrame.PixelBuffer[x, y] = value;
+            set => this.PixelSource.PixelBuffer[x, y] = value;
         }
 
         /// <summary>

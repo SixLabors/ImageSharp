@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ditheredQuantizer.Dither = !this.hasFrames;
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, paletteSize);
+            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image.Frames.RootFrame, paletteSize);
 
             int index = this.GetTransparentIndex(quantized);
 

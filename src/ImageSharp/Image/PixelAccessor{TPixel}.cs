@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Unsafe = System.Runtime.CompilerServices.Unsafe;
@@ -41,11 +41,11 @@ namespace SixLabors.ImageSharp
         /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
-        public PixelAccessor(IImageFrame<TPixel> image)
+        public PixelAccessor(IPixelSource<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
-            Guard.MustBeGreaterThan(image.Width, 0, "image width");
-            Guard.MustBeGreaterThan(image.Height, 0, "image height");
+            Guard.MustBeGreaterThan(image.PixelBuffer.Width, 0, "image width");
+            Guard.MustBeGreaterThan(image.PixelBuffer.Height, 0, "image height");
 
             this.SetPixelBufferUnsafe(image.PixelBuffer, false);
         }

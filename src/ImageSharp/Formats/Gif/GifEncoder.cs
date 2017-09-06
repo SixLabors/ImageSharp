@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            GifEncoderCore encoder = new GifEncoderCore(this);
+            var encoder = new GifEncoderCore(this);
             encoder.Encode(image, stream);
         }
     }

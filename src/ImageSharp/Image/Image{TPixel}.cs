@@ -136,9 +136,6 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         ImageFrameMetaData IImageFrame.MetaData => this.RootFrame.MetaData;
 
-        /// <inheritdoc/>
-        Image<TPixel> IImageFrame<TPixel>.Parent => this.RootFrame.Parent;
-
         /// <summary>
         /// Gets or sets the pixel at the specified position.
         /// </summary>

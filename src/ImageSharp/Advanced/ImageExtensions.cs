@@ -2,20 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Extension methods over Image{TPixel}
     /// </summary>
-    public static partial class ImageExtensions
+    public static class ImageExtensions
     {
         /// <summary>
         /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
@@ -28,7 +23,7 @@ namespace SixLabors.ImageSharp.Advanced
             => GetSpan(source);
 
         /// <summary>
-        /// Gets a <see cref="Span{TPixal}"/> representing the row 'y' beginning from the the first pixel on that row.
+        /// Gets the representation of the pixels as an area of contiguous memory at row 'y' beginning from the the first pixel on that row.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
@@ -39,17 +34,17 @@ namespace SixLabors.ImageSharp.Advanced
             => GetSpan(source, row);
 
         /// <summary>
-        /// Gets the configuration.
+        /// Gets the configuration for the image.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>Returns the configuration.</returns>
         public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => GetConfiguration(source);
+            => GetConfiguration((IConfigurable)source);
 
         /// <summary>
-        /// Gets the span.
+        /// Gets the span to the backing buffer.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
@@ -59,7 +54,7 @@ namespace SixLabors.ImageSharp.Advanced
             => source.PixelBuffer.Span;
 
         /// <summary>
-        /// Gets the span.
+        /// Gets the span to the backing buffer at the given row.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
@@ -72,7 +67,7 @@ namespace SixLabors.ImageSharp.Advanced
             => GetSpan(source.PixelBuffer, row);
 
         /// <summary>
-        /// Gets the span.
+        /// Gets the span to the backing buffer at the given row.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>

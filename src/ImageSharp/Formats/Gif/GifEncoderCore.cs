@@ -119,10 +119,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Write additional frames.
             if (this.hasFrames)
             {
-                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count - 1);
+                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
             }
 
-            foreach (ImageFrame<TPixel> frame in image.Frames.Skip(1))
+            foreach (ImageFrame<TPixel> frame in image.Frames)
             {
                 if (quantized == null)
                 {

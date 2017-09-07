@@ -90,11 +90,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that pallete size  can be set but has a fallback.
-            int paletteSize = this.paletteSize;
-            paletteSize = paletteSize > 0 ? paletteSize.Clamp(1, 256) : 256;
+            int size = this.paletteSize;
+            size = size > 0 ? size.Clamp(1, 256) : 256;
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSize);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(size);
 
             this.hasFrames = image.Frames.Count > 1;
 
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ditheredQuantizer.Dither = !this.hasFrames;
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image.Frames.RootFrame, paletteSize);
+            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image.Frames.RootFrame, size);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -119,14 +119,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Write additional frames.
             if (this.hasFrames)
             {
-                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
+                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count - 1);
             }
 
-            foreach (ImageFrame<TPixel> frame in image.Frames)
+            foreach (ImageFrame<TPixel> frame in image.Frames.Skip(1))
             {
                 if (quantized == null)
                 {
-                    quantized = ditheredQuantizer.Quantize(frame, paletteSize);
+                    quantized = ditheredQuantizer.Quantize(frame, size);
                 }
 
                 this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));

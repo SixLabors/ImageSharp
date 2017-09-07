@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// The Average filter uses the average of the two neighboring pixels (left and above) to predict
     /// the value of a pixel.
-    /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
+    /// See <a href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
     internal static class AverageFilter
     {

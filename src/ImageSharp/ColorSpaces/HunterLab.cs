@@ -12,7 +12,7 @@ namespace ImageSharp.ColorSpaces
 
     /// <summary>
     /// Represents an Hunter LAB color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
+    /// See <a href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
     internal struct HunterLab : IColorVector, IEquatable<HunterLab>, IAlmostEquatable<HunterLab, float>
     {

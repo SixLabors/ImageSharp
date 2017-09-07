@@ -12,7 +12,7 @@ namespace ImageSharp.Quantizers
 
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
-    /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
+    /// See <a href="http://msdn.microsoft.com/en-us/library/aa479306.aspx">this link</a> for more information.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class PaletteQuantizer<TPixel> : Quantizer<TPixel>

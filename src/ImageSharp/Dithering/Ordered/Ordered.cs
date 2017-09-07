@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering.Ordered
 
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
-    /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>
+    /// See <a href="https://en.wikipedia.org/wiki/Ordered_dithering"/>
     /// </summary>
     public sealed class Ordered : OrderedDither4x4
     {

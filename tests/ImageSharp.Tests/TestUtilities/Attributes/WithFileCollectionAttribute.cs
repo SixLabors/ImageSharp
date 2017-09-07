@@ -12,7 +12,7 @@ namespace ImageSharp.Tests
 
     /// <summary>
     /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
-    /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+    /// See <a href="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
     /// </summary>
     public class WithFileCollectionAttribute : ImageDataAttributeBase
     {
@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
 
         /// <summary>
         /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
-        /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+        /// See <a href="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="fileEnumeratorMemberName">The name of the static test class field/property enumerating the files</param>
         /// <param name="pixelTypes">The requested pixel types</param>
@@ -36,7 +36,7 @@ namespace ImageSharp.Tests
 
         /// <summary>
         /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
-        /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+        /// See <a href="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="enumeratorMemberName">The name of the static test class field/property enumerating the files</param>
         /// <param name="memberName">The member name for enumerating method parameters</param>

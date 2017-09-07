@@ -11,7 +11,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
     /// Implements Rec. 2020 companding function (for 12-bits).
     /// </summary>
     /// <remarks>
-    /// <see href="http://en.wikipedia.org/wiki/Rec._2020"/>
+    /// See <a href="http://en.wikipedia.org/wiki/Rec._2020"/>
     /// For 10-bits, companding is identical to <see cref="Rec709Companding"/>
     /// </remarks>
     public class Rec2020Companding : ICompanding

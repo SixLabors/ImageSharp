@@ -11,7 +11,7 @@ namespace ImageSharp.Tests
 
     /// <summary>
     /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which return the image produced by the given test class member method
-    /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+    /// See <a href="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
     /// The parameter of the factory method must be a <see cref="GenericFactory{TPixel}"/> instance
     /// </summary>
     public class WithMemberFactoryAttribute : ImageDataAttributeBase
@@ -20,7 +20,7 @@ namespace ImageSharp.Tests
 
         /// <summary>
         /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which return the image produced by the given test class member method
-        /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
+        /// See <a href="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
         /// <param name="memberMethodName">The name of the static test class which returns the image</param>
         /// <param name="pixelTypes">The requested pixel types</param>

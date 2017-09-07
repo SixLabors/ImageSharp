@@ -16,6 +16,6 @@ namespace ImageSharp.Formats
     /// </summary>
     internal interface IBmpDecoderOptions
     {
-        // added this for consistency so we can add stuff as required, no options currently available
+        // added this for consistancy so we can add stuff as required, no options currently availible
     }
 }

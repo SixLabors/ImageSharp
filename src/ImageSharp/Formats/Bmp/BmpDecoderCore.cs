@@ -376,9 +376,16 @@ namespace ImageSharp.Formats
             // read header size
             this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
             int headerSize = BitConverter.ToInt32(data, 0);
-            if (headerSize < BmpInfoHeader.HeaderSizeSize || headerSize > BmpInfoHeader.MaxHeaderSize)
+            if (headerSize < BmpInfoHeader.BitmapCoreHeaderSize)
             {
                 throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
+
+            int skipAmmount = 0;
+            if (headerSize > BmpInfoHeader.MaxHeaderSize)
+            {
+                skipAmmount = headerSize - BmpInfoHeader.MaxHeaderSize;
+                headerSize = BmpInfoHeader.MaxHeaderSize;
             }
 
             // read the rest of the header
@@ -395,8 +402,19 @@ namespace ImageSharp.Formats
                     break;
 
                 default:
-                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    if (headerSize > BmpInfoHeader.BitmapInfoHeaderSize)
+                    {
+                        this.infoHeader = this.ParseBitmapInfoHeader(data);
+                        break;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    }
             }
+
+            // skip the remaining header because we can't read those parts
+            this.currentStream.Skip(skipAmmount);
         }
 
         /// <summary>
@@ -404,7 +422,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">this link</a> for more information.
         private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
         {
             return new BmpInfoHeader
@@ -430,7 +448,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">this link</a> for more information.
         private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
         {
             return new BmpInfoHeader

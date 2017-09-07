@@ -17,7 +17,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
     {
         /// <summary>
         /// Default transformation matrix used, when no other is set. (Bradford)
-        /// <see cref="LmsAdaptationMatrix"/>
+        /// See <a href="LmsAdaptationMatrix"/>
         /// </summary>
         public static readonly Matrix4x4 DefaultTransformationMatrix = LmsAdaptationMatrix.Bradford;
 
@@ -48,7 +48,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
 
         /// <summary>
         /// Gets or sets the transformation matrix used for the conversion (definition of the cone response domain).
-        /// <see cref="LmsAdaptationMatrix"/>
+        /// See <a href="LmsAdaptationMatrix"/>
         /// </summary>
         public Matrix4x4 TransformationMatrix
         {

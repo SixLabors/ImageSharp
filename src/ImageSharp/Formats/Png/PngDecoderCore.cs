@@ -272,7 +272,7 @@ namespace ImageSharp.Formats
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
         private static Span<byte> ToArrayByBitsLength(Span<byte> source, int bytesPerScanline, int bits)
         {
-            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThan(source.Length, 0, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
 
             if (bits >= 8)
@@ -481,7 +481,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// Decodes the raw interlaced pixel data row by row
-        /// <see href="https://github.com/juehv/DentalImageViewer/blob/8a1a4424b15d6cc453b5de3f273daf3ff5e3a90d/DentalImageViewer/lib/jiu-0.14.3/net/sourceforge/jiu/codecs/PNGCodec.java"/>
+        /// See <a href="https://github.com/juehv/DentalImageViewer/blob/8a1a4424b15d6cc453b5de3f273daf3ff5e3a90d/DentalImageViewer/lib/jiu-0.14.3/net/sourceforge/jiu/codecs/PNGCodec.java"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
@@ -515,7 +515,7 @@ namespace ImageSharp.Formats
                     this.currentRowBytesRead = 0;
 
                     Span<byte> scanSpan = this.scanline.Slice(0, bytesPerInterlaceScanline);
-                    Span<byte> prevSpan = this.previousScanline.Span.Slice(0, bytesPerInterlaceScanline);
+                    Span<byte> prevSpan = this.previousScanline.Slice(0, bytesPerInterlaceScanline);
                     var filterType = (FilterType)scanSpan[0];
 
                     switch (filterType)
@@ -556,12 +556,15 @@ namespace ImageSharp.Formats
                 }
 
                 this.pass++;
+                this.previousScanline.Clear();
+
                 if (this.pass < 7)
                 {
                     this.currentRow = Adam7FirstRow[this.pass];
                 }
                 else
                 {
+                    this.pass = 0;
                     break;
                 }
             }

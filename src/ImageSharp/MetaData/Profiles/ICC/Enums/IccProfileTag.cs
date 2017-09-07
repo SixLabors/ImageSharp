@@ -8,7 +8,7 @@ namespace ImageSharp
 {
     /// <summary>
     /// Enumerates the ICC Profile Tags as defined in ICC.1:2010 version 4.3.0.0
-    /// <see href="http://www.color.org/specification/ICC1v43_2010-12.pdf"/> Section 9
+    /// See <a href="http://www.color.org/specification/ICC1v43_2010-12.pdf"/> Section 9
     /// <remarks>
     /// Each tag value represent the size of the tag in the profile.
     /// </remarks>

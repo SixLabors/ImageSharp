@@ -12,7 +12,7 @@ namespace ImageSharp.ColorSpaces
 
     /// <summary>
     /// Represents the CIE L*C*h°, cylindrical form of the CIE L*a*b* 1976 color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
+    /// See <a href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
     /// </summary>
     internal struct CieLch : IColorVector, IEquatable<CieLch>, IAlmostEquatable<CieLch, float>
     {

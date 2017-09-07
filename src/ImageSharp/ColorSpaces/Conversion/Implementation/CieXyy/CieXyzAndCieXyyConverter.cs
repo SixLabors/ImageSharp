@@ -11,7 +11,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieXyy
 
     /// <summary>
     /// Color converter between CIE XYZ and CIE xyY
-    /// <see href="http://www.brucelindbloom.com/"/> for formulas.
+    /// See <a href="http://www.brucelindbloom.com/"/> for formulas.
     /// </summary>
     internal class CieXyzAndCieXyyConverter : IColorConversion<CieXyz, CieXyy>, IColorConversion<CieXyy, CieXyz>
     {

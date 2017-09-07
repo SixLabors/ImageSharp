@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
 
     /// <summary>
     /// The Prewitt operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
+    /// See <a href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]

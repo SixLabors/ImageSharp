@@ -12,8 +12,8 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
     /// Implements gamma companding
     /// </summary>
     /// <remarks>
-    /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
-    /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
     /// </remarks>
     public class GammaCompanding : ICompanding
     {

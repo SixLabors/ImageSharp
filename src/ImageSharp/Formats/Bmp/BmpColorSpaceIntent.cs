@@ -7,7 +7,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// The rendering intent used on the Microsoft Windows BMP v5 (and later versions) image DIB or file.
     /// </summary>
-    /// <see cref="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx"/>
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.
     internal enum BmpColorSpaceIntent
     {
         // Microsoft Windows BMP v5

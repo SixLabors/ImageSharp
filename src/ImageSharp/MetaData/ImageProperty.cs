@@ -60,7 +60,7 @@ namespace ImageSharp
         /// <summary>
         /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
         /// of the <see cref="ImageProperty.Name"/> or <see cref="ImageProperty.Value"/> properties of the two
-        /// <see cref="ImageProperty"/> objects are equal.
+        /// See <a href="ImageProperty"/> objects are equal.
         /// </summary>
         /// <param name="left">
         /// The <see cref="ImageProperty"/> on the left side of the operand.
@@ -79,7 +79,7 @@ namespace ImageSharp
         /// <summary>
         /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
         /// of the <see cref="ImageProperty.Name"/> or <see cref="ImageProperty.Value"/> properties of the two
-        /// <see cref="ImageProperty"/> objects are unequal.
+        /// See <a href="ImageProperty"/> objects are unequal.
         /// </summary>
         /// <param name="left">
         /// The <see cref="ImageProperty"/> on the left side of the operand.

@@ -12,8 +12,8 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// <see href="http://www.colorhexa.com"/>
-    /// <see href="http://www.rapidtables.com/convert/color/cmyk-to-rgb.htm"/>
+    /// See <a href="http://www.colorhexa.com"/>
+    /// See <a href="http://www.rapidtables.com/convert/color/cmyk-to-rgb.htm"/>
     /// </remarks>
     public class RgbAndCmykConversionTest
     {

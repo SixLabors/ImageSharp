@@ -12,8 +12,8 @@ namespace ImageSharp.ColorSpaces
 
     /// <summary>
     /// Represents an YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification for the JFIF use with Jpeg.
-    /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
-    /// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
+    /// See <a href="http://en.wikipedia.org/wiki/YCbCr"/>
+    /// See <a href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
     /// </summary>
     internal struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
     {

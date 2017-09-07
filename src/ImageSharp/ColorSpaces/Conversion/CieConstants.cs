@@ -7,7 +7,7 @@ namespace ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
     /// Constants use for Cie conversion calculations
-    /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html"/>
     /// </summary>
     internal static class CieConstants
     {

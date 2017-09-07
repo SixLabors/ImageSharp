@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering
 
     /// <summary>
     /// Applies error diffusion based dithering using the JarvisJudiceNinke image dithering algorithm.
-    /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
+    /// See <a href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
     public sealed class JarvisJudiceNinke : ErrorDiffuser
     {

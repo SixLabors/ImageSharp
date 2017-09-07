@@ -12,8 +12,8 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// <see href="http://www.colorhexa.com"/>
-    /// <see href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
+    /// See <a href="http://www.colorhexa.com"/>
+    /// See <a href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
     /// </remarks>
     public class RgbAndHslConversionTest
     {

@@ -7,7 +7,7 @@ namespace ImageSharp
 {
     /// <summary>
     /// Enumerates the basic data types as defined in ICC.1:2010 version 4.3.0.0
-    /// <see href="http://www.color.org/specification/ICC1v43_2010-12.pdf"/> Section 4.2 to 4.15
+    /// See <a href="http://www.color.org/specification/ICC1v43_2010-12.pdf"/> Section 4.2 to 4.15
     /// </summary>
     internal enum IccDataType
     {

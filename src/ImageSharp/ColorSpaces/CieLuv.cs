@@ -14,7 +14,7 @@ namespace ImageSharp.ColorSpaces
     /// The CIE 1976 (L*, u*, v*) color space, commonly known by its abbreviation CIELUV, is a color space adopted by the International
     /// Commission on Illumination (CIE) in 1976, as a simple-to-compute transformation of the 1931 CIE XYZ color space, but which
     /// attempted perceptual uniformity
-    /// <see href="https://en.wikipedia.org/wiki/CIELUV"/>
+    /// See <a href="https://en.wikipedia.org/wiki/CIELUV"/>
     /// </summary>
     internal struct CieLuv : IColorVector, IEquatable<CieLuv>, IAlmostEquatable<CieLuv, float>
     {

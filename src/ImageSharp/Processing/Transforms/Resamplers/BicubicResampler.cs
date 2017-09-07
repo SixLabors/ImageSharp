@@ -7,7 +7,7 @@ namespace ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the bicubic kernel algorithm W(x) as described on
-    /// <see href="https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm">Wikipedia</see>
+    /// <a href="https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm">this link</a> at Wikipedia for more information.
     /// A commonly used algorithm within imageprocessing that preserves sharpness better than triangle interpolation.
     /// </summary>
     public class BicubicResampler : IResampler

@@ -8,7 +8,7 @@ namespace ImageSharp.Formats
     /// This block of bytes tells the application detailed information
     /// about the image, which will be used to display the image on
     /// the screen.
-    /// <see href="https://en.wikipedia.org/wiki/BMP_file_format"/>
+    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format"/>
     /// </summary>
     internal sealed class BmpInfoHeader
     {

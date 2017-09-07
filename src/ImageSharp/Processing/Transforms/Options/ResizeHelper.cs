@@ -12,7 +12,7 @@ namespace ImageSharp.Processing
 
     /// <summary>
     /// Provides methods to help calculate the target rectangle when resizing using the
-    /// <see cref="ResizeMode"/> enumeration.
+    /// See <a href="ResizeMode"/> enumeration.
     /// </summary>
     internal static class ResizeHelper
     {

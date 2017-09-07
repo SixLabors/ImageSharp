@@ -12,7 +12,7 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// <see href="http://www.colorhexa.com"/>
+    /// See <a href="http://www.colorhexa.com"/>
     /// </remarks>
     public class RgbAndHsvConversionTest
     {

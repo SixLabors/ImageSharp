@@ -13,7 +13,7 @@ namespace ImageSharp.ColorSpaces
     /// <summary>
     /// LMS is a color space represented by the response of the three types of cones of the human eye,
     /// named after their responsivity (sensitivity) at long, medium and short wavelengths.
-    /// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
+    /// See <a href="https://en.wikipedia.org/wiki/LMS_color_space"/>
     /// </summary>
     internal struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {

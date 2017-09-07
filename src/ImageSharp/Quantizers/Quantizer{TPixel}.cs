@@ -130,7 +130,7 @@ namespace ImageSharp.Quantizers
         /// Retrieve the palette for the quantized image. Can be called more than once so make sure calls are cached.
         /// </summary>
         /// <returns>
-        /// <see cref="T:TPixel[]"/>
+        /// See <a href="T:TPixel[]"/>
         /// </returns>
         protected abstract TPixel[] GetPalette();
 

@@ -10,7 +10,7 @@ namespace ImageSharp.ColorSpaces
 
     /// <summary>
     /// Chromaticity coordinates taken from:
-    /// <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
     /// </summary>
     internal static class RgbWorkingSpaces
     {
@@ -19,7 +19,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <remarks>
         /// Uses proper companding function, according to:
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_Rgb_to_XYZ.html"/>
+        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_Rgb_to_XYZ.html"/>
         /// </remarks>
         public static readonly IRgbWorkingSpace SRgb = new RgbWorkingSpace(Illuminants.D65, new SRgbCompanding(), new RgbPrimariesChromaticityCoordinates(new CieXyChromaticityCoordinates(0.6400F, 0.3300F), new CieXyChromaticityCoordinates(0.3000F, 0.6000F), new CieXyChromaticityCoordinates(0.1500F, 0.0600F)));
 

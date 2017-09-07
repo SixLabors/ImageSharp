@@ -11,7 +11,7 @@
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
     public class CieXyzAndCieLuvConversionTest
     {

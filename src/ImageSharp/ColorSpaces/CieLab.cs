@@ -12,7 +12,7 @@ namespace ImageSharp.ColorSpaces
 
     /// <summary>
     /// Represents a CIE L*a*b* 1976 color.
-    /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
+    /// See <a href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
     internal struct CieLab : IColorVector, IEquatable<CieLab>, IAlmostEquatable<CieLab, float>
     {

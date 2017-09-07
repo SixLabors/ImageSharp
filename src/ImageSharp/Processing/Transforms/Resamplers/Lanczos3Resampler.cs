@@ -7,7 +7,7 @@ namespace ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the Lanczos kernel algorithm as described on
-    /// <see href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</see>
+    /// See <a href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">this link</a> at Wikipedia for more information.
     /// with a radius of 3 pixels.
     /// </summary>
     public class Lanczos3Resampler : IResampler

@@ -7,7 +7,7 @@ namespace ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the mitchell algorithm as described on
-    /// <see href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</see>
+    /// See <a href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">this link</a> at Wikipedia for more information.
     /// </summary>
     public class MitchellNetravaliResampler : IResampler
     {

@@ -24,7 +24,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// The number of bits-per-pixel (bpp) used in the Microsoft Windows BMP and IBM OS/2 BMP image DIB or file.
     /// </summary>
-    /// <see cref="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx"/>
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.
     public enum BmpBitsPerPixel
     {
         // Microsoft Windows BMP v2 and IBM OS/2 BMP v1
@@ -43,7 +43,7 @@ namespace ImageSharp.Formats
         /// The bitmap has a maximum of 4 colors, and the palette contains up to 4 entries (4 colors palette).
         /// <para>Each 2 bits in the bitmap array represents a pixel (the index for the palette).
         /// For example, if the first byte in the bitmap is 0x1F, the byte represents 4 pixels.
-        /// The first pixel contains the color in the second table entry, the second pixel will be the color in 
+        /// The first pixel contains the color in the second table entry, the second pixel will be the color in
         /// the sixteenth table entry.</para>
         /// <para>Supported by Windows CE 1.0x or later.</para>
         /// <para>From Windows BMP v3.</para>
@@ -53,8 +53,8 @@ namespace ImageSharp.Formats
         /// <summary>
         /// The bitmap has a maximum of 16 colors, and the palette contains up to 16 entries (16 colors palette).
         /// <para>Each 4 bits in the bitmap array represents a pixel (the index for the palette).
-        /// For example, if the first byte in the bitmap is 0x1F, the byte represents two pixels. 
-        /// The first pixel contains the color in the second table entry, and the second pixel contains the 
+        /// For example, if the first byte in the bitmap is 0x1F, the byte represents two pixels.
+        /// The first pixel contains the color in the second table entry, and the second pixel contains the
         /// color in the sixteenth table entry.</para>
         /// <para>Supported by Windows 2.0x and OS/2 1.0x or later.</para>
         /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
@@ -88,7 +88,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// The bitmap has a maximum of 2^16 colors. An optional 256 colors palette can be given, for optimizing the display on palette-based devices.
-        /// <para>Each WORD (2 bytes) in the bitmap array represents a single pixel. The relative intensities of red, green, and blue are represented with 5 bits 
+        /// <para>Each WORD (2 bytes) in the bitmap array represents a single pixel. The relative intensities of red, green, and blue are represented with 5 bits
         /// for each color component.
         /// The value for blue is in the least significant 5 bits, followed by 5 bits each for green and red. The most significant bit is not used.</para>
         /// <para>Supported by Windows 95/Windows NT 4 or later.</para>

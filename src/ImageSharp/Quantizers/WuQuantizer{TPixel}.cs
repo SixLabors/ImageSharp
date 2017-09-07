@@ -23,7 +23,7 @@ namespace ImageSharp.Quantizers
     /// </para>
     /// <para>
     /// This adaptation is based on the excellent JeremyAnsel.ColorQuant by Jérémy Ansel
-    /// <see href="https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant"/>
+    /// See <a href="https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant"/>
     /// </para>
     /// <para>
     /// Algorithm: Greedy orthogonal bipartition of RGB space for variance minimization aided by inclusion-exclusion tricks.

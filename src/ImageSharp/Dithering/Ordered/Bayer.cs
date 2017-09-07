@@ -9,7 +9,7 @@ namespace ImageSharp.Dithering.Ordered
 
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 Bayer dithering matrix.
-    /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
+    /// See <a href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
     public sealed class Bayer : OrderedDither4x4
     {

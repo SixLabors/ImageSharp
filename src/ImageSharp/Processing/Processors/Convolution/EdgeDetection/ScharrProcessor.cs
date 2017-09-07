@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
 
     /// <summary>
     /// The Scharr operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
+    /// See <a href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]

@@ -19,7 +19,7 @@ namespace ImageSharp
     public partial struct Rgba32
     {
         /// <summary>
-        /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="Rgba32"/>.
+        /// See <a href="PixelOperations{TPixel}"/> implementation optimized for <see cref="Rgba32"/>.
         /// </summary>
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {

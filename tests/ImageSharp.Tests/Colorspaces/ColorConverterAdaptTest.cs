@@ -11,8 +11,8 @@ namespace ImageSharp.Tests.Colorspaces
     /// <summary>
     /// Tests <see cref="M:ColorSpaceConverter.Adapt" /> methods.
     /// Test data generated using:
-    /// <see cref="http://www.brucelindbloom.com/index.html?ChromAdaptCalc.html"/>
-    /// <see cref="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?ChromAdaptCalc.html"/>
+    /// See <a href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </summary>
     public class ColorConverterAdaptTest
     {

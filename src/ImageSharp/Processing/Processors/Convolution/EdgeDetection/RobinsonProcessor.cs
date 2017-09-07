@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
 
     /// <summary>
     /// The Kirsch operator filter.
-    /// <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>
+    /// See <a href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]

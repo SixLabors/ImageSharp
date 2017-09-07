@@ -16,7 +16,7 @@ namespace ImageSharp.PixelFormats
     public partial struct RgbaVector
     {
         /// <summary>
-        /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
+        /// See <a href="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
         /// </summary>
         internal class PixelOperations : PixelOperations<RgbaVector>
         {

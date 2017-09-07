@@ -26,8 +26,8 @@ namespace ImageSharp.ColorSpaces
 
         /// <summary>
         /// Gets the companding function associated with the RGB color system. Used for conversion to XYZ and backwards.
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
+        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
+        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
         /// </summary>
         ICompanding Companding { get; }
     }

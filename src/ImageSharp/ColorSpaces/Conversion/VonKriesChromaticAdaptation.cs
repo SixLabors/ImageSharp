@@ -34,7 +34,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="transformationMatrix">
         /// The transformation matrix used for the conversion (definition of the cone response domain).
-        /// <see cref="LmsAdaptationMatrix"/>
+        /// See <a href="LmsAdaptationMatrix"/>
         /// </param>
         public VonKriesChromaticAdaptation(Matrix4x4 transformationMatrix)
             : this(new CieXyzAndLmsConverter(transformationMatrix))

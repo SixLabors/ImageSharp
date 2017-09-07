@@ -16,8 +16,8 @@ namespace ImageSharp
     {
         /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="linear">The <see cref="Vector4"/> whose signal to compress.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
@@ -30,8 +30,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Expands an sRGB color signal to its linear equivalent.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
@@ -44,8 +44,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Gets the compressed sRGB value from an linear signal.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="signal">The signal value to compress.</param>
         /// <returns>
@@ -64,8 +64,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Gets the expanded linear value from an sRGB signal.
-        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="signal">The signal value to expand.</param>
         /// <returns>

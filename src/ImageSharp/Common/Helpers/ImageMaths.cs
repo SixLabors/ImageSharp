@@ -69,7 +69,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Returns the result of a B-C filter against the given value.
-        /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
+        /// See <a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
         /// </summary>
         /// <param name="x">The value to process.</param>
         /// <param name="b">The B-Spline curve variable.</param>

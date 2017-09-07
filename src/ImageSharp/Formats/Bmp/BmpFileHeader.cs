@@ -7,7 +7,7 @@ namespace ImageSharp.Formats
 {
     /// <summary>
     /// Stores general information about the Bitmap file.
-    /// <see href="https://en.wikipedia.org/wiki/BMP_file_format" />
+    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format" />
     /// </summary>
     /// <remarks>
     /// The first two bytes of the Bitmap file format

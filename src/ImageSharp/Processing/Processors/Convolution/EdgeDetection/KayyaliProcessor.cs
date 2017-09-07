@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
 
     /// <summary>
     /// The Kayyali operator filter.
-    /// <see href="http://edgedetection.webs.com/"/>
+    /// See <a href="http://edgedetection.webs.com/"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]

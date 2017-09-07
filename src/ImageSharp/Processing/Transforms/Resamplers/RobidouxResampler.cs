@@ -7,7 +7,7 @@ namespace ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the Robidoux algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
+    /// See <a href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
     /// </summary>
     public class RobidouxResampler : IResampler
     {

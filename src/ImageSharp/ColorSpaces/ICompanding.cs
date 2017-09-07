@@ -17,7 +17,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <remarks>
         /// For more info see:
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
+        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
         /// </remarks>
         /// <param name="channel">The channel value</param>
         /// <returns>The linear channel value</returns>
@@ -28,7 +28,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <remarks>
         /// For more info see:
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
+        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
         /// </remarks>
         /// <param name="channel">The channel value</param>
         /// <returns>The nonlinear channel value</returns>

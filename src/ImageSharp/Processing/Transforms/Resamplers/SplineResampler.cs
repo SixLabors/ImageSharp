@@ -7,7 +7,7 @@ namespace ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the spline algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
+    /// See <a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
     /// </summary>
     public class SplineResampler : IResampler
     {

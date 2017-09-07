@@ -7,7 +7,7 @@ namespace ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the welch algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/"/>
+    /// See <a href="http://www.imagemagick.org/Usage/filter/"/>
     /// </summary>
     public class WelchResampler : IResampler
     {

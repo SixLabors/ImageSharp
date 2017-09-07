@@ -97,7 +97,7 @@ namespace ImageSharp.ColorSpaces
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
-        /// <see cref="Hsv"/>.
+        /// See <a href="Hsv"/>.
         /// </summary>
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>

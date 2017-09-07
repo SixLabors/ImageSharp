@@ -47,8 +47,8 @@ namespace ImageSharp
         /// of the quadrants, the return value is the following:If y is 0 and x is not negative,
         /// θ = 0.If y is 0 and x is negative, θ = π.If y is positive and x is 0, θ = π/2.If
         /// y is negative and x is 0, θ = -π/2.If y is 0 and x is 0, θ = 0. If x or y is
-        /// <see cref="F:System.Single.NaN"/>, or if x and y are either <see cref="F:System.Single.PositiveInfinity"/> or
-        /// <see cref="F:System.Single.NegativeInfinity"/>, the method returns <see cref="F:System.Single.NaN"/>.
+        /// See <a href="F:System.Single.NaN"/>, or if x and y are either <see cref="F:System.Single.PositiveInfinity"/> or
+        /// See <a href="F:System.Single.NegativeInfinity"/>, the method returns <see cref="F:System.Single.NaN"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Atan2(float y, float x)
@@ -263,8 +263,8 @@ namespace ImageSharp
         /// One of the values in the following table.
         /// <paramref name="f" /> parameter Return value Zero or positive The positive square root of <paramref name="f" />.
         /// Negative <see cref="F:System.Single.NaN" />Equals <see cref="F:System.Single.NaN" />
-        /// <see cref="F:System.Single.NaN" />Equals <see cref="F:System.Single.PositiveInfinity" />
-        /// <see cref="F:System.Single.PositiveInfinity" />
+        /// See <a href="F:System.Single.NaN" />Equals <see cref="F:System.Single.PositiveInfinity" />
+        /// See <a href="F:System.Single.PositiveInfinity" />
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Sqrt(float f)

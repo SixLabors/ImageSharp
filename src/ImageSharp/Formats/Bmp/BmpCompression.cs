@@ -109,7 +109,7 @@ namespace ImageSharp.Formats
         /// <para>Supported by Windows CE .NET 4.0 or later.</para>
         /// <para>From Windows BMP v3.</para>
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/aa452885.aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/aa452885.aspx">this link</a> for more information.
         AlphaBitFields = 6,
 
         // Windows Metafile Specific

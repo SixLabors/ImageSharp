@@ -13,7 +13,7 @@ namespace ImageSharp.Processing.Processors
 
     /// <summary>
     /// The Roberts Cross operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Roberts_cross"/>
+    /// See <a href="http://en.wikipedia.org/wiki/Roberts_cross"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]

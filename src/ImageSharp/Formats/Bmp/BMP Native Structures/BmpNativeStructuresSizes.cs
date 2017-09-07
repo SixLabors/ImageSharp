@@ -85,7 +85,7 @@
         /// Supported by Windows 2.0x and OS/2 1.0x or later.
         /// </para>
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
         BITMAPFILEHEADER = 14,
 
         // Microsoft Windows BMP DIB header
@@ -96,7 +96,7 @@
         /// Supported by Window 2.0x or later (same format as OS/2 1.0x).
         /// </para>
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd183372(v=vs.85).aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183372(v=vs.85).aspx">this link</a> for more information.
         BITMAPCOREHEADER = 12,
 
         /// <summary>
@@ -105,7 +105,7 @@
         /// Supported by Window 3.0x, Windows NT 3.1 or later.
         /// </para>
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd183376(v=vs.85).aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183376(v=vs.85).aspx">this link</a> for more information.
         BITMAPINFOHEADER = 40,
 
         /// <summary>
@@ -114,7 +114,7 @@
         /// Supported by Windows NT 3.1 or later.
         /// </para>
         /// </summary>
-        /// <see cref="https://en.wikipedia.org/wiki/BMP_file_format"/>
+        /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format"/>
         BITMAPINFOHEADER_NT = 52,
 
         /// <summary>
@@ -123,7 +123,7 @@
         /// Supported by Windows CE 5.0 with .NET 4.0 or later.
         /// </para>
         /// </summary>
-        /// <see cref="https://en.wikipedia.org/wiki/BMP_file_format"/>
+        /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format"/>
         BITMAPINFOHEADER_CE = 56,
 
         /// <summary>
@@ -132,7 +132,7 @@
         /// Supported by Window 95, Windows NT 4 or later.
         /// </para>
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd183380(v=vs.85).aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183380(v=vs.85).aspx">this link</a> for more information.
         BITMAPV4HEADER = 108,
 
         /// <summary>
@@ -141,7 +141,7 @@
         /// Supported by Window 98, Windows 2000 or later.
         /// </para>
         /// </summary>
-        /// <see cref="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.
         BITMAPV5HEADER = 124
     }
 }

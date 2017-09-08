@@ -115,7 +115,7 @@ namespace ImageSharp
         [ExifTagDescription((ushort)0, "WhiteIsZero")]
         [ExifTagDescription((ushort)1, "BlackIsZero")]
         [ExifTagDescription((ushort)2, "RGB")]
-        [ExifTagDescription((ushort)3, "RGB Palette")]
+        [ExifTagDescription((ushort)3, "RGB palette")]
         [ExifTagDescription((ushort)4, "Transparency Mask")]
         [ExifTagDescription((ushort)5, "CMYK")]
         [ExifTagDescription((ushort)6, "YCbCr")]

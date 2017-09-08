@@ -13,7 +13,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// The None filter, the scanline is transmitted unmodified; it is only necessary to
     /// insert a filter type byte before the data.
-    /// See <a href="https://www.w3.org/TR/PNG-Filters.html"/>
+    /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
     internal static class NoneFilter
     {

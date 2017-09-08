@@ -151,7 +151,7 @@ namespace ImageSharp.Formats
                             }
                             else if (this.infoHeader.BitsPerPixel <= 8)
                             {
-                                this.ReadRgbPalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
+                                this.ReadRgbpalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
                             }
 
                             break;
@@ -221,7 +221,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgbPalette<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
+        private void ReadRgbpalette<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             // Pixels per byte (bits per pixel)

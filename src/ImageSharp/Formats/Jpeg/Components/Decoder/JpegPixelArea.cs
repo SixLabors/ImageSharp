@@ -28,7 +28,7 @@ namespace ImageSharp.Formats.Jpg
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegPixelArea" /> struct from existing buffer.
-        /// See <a href="Stride"/> will be set to <see cref="Buffer2D{T}.Width"/> of <paramref name="pixels"/> and <see cref="Offset"/> will be set to 0.
+        /// <see cref="Stride"/> will be set to <see cref="Buffer2D{T}.Width"/> of <paramref name="pixels"/> and <see cref="Offset"/> will be set to 0.
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
         public JpegPixelArea(Buffer2D<byte> pixels)
@@ -101,7 +101,7 @@ namespace ImageSharp.Formats.Jpg
         /// <summary>
         /// Load values to the pixel area from the given <see cref="Block8x8F" />.
         /// Level shift [-128.0, 128.0] floating point color values by +128, clip them to [0, 255], and convert them to
-        /// See <a href="byte" /> values
+        /// <see cref="byte" /> values
         /// </summary>
         /// <param name="block">The block holding the color values</param>
         /// <param name="temp">Temporal block provided by the caller</param>

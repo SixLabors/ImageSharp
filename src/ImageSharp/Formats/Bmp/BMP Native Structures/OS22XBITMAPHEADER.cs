@@ -54,12 +54,12 @@ namespace ImageSharp.Formats
         // Fields added for IBM OS/2 BMP v2
 
         /// <summary>
-        /// Specifies the type of compression for a compressed bottom-up bitmap (top-down DIBs cannot be compressed). 
+        /// Specifies the type of compression for a compressed bottom-up bitmap (top-down DIBs cannot be compressed).
         /// This value must be:
-        ///  * 0 - indicates that the data is uncompressed; 
-        ///  * 1 - indicates that the 8-bit RLE algorithm was used; 
-        ///  * 2 - indicates that the 4-bit RLE algorithm was used; 
-        ///  * 3 - indicates that the 1-bit Huffman 1D algorithm was used; 
+        ///  * 0 - indicates that the data is uncompressed;
+        ///  * 1 - indicates that the 8-bit RLE algorithm was used;
+        ///  * 2 - indicates that the 4-bit RLE algorithm was used;
+        ///  * 3 - indicates that the 1-bit Huffman 1D algorithm was used;
         ///  * 4 - indicates that the 24-bit RLE algorithm was used.
         /// </summary>
         public uint Compression;
@@ -70,7 +70,7 @@ namespace ImageSharp.Formats
         public uint ImageSize;
 
         /// <summary>
-        /// Specifies the horizontal resolution, in pixels-per-meter, of the target device for the bitmap. 
+        /// Specifies the horizontal resolution, in pixels-per-meter, of the target device for the bitmap.
         /// <para>
         /// An application can use this value to select a bitmap from a resource group that best matches the characteristics of the current device.
         /// </para>
@@ -93,8 +93,8 @@ namespace ImageSharp.Formats
         /// <para>If is nonzero and the <c>BitsPerPixel</c> member is less than 16, the <c>PaletteColors</c> member specifies the actual number of colors the graphics engine or device driver accesses.</para>
         /// <para>If <c>BitsPerPixel</c> is 16 or greater, the <c>PaletteColors</c> member specifies the size of the color table used to optimize performance of the system color palettes.</para>
         /// <para>
-        /// When the bitmap array immediately follows the BITMAPINFO structure, it is a packed bitmap. 
-        /// Packed bitmaps are referenced by a single pointer. 
+        /// When the bitmap array immediately follows the BITMAPINFO structure, it is a packed bitmap.
+        /// Packed bitmaps are referenced by a single pointer.
         /// Packed bitmaps require that the <c>PaletteColors</c> member must be either zero or the actual size of the color table.
         /// </para>
         /// <see>PaletteImportant</see>
@@ -102,14 +102,14 @@ namespace ImageSharp.Formats
         public uint PaletteColors;
 
         /// <summary>
-        /// Specifies the number of important color indexes from the color palette for displaying the bitmap. 
+        /// Specifies the number of important color indexes from the color palette for displaying the bitmap.
         /// <para>If this value is 0, all colors are required.</para>
         /// <see>PaletteColors</see>
         /// </summary>
         public uint PaletteImportant;
 
         /// <summary>
-        /// Indicates the type of units used to interpret the values of the <c>PixelsPerUnitX</c> and <c>PixelsPerUnitY</c> fields. 
+        /// Indicates the type of units used to interpret the values of the <c>PixelsPerUnitX</c> and <c>PixelsPerUnitY</c> fields.
         /// <para>The only valid value is 0, indicating pixels per meter.</para>
         /// <see>PixelsPerUnitX</see>
         /// <see>PixelsPerUnitY</see>
@@ -118,131 +118,59 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// <term>Reserved</term>
-        /// <description>Unused and is always set to a value of zero. 
+        /// <description>Unused and is always set to a value of zero.
         /// Pad structure to 4-byte boundary.</description>
-        /// </summary>	
-        public ushort Reserved;             // Pad structure to 4-byte boundary. Must be 0;
+        /// </summary>
+        public ushort Reserved;
 
         /// <summary>
         /// <term>Recording</term>
-        /// <description>Specifies how the bitmap scan lines are stored. 
-        /// The only valid value for this field is 0, 
-        /// indicating that the bitmap is stored from left to right and from the bottom up, 
+        /// <description>Specifies how the bitmap scan lines are stored.
+        /// The only valid value for this field is 0,
+        /// indicating that the bitmap is stored from left to right and from the bottom up,
         /// with the origin being in the lower-left corner of the display.</description>
         /// </summary>
-        public ushort Recording;             // Recording algorithm. The only valid value for this field is 0, indicating that the bitmap scan lines is 
-                                             // stored from left to right and from the bottom up, with the origin being in the lower-left corner of the display.
+        public ushort Recording;
 
         /// <summary>
         /// <term>Rendering</term>
-        /// <description>Specifies the halftoning algorithm used on the bitmap data. 
-        /// A value of 0 indicates that no halftoning algorithm was used; 
-        /// 1 indicates error diffusion halftoning; 
-        /// 2 indicates Processing Algorithm for Noncoded Document Acquisition (PANDA); 
+        /// <description>Specifies the halftoning algorithm used on the bitmap data.
+        /// A value of 0 indicates that no halftoning algorithm was used;
+        /// 1 indicates error diffusion halftoning;
+        /// 2 indicates Processing Algorithm for Noncoded Document Acquisition (PANDA);
         /// and 3 indicates super-circle halftoning.</description>
         /// </summary>
-        public ushort Rendering;             // Halftoning algorithm used:
-                                             //     0 - No halftoning
-                                             //     1 - Error-diffusion halftoning
-                                             //     2 - Processing Algorithm for Noncoded Document Acquisition (PANDA)
-                                             //     3 - Super-circle halftoning
+        public ushort Rendering;
 
         /// <summary>
         /// <term>Size1</term>
-        /// <description><c>Size1</c> and <c>Size2</c> are reserved fields used only by the halftoning algorithm. 
-        /// If error diffusion halftoning is used, Size1 is the error damping as a percentage in the range 0 through 100. 
-        /// A value of 100 percent indicates no damping, and a value of 0 percent indicates that any errors are not diffused. 
-        /// Size2 is not used by error diffusion halftoning. 
-        /// If PANDA or super-circle halftoning is specified, <c>Size1</c> is the X dimension and <c>Size2</c> 
+        /// <description><c>Size1</c> and <c>Size2</c> are reserved fields used only by the halftoning algorithm.
+        /// If error diffusion halftoning is used, Size1 is the error damping as a percentage in the range 0 through 100.
+        /// A value of 100 percent indicates no damping, and a value of 0 percent indicates that any errors are not diffused.
+        /// Size2 is not used by error diffusion halftoning.
+        /// If PANDA or super-circle halftoning is specified, <c>Size1</c> is the X dimension and <c>Size2</c>
         /// is the Y dimension of the pattern used in pixels.</description>
         /// </summary>
-        public uint Size1;              // Reserved for halftoning algorithm use:
-                                        //       Error diffusion - the error damping as a percentage in the range 0% (any errors are not diffused) through 100% (no damping).
-                                        //       PANDA - X dimension of the pattern used in pixels
-                                        //       Super-Circle - X dimension of the pattern used in pixels
+        public uint Size1;
 
         /// <summary>
         /// <term>Size2</term>
         /// <description>See <c>Size1</c>.</description>
         /// </summary>
-        public uint Size2;              // Reserved for halftoning algorithm use:
-                                        //       Error diffusion - not used
-                                        //       PANDA - Y dimension of the pattern used in pixels
-                                        //       Super-Circle - Y dimension of the pattern used in pixels
+        public uint Size2;
 
         /// <summary>
         /// <term>ColorEncoding</term>
-        /// <description>Color model used to describe the bitmap data. 
+        /// <description>Color model used to describe the bitmap data.
         /// The only valid value is 0, indicating the None encoding scheme.</description>
         /// </summary>
-        public uint ColorEncoding;          // Color model used to describe the bitmap data. The only valid value is 0, indicating the None encoding scheme.
+        public uint ColorEncoding;
 
         /// <summary>
         /// <term>Identifier</term>
-        /// <description>Reserved for application use and may 
+        /// <description>Reserved for application use and may
         /// contain an application-specific value. Normally is set to 0.</description>
         /// </summary>
         public uint Identifier;
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 12)]
-    internal struct BITMAPINFOHEADER
-    {
-        public uint biSize;
-        public int biWidth;
-        public int biHeight;
-        public ushort biPlanes;
-        public ushort biBitCount;
-        public uint biCompression;
-        public uint biSizeImage;
-        public int biXPelsPerMeter;
-        public int biYPelsPerMeter;
-        public uint biClrUsed;
-        public uint biClrImportant;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct CIEXYZ
-    {
-        public uint ciexyzX; //FXPT2DOT30
-        public uint ciexyzY; //FXPT2DOT30
-        public uint ciexyzZ; //FXPT2DOT30
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct CIEXYZTRIPLE
-    {
-        public CIEXYZ ciexyzRed;
-        public CIEXYZ ciexyzGreen;
-        public CIEXYZ ciexyzBlue;
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 108)]
-    internal struct BITMAPV5HEADER
-    {
-        public uint bV5Size;
-        public int bV5Width;
-        public int bV5Height;
-        public ushort bV5Planes;
-        public ushort bV5BitCount;
-        public uint bV5Compression;
-        public uint bV5SizeImage;
-        public int bV5XPelsPerMeter;
-        public int bV5YPelsPerMeter;
-        public uint bV5ClrUsed;
-        public uint bV5ClrImportant;
-        public uint bV5RedMask;
-        public uint bV5GreenMask;
-        public uint bV5BlueMask;
-        public uint bV5AlphaMask;
-        public uint bV5CSType;
-        public CIEXYZTRIPLE bV5Endpoints;
-        public uint bV5GammaRed;
-        public uint bV5GammaGreen;
-        public uint bV5GammaBlue;
-        public uint bV5Intent;
-        public uint bV5ProfileData;
-        public uint bV5ProfileSize;
-        public uint bV5Reserved;
     }
 }

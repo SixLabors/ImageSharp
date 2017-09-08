@@ -5,7 +5,7 @@
     /// </summary>
     internal enum BmpNativeStructuresSizes
     {
-        // IBM OS/2 BMP Palette element
+        // IBM OS/2 BMP palette element
 
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v2 and OS/2 BMP v1 file format.
@@ -15,7 +15,7 @@
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// <seealso cref="BmpNativeStructuresSizes.RGBTRIPLE"/>
         /// </summary>
-        OS21XPALETTEELEMENT = 3,
+        OS21XpaletteELEMENT = 3,
 
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v3 and OS/2 BMP v2 file format.
@@ -25,7 +25,7 @@
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// <seealso cref="BmpNativeStructuresSizes.RGBQUAD"/>
         /// </summary>
-        OS22XPALETTEELEMENT = 4,
+        OS22XpaletteELEMENT = 4,
 
         // IBM OS/2 BMP DIB header
 
@@ -57,7 +57,16 @@
         /// </summary>
         OS22XBITMAPHEADER = 64,
 
-        // Microsoft Windows BMP Palette element
+        /// <summary>
+        /// The maximum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
+        /// <para>
+        /// Supported by OS/2 2.0x or later.
+        /// </para>
+        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// </summary>
+        OS22XBITMAPHEADER_MAX = OS22XBITMAPHEADER,
+
+        // Microsoft Windows BMP palette element
 
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v2 and OS/2 BMP v1 file format.

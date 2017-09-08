@@ -16,8 +16,8 @@ namespace ImageSharp.Tests
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel
         = new TheoryData<BmpBitsPerPixel>
         {
-            BmpBitsPerPixel.Pixel24,
-            BmpBitsPerPixel.Pixel32
+            BmpBitsPerPixel.RGB24,
+            BmpBitsPerPixel.RGB32
         };
 
         [Theory]

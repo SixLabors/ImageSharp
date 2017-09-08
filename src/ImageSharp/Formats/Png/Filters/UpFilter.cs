@@ -11,7 +11,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// The Up filter is just like the Sub filter except that the pixel immediately above the current pixel,
     /// rather than just to its left, is used as the predictor.
-    /// See <a href="https://www.w3.org/TR/PNG-Filters.html"/>
+    /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
     internal static unsafe class UpFilter
     {

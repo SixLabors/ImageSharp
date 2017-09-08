@@ -58,7 +58,7 @@ namespace ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             QuantizedImage<TPixel> quantized = quantizer.Quantize(source, maxColors);
-            int palleteCount = quantized.Palette.Length - 1;
+            int paletteeCount = quantized.Palette.Length - 1;
 
             using (PixelAccessor<TPixel> pixels = new PixelAccessor<TPixel>(quantized.Width, quantized.Height))
             {
@@ -71,7 +71,7 @@ namespace ImageSharp
                         for (int x = 0; x < pixels.Width; x++)
                         {
                             int i = x + (y * pixels.Width);
-                            TPixel color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
+                            TPixel color = quantized.Palette[Math.Min(paletteeCount, quantized.Pixels[i])];
                             pixels[x, y] = color;
                         }
                     });

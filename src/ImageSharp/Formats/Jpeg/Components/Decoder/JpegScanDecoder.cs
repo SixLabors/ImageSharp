@@ -14,8 +14,8 @@ namespace ImageSharp.Formats.Jpg
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!
     ///
-    /// See <a href="zigStart"/> and <see cref="zigEnd"/> are the spectral selection bounds.
-    /// See <a href="ah"/> and <see cref="al"/> are the successive approximation high and low values.
+    /// <see cref="zigStart"/> and <see cref="zigEnd"/> are the spectral selection bounds.
+    /// <see cref="ah"/> and <see cref="al"/> are the successive approximation high and low values.
     /// The spec calls these values Ss, Se, Ah and Al.
     /// For progressive JPEGs, these are the two more-or-less independent
     /// aspects of progression. Spectral selection progression is when not

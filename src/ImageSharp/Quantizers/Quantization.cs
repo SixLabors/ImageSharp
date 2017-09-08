@@ -23,7 +23,7 @@ namespace ImageSharp
         Wu,
 
         /// <summary>
-        /// Palette based, Uses the collection of web-safe colors by default.
+        /// palette based, Uses the collection of web-safe colors by default.
         /// The quantizer supports multiple alpha values.
         /// </summary>
         Palette

@@ -165,7 +165,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override TPixel[] GetPalette()
+        protected override TPixel[] Getpalette()
         {
             if (this.palette == null)
             {
@@ -210,7 +210,7 @@ namespace ImageSharp.Quantizers
             int inb = b >> (8 - IndexBits);
             int ina = a >> (8 - IndexAlphaBits);
 
-            int ind = GetPaletteIndex(inr + 1, ing + 1, inb + 1, ina + 1);
+            int ind = GetpaletteIndex(inr + 1, ing + 1, inb + 1, ina + 1);
 
             this.vwt[ind]++;
             this.vmr[ind] += r;
@@ -247,8 +247,8 @@ namespace ImageSharp.Quantizers
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
             byte pixelValue = this.QuantizePixel(sourcePixel);
-            TPixel[] colorPalette = this.GetPalette();
-            TPixel transformedPixel = colorPalette[pixelValue];
+            TPixel[] colorpalette = this.Getpalette();
+            TPixel transformedPixel = colorpalette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -272,7 +272,7 @@ namespace ImageSharp.Quantizers
 
                         if (this.Dither)
                         {
-                            transformedPixel = colorPalette[pixelValue];
+                            transformedPixel = colorpalette[pixelValue];
                         }
                     }
 
@@ -296,7 +296,7 @@ namespace ImageSharp.Quantizers
         /// <param name="a">The alpha value.</param>
         /// <returns>The index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetPaletteIndex(int r, int g, int b, int a)
+        private static int GetpaletteIndex(int r, int g, int b, int a)
         {
             return (r << ((IndexBits * 2) + IndexAlphaBits)) + (r << (IndexBits + IndexAlphaBits + 1))
                    + (g << (IndexBits + IndexAlphaBits)) + (r << (IndexBits * 2)) + (r << (IndexBits + 1))
@@ -311,22 +311,22 @@ namespace ImageSharp.Quantizers
         /// <returns>The result.</returns>
         private static float Volume(Box cube, long[] moment)
         {
-            return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                   + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                   - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                   + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+            return moment[GetpaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
+                   - moment[GetpaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
+                   - moment[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
+                   + moment[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
+                   - moment[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
+                   + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
+                   + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
+                   - moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
+                   - moment[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
+                   + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
+                   + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
+                   - moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
+                   + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
+                   - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
+                   - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
+                   + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
         }
 
         /// <summary>
@@ -342,47 +342,47 @@ namespace ImageSharp.Quantizers
             {
                 // Red
                 case 0:
-                    return -moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Green
                 case 1:
-                    return -moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Blue
                 case 2:
-                    return -moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Alpha
                 case 3:
-                    return -moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                    return -moment[GetpaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
@@ -403,47 +403,47 @@ namespace ImageSharp.Quantizers
             {
                 // Red
                 case 0:
-                    return moment[GetPaletteIndex(position, cube.G1, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(position, cube.G1, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(position, cube.G1, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(position, cube.G1, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(position, cube.G0, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(position, cube.G0, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(position, cube.G0, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(position, cube.G0, cube.B0, cube.A0)];
+                    return moment[GetpaletteIndex(position, cube.G1, cube.B1, cube.A1)]
+                           - moment[GetpaletteIndex(position, cube.G1, cube.B1, cube.A0)]
+                           - moment[GetpaletteIndex(position, cube.G1, cube.B0, cube.A1)]
+                           + moment[GetpaletteIndex(position, cube.G1, cube.B0, cube.A0)]
+                           - moment[GetpaletteIndex(position, cube.G0, cube.B1, cube.A1)]
+                           + moment[GetpaletteIndex(position, cube.G0, cube.B1, cube.A0)]
+                           + moment[GetpaletteIndex(position, cube.G0, cube.B0, cube.A1)]
+                           - moment[GetpaletteIndex(position, cube.G0, cube.B0, cube.A0)];
 
                 // Green
                 case 1:
-                    return moment[GetPaletteIndex(cube.R1, position, cube.B1, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, position, cube.B1, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R1, position, cube.B0, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, position, cube.B0, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, position, cube.B1, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, position, cube.B1, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, position, cube.B0, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, position, cube.B0, cube.A0)];
+                    return moment[GetpaletteIndex(cube.R1, position, cube.B1, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R1, position, cube.B1, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R1, position, cube.B0, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R1, position, cube.B0, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, position, cube.B1, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R0, position, cube.B1, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, position, cube.B0, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R0, position, cube.B0, cube.A0)];
 
                 // Blue
                 case 2:
-                    return moment[GetPaletteIndex(cube.R1, cube.G1, position, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G1, position, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, position, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, position, cube.A0)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, position, cube.A1)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, position, cube.A0)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, position, cube.A1)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, position, cube.A0)];
+                    return moment[GetpaletteIndex(cube.R1, cube.G1, position, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G1, position, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G0, position, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G0, position, cube.A0)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G1, position, cube.A1)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G1, position, cube.A0)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, position, cube.A1)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, position, cube.A0)];
 
                 // Alpha
                 case 3:
-                    return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, position)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, position)]
-                           - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, position)]
-                           + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, position)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, position)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, position)]
-                           + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B1, position)]
-                           - moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, position)];
+                    return moment[GetpaletteIndex(cube.R1, cube.G1, cube.B1, position)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G1, cube.B0, position)]
+                           - moment[GetpaletteIndex(cube.R1, cube.G0, cube.B1, position)]
+                           + moment[GetpaletteIndex(cube.R1, cube.G0, cube.B0, position)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G1, cube.B1, position)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G1, cube.B0, position)]
+                           + moment[GetpaletteIndex(cube.R0, cube.G0, cube.B1, position)]
+                           - moment[GetpaletteIndex(cube.R0, cube.G0, cube.B0, position)];
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(direction));
@@ -500,7 +500,7 @@ namespace ImageSharp.Quantizers
 
                             for (int a = 1; a < IndexAlphaCount; a++)
                             {
-                                int ind1 = GetPaletteIndex(r, g, b, a);
+                                int ind1 = GetpaletteIndex(r, g, b, a);
 
                                 line += this.vwt[ind1];
                                 lineR += this.vmr[ind1];
@@ -525,7 +525,7 @@ namespace ImageSharp.Quantizers
                                 volumeA[inv] += areaA[a];
                                 volume2[inv] += area2[a];
 
-                                int ind2 = ind1 - GetPaletteIndex(1, 0, 0, 0);
+                                int ind2 = ind1 - GetpaletteIndex(1, 0, 0, 0);
 
                                 this.vwt[ind1] = this.vwt[ind2] + volume[inv];
                                 this.vmr[ind1] = this.vmr[ind2] + volumeR[inv];
@@ -569,22 +569,22 @@ namespace ImageSharp.Quantizers
             float da = Volume(cube, this.vma);
 
             float xx =
-                this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                + this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                this.m2[GetpaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
+                - this.m2[GetpaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
+                - this.m2[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
+                + this.m2[GetpaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
+                - this.m2[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
+                + this.m2[GetpaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
+                + this.m2[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
+                - this.m2[GetpaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
+                - this.m2[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
+                + this.m2[GetpaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
+                + this.m2[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
+                - this.m2[GetpaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
+                + this.m2[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
+                - this.m2[GetpaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
+                - this.m2[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
+                + this.m2[GetpaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
             return xx - (((dr * dr) + (dg * dg) + (db * db) + (da * da)) / Volume(cube, this.vwt));
         }
@@ -762,7 +762,7 @@ namespace ImageSharp.Quantizers
                     {
                         for (int a = cube.A0 + 1; a <= cube.A1; a++)
                         {
-                            this.tag[GetPaletteIndex(r, g, b, a)] = label;
+                            this.tag[GetpaletteIndex(r, g, b, a)] = label;
                         }
                     }
                 }
@@ -846,7 +846,7 @@ namespace ImageSharp.Quantizers
             int b = this.rgbaBuffer[2] >> (8 - IndexBits);
             int a = this.rgbaBuffer[3] >> (8 - IndexAlphaBits);
 
-            return this.tag[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+            return this.tag[GetpaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }
     }
 }

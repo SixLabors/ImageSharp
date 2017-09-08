@@ -203,7 +203,7 @@ namespace ImageSharp.Formats
 
             /// <summary>
             /// Application specific marker for marking the jpeg format.
-            /// See <a href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html"/>
+            /// <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html"/>
             /// </summary>
             public const byte APP0 = 0xe0;
 

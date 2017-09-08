@@ -65,7 +65,7 @@ namespace ImageSharp.Quantizers
             }
 
             // Collect the palette. Required before the second pass runs.
-            TPixel[] colorPalette = this.GetPalette();
+            TPixel[] colorpalette = this.Getpalette();
 
             if (this.Dither)
             {
@@ -80,7 +80,7 @@ namespace ImageSharp.Quantizers
                 this.SecondPass(image, quantizedPixels, width, height);
             }
 
-            return new QuantizedImage<TPixel>(width, height, colorPalette, quantizedPixels);
+            return new QuantizedImage<TPixel>(width, height, colorpalette, quantizedPixels);
         }
 
         /// <summary>
@@ -132,17 +132,17 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// See <a href="T:TPixel[]"/>
         /// </returns>
-        protected abstract TPixel[] GetPalette();
+        protected abstract TPixel[] Getpalette();
 
         /// <summary>
         /// Returns the closest color from the palette to the given color by calculating the Euclidean distance.
         /// </summary>
         /// <param name="pixel">The color.</param>
-        /// <param name="colorPalette">The color palette.</param>
+        /// <param name="colorpalette">The color palette.</param>
         /// <param name="cache">The cache to store the result in.</param>
         /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetClosestPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
+        protected byte GetClosestPixel(TPixel pixel, TPixel[] colorpalette, Dictionary<TPixel, byte> cache)
         {
             // Check if the color is in the lookup table
             if (cache.ContainsKey(pixel))
@@ -155,9 +155,9 @@ namespace ImageSharp.Quantizers
             float leastDistance = int.MaxValue;
             var vector = pixel.ToVector4();
 
-            for (int index = 0; index < colorPalette.Length; index++)
+            for (int index = 0; index < colorpalette.Length; index++)
             {
-                float distance = Vector4.Distance(vector, colorPalette[index].ToVector4());
+                float distance = Vector4.Distance(vector, colorpalette[index].ToVector4());
 
                 // Greater... Move on.
                 if (!(distance < leastDistance))

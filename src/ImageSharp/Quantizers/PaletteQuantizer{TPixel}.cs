@@ -69,8 +69,8 @@ namespace ImageSharp.Quantizers
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
             byte pixelValue = this.QuantizePixel(sourcePixel);
-            TPixel[] colorPalette = this.GetPalette();
-            TPixel transformedPixel = colorPalette[pixelValue];
+            TPixel[] colorpalette = this.Getpalette();
+            TPixel transformedPixel = colorpalette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -94,7 +94,7 @@ namespace ImageSharp.Quantizers
 
                         if (this.Dither)
                         {
-                            transformedPixel = colorPalette[pixelValue];
+                            transformedPixel = colorpalette[pixelValue];
                         }
                     }
 
@@ -110,7 +110,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override TPixel[] GetPalette()
+        protected override TPixel[] Getpalette()
         {
             return this.colors;
         }
@@ -125,7 +125,7 @@ namespace ImageSharp.Quantizers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte QuantizePixel(TPixel pixel)
         {
-            return this.GetClosestPixel(pixel, this.GetPalette(), this.colorMap);
+            return this.GetClosestPixel(pixel, this.Getpalette(), this.colorMap);
         }
     }
 }

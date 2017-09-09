@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         private Buffer2D<TPixel> pixelBuffer;
 
-        private bool isDisposed = false;
+        private bool isDisosed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public void Dispose()
         {
-            if (this.isDisposed)
+            if (this.isDisosed)
             {
                 return;
             }
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp
             this.pixelBuffer = null;
 
             // Note disposing is done.
-            this.isDisposed = true;
+            this.isDisosed = true;
         }
 
         /// <inheritdoc/>

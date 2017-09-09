@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        Block8x8F block = new Block8x8F();
+                        var block = new Block8x8F();
 
                         for (int i = 0; i < Block8x8F.Size; i++)
                         {
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        Block8x8F block = new Block8x8F();
+                        var block = new Block8x8F();
 
                         for (int i = 0; i < Block8x8F.Size; i++)
                         {
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        Block8x8F b = new Block8x8F();
+                        var b = new Block8x8F();
                         b.LoadFrom(data);
                         b.CopyTo(mirror);
                     });
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        Block8x8F b = new Block8x8F();
+                        var b = new Block8x8F();
                         Block8x8F.LoadFrom(&b, data);
                         Block8x8F.CopyTo(&b, mirror);
                     });
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        Block8x8F v = new Block8x8F();
+                        var v = new Block8x8F();
                         v.LoadFrom(data);
                         v.CopyTo(mirror);
                     });
@@ -186,10 +186,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);
 
-            Block8x8F source = new Block8x8F();
+            var source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
 
-            Block8x8F dest = new Block8x8F();
+            var dest = new Block8x8F();
             source.TransposeInto(ref dest);
 
             float[] actual = new float[64];
@@ -206,12 +206,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void TranposeInto_Benchmark()
         {
-            BufferHolder source = new BufferHolder();
+            var source = new BufferHolder();
             source.Buffer.LoadFrom(Create8x8FloatData());
-            BufferHolder dest = new BufferHolder();
+            var dest = new BufferHolder();
 
             this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {Times} ...");
-            Stopwatch sw = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
             for (int i = 0; i < Times; i++)
             {
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public unsafe void CopyColorsTo()
         {
             float[] data = Create8x8FloatData();
-            Block8x8F block = new Block8x8F();
+            var block = new Block8x8F();
             block.LoadFrom(data);
             block.MultiplyAllInplace(5);
 
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] colorsExpected = new byte[stride * height];
             byte[] colorsActual = new byte[stride * height];
 
-            Block8x8F temp = new Block8x8F();
+            var temp = new Block8x8F();
 
             ReferenceImplementations.CopyColorsTo(ref block, new Span<byte>(colorsExpected, offset), stride);
 
@@ -303,18 +303,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2)]
         public unsafe void UnzigDivRound(int seed)
         {
-            Block8x8F block = new Block8x8F();
+            var block = new Block8x8F();
             block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            Block8x8F qt = new Block8x8F();
+            var qt = new Block8x8F();
             qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            UnzigData unzig = UnzigData.Create();
+            var unzig = UnzigData.Create();
 
             int* expectedResults = stackalloc int[Block8x8F.Size];
             ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
 
-            Block8x8F actualResults = default(Block8x8F);
+            var actualResults = default(Block8x8F);
 
             Block8x8F.UnzigDivRound(&block, &actualResults, &qt, unzig.Data);
 

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -16,7 +15,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
+        /// </summary>
+        public AutoOrientProcessor()
+        {
+        }
+
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
             Orientation orientation = GetExifOrientation(source);
@@ -28,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     break;
 
                 case Orientation.BottomRight:
-                    new RotateProcessor<TPixel> { Angle = (int)RotateType.Rotate180, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate180, Expand = false }.Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.BottomLeft:
@@ -36,21 +41,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     break;
 
                 case Orientation.LeftTop:
-                    new RotateProcessor<TPixel> { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
                     new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.RightTop:
-                    new RotateProcessor<TPixel> { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.RightBottom:
                     new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor<TPixel> { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.LeftBottom:
-                    new RotateProcessor<TPixel> { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.Unknown:
@@ -60,10 +65,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
         }
 
-        /// <inheritdoc />
-        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        /// <inheritdoc/>
+        protected override void OnApply(ImageFrame<TPixel> sourceBase, Rectangle sourceRectangle, Configuration config)
         {
-            // Nothing required here
+            // all processing happens at the image level within BeforeImageApply();
         }
 
         /// <summary>

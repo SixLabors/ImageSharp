@@ -50,10 +50,10 @@ namespace SixLabors.ImageSharp
                     nameof(count),
                     "Argument 'count' should divisible by Vector<uint>.Count!");
 
-                Vector<float> bVec = new Vector<float>(256.0f / 255.0f);
-                Vector<float> magicFloat = new Vector<float>(32768.0f);
-                Vector<uint> magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
-                Vector<uint> mask = new Vector<uint>(255);
+                var bVec = new Vector<float>(256.0f / 255.0f);
+                var magicFloat = new Vector<float>(32768.0f);
+                var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
+                var mask = new Vector<uint>(255);
 
                 int unpackedRawCount = count * 4;
 
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
                     vi &= mask;
                     vi |= magicInt;
 
-                    Vector<float> vf = Vector.AsVectorSingle(vi);
+                    var vf = Vector.AsVectorSingle(vi);
                     vf = (vf - magicFloat) * bVec;
 
                     Unsafe.Add(ref destBaseAsFloat, i) = vf;

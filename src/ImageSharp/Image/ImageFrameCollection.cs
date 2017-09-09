@@ -13,10 +13,24 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an imaged collection of frames.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    public sealed class ImageFrameCollection<TPixel> : IEnumerable<ImageFrame<TPixel>>
+    public sealed class ImageFrameCollection<TPixel> : IEnumerable<ImageFrame<TPixel>>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
+
+        internal ImageFrameCollection(int width, int height)
+        {
+            this.Add(new ImageFrame<TPixel>(width, height));
+        }
+
+        internal ImageFrameCollection(IEnumerable<ImageFrame<TPixel>> frames)
+        {
+            Guard.NotNullOrEmpty(frames, nameof(frames));
+            foreach (ImageFrame<TPixel> f in frames)
+            {
+                this.Add(f);
+            }
+        }
 
         /// <summary>
         /// Gets the count.
@@ -42,7 +56,7 @@ namespace SixLabors.ImageSharp
 
             set
             {
-                this.ValidateFrameSize(value);
+                this.ValidateFrame(value);
                 this.frames[index] = value;
             }
         }
@@ -61,7 +75,7 @@ namespace SixLabors.ImageSharp
         /// <param name="frame">The <seealso cref="ImageFrame{TPixel}"/> to insert into the <seealso cref="Image{TPixel}"/>.</param>
         public void Insert(int index, ImageFrame<TPixel> frame)
         {
-            this.ValidateFrameSize(frame);
+            this.ValidateFrame(frame);
             this.frames.Insert(index, frame);
         }
 
@@ -72,12 +86,12 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidOperationException">Cannot remove last frame.</exception>
         public void RemoveAt(int index)
         {
-            if (index > 0 || this.frames.Count > 1)
+            if (index == 0 && this.Count == 1)
             {
-                this.frames.RemoveAt(index);
+                throw new InvalidOperationException("Cannot remove last frame.");
             }
 
-            throw new InvalidOperationException("Cannot remove last frame.");
+            this.frames.RemoveAt(index);
         }
 
         /// <summary>
@@ -87,7 +101,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException">Frame must have the same dimensions as the image - frame</exception>
         public void Add(ImageFrame<TPixel> frame)
         {
-            this.ValidateFrameSize(frame);
+            this.ValidateFrame(frame);
             this.frames.Add(frame);
         }
 
@@ -113,7 +127,7 @@ namespace SixLabors.ImageSharp
         {
             if (this.Count == 1 && this.frames.Contains(frame))
             {
-                throw new InvalidOperationException("Cannot remove last frame");
+                throw new InvalidOperationException("Cannot remove last frame.");
             }
 
             return this.frames.Remove(frame);
@@ -125,7 +139,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this.frames).GetEnumerator();
 
-        private void ValidateFrameSize(ImageFrame<TPixel> frame)
+        private void ValidateFrame(ImageFrame<TPixel> frame)
         {
             Guard.NotNull(frame, nameof(frame));
 
@@ -133,9 +147,20 @@ namespace SixLabors.ImageSharp
             {
                 if (this.RootFrame.Width != frame.Width || this.RootFrame.Height != frame.Height)
                 {
-                    throw new ArgumentException("Frame must have the same dimensions as the image", nameof(frame));
+                    throw new ArgumentException("Frame must have the same dimensions as the image.", nameof(frame));
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            foreach (ImageFrame<TPixel> f in this.frames)
+            {
+                f.Dispose();
+            }
+
+            this.frames.Clear();
         }
     }
 }

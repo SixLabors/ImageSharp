@@ -58,8 +58,10 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetaData metadata)
-            : this(configuration, width, height, metadata, null)
         {
+            this.configuration = configuration ?? Configuration.Default;
+            this.MetaData = metadata ?? new ImageMetaData();
+            this.Frames = new ImageFrameCollection<TPixel>(width, height);
         }
 
         /// <summary>
@@ -67,29 +69,14 @@ namespace SixLabors.ImageSharp
         /// with the height and the width of the image.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
-        /// <param name="width">The width of the image in pixels.</param>
-        /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         /// <param name="frames">The frames that will be owned by this image instance.</param>
-        internal Image(Configuration configuration, int width, int height, ImageMetaData metadata, IEnumerable<ImageFrame<TPixel>> frames)
+        internal Image(Configuration configuration, ImageMetaData metadata, IEnumerable<ImageFrame<TPixel>> frames)
         {
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
-            this.Frames = new ImageFrameCollection<TPixel>();
-
-            if (frames != null)
-            {
-                foreach (ImageFrame<TPixel> f in frames)
-                {
-                    this.Frames.Add(f);
-                }
-            }
-
-            if (this.Frames.Count == 0)
-            {
-                this.Frames.Add(new ImageFrame<TPixel>(width, height));
-            }
+            this.Frames = new ImageFrameCollection<TPixel>(frames);
         }
 
         /// <summary>
@@ -157,7 +144,7 @@ namespace SixLabors.ImageSharp
         {
             IEnumerable<ImageFrame<TPixel>> frames = this.Frames.Select(x => x.Clone()).ToArray();
 
-            return new Image<TPixel>(this.configuration, this.Width, this.Height, this.MetaData.Clone(), frames);
+            return new Image<TPixel>(this.configuration, this.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
@@ -175,7 +162,7 @@ namespace SixLabors.ImageSharp
             where TPixel2 : struct, IPixel<TPixel2>
         {
             IEnumerable<ImageFrame<TPixel2>> frames = this.Frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
-            var target = new Image<TPixel2>(this.configuration, this.Width, this.Height, this.MetaData, frames);
+            var target = new Image<TPixel2>(this.configuration, this.MetaData, frames);
 
             return target;
         }
@@ -185,10 +172,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public void Dispose()
         {
-            for (int i = 0; i < this.Frames.Count; i++)
-            {
-                this.Frames[i].Dispose();
-            }
+            this.Frames.Dispose();
         }
 
         /// <summary>

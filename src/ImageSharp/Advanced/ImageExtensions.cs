@@ -34,6 +34,27 @@ namespace SixLabors.ImageSharp.Advanced
             => GetSpan(source, row);
 
         /// <summary>
+        /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Frames.RootFrame.GetPixelSpan();
+
+        /// <summary>
+        /// Gets the representation of the pixels as an area of contiguous memory at row 'y' beginning from the the first pixel on that row.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="row">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int row)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Frames.RootFrame.GetPixelRowSpan(row);
+
+        /// <summary>
         /// Gets the configuration for the image.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>

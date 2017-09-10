@@ -166,11 +166,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            Buffer2D<TPixel> newPixels = pixelSource.pixelBuffer;
-
-            pixelSource.pixelBuffer = this.pixelBuffer;
-
-            this.pixelBuffer = newPixels;
+            ComparableExtensions.Swap(ref this.pixelBuffer, ref pixelSource.pixelBuffer);
         }
 
         /// <summary>

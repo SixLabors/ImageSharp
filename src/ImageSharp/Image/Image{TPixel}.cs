@@ -183,8 +183,6 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            int newHeight = pixelSource.Height;
-
             for (int i = 0; i < this.Frames.Count; i++)
             {
                 this.Frames[i].SwapPixelsBuffers(pixelSource.Frames[i]);

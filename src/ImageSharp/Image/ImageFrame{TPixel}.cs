@@ -166,8 +166,6 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            int newWidth = pixelSource.Width;
-            int newHeight = pixelSource.Height;
             Buffer2D<TPixel> newPixels = pixelSource.pixelBuffer;
 
             pixelSource.pixelBuffer = this.pixelBuffer;

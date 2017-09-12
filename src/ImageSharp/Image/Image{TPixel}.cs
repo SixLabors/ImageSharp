@@ -21,6 +21,7 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         private Configuration configuration;
+        private ImageFrameCollection<TPixel> frames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp
         {
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
-            this.Frames = new ImageFrameCollection<TPixel>(width, height);
+            this.frames = new ImageFrameCollection<TPixel>(width, height);
         }
 
         /// <summary>
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
-            this.Frames = new ImageFrameCollection<TPixel>(frames);
+            this.frames = new ImageFrameCollection<TPixel>(frames);
         }
 
         /// <summary>
@@ -87,12 +88,12 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width => this.Frames.RootFrame.Width;
+        public int Width => this.frames.RootFrame.Width;
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height => this.Frames.RootFrame.Height;
+        public int Height => this.frames.RootFrame.Height;
 
         /// <summary>
         /// Gets the meta data of the image.
@@ -102,12 +103,12 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the frames.
         /// </summary>
-        public ImageFrameCollection<TPixel> Frames { get; private set; }
+        public IImageFrameCollection<TPixel> Frames => this.frames;
 
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IPixelSource<TPixel> PixelSource => this.Frames?.RootFrame;
+        private IPixelSource<TPixel> PixelSource => this.frames?.RootFrame ?? throw new ObjectDisposedException(nameof(Image<TPixel>));
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -142,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// <returns>Returns a new image with all the same metadata as the original.</returns>
         public Image<TPixel> Clone()
         {
-            IEnumerable<ImageFrame<TPixel>> frames = this.Frames.Select(x => x.Clone()).ToArray();
+            IEnumerable<ImageFrame<TPixel>> frames = this.frames.Select(x => x.Clone()).ToArray();
 
             return new Image<TPixel>(this.configuration, this.MetaData.Clone(), frames);
         }
@@ -161,7 +162,7 @@ namespace SixLabors.ImageSharp
         public Image<TPixel2> CloneAs<TPixel2>()
             where TPixel2 : struct, IPixel<TPixel2>
         {
-            IEnumerable<ImageFrame<TPixel2>> frames = this.Frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
+            IEnumerable<ImageFrame<TPixel2>> frames = this.frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
             var target = new Image<TPixel2>(this.configuration, this.MetaData, frames);
 
             return target;
@@ -172,7 +173,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public void Dispose()
         {
-            this.Frames.Dispose();
+            this.frames.Dispose();
         }
 
         /// <summary>
@@ -183,9 +184,9 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            for (int i = 0; i < this.Frames.Count; i++)
+            for (int i = 0; i < this.frames.Count; i++)
             {
-                this.Frames[i].SwapPixelsBuffers(pixelSource.Frames[i]);
+                this.frames[i].SwapPixelsBuffers(pixelSource.frames[i]);
             }
         }
     }

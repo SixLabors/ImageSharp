@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 var destPtr = (Argb32*)workBuffer.Pin();
                 for (int y = 0; y < h; y++)
                 {
-                    Span<TPixel> row = image.GetPixelRowSpan(y);
+                    Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
 
                     byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 var destPtr = (Rgb24*)workBuffer.Pin();
                 for (int y = 0; y < h; y++)
                 {
-                    Span<TPixel> row = image.GetPixelRowSpan(y);
+                    Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
 
                     byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
                 for (int y = 0; y < h; y++)
                 {
-                    Span<TPixel> row = image.GetPixelRowSpan(y);
+                    Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
                     ToArgb32(row, workBuffer);
                     byte* destPtr = destPtrBase + data.Stride * y;
 

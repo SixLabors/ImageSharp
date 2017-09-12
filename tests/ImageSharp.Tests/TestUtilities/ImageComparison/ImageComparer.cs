@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
 using SixLabors.Primitives;
@@ -22,27 +22,30 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             return new TolerantImageComparer(imageThreshold, perPixelManhattanThreshold);
         }
 
-        public abstract ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
-            ImageBase<TPixelA> expected,
-            ImageBase<TPixelB> actual)
+        public abstract ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+            ImageFrame<TPixelA> expected,
+            ImageFrame<TPixelB> actual)
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>;
     }
 
     public static class ImageComparerExtensions
     {
-        public static IEnumerable<ImageSimilarityReport> CompareImages<TPixelA, TPixelB>(
+        public static ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
             this ImageComparer comparer,
             Image<TPixelA> expected,
             Image<TPixelB> actual)
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
         {
-            var result = new List<ImageSimilarityReport>();
-            ImageSimilarityReport report = comparer.CompareImagesOrFrames(expected, actual);
+            return comparer.CompareImagesOrFrames((ImageFrame<TPixelA>)expected, (ImageFrame<TPixelB>)actual);
+        }
 
-            if (!report.IsEmpty)
-            {
-                result.Add(report);
-            }
+        public static IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> CompareImages<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+        {
+            var result = new List<ImageSimilarityReport<TPixelA, TPixelB>>();
 
             if (expected.Frames.Count != actual.Frames.Count)
             {
@@ -50,12 +53,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             }
             for (int i = 0; i < expected.Frames.Count; i++)
             {
-                report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
+                ImageSimilarityReport<TPixelA, TPixelB> report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
                 if (!report.IsEmpty)
                 {
                     result.Add(report);
                 }
             }
+
             return result;
         }
 
@@ -100,10 +104,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 throw new ImagesSimilarityException("Image frame count does not match!");
             }
 
-            IEnumerable<ImageSimilarityReport> reports = comparer.CompareImages(expected, actual);
+            IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> reports = comparer.CompareImages(expected, actual);
             if (reports.Any())
             {
-                List<ImageSimilarityReport> cleanedReports = new List<ImageSimilarityReport>(reports.Count());
+                List<ImageSimilarityReport<TPixelA, TPixelB>> cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
                 foreach (var r in reports)
                 {
                     var outsideChanges = r.Differences.Where(x => !(
@@ -113,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                         x.Position.Y <= ignoredRegion.Bottom));
                     if (outsideChanges.Any())
                     {
-                        cleanedReports.Add(new ImageSimilarityReport(r.ExpectedImage, r.ActualImage, outsideChanges, null));
+                        cleanedReports.Add(new ImageSimilarityReport<TPixelA, TPixelB>(r.ExpectedImage, r.ActualImage, outsideChanges, null));
                     }
                 }
 

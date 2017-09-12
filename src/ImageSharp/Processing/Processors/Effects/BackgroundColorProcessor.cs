@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public TPixel Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);

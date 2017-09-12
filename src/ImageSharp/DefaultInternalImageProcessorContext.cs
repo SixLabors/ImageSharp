@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -53,8 +54,7 @@ namespace SixLabors.ImageSharp
                 // This will only work if the first processor applied is the cloning one thus
                 // realistically for this optermissation to work the resize must the first processor
                 // applied any only up processors will take the douple data path.
-                var cloningImageProcessor = processor as ICloningImageProcessor<TPixel>;
-                if (cloningImageProcessor != null)
+                if (processor is ICloningImageProcessor<TPixel> cloningImageProcessor)
                 {
                     this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
                     return this;

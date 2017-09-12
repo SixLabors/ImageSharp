@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         public GraphicsOptions Options { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Region region = this.Region;
             Rectangle rect = region.Bounds;
@@ -93,7 +94,6 @@ namespace SixLabors.ImageSharp.Drawing.Processors
             using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
             {
                 float[] buffer = arrayPool.Rent(maxIntersections);
-                Span<float> bufferSpan = buffer.AsSpan().Slice(0, maxIntersections);
                 int scanlineWidth = maxX - minX;
                 using (var scanline = new Buffer<float>(scanlineWidth))
                 {
@@ -117,14 +117,14 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                             float subpixelFractionPoint = subpixelFraction / subpixelCount;
                             for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
                             {
-                                int pointsFound = region.Scan(subPixel, bufferSpan);
+                                int pointsFound = region.Scan(subPixel, buffer, 0);
                                 if (pointsFound == 0)
                                 {
                                     // nothing on this line skip
                                     continue;
                                 }
 
-                                QuickSort(bufferSpan.Slice(0, pointsFound));
+                                QuickSort(new Span<float>(buffer, 0, pointsFound));
 
                                 for (int point = 0; point < pointsFound; point += 2)
                                 {

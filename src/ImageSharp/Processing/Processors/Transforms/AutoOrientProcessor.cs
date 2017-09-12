@@ -22,53 +22,53 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
         }
 
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> sourceBase, Rectangle sourceRectangle)
+        protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            // can only apply to the origional image
-            var source = sourceBase as Image<TPixel>;
-            if (source != null)
+            Orientation orientation = GetExifOrientation(source);
+
+            switch (orientation)
             {
-                Orientation orientation = GetExifOrientation(source);
+                case Orientation.TopRight:
+                    new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
+                    break;
 
-                switch (orientation)
-                {
-                    case Orientation.TopRight:
-                        new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
-                        break;
+                case Orientation.BottomRight:
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate180, Expand = false }.Apply(source, sourceRectangle);
+                    break;
 
-                    case Orientation.BottomRight:
-                        new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate180, Expand = false }.Apply(source, sourceRectangle);
-                        break;
+                case Orientation.BottomLeft:
+                    new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
+                    break;
 
-                    case Orientation.BottomLeft:
-                        new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
-                        break;
+                case Orientation.LeftTop:
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
+                    new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
+                    break;
 
-                    case Orientation.LeftTop:
-                        new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
-                        new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
-                        break;
+                case Orientation.RightTop:
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
+                    break;
 
-                    case Orientation.RightTop:
-                        new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
-                        break;
+                case Orientation.RightBottom:
+                    new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
+                    break;
 
-                    case Orientation.RightBottom:
-                        new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
-                        new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
-                        break;
+                case Orientation.LeftBottom:
+                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
+                    break;
 
-                    case Orientation.LeftBottom:
-                        new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
-                        break;
-
-                    case Orientation.Unknown:
-                    case Orientation.TopLeft:
-                    default:
-                        break;
-                }
+                case Orientation.Unknown:
+                case Orientation.TopLeft:
+                default:
+                    break;
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageFrame<TPixel> sourceBase, Rectangle sourceRectangle, Configuration config)
+        {
+            // all processing happens at the image level within BeforeImageApply();
         }
 
         /// <summary>

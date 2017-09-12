@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         public TPixel Color => this.color;
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             return new SolidBrushApplicator(source, this.color, options);
         }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <param name="source">The source image.</param>
             /// <param name="color">The color.</param>
             /// <param name="options">The options</param>
-            public SolidBrushApplicator(ImageBase<TPixel> source, TPixel color, GraphicsOptions options)
+            public SolidBrushApplicator(ImageFrame<TPixel> source, TPixel color, GraphicsOptions options)
                 : base(source, options)
             {
                 this.Colors = new Buffer<TPixel>(source.Width);

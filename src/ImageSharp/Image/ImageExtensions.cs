@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source image</param>
         /// <param name="buffer">The buffer to save the raw pixel data to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
+        internal static void SavePixelData<TPixel>(this Image<TPixel> source, byte[] buffer)
             where TPixel : struct, IPixel<TPixel>
         {
             Span<byte> byteBuffer = source.GetPixelSpan().AsBytes();

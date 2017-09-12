@@ -4,12 +4,16 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
-    <AssemblyName>SixLabors.ImageSharp.Benchmarks</AssemblyName>
+    <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Colourful" Version="1.1.2" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />

@@ -32,9 +32,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
             {
                 image.Mutate(x => x.Grayscale(value));
                 byte[] data = new byte[3];
-                for (int i = 0; i < image.GetPixelSpan().Length; i++)
+                System.Span<TPixel> span = image.Frames.RootFrame.GetPixelSpan();
+                for (int i = 0; i < span.Length; i++)
                 {
-                    image.GetPixelSpan()[i].ToXyzBytes(data, 0);
+                    span[i].ToXyzBytes(data, 0);
                     Assert.Equal(data[0], data[1]);
                     Assert.Equal(data[1], data[2]);
                 }

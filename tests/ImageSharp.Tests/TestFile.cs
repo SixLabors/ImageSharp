@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -145,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         public Image<Rgba32> CreateImage(IImageDecoder decoder)
         {
-            return ImageSharp.Image.Load(this.Image.Configuration, this.Bytes, decoder);
+            return ImageSharp.Image.Load(this.Image.GetConfiguration(), this.Bytes, decoder);
         }
     }
 }

@@ -34,15 +34,15 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public float Threshold { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            using (ImageBase<TPixel> temp = source.Clone())
+            using (ImageFrame<TPixel> temp = source.Clone())
             {
                 // Detect the edges.
-                new SobelProcessor<TPixel>().Apply(temp, sourceRectangle);
+                new SobelProcessor<TPixel>().Apply(temp, sourceRectangle, configuration);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor<TPixel>(this.Threshold).Apply(temp, sourceRectangle);
+                new BinaryThresholdProcessor<TPixel>(this.Threshold).Apply(temp, sourceRectangle, configuration);
 
                 // Search for the first white pixels
                 Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     return;
                 }
 
-                new CropProcessor<TPixel>(rectangle).Apply(source, sourceRectangle);
+                new CropProcessor<TPixel>(rectangle).Apply(source, sourceRectangle, configuration);
             }
         }
     }

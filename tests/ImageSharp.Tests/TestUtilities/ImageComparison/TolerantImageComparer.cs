@@ -5,6 +5,7 @@
     using System.Runtime.CompilerServices;
 
     using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Helpers;
     using SixLabors.ImageSharp.PixelFormats;
 
     using SixLabors.Primitives;
@@ -45,7 +46,7 @@
         /// </summary>
         public int PerPixelManhattanThreshold { get; }
         
-        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(ImageBase<TPixelA> expected, ImageBase<TPixelB> actual)
+        public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {
@@ -90,11 +91,11 @@
             
             if (normalizedDifference > this.ImageThreshold)
             {
-                return new ImageSimilarityReport(expected, actual, differences, normalizedDifference);
+                return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences, normalizedDifference);
             }
             else
             {
-                return ImageSimilarityReport.Empty;
+                return ImageSimilarityReport<TPixelA, TPixelB>.Empty;
             }
         }
 

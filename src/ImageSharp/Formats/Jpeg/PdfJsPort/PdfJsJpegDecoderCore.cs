@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             this.QuantizeAndInverseAllComponents();
 
             var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, metadata);
-            this.FillPixelData(image);
+            this.FillPixelData(image.Frames.RootFrame);
             this.AssignResolution(image);
             return image;
         }
@@ -326,7 +326,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image</param>
-        private void FillPixelData<TPixel>(Image<TPixel> image)
+        private void FillPixelData<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.NumberOfComponents > 4)
@@ -856,7 +856,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillGrayScaleImage<TPixel>(Image<TPixel> image)
+        private void FillGrayScaleImage<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int y = 0; y < image.Height; y++)
@@ -875,7 +875,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillYCbCrImage<TPixel>(Image<TPixel> image)
+        private void FillYCbCrImage<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int y = 0; y < image.Height; y++)
@@ -894,7 +894,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillYcckImage<TPixel>(Image<TPixel> image)
+        private void FillYcckImage<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int y = 0; y < image.Height; y++)
@@ -915,7 +915,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillCmykImage<TPixel>(Image<TPixel> image)
+        private void FillCmykImage<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int y = 0; y < image.Height; y++)
@@ -941,7 +941,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillRgbImage<TPixel>(Image<TPixel> image)
+        private void FillRgbImage<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int y = 0; y < image.Height; y++)

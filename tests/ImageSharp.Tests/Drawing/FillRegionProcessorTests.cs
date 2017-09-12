@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             Image<Rgba32> img = new Image<Rgba32>(1, 1);
             processor.Apply(img, bounds);
 
-            region.Verify(x => x.Scan(It.IsAny<float>(), It.IsAny<Span<float>>()), Times.Exactly(4));
+            region.Verify(x => x.Scan(It.IsAny<float>(), It.IsAny<float[]>(), It.IsAny<int>()), Times.Exactly(4));
         }
 
         [Fact]
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             region.Setup(x => x.Bounds).Returns(bounds);
 
             region.Setup(x => x.MaxIntersections).Returns(10);
-            region.Setup(x => x.Scan(It.IsAny<float>(), It.IsAny<Span<float>>()))
+            region.Setup(x => x.Scan(It.IsAny<float>(), It.IsAny<float[]>(), It.IsAny<int>()))
                 .Returns<float, Span<float>>((y, span) =>
                 {
                     if (y < 5)

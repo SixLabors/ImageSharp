@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -34,6 +35,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsPng<TPixel>(this Image<TPixel> source, Stream stream, PngEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
-            => source.Save(stream, encoder ?? source.Configuration.FindEncoder(ImageFormats.Png));
+            => source.Save(stream, encoder ?? source.GetConfiguration().FindEncoder(ImageFormats.Png));
     }
 }

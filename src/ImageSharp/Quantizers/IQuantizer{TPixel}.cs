@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <returns>
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors);
+        QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors);
     }
 
     /// <summary>

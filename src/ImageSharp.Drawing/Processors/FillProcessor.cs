@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -65,9 +66,6 @@ namespace SixLabors.ImageSharp.Drawing.Processors
 
             int width = maxX - minX;
 
-            // We could possibly do some optimization by having knowledge about the individual brushes operate
-            // for example If brush is SolidBrush<TPixel> then we could just get the color upfront
-            // and skip using the IBrushApplicator<TPixel>?.
             using (var amount = new Buffer<float>(width))
             using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(source, sourceRectangle, this.options))
             {
@@ -79,7 +77,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                     Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         int offsetY = y - startY;

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// <summary>
     /// Extension methods over Image{TPixel}
     /// </summary>
-    public static class ImageExtensions
+    internal static class ImageExtensions
     {
         /// <summary>
         /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.

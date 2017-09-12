@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// The avalilable converters
         /// </summary>
-        private static readonly JpegColorConverter[] Converters = { new FromYCbCr(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb() };
+        private static readonly JpegColorConverter[] Converters = { new FromYCbCrSimd(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb() };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.
@@ -107,6 +107,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                         }
                     }
                 }
+            }
+
+            private ComponentValues(
+                int componentCount,
+                ReadOnlySpan<float> c0,
+                ReadOnlySpan<float> c1,
+                ReadOnlySpan<float> c2,
+                ReadOnlySpan<float> c3)
+            {
+                this.ComponentCount = componentCount;
+                this.Component0 = c0;
+                this.Component1 = c1;
+                this.Component2 = c2;
+                this.Component3 = c3;
+            }
+
+            public ComponentValues Slice(int start, int length)
+            {
+                ReadOnlySpan<float> c0 = this.Component0.Slice(start, length);
+                ReadOnlySpan<float> c1 = this.ComponentCount > 1 ? this.Component1.Slice(start, length) : ReadOnlySpan<float>.Empty;
+                ReadOnlySpan<float> c2 = this.ComponentCount > 2 ? this.Component2.Slice(start, length) : ReadOnlySpan<float>.Empty;
+                ReadOnlySpan<float> c3 = this.ComponentCount > 3 ? this.Component3.Slice(start, length) : ReadOnlySpan<float>.Empty;
+
+                return new ComponentValues(this.ComponentCount, c0, c1, c2, c3);
             }
         }
     }

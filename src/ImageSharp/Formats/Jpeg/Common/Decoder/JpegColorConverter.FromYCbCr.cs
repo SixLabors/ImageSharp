@@ -90,12 +90,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 for (int i = 0; i < n; i++)
                 {
                     // y = yVals[i];
-                    // cb = cbVals[i] - 128F;
-                    // cr = crVals[i] - 128F;
                     Vector4Pair y = Unsafe.Add(ref yBase, i);
+
+                    // cb = cbVals[i] - 128F;
                     Vector4Pair cb = Unsafe.Add(ref cbBase, i);
-                    Vector4Pair cr = Unsafe.Add(ref crBase, i);
                     cb.AddInplace(chromaOffset);
+
+                    // cr = crVals[i] - 128F;
+                    Vector4Pair cr = Unsafe.Add(ref crBase, i);
                     cr.AddInplace(chromaOffset);
 
                     // r = y + (1.402F * cr);
@@ -181,46 +183,49 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 #pragma warning disable SA1132 // Do not combine fields
                 public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
 
-                public void Collect(ref Vector4Pair rr, ref Vector4Pair gg, ref Vector4Pair bb)
+                /// <summary>
+                /// Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order.
+                /// </summary>
+                public void Collect(ref Vector4Pair r, ref Vector4Pair g, ref Vector4Pair b)
                 {
-                    this.V0.X = rr.A.X;
-                    this.V0.Y = gg.A.X;
-                    this.V0.Z = bb.A.X;
+                    this.V0.X = r.A.X;
+                    this.V0.Y = g.A.X;
+                    this.V0.Z = b.A.X;
                     this.V0.W = 1f;
 
-                    this.V1.X = rr.A.Y;
-                    this.V1.Y = gg.A.Y;
-                    this.V1.Z = bb.A.Y;
+                    this.V1.X = r.A.Y;
+                    this.V1.Y = g.A.Y;
+                    this.V1.Z = b.A.Y;
                     this.V1.W = 1f;
 
-                    this.V2.X = rr.A.Z;
-                    this.V2.Y = gg.A.Z;
-                    this.V2.Z = bb.A.Z;
+                    this.V2.X = r.A.Z;
+                    this.V2.Y = g.A.Z;
+                    this.V2.Z = b.A.Z;
                     this.V2.W = 1f;
 
-                    this.V3.X = rr.A.W;
-                    this.V3.Y = gg.A.W;
-                    this.V3.Z = bb.A.W;
+                    this.V3.X = r.A.W;
+                    this.V3.Y = g.A.W;
+                    this.V3.Z = b.A.W;
                     this.V3.W = 1f;
 
-                    this.V4.X = rr.B.X;
-                    this.V4.Y = gg.B.X;
-                    this.V4.Z = bb.B.X;
+                    this.V4.X = r.B.X;
+                    this.V4.Y = g.B.X;
+                    this.V4.Z = b.B.X;
                     this.V4.W = 1f;
 
-                    this.V5.X = rr.B.Y;
-                    this.V5.Y = gg.B.Y;
-                    this.V5.Z = bb.B.Y;
+                    this.V5.X = r.B.Y;
+                    this.V5.Y = g.B.Y;
+                    this.V5.Z = b.B.Y;
                     this.V5.W = 1f;
 
-                    this.V6.X = rr.B.Z;
-                    this.V6.Y = gg.B.Z;
-                    this.V6.Z = bb.B.Z;
+                    this.V6.X = r.B.Z;
+                    this.V6.Y = g.B.Z;
+                    this.V6.Z = b.B.Z;
                     this.V6.W = 1f;
 
-                    this.V7.X = rr.B.W;
-                    this.V7.Y = gg.B.W;
-                    this.V7.Z = bb.B.W;
+                    this.V7.X = r.B.W;
+                    this.V7.Y = g.B.W;
+                    this.V7.Z = b.B.W;
                     this.V7.W = 1f;
                 }
             }

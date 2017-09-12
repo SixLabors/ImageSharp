@@ -1,18 +1,26 @@
 ﻿using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     internal abstract partial class JpegColorConverter
     {
-        private class FromYCbCr : JpegColorConverter
+        internal class FromYCbCrBasic : JpegColorConverter
         {
-            public FromYCbCr()
+            public FromYCbCrBasic()
                 : base(JpegColorSpace.YCbCr)
             {
             }
 
             public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
+            {
+                ConvertCore(values, result);
+            }
+
+            internal static void ConvertCore(ComponentValues values, Span<Vector4> result)
             {
                 // TODO: We can optimize a lot here with Vector<float> and SRCS.Unsafe()!
                 ReadOnlySpan<float> yVals = values.Component0;
@@ -38,6 +46,155 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                     result[i] = v;
                 }
             }
+        }
+
+        internal class FromYCbCrSimd256 : JpegColorConverter
+        {
+            public FromYCbCrSimd256()
+                : base(JpegColorSpace.YCbCr)
+            {
+            }
+
+            public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
+            {   
+            }
+
+            private struct Vector4Pair
+            {
+                public Vector4 A;
+
+                public Vector4 B;
+
+                private static readonly Vector4 Scale = new Vector4(1 / 255F);
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void RoundAndDownscale()
+                {
+                    this.A = this.A.PseudoRound() * Scale;
+                    this.B = this.B.PseudoRound() * Scale;
+                }
+            }
+
+            private struct Vector4Octet
+            {
+#pragma warning disable SA1132 // Do not combine fields
+                public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
+#pragma warning restore SA1132 // Do not combine fields
+
+                public static Vector4Octet CreateCollector()
+                {
+                    var result = default(Vector4Octet);
+                    result.V0.W = 1f;
+                    result.V1.W = 1f;
+                    result.V2.W = 1f;
+                    result.V3.W = 1f;
+                    result.V4.W = 1f;
+                    result.V5.W = 1f;
+                    result.V6.W = 1f;
+                    result.V7.W = 1f;
+                    return result;
+                }
+
+                public void Collect(ref Vector4Pair rr, ref Vector4Pair gg, ref Vector4Pair bb)
+                {
+                    this.V0.X = rr.A.X;
+                    this.V0.Y = gg.A.X;
+                    this.V0.Z = bb.A.X;
+                    this.V0.W = 1f;
+
+                    this.V1.X = rr.A.Y;
+                    this.V1.Y = gg.A.Y;
+                    this.V1.Z = bb.A.Y;
+                    this.V1.W = 1f;
+
+                    this.V2.X = rr.A.Z;
+                    this.V2.Y = gg.A.Z;
+                    this.V2.Z = bb.A.Z;
+                    this.V2.W = 1f;
+
+                    this.V3.X = rr.A.W;
+                    this.V3.Y = gg.A.W;
+                    this.V3.Z = bb.A.W;
+                    this.V3.W = 1f;
+
+                    this.V4.X = rr.B.X;
+                    this.V4.Y = gg.B.X;
+                    this.V4.Z = bb.B.X;
+                    this.V4.W = 1f;
+
+                    this.V5.X = rr.B.Y;
+                    this.V5.Y = gg.B.Y;
+                    this.V5.Z = bb.B.Y;
+                    this.V5.W = 1f;
+
+                    this.V6.X = rr.B.Z;
+                    this.V6.Y = gg.B.Z;
+                    this.V6.Z = bb.B.Z;
+                    this.V6.W = 1f;
+
+                    this.V7.X = rr.B.W;
+                    this.V7.Y = gg.B.W;
+                    this.V7.Z = bb.B.W;
+                    this.V7.W = 1f;
+                }
+            }
+
+            internal static void ConvertAligned(ComponentValues values, Span<Vector4> result)
+            {
+                if (!IsAvailable)
+                {
+                    throw new InvalidOperationException(
+                        "JpegColorConverter.FromYCbCrSimd256 can be used only on architecture having 256 byte floating point SIMD registers!");
+                }
+
+                ref Vector<float> yBase =
+                    ref Unsafe.As<float, Vector<float>>(ref values.Component0.DangerousGetPinnableReference());
+                ref Vector<float> cbBase =
+                    ref Unsafe.As<float, Vector<float>>(ref values.Component1.DangerousGetPinnableReference());
+                ref Vector<float> crBase =
+                    ref Unsafe.As<float, Vector<float>>(ref values.Component2.DangerousGetPinnableReference());
+
+                ref Vector4Octet resultBase =
+                    ref Unsafe.As<Vector4, Vector4Octet>(ref result.DangerousGetPinnableReference());
+
+                var chromaOffset = new Vector<float>(-128f);
+
+                int n = result.Length / 8;
+
+                for (int i = 0; i < n; i++)
+                {
+                    // y = yVals[i];
+                    // cb = cbVals[i] - 128F;
+                    // cr = crVals[i] - 128F;
+                    Vector<float> y = Unsafe.Add(ref yBase, i);
+                    Vector<float> cb = Unsafe.Add(ref cbBase, i) + chromaOffset;
+                    Vector<float> cr = Unsafe.Add(ref crBase, i) + chromaOffset;
+
+                    // r = y + (1.402F * cr);
+                    // g = y - (0.344136F * cb) - (0.714136F * cr);
+                    // b = y + (1.772F * cb);
+                    // Adding & multiplying 8 elements at one time:
+                    Vector<float> r = y + (cr * new Vector<float>(1.402F));
+                    Vector<float> g = y - (cb * new Vector<float>(0.344136F)) - (cr * new Vector<float>(0.714136F));
+                    Vector<float> b = y + (cb * new Vector<float>(1.772F));
+
+                    // Vector<float> has no .Clamp(), need to switch to Vector4 for the next operation:
+                    // TODO: Is it worth to use Vector<float> at all?
+                    Vector4Pair rr = Unsafe.As<Vector<float>, Vector4Pair>(ref r);
+                    Vector4Pair gg = Unsafe.As<Vector<float>, Vector4Pair>(ref g);
+                    Vector4Pair bb = Unsafe.As<Vector<float>, Vector4Pair>(ref b);
+
+                    rr.RoundAndDownscale();
+                    gg.RoundAndDownscale();
+                    bb.RoundAndDownscale();
+
+                    // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
+                    ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
+                    destination.Collect(ref rr, ref gg, ref bb);
+                }
+            }
+
+            public static bool IsAvailable => Vector<float>.Count == 8;
         }
     }
 }

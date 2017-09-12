@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     internal abstract partial class JpegColorConverter
     {
-        private class FromCmyk : JpegColorConverter
+        internal class FromCmyk : JpegColorConverter
         {
             public FromCmyk()
                 : base(JpegColorSpace.Cmyk)

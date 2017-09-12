@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     internal abstract partial class JpegColorConverter
     {
-        private class FromGrayScale : JpegColorConverter
+        internal class FromGrayScale : JpegColorConverter
         {
             public FromGrayScale()
                 : base(JpegColorSpace.GrayScale)

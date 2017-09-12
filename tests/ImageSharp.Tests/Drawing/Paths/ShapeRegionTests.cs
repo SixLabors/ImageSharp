@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
             pathMock.Setup(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()))
-                .Callback<PointF, PointF, Span<PointF>>((s, e, b) => {
+                .Callback<PointF, PointF, PointF[], int>((s, e, b, o) => {
                     Assert.Equal(yToScan, s.Y);
                     Assert.Equal(yToScan, e.Y);
                     Assert.True(s.X < bounds.Left);
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
             pathMock.Setup(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()))
-                .Callback<PointF, PointF, Span<PointF>>((s, e, b) => {
+                .Callback<PointF, PointF, PointF[], int>((s, e, b, o) => {
                     Assert.Equal(yToScan, s.Y);
                     Assert.Equal(yToScan, e.Y);
                     Assert.True(s.X < bounds.Left);

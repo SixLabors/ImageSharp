@@ -49,11 +49,11 @@ namespace SixLabors.ImageSharp.Drawing
             using (var innerBuffer = new Buffer<PointF>(buffer.Length))
             {
                 PointF[] array = innerBuffer.Array;
-                int count = this.Shape.FindIntersections(start, end, array, offset);
+                int count = this.Shape.FindIntersections(start, end, array, 0);
 
                 for (int i = 0; i < count; i++)
                 {
-                    buffer[i] = array[i].X;
+                    buffer[i + offset] = array[i].X;
                 }
 
                 return count;

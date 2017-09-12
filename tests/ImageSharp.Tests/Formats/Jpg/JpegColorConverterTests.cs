@@ -1,19 +1,20 @@
+using System;
+using System.Numerics;
+
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Memory;
+
+using Xunit;
+using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-    using System.Numerics;
-
-    using SixLabors.ImageSharp.ColorSpaces;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Memory;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class JpegColorConverterTests
     {
-        private const float Precision = 0.01f;
+        private const float Precision = 1/255f;
 
         public static readonly TheoryData<int, int, int> CommonConversionData =
             new TheoryData<int, int, int>
@@ -32,30 +33,62 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
+        private static int R(float f) => (int)MathF.Round(f, MidpointRounding.AwayFromZero);
+
+        // TODO: Move this to a proper test class!
+        [Theory]
+        [InlineData(0.32, 54.5, -3.5, -4.1)]
+        [InlineData(5.3, 536.4, 4.5, 8.1)]
+        public void Vector4_PseudoRound(float x, float y, float z, float w)
+        {
+            var v = new Vector4(x, y, z, w);
+
+            Vector4 actual = v.PseudoRound();
+
+            Assert.Equal(
+                R(v.X),
+                (int)actual.X
+                );
+            Assert.Equal(
+                R(v.Y),
+                (int)actual.Y
+            );
+            Assert.Equal(
+                R(v.Z),
+                (int)actual.Z
+            );
+            Assert.Equal(
+                R(v.W),
+                (int)actual.W
+            );
+        }
+
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void ConvertFromYCbCr(int inputBufferLength, int resultBufferLength, int seed)
         {
-            ValidateConversion(
-                JpegColorSpace.YCbCr,
-                3,
-                inputBufferLength,
-                resultBufferLength,
-                seed,
-                (values, result, i) =>
-                    {
-                        float y = values.Component0[i];
-                        float cb = values.Component1[i];
-                        float cr = values.Component2[i];
-                        var ycbcr = new YCbCr(y, cb, cr);
+            ValidateConversion(JpegColorSpace.YCbCr, 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+        }
 
-                        Vector4 rgba = result[i];
-                        var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
-                        var expected = ColorSpaceConverter.ToRgb(ycbcr);
+        private static void ValidateYCbCr(JpegColorConverter.ComponentValues values, Span<Vector4> result, int i)
+        {
+            float y = values.Component0[i];
+            float cb = values.Component1[i];
+            float cr = values.Component2[i];
+            var ycbcr = new YCbCr(y, cb, cr);
 
-                        Assert.True(actual.AlmostEquals(expected, Precision));
-                        Assert.Equal(1, rgba.W);
-                    });
+            Vector4 rgba = result[i];
+            var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
+            var expected = ColorSpaceConverter.ToRgb(ycbcr);
+
+            Assert.True(actual.AlmostEquals(expected, Precision));
+            Assert.Equal(1, rgba.W);
+        }
+
+        [Fact]
+        public void ConvertFromYCbCr_SimdWithAlignedValues()
+        {
+            ValidateConversion(JpegColorConverter.FromYCbCrSimd256.ConvertAligned, 3, 64, 64, 1, ValidateYCbCr);
         }
 
         [Theory]
@@ -207,18 +240,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int inputBufferLength,
             int resultBufferLength,
             int seed,
-            Action<JpegColorConverter.ComponentValues, Span<Vector4>, int> doValidate)
+            Action<JpegColorConverter.ComponentValues, Span<Vector4>, int> validatePixelValue)
         {
-            var converter = JpegColorConverter.GetConverter(colorSpace);
+            ValidateConversion(
+                (v, r) => JpegColorConverter.GetConverter(colorSpace).ConvertToRGBA(v, r),
+                componentCount,
+                inputBufferLength,
+                resultBufferLength,
+                seed,
+                validatePixelValue);
+        }
 
+        private static void ValidateConversion(
+            Action<JpegColorConverter.ComponentValues, Span<Vector4>> doConvert,
+            int componentCount,
+            int inputBufferLength,
+            int resultBufferLength,
+            int seed,
+            Action<JpegColorConverter.ComponentValues, Span<Vector4>, int> validatePixelValue)
+        {
             JpegColorConverter.ComponentValues values = CreateRandomValues(componentCount, inputBufferLength, seed);
             Vector4[] result = new Vector4[resultBufferLength];
 
-            converter.ConvertToRGBA(values, result);
+            doConvert(values, result);
 
             for (int i = 0; i < resultBufferLength; i++)
             {
-                doValidate(values, result, i);
+                validatePixelValue(values, result, i);
             }
         }
     }

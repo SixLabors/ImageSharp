@@ -117,10 +117,6 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                             float subpixelFractionPoint = subpixelFraction / subpixelCount;
                             for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
                             {
-                                if(y == 102)
-                                {
-                                    Debugger.Break();
-                                }
                                 int pointsFound = region.Scan(subPixel, buffer, 0);
                                 if (pointsFound == 0)
                                 {

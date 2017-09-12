@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageProcessingContext(source, true);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
             operation(operationsRunner);
             operationsRunner.Apply();
         }
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(operations, nameof(operations));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageProcessingContext(source, true);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
             operationsRunner.ApplyProcessors(operations);
             operationsRunner.Apply();
         }
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageProcessingContext(source, false);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
             operation(operationsRunner);
             return operationsRunner.Apply();
         }
@@ -77,7 +78,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(operations, nameof(operations));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.Configuration.ImageOperationsProvider.CreateImageProcessingContext(source, false);
+            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
             operationsRunner.ApplyProcessors(operations);
             return operationsRunner.Apply();
         }

@@ -4,6 +4,8 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -58,7 +60,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Image<TPixel> disposableImage = null;
             Image<TPixel> targetImage = this.Image;
@@ -94,7 +96,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                     Parallel.For(
                         minY,
                         maxY,
-                        source.Configuration.ParallelOptions,
+                        configuration.ParallelOptions,
                         y =>
                             {
                                 Span<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);

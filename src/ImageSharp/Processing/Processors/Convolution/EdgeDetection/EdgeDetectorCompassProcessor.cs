@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -61,16 +62,16 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
             }
         }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Fast2DArray<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
@@ -86,9 +87,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // we need a clean copy for each pass to start from
-            using (ImageBase<TPixel> cleanCopy = source.Clone())
+            using (ImageFrame<TPixel> cleanCopy = source.Clone())
             {
-                new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle);
+                new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle, configuration);
 
                 if (kernels.Length == 1)
                 {
@@ -113,9 +114,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 // ReSharper disable once ForCanBeConvertedToForeach
                 for (int i = 1; i < kernels.Length; i++)
                 {
-                    using (ImageBase<TPixel> pass = cleanCopy.Clone())
+                    using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
-                        new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle);
+                        new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle, configuration);
 
                         using (PixelAccessor<TPixel> passPixels = pass.Lock())
                         using (PixelAccessor<TPixel> targetPixels = source.Lock())
@@ -123,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             Parallel.For(
                                 minY,
                                 maxY,
-                                source.Configuration.ParallelOptions,
+                                configuration.ParallelOptions,
                                 y =>
                                 {
                                     int offsetY = y - shiftY;

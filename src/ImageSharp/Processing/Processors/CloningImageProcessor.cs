@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -27,21 +27,17 @@ namespace SixLabors.ImageSharp.Processing
                     throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
+                Configuration configuration = source.GetConfiguration();
                 this.BeforeImageApply(source, clone, sourceRectangle);
-
-                this.BeforeApply(source, clone, sourceRectangle);
-                this.OnApply(source, clone, sourceRectangle);
-                this.AfterApply(source, clone, sourceRectangle);
 
                 for (int i = 0; i < source.Frames.Count; i++)
                 {
                     ImageFrame<TPixel> sourceFrame = source.Frames[i];
                     ImageFrame<TPixel> clonedFrame = clone.Frames[i];
 
-                    this.BeforeApply(sourceFrame, clonedFrame, sourceRectangle);
-
-                    this.OnApply(sourceFrame, clonedFrame, sourceRectangle);
-                    this.AfterApply(sourceFrame, clonedFrame, sourceRectangle);
+                    this.BeforeApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
+                    this.OnApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
+                    this.AfterApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
                 }
 
                 this.AfterImageApply(source, clone, sourceRectangle);
@@ -71,11 +67,7 @@ namespace SixLabors.ImageSharp.Processing
                     throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
-                source.SwapPixelsData(cloned);
-                for (int i = 0; i < source.Frames.Count; i++)
-                {
-                    source.Frames[i].SwapPixelsData(cloned.Frames[i]);
-                }
+                source.SwapPixelsBuffers(cloned);
             }
         }
 
@@ -107,33 +99,30 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        protected virtual void BeforeApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle)
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        protected virtual void BeforeApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}" /> at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        protected abstract void OnApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle);
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        protected abstract void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        protected virtual void AfterApply(ImageBase<TPixel> source, ImageBase<TPixel> destination, Rectangle sourceRectangle)
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        protected virtual void AfterApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 

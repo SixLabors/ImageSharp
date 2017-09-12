@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -35,6 +36,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsBmp<TPixel>(this Image<TPixel> source, Stream stream, BmpEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
-                        => source.Save(stream, encoder ?? source.Configuration.FindEncoder(ImageFormats.Bmp));
+                        => source.Save(stream, encoder ?? source.GetConfiguration().FindEncoder(ImageFormats.Bmp));
     }
 }

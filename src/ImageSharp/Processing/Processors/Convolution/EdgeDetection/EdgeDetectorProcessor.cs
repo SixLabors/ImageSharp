@@ -33,18 +33,18 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
             }
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new ConvolutionProcessor<TPixel>(this.KernelXY).Apply(source, sourceRectangle);
+            new ConvolutionProcessor<TPixel>(this.KernelXY).Apply(source, sourceRectangle, configuration);
         }
     }
 }

@@ -4,6 +4,7 @@
 using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -54,13 +55,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             int startY = interest.Y;

@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public int BrushSize { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.BrushSize <= 0 || this.BrushSize > source.Height || this.BrushSize > source.Width)
             {
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     startY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -34,9 +35,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            if (this.OptimizedApply(source))
+            if (this.OptimizedApply(source, configuration))
             {
                 return;
             }
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
@@ -72,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon || MathF.Abs(this.Angle - 90) < Constants.Epsilon || MathF.Abs(this.Angle - 180) < Constants.Epsilon || MathF.Abs(this.Angle - 270) < Constants.Epsilon)
             {
@@ -90,8 +91,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Rotates the images with an optimized method when the angle is 90, 180 or 270 degrees.
         /// </summary>
         /// <param name="source">The source image.</param>
-        /// <returns>The <see cref="bool"/></returns>
-        private bool OptimizedApply(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        /// <returns>
+        /// The <see cref="bool" />
+        /// </returns>
+        private bool OptimizedApply(ImageFrame<TPixel> source, Configuration configuration)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon)
             {
@@ -101,19 +105,19 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             if (MathF.Abs(this.Angle - 90) < Constants.Epsilon)
             {
-                this.Rotate90(source);
+                this.Rotate90(source, configuration);
                 return true;
             }
 
             if (MathF.Abs(this.Angle - 180) < Constants.Epsilon)
             {
-                this.Rotate180(source);
+                this.Rotate180(source, configuration);
                 return true;
             }
 
             if (MathF.Abs(this.Angle - 270) < Constants.Epsilon)
             {
-                this.Rotate270(source);
+                this.Rotate270(source, configuration);
                 return true;
             }
 
@@ -124,7 +128,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Rotates the image 270 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate270(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate270(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -136,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     Parallel.For(
                         0,
                         height,
-                        source.Configuration.ParallelOptions,
+                        configuration.ParallelOptions,
                         y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -157,7 +162,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Rotates the image 180 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate180(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate180(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -167,7 +173,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
@@ -187,7 +193,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Rotates the image 90 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate90(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate90(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -197,7 +204,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

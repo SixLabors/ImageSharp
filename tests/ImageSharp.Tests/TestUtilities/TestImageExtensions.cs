@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
 
-            Span<Rgba32> pixels = image.GetPixelSpan();
+            Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
             for (int i = 0; i < buffer.Length; i++)
             {

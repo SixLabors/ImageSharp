@@ -3,16 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+using System.Linq;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -20,9 +17,12 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class Image<TPixel> : ImageBase<TPixel>, IImage
+    public sealed partial class Image<TPixel> : IDisposable, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
+        private Configuration configuration;
+        private ImageFrameCollection<TPixel> frames;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
@@ -59,41 +59,41 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(Configuration configuration, int width, int height, ImageMetaData metadata)
-            : base(configuration, width, height)
         {
+            this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
+            this.frames = new ImageFrameCollection<TPixel>(width, height);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// by making a copy from another image.
+        /// Initializes a new instance of the <see cref="Image{TPixel}" /> class
+        /// with the height and the width of the image.
         /// </summary>
-        /// <param name="other">The other image, where the clone should be made from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-        private Image(Image<TPixel> other)
-            : base(other)
+        /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+        /// <param name="metadata">The images metadata.</param>
+        /// <param name="frames">The frames that will be owned by this image instance.</param>
+        internal Image(Configuration configuration, ImageMetaData metadata, IEnumerable<ImageFrame<TPixel>> frames)
         {
-            foreach (ImageFrame<TPixel> frame in other.Frames)
-            {
-                if (frame != null)
-                {
-                    this.Frames.Add(frame.Clone());
-                }
-            }
+            this.configuration = configuration ?? Configuration.Default;
+            this.MetaData = metadata ?? new ImageMetaData();
 
-            this.CopyProperties(other);
+            this.frames = new ImageFrameCollection<TPixel>(frames);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// by making a copy from another image.
+        /// Gets the pixel buffer.
         /// </summary>
-        /// <param name="other">The other image, where the clone should be made from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-        private Image(ImageBase<TPixel> other)
-            : base(other)
-        {
-        }
+        Configuration IConfigurable.Configuration => this.configuration;
+
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
+        public int Width => this.frames.RootFrame.Width;
+
+        /// <summary>
+        /// Gets the height.
+        /// </summary>
+        public int Height => this.frames.RootFrame.Height;
 
         /// <summary>
         /// Gets the meta data of the image.
@@ -101,10 +101,27 @@ namespace SixLabors.ImageSharp
         public ImageMetaData MetaData { get; private set; } = new ImageMetaData();
 
         /// <summary>
-        /// Gets the other frames associated with this image.
+        /// Gets the frames.
         /// </summary>
-        /// <value>The list of frame images.</value>
-        public IList<ImageFrame<TPixel>> Frames { get; } = new List<ImageFrame<TPixel>>();
+        public IImageFrameCollection<TPixel> Frames => this.frames;
+
+        /// <summary>
+        /// Gets the root frame.
+        /// </summary>
+        private IPixelSource<TPixel> PixelSource => this.frames?.RootFrame ?? throw new ObjectDisposedException(nameof(Image<TPixel>));
+
+        /// <summary>
+        /// Gets or sets the pixel at the specified position.
+        /// </summary>
+        /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
+        /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
+        /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
+        public TPixel this[int x, int y]
+        {
+            get => this.PixelSource.PixelBuffer[x, y];
+
+            set => this.PixelSource.PixelBuffer[x, y] = value;
+        }
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.
@@ -124,9 +141,11 @@ namespace SixLabors.ImageSharp
         /// Clones the current image
         /// </summary>
         /// <returns>Returns a new image with all the same metadata as the original.</returns>
-        public new Image<TPixel> Clone()
+        public Image<TPixel> Clone()
         {
-            return new Image<TPixel>(this);
+            IEnumerable<ImageFrame<TPixel>> frames = this.frames.Select(x => x.Clone()).ToArray();
+
+            return new Image<TPixel>(this.configuration, this.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
@@ -143,79 +162,32 @@ namespace SixLabors.ImageSharp
         public Image<TPixel2> CloneAs<TPixel2>()
             where TPixel2 : struct, IPixel<TPixel2>
         {
-            if (typeof(TPixel2) == typeof(TPixel))
-            {
-                // short circuit when same pixel types
-                return this.Clone() as Image<TPixel2>;
-            }
-
-            Func<Vector4, Vector4> scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>();
-
-            var target = new Image<TPixel2>(this.Configuration, this.Width, this.Height);
-            target.CopyProperties(this);
-
-            using (PixelAccessor<TPixel> pixels = this.Lock())
-            using (PixelAccessor<TPixel2> targetPixels = target.Lock())
-            {
-                Parallel.For(
-                    0,
-                    target.Height,
-                    this.Configuration.ParallelOptions,
-                    y =>
-                        {
-                            for (int x = 0; x < target.Width; x++)
-                            {
-                                var color = default(TPixel2);
-                                color.PackFromVector4(scaleFunc(pixels[x, y].ToVector4()));
-                                targetPixels[x, y] = color;
-                            }
-                        });
-            }
-
-            for (int i = 0; i < this.Frames.Count; i++)
-            {
-                target.Frames.Add(this.Frames[i].CloneAs<TPixel2>());
-            }
+            IEnumerable<ImageFrame<TPixel2>> frames = this.frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
+            var target = new Image<TPixel2>(this.configuration, this.MetaData, frames);
 
             return target;
         }
 
         /// <summary>
-        /// Creates a new <see cref="ImageFrame{TPixel}"/> from this instance
+        /// Releases managed resources.
         /// </summary>
-        /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal ImageFrame<TPixel> ToFrame()
+        public void Dispose()
         {
-            return new ImageFrame<TPixel>(this);
-        }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            // ReSharper disable once ForCanBeConvertedToForeach
-            for (int i = 0; i < this.Frames.Count; i++)
-            {
-                this.Frames[i].Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
-
-        /// <inheritdoc/>
-        protected override ImageBase<TPixel> CloneImageBase()
-        {
-            return this.Clone();
+            this.frames.Dispose();
         }
 
         /// <summary>
-        /// Copies the properties from the other <see cref="IImage"/>.
+        /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
         /// </summary>
-        /// <param name="other">
-        /// The other <see cref="IImage"/> to copy the properties from.
-        /// </param>
-        private void CopyProperties(IImage other)
+        /// <param name="pixelSource">The pixel source.</param>
+        internal void SwapPixelsBuffers(Image<TPixel> pixelSource)
         {
-            this.MetaData = new ImageMetaData(other.MetaData);
+            Guard.NotNull(pixelSource, nameof(pixelSource));
+
+            for (int i = 0; i < this.frames.Count; i++)
+            {
+                this.frames[i].SwapPixelsBuffers(pixelSource.frames[i]);
+            }
         }
     }
 }

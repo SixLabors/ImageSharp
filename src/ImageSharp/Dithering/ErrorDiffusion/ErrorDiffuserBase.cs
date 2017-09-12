@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Dithering.Base
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageBase<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
+        public void Dither<TPixel>(ImageFrame<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
             where TPixel : struct, IPixel<TPixel>
         {
             this.Dither(pixels, source, transformed, x, y, minX, minY, maxX, maxY, true);
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Dithering.Base
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
             where TPixel : struct, IPixel<TPixel>
         {
             if (replacePixel)

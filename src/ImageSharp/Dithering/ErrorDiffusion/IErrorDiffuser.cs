@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Dithering
         /// <param name="maxX">The maximum column value.</param>
         /// <param name="maxY">The maximum row value.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
+        void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
             where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Dithering
         /// Generally this would be true for standard two-color dithering but when used in conjunction with color quantization this should be false.
         /// </param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
+        void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

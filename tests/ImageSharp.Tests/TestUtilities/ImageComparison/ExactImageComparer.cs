@@ -3,6 +3,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
     using System;
     using System.Collections.Generic;
     using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Helpers;
     using SixLabors.ImageSharp.PixelFormats;
 
     using SixLabors.Primitives;
@@ -11,9 +12,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
     {
         public static ExactImageComparer Instance { get; } = new ExactImageComparer();
 
-        public override ImageSimilarityReport CompareImagesOrFrames<TPixelA, TPixelB>(
-            ImageBase<TPixelA> expected,
-            ImageBase<TPixelB> actual)
+        public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+            ImageFrame<TPixelA> expected,
+            ImageFrame<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {
@@ -50,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 }
             }
 
-            return new ImageSimilarityReport(expected, actual, differences);
+            return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences);
         }
     }
 }

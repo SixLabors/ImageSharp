@@ -48,13 +48,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             float threshold = this.Threshold;
             TPixel upper = this.UpperColor;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Parallel.For(
                 minY,
                 maxY,
-                source.Configuration.ParallelOptions,
+                configuration.ParallelOptions,
                 y =>
                 {
                     Span<TPixel> row = source.GetPixelRowSpan(y - startY);

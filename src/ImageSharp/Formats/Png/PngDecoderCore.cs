@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     }
 
                                     deframeStream.AllocateNewBytes(currentChunk.Length);
-                                    this.ReadScanlines(deframeStream.CompressedStream, image);
+                                    this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
                                     stream.Read(this.crcBuffer, 0, 4);
                                     break;
                                 case PngChunkTypes.Palette:
@@ -442,7 +442,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="dataStream">The <see cref="MemoryStream"/> containing data.</param>
         /// <param name="image"> The pixel data.</param>
-        private void ReadScanlines<TPixel>(Stream dataStream, Image<TPixel> image)
+        private void ReadScanlines<TPixel>(Stream dataStream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
@@ -461,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The image to decode to.</param>
-        private void DecodePixelData<TPixel>(Stream compressedStream, Image<TPixel> image)
+        private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             while (this.currentRow < this.header.Height)
@@ -519,7 +519,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The current image.</param>
-        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, Image<TPixel> image)
+        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             while (true)
@@ -609,7 +609,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="pixels">The image</param>
-        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, Image<TPixel> pixels)
+        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, ImageFrame<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);

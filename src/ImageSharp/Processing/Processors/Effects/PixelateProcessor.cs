@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public int Size { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.Size <= 0 || this.Size > source.Height || this.Size > source.Width)
             {
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             Parallel.ForEach(
                 range,
-                source.Configuration.ParallelOptions,
+                configuration.ParallelOptions,
                 y =>
                     {
                         int offsetY = y - startY;

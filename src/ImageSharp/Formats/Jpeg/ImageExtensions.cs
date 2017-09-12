@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
@@ -35,6 +36,6 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SaveAsJpeg<TPixel>(this Image<TPixel> source, Stream stream, JpegEncoder encoder)
             where TPixel : struct, IPixel<TPixel>
-            => source.Save(stream, encoder ?? source.Configuration.FindEncoder(ImageFormats.Jpeg));
+            => source.Save(stream, encoder ?? source.GetConfiguration().FindEncoder(ImageFormats.Jpeg));
     }
 }

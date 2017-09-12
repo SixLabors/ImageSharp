@@ -46,10 +46,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new VignetteProcessor<TPixel>(VeryDarkOrange, this.options).Apply(source, sourceRectangle);
-            new GlowProcessor<TPixel>(LightOrange, source.Width / 4F, this.options).Apply(source, sourceRectangle);
+            new VignetteProcessor<TPixel>(VeryDarkOrange, this.options).Apply(source, sourceRectangle, configuration);
+            new GlowProcessor<TPixel>(LightOrange, source.Width / 4F, this.options).Apply(source, sourceRectangle, configuration);
         }
     }
 }

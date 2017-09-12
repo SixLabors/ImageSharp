@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
         /// </summary>
         /// <param name="target">The target.</param>
         /// <param name="options">The options.</param>
-        internal BrushApplicator(ImageBase<TPixel> target, GraphicsOptions options)
+        internal BrushApplicator(ImageFrame<TPixel> target, GraphicsOptions options)
         {
             this.Target = target;
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
         /// <summary>
         /// Gets the destinaion
         /// </summary>
-        protected ImageBase<TPixel> Target { get; }
+        protected ImageFrame<TPixel> Target { get; }
 
         /// <summary>
         /// Gets the blend percentage

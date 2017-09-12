@@ -369,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             ImageFrame<TPixel> currentFrame = null;
 
-            ImageBase<TPixel> image;
+            ImageFrame<TPixel> image;
 
             if (this.previousFrame == null)
             {
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 this.SetFrameMetaData(this.metaData);
 
-                image = this.image;
+                image = this.image.Frames.RootFrame;
             }
             else
             {
@@ -471,7 +471,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            this.previousFrame = currentFrame == null ? this.image.ToFrame() : currentFrame;
+            this.previousFrame = currentFrame == null ? this.image.Frames.RootFrame : currentFrame;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
@@ -484,7 +484,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Restores the current frame area to the background.
         /// </summary>
         /// <param name="frame">The frame.</param>
-        private void RestoreToBackground(ImageBase<TPixel> frame)
+        private void RestoreToBackground(ImageFrame<TPixel> frame)
         {
             if (this.restoreArea == null)
             {

@@ -38,14 +38,14 @@ namespace SixLabors.ImageSharp
                     options.Size = new Size(options.Size.Width, (int)MathF.Round(img.Height * options.Size.Width / (float)img.Width));
                 }
 
-                Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(img, options);
+                Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds<TPixel>(img, options);
 
                 img.Mutate(x => Resize(x, options.Size.Width, options.Size.Height, options.Sampler, targetRectangle, options.Compand));
             });
         }
 
         /// <summary>
-        /// Resizes an image to the given <see cref="Size"/>.
+        /// Resizes an image to the given <see cref="SixLabors.Primitives.Size"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Resizes an image to the given <see cref="Size"/>.
+        /// Resizes an image to the given <see cref="SixLabors.Primitives.Size"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to resize.</param>

@@ -56,4 +56,27 @@ namespace SixLabors.ImageSharp.Tests
 
         protected ITestOutputHelper Output { get; }
     }
+
+    public class MeasureGuard : IDisposable
+    {
+        private readonly string operation;
+
+        private readonly Stopwatch stopwatch = new Stopwatch();
+
+        public MeasureGuard(ITestOutputHelper output, string operation)
+        {
+            this.operation = operation;
+            this.Output = output;
+            this.Output.WriteLine(operation + " ...");
+            this.stopwatch.Start();
+        }
+
+        private ITestOutputHelper Output { get; }
+        
+        public void Dispose()
+        {
+            this.stopwatch.Stop();
+            this.Output.WriteLine($"{this.operation} completed in {this.stopwatch.ElapsedMilliseconds}ms");
+        }
+    }
 }

@@ -21,55 +21,26 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[]
         {
-            "Jpg/"
+            "Jpg/baseline",
+            "Jpg/progressive",
         };
 
         protected override IEnumerable<string> SearchPatterns => new[] { "*.jpg" };
 
-        [Benchmark(Description = "DecodeJpegMultiple - ImageSharp NEW")]
+        [Benchmark(Description = "DecodeJpegMultiple - ImageSharp")]
         public void DecodeJpegImageSharpNwq()
         {
             this.ForEachStream(
                 ms => CoreImage.Load<Rgba32>(ms)
                 );
         }
-
-
-        [Benchmark(Description = "DecodeJpegMultiple - ImageSharp Original")]
-        public void DecodeJpegImageSharpOriginal()
-        {
-            this.ForEachStream(
-                ms => CoreImage.Load<Rgba32>(ms, new OriginalJpegDecoder())
-            );
-        }
-
+        
         [Benchmark(Baseline = true, Description = "DecodeJpegMultiple - System.Drawing")]
         public void DecodeJpegSystemDrawing()
         {
             this.ForEachStream(
                 System.Drawing.Image.FromStream
                 );
-        }
-
-
-        public sealed class OriginalJpegDecoder : IImageDecoder, IJpegDecoderOptions
-        {
-            /// <summary>
-            /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-            /// </summary>
-            public bool IgnoreMetadata { get; set; }
-
-            /// <inheritdoc/>
-            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-                where TPixel : struct, IPixel<TPixel>
-            {
-                Guard.NotNull(stream, "stream");
-
-                using (var decoder = new OrigJpegDecoderCore(configuration, this))
-                {
-                    return decoder.Decode<TPixel>(stream);
-                }
-            }
         }
     }
 }

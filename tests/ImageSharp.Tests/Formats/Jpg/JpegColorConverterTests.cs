@@ -89,16 +89,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(64, 1)]
         [InlineData(16, 2)]
         [InlineData(8, 3)]
-        public void FromYCbCrSimd256_ConvertCore(int size, int seed)
+        public void FromYCbCrSimd_ConvertCore(int size, int seed)
         {
-            ValidateConversion(JpegColorConverter.FromYCbCrSimd256.ConvertCore, 3, size, size, seed, ValidateYCbCr);
+            ValidateConversion(JpegColorConverter.FromYCbCrSimd.ConvertCore, 3, size, size, seed, ValidateYCbCr);
         }
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrSimd256(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYCbCrSimd(int inputBufferLength, int resultBufferLength, int seed)
         {
-            ValidateConversion(new JpegColorConverter.FromYCbCrSimd256(), 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+            ValidateConversion(new JpegColorConverter.FromYCbCrSimd(), 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
         }
 
         [Theory]
@@ -108,9 +108,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             ValidateConversion(JpegColorSpace.YCbCr, 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
+        // Becnhmark, for local execution only
+        //[Theory]
+        //[InlineData(false)]
+        //[InlineData(true)]
         public void BenchmarkYCbCr(bool simd)
         {
             int count = 2053;
@@ -119,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
             Vector4[] result = new Vector4[count];
 
-            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimd256() :  new JpegColorConverter.FromYCbCrBasic();
+            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimd() :  new JpegColorConverter.FromYCbCrBasic();
             
             // Warm up:
             converter.ConvertToRGBA(values, result);

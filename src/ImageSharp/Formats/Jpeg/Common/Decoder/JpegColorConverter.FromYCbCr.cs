@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             }
 
             /// <summary>
-            /// Its faster to process multiple Vector4-s
+            /// Its faster to process multiple Vector4-s together
             /// </summary>
             private struct Vector4Pair
             {

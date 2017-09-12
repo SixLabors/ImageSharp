@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// The avalilable converters
         /// </summary>
-        private static readonly JpegColorConverter[] Converters = { new FromYCbCrBasic(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb() };
+        private static readonly JpegColorConverter[] Converters = { new FromYCbCrSimd(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb() };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.

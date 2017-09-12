@@ -46,14 +46,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             }
         }
 
-        internal class FromYCbCrSimd256 : JpegColorConverter
+        internal class FromYCbCrSimd : JpegColorConverter
         {
-            public FromYCbCrSimd256()
+            public FromYCbCrSimd()
                 : base(JpegColorSpace.YCbCr)
             {
             }
-
-            public static bool IsAvailable => Vector.IsHardwareAccelerated && Vector<float>.Count == 8;
 
             public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
             {
@@ -72,25 +70,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             /// </summary>
             internal static void ConvertCore(ComponentValues values, Span<Vector4> result)
             {
-                // This implementation is actually AVX specific.
-                // An AVX register is capable of storing 8 float-s.
-                if (!IsAvailable)
-                {
-                    throw new InvalidOperationException(
-                        "JpegColorConverter.FromYCbCrSimd256 can be used only on architecture having 256 byte floating point SIMD registers!");
-                }
+                DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisable by 8!");
 
-                ref Vector<float> yBase =
-                    ref Unsafe.As<float, Vector<float>>(ref values.Component0.DangerousGetPinnableReference());
-                ref Vector<float> cbBase =
-                    ref Unsafe.As<float, Vector<float>>(ref values.Component1.DangerousGetPinnableReference());
-                ref Vector<float> crBase =
-                    ref Unsafe.As<float, Vector<float>>(ref values.Component2.DangerousGetPinnableReference());
+                ref Vector4Pair yBase =
+                    ref Unsafe.As<float, Vector4Pair>(ref values.Component0.DangerousGetPinnableReference());
+                ref Vector4Pair cbBase =
+                    ref Unsafe.As<float, Vector4Pair>(ref values.Component1.DangerousGetPinnableReference());
+                ref Vector4Pair crBase =
+                    ref Unsafe.As<float, Vector4Pair>(ref values.Component2.DangerousGetPinnableReference());
 
                 ref Vector4Octet resultBase =
                     ref Unsafe.As<Vector4, Vector4Octet>(ref result.DangerousGetPinnableReference());
 
-                var chromaOffset = new Vector<float>(-128f);
+                var chromaOffset = new Vector4(-128f);
 
                 // Walking 8 elements at one step:
                 int n = result.Length / 8;
@@ -100,47 +92,87 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                     // y = yVals[i];
                     // cb = cbVals[i] - 128F;
                     // cr = crVals[i] - 128F;
-                    Vector<float> y = Unsafe.Add(ref yBase, i);
-                    Vector<float> cb = Unsafe.Add(ref cbBase, i) + chromaOffset;
-                    Vector<float> cr = Unsafe.Add(ref crBase, i) + chromaOffset;
+                    Vector4Pair y = Unsafe.Add(ref yBase, i);
+                    Vector4Pair cb = Unsafe.Add(ref cbBase, i);
+                    Vector4Pair cr = Unsafe.Add(ref crBase, i);
+                    cb.AddInplace(chromaOffset);
+                    cr.AddInplace(chromaOffset);
 
                     // r = y + (1.402F * cr);
+                    Vector4Pair r = y;
+                    Vector4Pair tmp = cr;
+                    tmp.MultiplyInplace(1.402F);
+                    r.AddInplace(ref tmp);
+
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
+                    Vector4Pair g = y;
+                    tmp = cb;
+                    tmp.MultiplyInplace(-0.344136F);
+                    g.AddInplace(ref tmp);
+                    tmp = cr;
+                    tmp.MultiplyInplace(-0.714136F);
+                    g.AddInplace(ref tmp);
+
                     // b = y + (1.772F * cb);
-                    // Adding & multiplying 8 elements at one time:
-                    Vector<float> r = y + (cr * new Vector<float>(1.402F));
-                    Vector<float> g = y - (cb * new Vector<float>(0.344136F)) - (cr * new Vector<float>(0.714136F));
-                    Vector<float> b = y + (cb * new Vector<float>(1.772F));
+                    Vector4Pair b = y;
+                    tmp = cb;
+                    tmp.MultiplyInplace(1.772F);
+                    b.AddInplace(ref tmp);
 
-                    // Vector<float> has no .Clamp(), need to switch to Vector4 for the next operation:
-                    // TODO: Is it worth to use Vector<float> at all?
-                    Vector4Pair rr = Unsafe.As<Vector<float>, Vector4Pair>(ref r);
-                    Vector4Pair gg = Unsafe.As<Vector<float>, Vector4Pair>(ref g);
-                    Vector4Pair bb = Unsafe.As<Vector<float>, Vector4Pair>(ref b);
-
-                    rr.RoundAndDownscale();
-                    gg.RoundAndDownscale();
-                    bb.RoundAndDownscale();
+                    r.RoundAndDownscale();
+                    g.RoundAndDownscale();
+                    b.RoundAndDownscale();
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
-                    destination.Collect(ref rr, ref gg, ref bb);
+                    destination.Collect(ref r, ref g, ref b);
                 }
             }
 
+            /// <summary>
+            /// Its faster to process multiple Vector4-s
+            /// </summary>
             private struct Vector4Pair
             {
                 public Vector4 A;
 
                 public Vector4 B;
 
-                private static readonly Vector4 Scale = new Vector4(1 / 255F);
+                private static readonly Vector4 Scale = new Vector4(1 / 255f);
+
+                private static readonly Vector4 Half = new Vector4(0.5f);
 
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public void RoundAndDownscale()
                 {
-                    this.A = this.A.PseudoRound() * Scale;
-                    this.B = this.B.PseudoRound() * Scale;
+                    // Emulate rounding:
+                    this.A += Half;
+                    this.B += Half;
+
+                    // Downscale by 1/255
+                    this.A *= Scale;
+                    this.B *= Scale;
+                }
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void MultiplyInplace(float value)
+                {
+                    this.A *= value;
+                    this.B *= value;
+                }
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void AddInplace(Vector4 value)
+                {
+                    this.A += value;
+                    this.B += value;
+                }
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void AddInplace(ref Vector4Pair other)
+                {
+                    this.A += other.A;
+                    this.B += other.B;
                 }
             }
 

@@ -15,6 +15,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
+    using SixLabors.ImageSharp.Tests;
+
     using CoreImage = ImageSharp.Image;
 
     public abstract class MultiImageBenchmarkBase : BenchmarkBase
@@ -39,14 +41,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Params(InputImageCategory.AllImages, InputImageCategory.SmallImagesOnly, InputImageCategory.LargeImagesOnly)]
         public virtual InputImageCategory InputCategory { get; set; }
 
-        protected virtual string BaseFolder => "../../../../../../../../ImageSharp.Tests/TestImages/Formats/";
+        protected virtual string BaseFolder => TestEnvironment.InputImagesDirectoryFullPath;
 
         protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
 
         /// <summary>
         /// Gets the file names containing these strings are substrings are not processed by the benchmark.
         /// </summary>
-        protected IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof" };
+        protected IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof", "CriticalEOF" };
 
         /// <summary>
         /// Enumerates folders containing files OR files to be processed by the benchmark.

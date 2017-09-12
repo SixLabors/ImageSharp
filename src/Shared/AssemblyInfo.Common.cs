@@ -33,7 +33,7 @@ using System.Runtime.CompilerServices;
 
 // Ensure the internals can be built and tested.
 [assembly: InternalsVisibleTo("SixLabors.ImageSharp.Drawing")]
-[assembly: InternalsVisibleTo("SixLabors.ImageSharp.Benchmarks")]
+[assembly: InternalsVisibleTo("ImageSharp.Benchmarks")]
 [assembly: InternalsVisibleTo("SixLabors.ImageSharp.Tests")]
 [assembly: InternalsVisibleTo("SixLabors.ImageSharp.Sandbox46")]
 

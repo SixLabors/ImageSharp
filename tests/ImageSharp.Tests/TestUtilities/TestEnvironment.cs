@@ -5,19 +5,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Runtime.InteropServices;
-    using SixLabors.ImageSharp.Formats.Bmp;
-    using SixLabors.ImageSharp.Formats.Gif;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Png;
-
-    public static class TestEnvironment
+    public static partial class TestEnvironment
     {
         private const string ImageSharpSolutionFileName = "ImageSharp.sln";
 
@@ -38,8 +30,6 @@ namespace SixLabors.ImageSharp.Tests
                     return Boolean.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
                 });
 
-        private static Lazy<Configuration> configuration = new Lazy<Configuration>(CreateDefaultConfiguration);
-        
         // ReSharper disable once InconsistentNaming
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
@@ -48,54 +38,9 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static string SolutionDirectoryFullPath => solutionDirectoryFullPath.Value;
 
-        internal static Configuration Configuration => configuration.Value;
-
-        private static void ConfigureCodecs(
-            this Configuration cfg,
-            IImageFormat imageFormat,
-            IImageDecoder decoder,
-            IImageEncoder encoder,
-            IImageFormatDetector detector)
-        {
-            cfg.SetDecoder(imageFormat, decoder);
-            cfg.SetEncoder(imageFormat, encoder);
-            cfg.AddImageFormatDetector(detector);
-        }
-
-        private static Configuration CreateDefaultConfiguration()
-        {
-            var configuration = new Configuration(
-                new PngConfigurationModule(),
-                new JpegConfigurationModule(),
-                new GifConfigurationModule()
-                );
-
-            if (!IsLinux)
-            {
-                configuration.ConfigureCodecs(
-                    ImageFormats.Png,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                    new PngImageFormatDetector());
-
-                configuration.ConfigureCodecs(
-                    ImageFormats.Bmp,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                    new PngImageFormatDetector());
-            }
-            else
-            {
-                configuration.Configure(new PngConfigurationModule());
-                configuration.Configure(new BmpConfigurationModule());
-            }
-            
-            return configuration;
-        }
-
         private static string GetSolutionDirectoryFullPathImpl()
         {
-            string assemblyLocation = typeof(TestFile).GetTypeInfo().Assembly.Location;
+            string assemblyLocation = typeof(TestEnvironment).GetTypeInfo().Assembly.Location;
 
             var assemblyFile = new FileInfo(assemblyLocation);
 
@@ -145,26 +90,6 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static string GetReferenceOutputFileName(string actualOutputFileName) =>
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
-
-        internal static IImageDecoder GetReferenceDecoder(string filePath)
-        {
-            IImageFormat format = GetImageFormat(filePath);
-            return Configuration.FindDecoder(format);
-        }
-
-        internal static IImageEncoder GetReferenceEncoder(string filePath)
-        {
-            IImageFormat format = GetImageFormat(filePath);
-            return Configuration.FindEncoder(format);
-        }
-
-        internal static IImageFormat GetImageFormat(string filePath)
-        {
-            string extension = Path.GetExtension(filePath).ToLower();
-            if (extension[0] == '.') extension = extension.Substring(1);
-            IImageFormat format = Configuration.FindFormatByFileExtension(extension);
-            return format;
-        }
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 

@@ -9,38 +9,45 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using System.IO;
 
     using BenchmarkDotNet.Attributes;
+    using BenchmarkDotNet.Attributes.Jobs;
+
+    using SixLabors.ImageSharp.Tests;
 
     using CoreImage = ImageSharp.Image;
 
     using CoreSize = SixLabors.Primitives.Size;
-
-    [Config(typeof(Config))]
+    
+    [Config(typeof(Config.Short))]
     public class DecodeJpeg : BenchmarkBase
     {
         private byte[] jpegBytes;
+
+        private static readonly string TestImage = Path.Combine(
+            TestEnvironment.InputImagesDirectoryFullPath,
+            TestImages.Jpeg.Baseline.Calliphora);
 
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.jpegBytes == null)
             {
-                this.jpegBytes = File.ReadAllBytes("../../../../../../../../ImageSharp.Tests/TestImages/Formats/Jpg/Baseline/Calliphora.jpg");
+                this.jpegBytes = File.ReadAllBytes(TestImage);
             }
         }
 
-        //[Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
-        //public Size JpegSystemDrawing()
-        //{
-        //    using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
-        //    {
-        //        using (Image image = Image.FromStream(memoryStream))
-        //        {
-        //            return image.Size;
-        //        }
-        //    }
-        //}
+        [Benchmark(Baseline = true, Description = "Decode Jpeg - System.Drawing")]
+        public Size JpegSystemDrawing()
+        {
+            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
+            {
+                using (Image image = Image.FromStream(memoryStream))
+                {
+                    return image.Size;
+                }
+            }
+        }
 
-        [Benchmark(Description = "ImageSharp Jpeg")]
+        [Benchmark(Description = "Decode Jpeg - ImageSharp")]
         public CoreSize JpegCore()
         {
             using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))

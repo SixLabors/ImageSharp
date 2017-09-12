@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             // TODO: This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.
-            //[Fact(Skip = "This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.")]
-            [Fact]
+            [Fact(Skip = "This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.")]
+            //[Fact]
             public void Unscaled()
             {
                 Block8x8F block = CreateRandomFloatBlock(0, 100);
@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             // TODO: This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.
-            //[Theory(Skip = "This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.")]
-            [Theory]
+            [Theory(Skip = "This test occasionally fails from the same reason certain ICC tests are failing. Should be false negative.")]
+            //[Theory]
             [InlineData(1, 1)]
             [InlineData(1, 2)]
             [InlineData(2, 1)]

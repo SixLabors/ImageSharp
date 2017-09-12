@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
                 collection.Add(new ImageFrame<Rgba32>(1, 1));
             });
 
-            Assert.Equal("Frame must have the same dimensions as the image.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
         }
 
         [Fact]
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
                 collection.Add(null);
             });
 
-            Assert.Equal("Value cannot be null.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Value cannot be null.", ex.Message);
         }
 
         [Fact]
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
                 collection.Insert(1, new ImageFrame<Rgba32>(1, 1));
             });
 
-            Assert.Equal("Frame must have the same dimensions as the image.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                 collection.Insert(1, null);
             });
 
-            Assert.Equal("Value cannot be null.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Value cannot be null.", ex.Message);
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
                 collection[0] = new ImageFrame<Rgba32>(1, 1);
             });
 
-            Assert.Equal("Frame must have the same dimensions as the image.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
         }
 
         [Fact]
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
                 collection[0] = null;
             });
 
-            Assert.Equal("Value cannot be null.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Value cannot be null.", ex.Message);
         }
 
         [Fact]
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
                 });
             });
 
-            Assert.Equal("Frame must have the same dimensions as the image.\r\nParameter name: frame", ex.Message);
+            Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
         }
 
         [Fact]

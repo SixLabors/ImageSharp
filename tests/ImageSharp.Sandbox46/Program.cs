@@ -41,12 +41,19 @@ namespace SixLabors.ImageSharp.Sandbox46
         /// </param>
         public static void Main(string[] args)
         {
-            RunDecodeJpegProfilingTests();
-            // RunToVector4ProfilingTest();
+            RunJpegColorProfilingTests();
 
-            //RunResizeProfilingTest();
+            // RunDecodeJpegProfilingTests();
+            // RunToVector4ProfilingTest();
+            // RunResizeProfilingTest();
 
             Console.ReadLine();
+        }
+
+        private static void RunJpegColorProfilingTests()
+        {
+            new JpegColorConverterTests(new ConsoleOutput()).BenchmarkYCbCr(false);
+            new JpegColorConverterTests(new ConsoleOutput()).BenchmarkYCbCr(true);
         }
 
         private static void RunResizeProfilingTest()

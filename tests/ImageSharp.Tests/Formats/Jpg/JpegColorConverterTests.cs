@@ -65,9 +65,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void ConvertFromYCbCr(int inputBufferLength, int resultBufferLength, int seed)
+        public void ConvertFromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)
         {
-            ValidateConversion(JpegColorSpace.YCbCr, 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+            ValidateConversion(new JpegColorConverter.FromYCbCrBasic(), 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
         }
 
         private static void ValidateYCbCr(JpegColorConverter.ComponentValues values, Span<Vector4> result, int i)
@@ -81,14 +81,56 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
             var expected = ColorSpaceConverter.ToRgb(ycbcr);
 
-            Assert.True(actual.AlmostEquals(expected, Precision));
+            Assert.True(actual.AlmostEquals(expected, Precision), $"{actual} != {expected}");
             Assert.Equal(1, rgba.W);
         }
 
-        [Fact]
-        public void ConvertFromYCbCr_SimdWithAlignedValues()
+        [Theory]
+        [InlineData(64, 1)]
+        [InlineData(16, 2)]
+        [InlineData(8, 3)]
+        public void FromYCbCrSimd256_ConvertCore(int size, int seed)
         {
-            ValidateConversion(JpegColorConverter.FromYCbCrSimd256.ConvertAligned, 3, 64, 64, 1, ValidateYCbCr);
+            ValidateConversion(JpegColorConverter.FromYCbCrSimd256.ConvertCore, 3, size, size, seed, ValidateYCbCr);
+        }
+
+        [Theory]
+        [MemberData(nameof(CommonConversionData))]
+        public void FromYCbCrSimd256(int inputBufferLength, int resultBufferLength, int seed)
+        {
+            ValidateConversion(new JpegColorConverter.FromYCbCrSimd256(), 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+        }
+
+        [Theory]
+        [MemberData(nameof(CommonConversionData))]
+        public void ConvertFromYCbCr_WithDefaultConverter(int inputBufferLength, int resultBufferLength, int seed)
+        {
+            ValidateConversion(JpegColorSpace.YCbCr, 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BenchmarkYCbCr(bool simd)
+        {
+            int count = 2053;
+            int times = 50000;
+
+            JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
+            Vector4[] result = new Vector4[count];
+
+            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimd256() :  new JpegColorConverter.FromYCbCrBasic();
+            
+            // Warm up:
+            converter.ConvertToRGBA(values, result);
+            
+            using (new MeasureGuard(this.Output, $"{converter.GetType().Name} x {times}"))
+            {
+                for (int i = 0; i < times; i++)
+                {
+                    converter.ConvertToRGBA(values, result);
+                }
+            }
         }
 
         [Theory]
@@ -243,7 +285,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Action<JpegColorConverter.ComponentValues, Span<Vector4>, int> validatePixelValue)
         {
             ValidateConversion(
-                (v, r) => JpegColorConverter.GetConverter(colorSpace).ConvertToRGBA(v, r),
+                JpegColorConverter.GetConverter(colorSpace),
+                componentCount,
+                inputBufferLength,
+                resultBufferLength,
+                seed,
+                validatePixelValue);
+        }
+
+        private static void ValidateConversion(
+            JpegColorConverter converter,
+            int componentCount,
+            int inputBufferLength,
+            int resultBufferLength,
+            int seed,
+            Action<JpegColorConverter.ComponentValues, Span<Vector4>, int> validatePixelValue)
+        {
+            ValidateConversion(
+                converter.ConvertToRGBA,
                 componentCount,
                 inputBufferLength,
                 resultBufferLength,

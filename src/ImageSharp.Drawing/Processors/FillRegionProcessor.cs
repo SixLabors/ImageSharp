@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
@@ -116,6 +117,10 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                             float subpixelFractionPoint = subpixelFraction / subpixelCount;
                             for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
                             {
+                                if(y == 102)
+                                {
+                                    Debugger.Break();
+                                }
                                 int pointsFound = region.Scan(subPixel, buffer, 0);
                                 if (pointsFound == 0)
                                 {
@@ -123,7 +128,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                                     continue;
                                 }
 
-                                QuickSort(buffer.AsSpan().Slice(0, pointsFound));
+                                QuickSort(new Span<float>(buffer, 0, pointsFound));
 
                                 for (int point = 0; point < pointsFound; point += 2)
                                 {

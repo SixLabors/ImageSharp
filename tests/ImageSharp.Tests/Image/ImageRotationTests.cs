@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.Primitives;
 using Xunit;
 
@@ -48,9 +49,9 @@ namespace SixLabors.ImageSharp.Tests
             var file = TestFile.Create(TestImages.Bmp.Car);
             using (var image = Image.Load<Rgba32>(file.FullPath))
             {
-                Size original = image.Bounds().Size;
+                Size original = image.Size();
                 image.Mutate(x => x.Rotate(angle));
-                return (original, image.Bounds().Size);
+                return (original, image.Size());
             }
         }
     }

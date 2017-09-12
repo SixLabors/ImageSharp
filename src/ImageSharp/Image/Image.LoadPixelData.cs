@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
             var image = new Image<TPixel>(config, width, height);
-            SpanHelper.Copy(data, image.GetPixelSpan(), count);
+            SpanHelper.Copy(data, image.Frames.RootFrame.GetPixelSpan(), count);
 
             return image;
         }

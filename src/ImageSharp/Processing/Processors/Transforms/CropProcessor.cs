@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.CropRectangle == sourceRectangle)
             {
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    source.Configuration.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(minX);

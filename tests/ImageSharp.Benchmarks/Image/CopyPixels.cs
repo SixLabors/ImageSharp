@@ -103,8 +103,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
                     Configuration.Default.ParallelOptions,
                     y =>
                     {
-                        Span<Rgba32> sourceRow = source.GetPixelRowSpan(y);
-                        Span<Rgba32> targetRow = target.GetPixelRowSpan(y);
+                        Span<Rgba32> sourceRow = source.Frames.RootFrame.GetPixelRowSpan(y);
+                        Span<Rgba32> targetRow = target.Frames.RootFrame.GetPixelRowSpan(y);
 
                         for (int x = 0; x < source.Width; x++)
                         {

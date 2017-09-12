@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests
         /// The name of the test case (by default)
         /// </summary>
         public string TestName { get; set; } = string.Empty;
-        
+
         private string GetTestOutputFileNameImpl(string extension, string details, bool appendPixelTypeToFileName)
         {
             string fn = string.Empty;
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string path = this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
             encoder = encoder ?? TestEnvironment.GetReferenceEncoder(path);
-            
+
             using (FileStream stream = File.OpenWrite(path))
             {
                 image.Save(stream, encoder);
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests
         //            pngEncoder.PngColorType = PngColorType.Grayscale;
         //        }
         //    }
-            
+
         //    return encoder;
         //}
 
@@ -197,8 +197,14 @@ namespace SixLabors.ImageSharp.Tests
             return TestEnvironment.CreateOutputDirectory(testGroupName);
         }
 
-        public static void ModifyPixel<TPixel>(ImageBase<TPixel> img, int x, int y, byte perChannelChange)
+        public static void ModifyPixel<TPixel>(Image<TPixel> img, int x, int y, byte perChannelChange)
             where TPixel : struct, IPixel<TPixel>
+        {
+            ModifyPixel((ImageFrame<TPixel>)img, x, y, perChannelChange);
+        }
+
+        public static void ModifyPixel<TPixel>(ImageFrame<TPixel> img, int x, int y, byte perChannelChange)
+        where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = img[x, y];
             var rgbaPixel = default(Rgba32);

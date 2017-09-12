@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats
     public interface IImageDecoder
     {
         /// <summary>
-        /// Decodes the image from the specified stream to the <see cref="ImageBase{TPixel}"/>.
+        /// Decodes the image from the specified stream to the <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="configuration">The configuration for the image.</param>

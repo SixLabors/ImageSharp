@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelXY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int kernelLength = this.KernelXY.Height;
             int radius = kernelLength >> 1;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 Parallel.For(
                  startY,
                  endY,
-                 source.Configuration.ParallelOptions,
+                 configuration.ParallelOptions,
                  y =>
                  {
                      Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

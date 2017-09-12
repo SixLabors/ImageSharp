@@ -55,14 +55,14 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
+        public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
             return base.Quantize(image, maxColors);
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -20,18 +20,12 @@ namespace SixLabors.ImageSharp.Processing
         {
             try
             {
+                Configuration config = source.GetConfiguration();
                 this.BeforeImageApply(source, sourceRectangle);
-
-                this.BeforeApply(source, sourceRectangle);
-                this.OnApply(source, sourceRectangle);
-                this.AfterApply(source, sourceRectangle);
 
                 foreach (ImageFrame<TPixel> sourceFrame in source.Frames)
                 {
-                    this.BeforeApply(sourceFrame, sourceRectangle);
-
-                    this.OnApply(sourceFrame, sourceRectangle);
-                    this.AfterApply(sourceFrame, sourceRectangle);
+                    this.Apply(sourceFrame, sourceRectangle, config);
                 }
 
                 this.AfterImageApply(source, sourceRectangle);
@@ -53,13 +47,14 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">the source image</param>
         /// <param name="sourceRectangle">the target</param>
-        public void Apply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        /// <param name="configuration">The configuration.</param>
+        public void Apply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             try
             {
-                this.BeforeApply(source, sourceRectangle);
-                this.OnApply(source, sourceRectangle);
-                this.AfterApply(source, sourceRectangle);
+                this.BeforeApply(source, sourceRectangle, configuration);
+                this.OnApply(source, sourceRectangle, configuration);
+                this.AfterApply(source, sourceRectangle, configuration);
             }
 #if DEBUG
             catch (Exception)
@@ -77,9 +72,7 @@ namespace SixLabors.ImageSharp.Processing
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         protected virtual void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
         }
@@ -88,31 +81,28 @@ namespace SixLabors.ImageSharp.Processing
         /// This method is called before the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        protected virtual void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        protected virtual void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageBase{TPixel}"/> at the specified location
+        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}" /> at the specified location
         /// and with the specified size.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        protected abstract void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle);
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        protected abstract void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        protected virtual void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
+        /// <param name="configuration">The configuration.</param>
+        protected virtual void AfterApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 
@@ -120,9 +110,7 @@ namespace SixLabors.ImageSharp.Processing
         /// This method is called after the process is applied to prepare the processor.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
+        /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         protected virtual void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
         }

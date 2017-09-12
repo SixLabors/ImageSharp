@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             return new PatternBrushApplicator(source, this.pattern, this.patternVector, options);
         }
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageBase<TPixel> source, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
                 : base(source, options)
             {
                 this.pattern = pattern;

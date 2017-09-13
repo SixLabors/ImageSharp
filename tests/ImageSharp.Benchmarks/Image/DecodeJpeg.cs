@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Attributes.Jobs;
 
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.Tests;
 
     using CoreImage = ImageSharp.Image;
@@ -22,16 +24,19 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     {
         private byte[] jpegBytes;
 
-        private static readonly string TestImage = Path.Combine(
+        private string TestImageFullPath => Path.Combine(
             TestEnvironment.InputImagesDirectoryFullPath,
-            TestImages.Jpeg.Baseline.Calliphora);
+            this.TestImage);
+
+        [Params(TestImages.Jpeg.Baseline.Jpeg420Exif, TestImages.Jpeg.Baseline.Calliphora)]
+        public string TestImage { get; set; }
 
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.jpegBytes == null)
             {
-                this.jpegBytes = File.ReadAllBytes(TestImage);
+                this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
             }
         }
 
@@ -48,11 +53,23 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         }
 
         [Benchmark(Description = "Decode Jpeg - ImageSharp")]
-        public CoreSize JpegCore()
+        public CoreSize JpegImageSharpOrig()
         {
             using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream))
+                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream, new OrigJpegDecoder()))
+                {
+                    return new CoreSize(image.Width, image.Height);
+                }
+            }
+        }
+
+        [Benchmark(Description = "Decode Jpeg - ImageSharp PdfJs")]
+        public CoreSize JpegImageSharpPdfJs()
+        {
+            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
+            {
+                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream, new PdfJsJpegDecoder()))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

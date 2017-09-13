@@ -271,52 +271,12 @@ namespace SixLabors.Helpers.Tests
             Guard.MustBeSizedAtLeast<int>(new int[valueLength], minLength, "myParamName");
         }
 
-        [Theory]
-        [InlineData(2, 1)]
-        [InlineData(2, 2)]
-        public void MustBeSizedAtLeast_Span_LengthIsGreaterOrEqual_ThrowsNoException(int valueLength, int minLength)
-        {
-            Guard.MustBeSizedAtLeast<int>(new Span<int>(new int[valueLength]), minLength, "myParamName");
-        }
-
-        [Theory]
-        [InlineData(2, 1)]
-        [InlineData(2, 2)]
-        public void MustBeSizedAtLeast_ReadOnlySpan_LengthIsGreaterOrEqual_ThrowsNoException(int valueLength, int minLength)
-        {
-            Guard.MustBeSizedAtLeast<int>(new ReadOnlySpan<int>(new int[valueLength]), minLength, "myParamName");
-        }
-
         [Fact]
         public void MustBeSizedAtLeast_Array_LengthIsLess_ThrowsException()
         {
             var exception = Assert.Throws<ArgumentException>(() =>
             {
                 Guard.MustBeSizedAtLeast<int>(new int[] { 1, 2 }, 3, "myParamName");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"The size must be at least 3."));
-        }
-
-        [Fact]
-        public void MustBeSizedAtLeast_Span_LengthIsLess_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.MustBeSizedAtLeast<int>(new Span<int>(new int[2]), 3, "myParamName");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"The size must be at least 3."));
-        }
-
-        [Fact]
-        public void MustBeSizedAtLeast_ReadOnlySpan_LengthIsLess_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.MustBeSizedAtLeast<int>(new ReadOnlySpan<int>(new int[2]), 3, "myParamName");
             });
 
             Assert.Equal("myParamName", exception.ParamName);

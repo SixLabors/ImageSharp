@@ -347,5 +347,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expectedShort, actualShort);
             }
         }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void RoundInplace(int seed)
+        {
+            Block8x8F s = CreateRandomFloatBlock(-500, 500, seed);
+
+            Block8x8F d = s;
+            d.RoundInplace();
+
+            this.Output.WriteLine(s.ToString());
+            this.Output.WriteLine(d.ToString());
+
+            for (int i = 0; i < 64; i++)
+            {
+                float expected = MathF.Round(s[i]);
+                float actual = d[i];
+
+                Assert.Equal(expected, actual);
+            }
+        }
     }
 }

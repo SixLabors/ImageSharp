@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
     /// - Divide each float pair, round the result
     /// - Iterate through all rounded values as int-s
     /// </summary>
-    public unsafe class RoundSinglePrecisionBlocks
+    public unsafe class Block8x8F_DivideRound
     {
         private const int ExecutionCount = 5; // Added this to reduce the effect of copying the blocks
         private static readonly Vector4 MinusOne = new Vector4(-1);

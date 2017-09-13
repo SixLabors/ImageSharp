@@ -79,16 +79,5 @@ namespace SixLabors.ImageSharp
 
             return MathF.Pow((signal + 0.055F) / 1.055F, 2.4F);
         }
-
-        /// <summary>
-        /// Transform all scalars in 'v' in a way that converting them to <see cref="int"/> would have rounding semantics.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector4 PseudoRound(this Vector4 v)
-        {
-            var sign = Vector4.Clamp(v, new Vector4(-1), new Vector4(1));
-
-            return v + (sign * 0.5f);
-        }
     }
 }

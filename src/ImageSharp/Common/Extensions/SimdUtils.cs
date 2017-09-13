@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp
         /// Rounds all values in 'v' to the nearest integer following <see cref="MidpointRounding.ToEven"/> semantics.
         /// Source:
         /// <see>
-        ///     <cref>https://github.com/tmpvar/voxviz/blob/master/deps/glm/glm/simd/common.h#L110</cref>
+        ///     <cref>https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L110</cref>
         /// </see>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

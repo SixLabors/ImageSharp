@@ -43,8 +43,7 @@
       <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
           <PrivateAssets>All</PrivateAssets>
       </PackageReference>
-    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
-    <PackageReference Include="System.Memory" Version="4.4.0-preview1-25305-02" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
   </ItemGroup>
 
 </Project>

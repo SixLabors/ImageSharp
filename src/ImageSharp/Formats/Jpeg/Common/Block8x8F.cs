@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using SixLabors.ImageSharp.Memory;
 
 // ReSharper disable InconsistentNaming
@@ -609,13 +610,57 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        // TODO: Optimize this!
         public void RoundInplace()
+        {
+            if (Vector<float>.Count == 8)
+            {
+                ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
+                row0 = row0.FastRound();
+                ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
+                row1 = row1.FastRound();
+                ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
+                row2 = row2.FastRound();
+                ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
+                row3 = row3.FastRound();
+                ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
+                row4 = row4.FastRound();
+                ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
+                row5 = row5.FastRound();
+                ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
+                row6 = row6.FastRound();
+                ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
+                row7 = row7.FastRound();
+            }
+            else
+            {
+                this.RoundInplaceSlow();
+            }
+        }
+
+        private void RoundInplaceSlow()
         {
             for (int i = 0; i < Size; i++)
             {
                 this[i] = MathF.Round(this[i]);
             }
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            var bld = new StringBuilder();
+            bld.Append('[');
+            for (int i = 0; i < Size; i++)
+            {
+                bld.Append(this[i]);
+                if (i < Size - 1)
+                {
+                    bld.Append(',');
+                }
+            }
+
+            bld.Append(']');
+            return bld.ToString();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

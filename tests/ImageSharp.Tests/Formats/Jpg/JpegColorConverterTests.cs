@@ -33,36 +33,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        private static int R(float f) => (int)MathF.Round(f, MidpointRounding.AwayFromZero);
-
-        // TODO: Move this to a proper test class!
-        [Theory]
-        [InlineData(0.32, 54.5, -3.5, -4.1)]
-        [InlineData(5.3, 536.4, 4.5, 8.1)]
-        public void Vector4_PseudoRound(float x, float y, float z, float w)
-        {
-            var v = new Vector4(x, y, z, w);
-
-            Vector4 actual = v.PseudoRound();
-
-            Assert.Equal(
-                R(v.X),
-                (int)actual.X
-                );
-            Assert.Equal(
-                R(v.Y),
-                (int)actual.Y
-            );
-            Assert.Equal(
-                R(v.Z),
-                (int)actual.Z
-            );
-            Assert.Equal(
-                R(v.W),
-                (int)actual.W
-            );
-        }
-
         [Theory]
         [MemberData(nameof(CommonConversionData))]
         public void ConvertFromYCbCrBasic(int inputBufferLength, int resultBufferLength, int seed)

@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <Description>Low level primitives for use across Six Labors projects..</Description>
-    <AssemblyTitle>SixLabors.Primitives</AssemblyTitle>
     <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
-    <VersionPrefix Condition="$(packageversion) == ''">0.1.0-alpha1</VersionPrefix>
+    <VersionPrefix Condition="$(packageversion) == ''">0.1.0-alpha2</VersionPrefix>
     <Authors>Six Labors</Authors>
     <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -26,16 +25,26 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <DebugType Condition="$(codecov) == 'true'">full</DebugType>
     <RootNamespace>SixLabors</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\SixLabors.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
+    <AdditionalFiles Include="..\..\stylecop.json" />
+    <Content Include="..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>
+      <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
+          <PrivateAssets>All</PrivateAssets>
+      </PackageReference>
     <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
+    <PackageReference Include="System.Memory" Version="4.4.0-preview1-25305-02" />
   </ItemGroup>
 
 </Project>

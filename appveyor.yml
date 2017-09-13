@@ -24,6 +24,14 @@ deploy:
     artifact: /.*\.nupkg/
     on:
       branch: master
+  - provider: NuGet
+    server: https://www.myget.org/F/sixlabors-unstable/api/v2/package
+    symbol_server: https://www.myget.org/F/sixlabors-unstable/symbols/api/v2/package
+    api_key:
+      secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
+    artifact: /.*\.nupkg/
+    on:
+      branch: develop
 
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true

@@ -1,9 +1,0 @@
-﻿{
-  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
-  "settings": {
-    "documentationRules": {
-      "companyName": "Six Labors",
-      "copyrightText": "Copyright (c) Six Labors and contributors.\nLicensed under the Apache License, Version 2.0."
-    }
-  }
-}

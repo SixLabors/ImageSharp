@@ -612,7 +612,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
         public void RoundInplace()
         {
-            if (Vector<float>.Count == 8)
+            if (Vector<float>.Count == 8 && Vector<int>.Count == 8)
             {
                 ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
                 row0 = row0.FastRound();

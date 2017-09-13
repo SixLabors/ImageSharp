@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector<float> FastRound(this Vector<float> x)
         {
-            Vector<int> magic0 = new Vector<int>(-2147483648); // 0x80000000
+            Vector<int> magic0 = new Vector<int>(int.MinValue); // 0x80000000
             Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
             Vector<float> and0 = Vector.BitwiseAnd(sgn0, x);
             Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));

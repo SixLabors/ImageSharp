@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         [Fact]
-        public void Round()
+        public void FastRound()
         {
             Vector<float> v = CreateExactTestVector1();
             Vector<float> r = v.FastRound();
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(42, 1f)]
         [InlineData(42, 10f)]
         [InlineData(42, 1000f)]
-        public void Round_RandomValues(int seed, float scale)
+        public void FastRound_RandomValues(int seed, float scale)
         {
             Vector<float> v = CreateRandomTestVector(seed, scale);
             Vector<float> r = v.FastRound();

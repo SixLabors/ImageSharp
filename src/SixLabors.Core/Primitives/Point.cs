@@ -1,15 +1,13 @@
-﻿// <copyright file="Point.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.Primitives
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Represents an ordered pair of integer x- and y-coordinates that defines a point in
     /// a two-dimensional plane.
@@ -182,7 +180,7 @@ namespace SixLabors.Primitives
         /// Translates a <see cref="Point"/> by the negative of a given value
         /// </summary>
         /// <param name="point">The point on the left hand of the operand.</param>
-        /// <param name="size">The size on the right hand of the operand.</param>
+        /// <param name="value">The value on the right hand of the operand.</param>
         /// <returns>The <see cref="Point"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Point Multiply(Point point, int value) => new Point(unchecked(point.X * value), unchecked(point.Y * value));
@@ -213,6 +211,17 @@ namespace SixLabors.Primitives
         public static Point Round(PointF point) => new Point(unchecked((int)MathF.Round(point.X)), unchecked((int)MathF.Round(point.Y)));
 
         /// <summary>
+        /// Transforms a point by the given matrix.
+        /// </summary>
+        /// <param name="position">The source point.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>A transformed point.</returns>
+        public static PointF Transform(Point position, Matrix3x2 matrix)
+        {
+            return Vector2.Transform(position, matrix);
+        }
+
+        /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a truncate operation on all the coordinates.
         /// </summary>
         /// <param name="point">The point</param>
@@ -235,7 +244,7 @@ namespace SixLabors.Primitives
         /// <param name="rotation">Rotation matrix used</param>
         /// <returns>The rotated <see cref="Point"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Rotate(Point point, System.Numerics.Matrix3x2 rotation) => Round(Vector2.Transform(new Vector2(point.X, point.Y), rotation));
+        public static Point Rotate(Point point, Matrix3x2 rotation) => Round(Vector2.Transform(new Vector2(point.X, point.Y), rotation));
 
         /// <summary>
         /// Skews a point using the given skew matrix.
@@ -244,7 +253,7 @@ namespace SixLabors.Primitives
         /// <param name="skew">Rotation matrix used</param>
         /// <returns>The rotated <see cref="Point"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Skew(Point point, System.Numerics.Matrix3x2 skew) => Round(Vector2.Transform(new Vector2(point.X, point.Y), skew));
+        public static Point Skew(Point point, Matrix3x2 skew) => Round(Vector2.Transform(new Vector2(point.X, point.Y), skew));
 
         /// <summary>
         /// Translates this <see cref="Point"/> by the specified amount.
@@ -289,16 +298,5 @@ namespace SixLabors.Primitives
         private static short LowInt16(int n) => unchecked((short)(n & 0xffff));
 
         private int GetHashCode(Point point) => HashHelpers.Combine(point.X.GetHashCode(), point.Y.GetHashCode());
-
-        /// <summary>
-        /// Transforms a point by the given matrix.
-        /// </summary>
-        /// <param name="position"> The source point</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns></returns>
-        public static PointF Transform(Point position, Matrix3x2 matrix)
-        {
-            return Vector2.Transform(position, matrix);
-        }
     }
 }

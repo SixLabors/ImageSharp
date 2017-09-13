@@ -1,15 +1,12 @@
-﻿// <copyright file="RectangleTests.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Globalization;
+using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
-    using System;
-    using System.Globalization;
-
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="Rectangle"/> struct.
     /// </summary>
@@ -18,7 +15,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(Rectangle.Empty, new Rectangle());
+            Assert.Equal(Rectangle.Empty, default(Rectangle));
         }
 
         [Theory]
@@ -51,8 +48,8 @@ namespace SixLabors.Primitives.Tests
         public void EmptyTest()
         {
             Assert.True(Rectangle.Empty.IsEmpty);
+            Assert.True(default(Rectangle).IsEmpty);
             Assert.True(new Rectangle(0, 0, 0, 0).IsEmpty);
-            Assert.True(new Rectangle().IsEmpty);
         }
 
         [Theory]
@@ -107,7 +104,7 @@ namespace SixLabors.Primitives.Tests
         [Theory]
         [InlineData(0, 0)]
         [InlineData(int.MaxValue, int.MinValue)]
-        public static void LocationSetTest(int x, int y)
+        public void LocationSetTest(int x, int y)
         {
             var point = new Point(x, y);
             var rect = new Rectangle(10, 10, 10, 10) { Location = point };
@@ -119,7 +116,7 @@ namespace SixLabors.Primitives.Tests
         [Theory]
         [InlineData(0, 0)]
         [InlineData(int.MaxValue, int.MinValue)]
-        public static void SizeSetTest(int x, int y)
+        public void SizeSetTest(int x, int y)
         {
             var size = new Size(x, y);
             var rect = new Rectangle(10, 10, 10, 10) { Size = size };
@@ -145,7 +142,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void EqualityTestNotRectangle()
+        public void EqualityTestNotRectangle()
         {
             var rectangle = new Rectangle(0, 0, 0, 0);
             Assert.False(rectangle.Equals(null));
@@ -154,7 +151,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void GetHashCodeTest()
+        public void GetHashCodeTest()
         {
             var rect1 = new Rectangle(10, 10, 10, 10);
             var rect2 = new Rectangle(10, 10, 10, 10);
@@ -193,7 +190,7 @@ namespace SixLabors.Primitives.Tests
         [InlineData(0, int.MinValue, int.MaxValue, 0)]
         public void ContainsTest(int x, int y, int width, int height)
         {
-            var rect = new Rectangle(unchecked(2 * x - width), unchecked(2 * y - height), width, height);
+            var rect = new Rectangle(unchecked((2 * x) - width), unchecked((2 * y) - height), width, height);
             var p = new Point(x, y);
             var r = new Rectangle(x, y, width / 2, height / 2);
 
@@ -211,7 +208,7 @@ namespace SixLabors.Primitives.Tests
             Rectangle inflatedRect, rect = new Rectangle(x, y, width, height);
             unchecked
             {
-                inflatedRect = new Rectangle(x - width, y - height, width + 2 * width, height + 2 * height);
+                inflatedRect = new Rectangle(x - width, y - height, width + (2 * width), height + (2 * height));
             }
 
             Assert.Equal(inflatedRect, Rectangle.Inflate(rect, width, height));
@@ -222,7 +219,7 @@ namespace SixLabors.Primitives.Tests
             var s = new Size(x, y);
             unchecked
             {
-                inflatedRect = new Rectangle(rect.X - x, rect.Y - y, rect.Width + 2 * x, rect.Height + 2 * y);
+                inflatedRect = new Rectangle(rect.X - x, rect.Y - y, rect.Width + (2 * x), rect.Height + (2 * y));
             }
 
             rect.Inflate(s);
@@ -243,7 +240,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void IntersectIntersectingRectsTest()
+        public void IntersectIntersectingRectsTest()
         {
             var rect1 = new Rectangle(0, 0, 5, 5);
             var rect2 = new Rectangle(1, 1, 3, 3);

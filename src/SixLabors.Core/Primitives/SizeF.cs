@@ -1,15 +1,13 @@
-﻿// <copyright file="SizeF.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.Primitives
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Stores an ordered pair of single precision floating points, which specify a height and width.
     /// </summary>
@@ -71,6 +69,16 @@ namespace SixLabors.Primitives
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public bool IsEmpty => this.Equals(Empty);
+
+        /// <summary>
+        /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
+        /// </summary>
+        /// <param name="point">The point.</param>
+        /// <returns>
+        /// The <see cref="Vector2"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Vector2(SizeF point) => new Vector2(point.Width, point.Height);
 
         /// <summary>
         /// Creates a <see cref="Size"/> with the dimensions of the specified <see cref="SizeF"/> by truncating each of the dimensions.
@@ -177,13 +185,17 @@ namespace SixLabors.Primitives
         public static SizeF Subtract(SizeF left, SizeF right) => new SizeF(left.Width - right.Width, left.Height - right.Height);
 
         /// <summary>
-        /// Multiplies <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// Transforms a size by the given matrix.
         /// </summary>
-        /// <param name="size">Multiplicand of type <see cref="SizeF"/>.</param>
-        /// <param name="multiplier">Multiplier of type <see cref="float"/>.</param>
-        /// <returns>Product of type SizeF.</returns>
-        private static SizeF Multiply(SizeF size, float multiplier) =>
-            new SizeF(size.Width * multiplier, size.Height * multiplier);
+        /// <param name="size">The source size.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>A transformed size.</returns>
+        public static SizeF Transform(SizeF size, Matrix3x2 matrix)
+        {
+            var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
+
+            return new SizeF(v.X, v.Y);
+        }
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -204,29 +216,15 @@ namespace SixLabors.Primitives
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(SizeF other) => this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
 
+        /// <summary>
+        /// Multiplies <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
+        /// </summary>
+        /// <param name="size">Multiplicand of type <see cref="SizeF"/>.</param>
+        /// <param name="multiplier">Multiplier of type <see cref="float"/>.</param>
+        /// <returns>Product of type SizeF.</returns>
+        private static SizeF Multiply(SizeF size, float multiplier) =>
+            new SizeF(size.Width * multiplier, size.Height * multiplier);
+
         private int GetHashCode(SizeF size) => HashHelpers.Combine(size.Width.GetHashCode(), size.Height.GetHashCode());
-
-        /// <summary>
-        /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
-        /// </summary>
-        /// <param name="point">The point.</param>
-        /// <returns>
-        /// The <see cref="Vector2"/>.
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Vector2(SizeF point) => new Vector2(point.Width, point.Height);
-
-        /// <summary>
-        /// Transforms a size by the given matrix.
-        /// </summary>
-        /// <param name="size">The source size</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns></returns>
-        public static SizeF Transform(SizeF size, Matrix3x2 matrix)
-        {
-            var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
-
-            return new SizeF(v.X, v.Y);
-        }
     }
 }

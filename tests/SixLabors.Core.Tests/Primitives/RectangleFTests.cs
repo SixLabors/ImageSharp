@@ -1,16 +1,13 @@
-﻿// <copyright file="RectangleFTests.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Globalization;
+using System.Reflection;
+using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
-    using System;
-    using System.Globalization;
-    using System.Reflection;
-
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="RectangleF"/> struct.
     /// </summary>
@@ -19,7 +16,7 @@ namespace SixLabors.Primitives.Tests
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(RectangleF.Empty, new RectangleF());
+            Assert.Equal(RectangleF.Empty, default(RectangleF));
         }
 
         [Theory]
@@ -77,7 +74,7 @@ namespace SixLabors.Primitives.Tests
         public void IsEmptyTest()
         {
             Assert.True(RectangleF.Empty.IsEmpty);
-            Assert.True(new RectangleF().IsEmpty);
+            Assert.True(default(RectangleF).IsEmpty);
             Assert.True(new RectangleF(1, -2, -10, 10).IsEmpty);
             Assert.True(new RectangleF(1, -2, 10, -10).IsEmpty);
             Assert.True(new RectangleF(1, -2, 0, 0).IsEmpty);
@@ -88,7 +85,7 @@ namespace SixLabors.Primitives.Tests
         [Theory]
         [InlineData(0, 0)]
         [InlineData(float.MaxValue, float.MinValue)]
-        public static void LocationSetTest(float x, float y)
+        public void LocationSetTest(float x, float y)
         {
             var point = new PointF(x, y);
             var rect = new RectangleF(10, 10, 10, 10) { Location = point };
@@ -100,7 +97,7 @@ namespace SixLabors.Primitives.Tests
         [Theory]
         [InlineData(0, 0)]
         [InlineData(float.MaxValue, float.MinValue)]
-        public static void SizeSetTest(float x, float y)
+        public void SizeSetTest(float x, float y)
         {
             var size = new SizeF(x, y);
             var rect = new RectangleF(10, 10, 10, 10) { Size = size };
@@ -125,7 +122,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void EqualityTestNotRectangleF()
+        public void EqualityTestNotRectangleF()
         {
             var rectangle = new RectangleF(0, 0, 0, 0);
             Assert.False(rectangle.Equals(null));
@@ -141,7 +138,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void GetHashCodeTest()
+        public void GetHashCodeTest()
         {
             var rect1 = new RectangleF(10, 10, 10, 10);
             var rect2 = new RectangleF(10, 10, 10, 10);
@@ -158,12 +155,12 @@ namespace SixLabors.Primitives.Tests
         public void ContainsTest(float x, float y, float width, float height)
         {
             var rect = new RectangleF(x, y, width, height);
-            float X = (x + width) / 2;
-            float Y = (y + height) / 2;
-            var p = new PointF(X, Y);
-            var r = new RectangleF(X, Y, width / 2, height / 2);
+            float x1 = (x + width) / 2;
+            float y1 = (y + height) / 2;
+            var p = new PointF(x1, y1);
+            var r = new RectangleF(x1, y1, width / 2, height / 2);
 
-            Assert.False(rect.Contains(X, Y));
+            Assert.False(rect.Contains(x1, y1));
             Assert.False(rect.Contains(p));
             Assert.False(rect.Contains(r));
         }
@@ -175,7 +172,7 @@ namespace SixLabors.Primitives.Tests
         public void InflateTest(float x, float y, float width, float height)
         {
             var rect = new RectangleF(x, y, width, height);
-            var inflatedRect = new RectangleF(x - width, y - height, width + 2 * width, height + 2 * height);
+            var inflatedRect = new RectangleF(x - width, y - height, width + (2 * width), height + (2 * height));
 
             rect.Inflate(width, height);
             Assert.Equal(inflatedRect, rect);
@@ -201,7 +198,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void IntersectIntersectingRectsTest()
+        public void IntersectIntersectingRectsTest()
         {
             var rect1 = new RectangleF(0, 0, 5, 5);
             var rect2 = new RectangleF(1, 1, 3, 3);
@@ -254,14 +251,6 @@ namespace SixLabors.Primitives.Tests
         {
             var r = new RectangleF(5, 5.1F, 1.3F, 1);
             Assert.Equal(string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
-        }
-
-        [InlineData(0, 0, 0, 0)]
-        [InlineData(5, -5, 0.2, -1.3)]
-        public void ToStringTestEmpty(float x, float y, float width, float height)
-        {
-            var r = new RectangleF(x, y, width, height);
-            Assert.Equal("RectangleF [ Empty ]", r.ToString());
         }
     }
 }

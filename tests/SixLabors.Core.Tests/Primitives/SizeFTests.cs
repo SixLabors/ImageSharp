@@ -1,21 +1,19 @@
-﻿// <copyright file="SizeTests.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Globalization;
+using System.Reflection;
+using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
-    using System;
-    using System.Globalization;
-    using System.Reflection;
-    using Xunit;
-
     public class SizeFTests
     {
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(SizeF.Empty, new SizeF());
+            Assert.Equal(SizeF.Empty, default(SizeF));
         }
 
         [Theory]
@@ -47,7 +45,7 @@ namespace SixLabors.Primitives.Tests
         public void IsEmptyDefaultsTest()
         {
             Assert.True(SizeF.Empty.IsEmpty);
-            Assert.True(new SizeF().IsEmpty);
+            Assert.True(default(SizeF).IsEmpty);
             Assert.True(new SizeF(0, 0).IsEmpty);
         }
 
@@ -106,7 +104,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void EqualityTest_NotSizeF()
+        public void EqualityTest_NotSizeF()
         {
             var size = new SizeF(0, 0);
             Assert.False(size.Equals(null));
@@ -122,7 +120,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void GetHashCodeTest()
+        public void GetHashCodeTest()
         {
             var size = new SizeF(10, 10);
             Assert.Equal(size.GetHashCode(), new SizeF(10, 10).GetHashCode());

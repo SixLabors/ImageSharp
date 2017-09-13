@@ -1,15 +1,13 @@
-﻿// <copyright file="PointF.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.Primitives
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Represents an ordered pair of single precision floating point x- and y-coordinates that defines a point in
     /// a two-dimensional plane.
@@ -259,6 +257,17 @@ namespace SixLabors.Primitives
         public static PointF Skew(PointF point, Matrix3x2 skew) => Vector2.Transform(new Vector2(point.X, point.Y), skew);
 
         /// <summary>
+        /// Transforms a point by the given matrix.
+        /// </summary>
+        /// <param name="position">The source point.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>A transformed point.</returns>
+        public static PointF Transform(PointF position, Matrix3x2 matrix)
+        {
+            return Vector2.Transform(position, matrix);
+        }
+
+        /// <summary>
         /// Translates this <see cref="PointF"/> by the specified amount.
         /// </summary>
         /// <param name="dx">The amount to offset the x-coordinate.</param>
@@ -303,16 +312,5 @@ namespace SixLabors.Primitives
         /// A 32-bit signed integer that is the hash code for this instance.
         /// </returns>
         private int GetHashCode(PointF point) => HashHelpers.Combine(point.X.GetHashCode(), point.Y.GetHashCode());
-
-        /// <summary>
-        /// Transforms a point by the given matrix.
-        /// </summary>
-        /// <param name="position"> The source point</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns></returns>
-        public static PointF Transform(PointF position, Matrix3x2 matrix)
-        {
-            return Vector2.Transform(position, matrix);
-        }
     }
 }

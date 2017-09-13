@@ -1,22 +1,20 @@
-﻿// <copyright file="PointFTests.cs" company="Six Labors">
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Globalization;
+using System.Numerics;
+using System.Reflection;
+using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
-    using System;
-    using System.Globalization;
-    using System.Numerics;
-    using System.Reflection;
-    using Xunit;
-
     public class PointFTests
     {
         [Fact]
         public void DefaultConstructorTest()
         {
-            Assert.Equal(PointF.Empty, new PointF());
+            Assert.Equal(PointF.Empty, default(PointF));
         }
 
         [Theory]
@@ -37,7 +35,7 @@ namespace SixLabors.Primitives.Tests
         public void IsEmptyDefaultsTest()
         {
             Assert.True(PointF.Empty.IsEmpty);
-            Assert.True(new PointF().IsEmpty);
+            Assert.True(default(PointF).IsEmpty);
             Assert.True(new PointF(0, 0).IsEmpty);
         }
 
@@ -151,7 +149,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void EqualityTest_NotPointF()
+        public void EqualityTest_NotPointF()
         {
             var point = new PointF(0, 0);
             Assert.False(point.Equals(null));
@@ -167,7 +165,7 @@ namespace SixLabors.Primitives.Tests
         }
 
         [Fact]
-        public static void GetHashCodeTest()
+        public void GetHashCodeTest()
         {
             var point = new PointF(10, 10);
             Assert.Equal(point.GetHashCode(), new PointF(10, 10).GetHashCode());

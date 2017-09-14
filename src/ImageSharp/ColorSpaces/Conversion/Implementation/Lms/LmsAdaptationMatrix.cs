@@ -1,13 +1,11 @@
-﻿// <copyright file="LmsAdaptationMatrix.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System.Numerics;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce
 {
-    using System.Numerics;
-
     /// <summary>
     /// AdaptionMatrix3X3 used for transformation from XYZ to LMS, defining the cone response domain.
     /// Used in <see cref="IChromaticAdaptation"/>

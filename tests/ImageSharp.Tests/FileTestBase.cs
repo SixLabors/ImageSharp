@@ -1,18 +1,17 @@
-﻿// <copyright file="FileTestBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System.Collections.Generic;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// The test base class for reading and writing to files.
     /// </summary>
-    public abstract class FileTestBase : TestBase
+    public abstract class FileTestBase
     {
         /// <summary>
+        /// TODO: We really should not depend on this! Let's use well defined, test-case specific inputs everywhere!
         /// A collection made up of one file for each image format
         /// </summary>
         public static IEnumerable<string> DefaultFiles =
@@ -49,6 +48,11 @@ namespace ImageSharp.Tests
         /// </summary>
         public const PixelTypes DefaultPixelType = PixelTypes.Rgba32;
 
+        /// <summary>
+        /// A few other pixel types to prove that a processor is not bound to a single one.
+        /// </summary>
+        public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+
         public static class Extensions
         {
             public const string Bmp = "bmp";
@@ -70,7 +74,9 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.Floorplan), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Festzug), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.Bad.MissingEOF), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
@@ -79,6 +85,7 @@ namespace ImageSharp.Tests
             // TestFile.Create(TestImages.Bmp.NegHeight), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Bmp.CoreHeader), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Png.Splash),
+            // TestFile.Create(TestImages.Png.SnakeGame),
             // TestFile.Create(TestImages.Png.Cross), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Bad.ChunkLength1), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Bad.ChunkLength2), // Perf: Enable for local testing only

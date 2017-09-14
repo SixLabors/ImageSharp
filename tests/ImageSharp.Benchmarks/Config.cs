@@ -5,7 +5,7 @@
 
 using BenchmarkDotNet.Configs;
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Jobs;
 
@@ -22,7 +22,7 @@ namespace ImageSharp.Benchmarks
             public Short()
             {
                 this.Add(
-                    Job.Default.WithLaunchCount(1)
+                    Job.Clr.WithLaunchCount(1)
                         .WithWarmupCount(3)
                         .WithTargetCount(3)
                         );

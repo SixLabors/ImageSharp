@@ -1,28 +1,25 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Drawing;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using Drawing;
-    using ImageSharp.Drawing;
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using System.IO;
-    using System.Numerics;
-    using Xunit;
-    using ImageSharp.Drawing.Brushes;
-    using ImageSharp.PixelFormats;
-
-    using SixLabors.Shapes;
-
     public class SolidPolygonTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -31,9 +28,9 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
-                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(true))
-                    .Save($"{path}/Simple.png");
+                image.Mutate(x => x
+                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(true)));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -45,7 +42,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonWithPattern()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -54,9 +51,9 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
-                    .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true))
-                    .Save($"{path}/Pattern.png");
+                image.Mutate(x => x
+                    .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true)));
+                image.Save($"{path}/Pattern.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -68,7 +65,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonNoAntialias()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -77,10 +74,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(false))
-                    .Save($"{path}/Simple_NoAntialias.png");
+                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(false)));
+                image.Save($"{path}/Simple_NoAntialias.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -98,7 +95,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonImage()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -110,17 +107,17 @@ namespace ImageSharp.Tests.Drawing
             {
                 ImageBrush<Rgba32> brush = new ImageBrush<Rgba32>(brushImage);
 
-                image
-                .BackgroundColor(Rgba32.Blue)
-                .FillPolygon(brush, simplePath)
-                .Save($"{path}/Image.png");
+                image.Mutate(x => x
+                    .BackgroundColor(Rgba32.Blue)
+                    .FillPolygon(brush, simplePath));
+                image.Save($"{path}/Image.png");
             }
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -130,10 +127,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .FillPolygon(color, simplePath)
-                    .Save($"{path}/Opacity.png");
+                    .FillPolygon(color, simplePath));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
@@ -148,14 +145,14 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledRectangle()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.RectangularePolygon(10, 10, 190, 140))
-                     .Save($"{path}/Rectangle.png");
+                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.RectangularePolygon(10, 10, 190, 140)));
+                image.Save($"{path}/Rectangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -175,14 +172,14 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledTriangle()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(100, 100))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 3, 30))
-                     .Save($"{path}/Triangle.png");
+                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 3, 30)));
+                image.Save($"{path}/Triangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -196,46 +193,46 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledSeptagon()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 7, 30, -(float)Math.PI))
-                     .Save($"{path}/Septagon.png");
+                    .Fill(Rgba32.HotPink, new RegularPolygon(50, 50, 7, 30, -(float)Math.PI)));
+                image.Save($"{path}/Septagon.png");
             }
         }
 
         [Fact]
         public void ImageShouldBeOverlayedByFilledEllipse()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
                     .Fill(Rgba32.HotPink, new EllipsePolygon(50, 50, 30, 50)
-                    .Rotate((float)(Math.PI / 3)))
-                    .Save($"{path}/ellipse.png");
+                    .Rotate((float)(Math.PI / 3))));
+                image.Save($"{path}/ellipse.png");
             }
         }
 
         [Fact]
         public void ImageShouldBeOverlayedBySquareWithCornerClipped()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledPolygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             Configuration config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
             using (Image<Rgba32> image = new Image<Rgba32>(config, 200, 200))
             {
-                image
+                image.Mutate(x => x
                     .Fill(Rgba32.Blue)
                     .FillPolygon(Rgba32.HotPink, new SixLabors.Primitives.PointF[]
                     {
@@ -245,8 +242,8 @@ namespace ImageSharp.Tests.Drawing
                             new Vector2( 120, 64 ),
                             new Vector2( 120, 120 ),
                             new Vector2( 8, 120 )
-                    })
-                     .Save($"{path}/clipped-corner.png");
+                    }));
+                image.Save($"{path}/clipped-corner.png");
             }
         }
     }

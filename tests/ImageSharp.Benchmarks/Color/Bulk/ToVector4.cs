@@ -1,12 +1,12 @@
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
     using System.Numerics;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class ToVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>

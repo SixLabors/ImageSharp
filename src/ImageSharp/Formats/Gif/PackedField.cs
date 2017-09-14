@@ -1,12 +1,10 @@
-﻿// <copyright file="PackedField.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+
+namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-
     /// <summary>
     /// Represents a byte of data in a GIF data stream which contains a number
     /// of data items.

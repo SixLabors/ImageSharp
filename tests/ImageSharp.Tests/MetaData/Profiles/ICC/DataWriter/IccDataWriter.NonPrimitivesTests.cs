@@ -1,14 +1,13 @@
-﻿// <copyright file="IccDataWriter.NonPrimitivesTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Icc
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Icc
 {
-    using System;
-    using System.Numerics;
-    using Xunit;
-
     public class IccDataWriterNonPrimitivesTests
     {
         [Theory]

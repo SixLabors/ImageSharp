@@ -1,15 +1,13 @@
-﻿// <copyright file="WithFileCollectionAttribute.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-
     /// <summary>
     /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
     /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
@@ -38,18 +36,18 @@ namespace ImageSharp.Tests
         /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image for each file being enumerated by the (static) test class field/property defined by enumeratorMemberName
         /// <see cref="TestImageProvider{TPixel}"/> instances will be passed for each the pixel format defined by the pixelTypes parameter
         /// </summary>
-        /// <param name="enumeratorMemberName">The name of the static test class field/property enumerating the files</param>
+        /// <param name="fileEnumeratorMemberName">The name of the static test class field/property enumerating the files</param>
         /// <param name="memberName">The member name for enumerating method parameters</param>
         /// <param name="pixelTypes">The requested pixel types</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithFileCollectionAttribute(
-            string enumeratorMemberName,
+            string fileEnumeratorMemberName,
             string memberName,
             PixelTypes pixelTypes,
             params object[] additionalParameters)
             : base(memberName, pixelTypes, additionalParameters)
         {
-            this.fileEnumeratorMemberName = enumeratorMemberName;
+            this.fileEnumeratorMemberName = fileEnumeratorMemberName;
         }
 
         /// <summary>
@@ -60,8 +58,8 @@ namespace ImageSharp.Tests
         /// <returns>The <see cref="IEnumerable{T}"/></returns>
         protected override IEnumerable<object[]> GetAllFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
         {
-            Func<object> accessor = this.GetPropertyAccessor(testMethod.DeclaringType);
-            accessor = accessor ?? this.GetFieldAccessor(testMethod.DeclaringType);
+            Func<object> accessor = this.GetPropertyAccessor(testMethod.DeclaringType, this.fileEnumeratorMemberName);
+            accessor = accessor ?? this.GetFieldAccessor(testMethod.DeclaringType, this.fileEnumeratorMemberName);
 
             var files = (IEnumerable<string>)accessor();
             return files.Select(f => new object[] { f });
@@ -69,52 +67,5 @@ namespace ImageSharp.Tests
 
         /// <inheritdoc/>
         protected override string GetFactoryMethodName(MethodInfo testMethod) => "File";
-
-        /// <summary>
-        /// Gets the field accessor for the given type.
-        /// </summary>
-        private Func<object> GetFieldAccessor(Type type)
-        {
-            FieldInfo fieldInfo = null;
-            for (Type reflectionType = type;
-                 reflectionType != null;
-                 reflectionType = reflectionType.GetTypeInfo().BaseType)
-            {
-                fieldInfo = reflectionType.GetRuntimeField(this.fileEnumeratorMemberName);
-                if (fieldInfo != null)
-                {
-                    break;
-                }
-            }
-
-            if (fieldInfo == null || !fieldInfo.IsStatic)
-            {
-                return null;
-            }
-
-            return () => fieldInfo.GetValue(null);
-        }
-
-        /// <summary>
-        /// Gets the property accessor for the given type.
-        /// </summary>
-        private Func<object> GetPropertyAccessor(Type type)
-        {
-            PropertyInfo propInfo = null;
-            for (Type reflectionType = type;
-                 reflectionType != null;
-                 reflectionType = reflectionType.GetTypeInfo().BaseType)
-            {
-                propInfo = reflectionType.GetRuntimeProperty(this.fileEnumeratorMemberName);
-                if (propInfo != null) break;
-            }
-
-            if (propInfo?.GetMethod == null || !propInfo.GetMethod.IsStatic)
-            {
-                return null;
-            }
-
-            return () => propInfo.GetValue(null, null);
-        }
     }
 }

@@ -1,15 +1,12 @@
-﻿// <copyright file="ColorSpaceConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion
+using System;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
-    using System;
-
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
-
     /// <content>
     /// Performs chromatic adaptation on the various color spaces.
     /// </content>

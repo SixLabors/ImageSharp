@@ -1,21 +1,21 @@
-﻿// <copyright file="OctreeQuantizer{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Quantizers
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers.Base;
+
+namespace SixLabors.ImageSharp.Quantizers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class OctreeQuantizer<TPixel> : Quantizer<TPixel>
+    public sealed class OctreeQuantizer<TPixel> : QuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -56,7 +56,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
+        public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             this.colors = (byte)maxColors.Clamp(1, 255);
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
@@ -66,7 +66,7 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -78,7 +78,7 @@ namespace ImageSharp.Quantizers
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y);
+                Span<TPixel> row = source.GetPixelRowSpan(y);
 
                 // And loop through each column
                 for (int x = 0; x < width; x++)
@@ -105,7 +105,7 @@ namespace ImageSharp.Quantizers
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height, false);
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height, false);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;

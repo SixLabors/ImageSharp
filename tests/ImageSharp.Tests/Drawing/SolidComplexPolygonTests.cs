@@ -1,26 +1,22 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Drawing;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System.IO;
-    using Xunit;
-    using Drawing;
-    using ImageSharp.Drawing;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
-    using SixLabors.Shapes;
-
     public class SolidComplexPolygonTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "ComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "ComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -34,10 +30,10 @@ namespace ImageSharp.Tests.Drawing
             // var clipped = new Rectangle(10, 10, 100, 100).Clip(new Rectangle(20, 0, 20, 20));
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, clipped)
-                    .Save($"{path}/Simple.png");
+                    .Fill(Rgba32.HotPink, clipped));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -53,7 +49,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOverlap()
         {
-            string path = this.CreateOutputDirectory("Drawing", "ComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "ComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -66,10 +62,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, simplePath.Clip(hole1))
-                    .Save($"{path}/SimpleOverlapping.png");
+                    .Fill(Rgba32.HotPink, simplePath.Clip(hole1)));
+                image.Save($"{path}/SimpleOverlapping.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -84,7 +80,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "ComplexPolygon");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "ComplexPolygon");
             Polygon simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -98,10 +94,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                image
+                image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(color, simplePath.Clip(hole1))
-                    .Save($"{path}/Opacity.png");
+                    .Fill(color, simplePath.Clip(hole1)));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

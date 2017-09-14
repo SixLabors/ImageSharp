@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Sandbox46
 
         private static void RunToVector4ProfilingTest()
         {
-            PixelOperationsTests.Color32 tests = new PixelOperationsTests.Color32(new ConsoleOutput());
+            PixelOperationsTests.Rgba32 tests = new PixelOperationsTests.Rgba32(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Sandbox46
             foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];
-                benchmarks.DecodeJpeg(fileName);
+                benchmarks.DecodeJpeg_Original(fileName);
             }
         }
     }

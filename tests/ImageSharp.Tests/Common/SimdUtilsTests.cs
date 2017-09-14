@@ -182,11 +182,50 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, actual);
         }
 
+        [Fact]
+        private void BulkConvertNormalizedFloatToByte_Step()
+        {
+            float[] source = {0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f};
+            byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
+
+            source = source.Select(f => f / 255f).ToArray();
+
+            byte[] dest = new byte[8];
+
+            this.MagicConvert(source, dest);
+
+            Assert.Equal(expected, dest);
+        }
+
         private static byte MagicConvert(float x)
         {
             float f = 32768.0f + x;
             uint i = Unsafe.As<float, uint>(ref f);
             return (byte)i;
+        }
+
+        private void MagicConvert(Span<float> source, Span<byte> dest)
+        {
+            Vector<float> magick = new Vector<float>(32768.0f);
+            Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+
+            Vector<float> x = source.NonPortableCast<float, Vector<float>>()[0];
+            
+            x = (x * scale) + magick;
+
+            SimdUtils.Octet.OfUInt32 ii = default(SimdUtils.Octet.OfUInt32);
+
+            ref Vector<float> iiRef = ref Unsafe.As<SimdUtils.Octet.OfUInt32, Vector<float>>(ref ii);
+
+            iiRef = x;
+
+            //SimdUtils.Octet.OfUInt32 ii = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x);
+            
+            ref SimdUtils.Octet.OfByte d = ref dest.NonPortableCast<byte, SimdUtils.Octet.OfByte>()[0];
+            d.LoadFrom(ref ii);
+
+            this.Output.WriteLine(ii.ToString());
+            this.Output.WriteLine(d.ToString());
         }
 
         private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)

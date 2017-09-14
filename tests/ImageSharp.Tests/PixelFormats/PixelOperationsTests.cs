@@ -12,10 +12,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public partial class PixelOperationsTests
     {
-
-        public class Color32 : PixelOperationsTests<Rgba32>
+        public class Rgba32 : PixelOperationsTests<ImageSharp.Rgba32>
         {
-            public Color32(ITestOutputHelper output)
+            public Rgba32(ITestOutputHelper output)
                 : base(output)
             {
             }
@@ -26,19 +25,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [Fact]
             public void IsSpecialImplementation()
             {
-                Assert.IsType<Rgba32.PixelOperations>(PixelOperations<Rgba32>.Instance);
+                Assert.IsType<ImageSharp.Rgba32.PixelOperations>(PixelOperations<ImageSharp.Rgba32>.Instance);
             }
 
             [Fact]
             public void ToVector4SimdAligned()
             {
-                Rgba32[] source = CreatePixelTestData(64);
+                ImageSharp.Rgba32[] source = CreatePixelTestData(64);
                 Vector4[] expected = CreateExpectedVector4Data(source);
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => Rgba32.PixelOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => ImageSharp.Rgba32.PixelOperations.ToVector4SimdAligned(s, d, 64)
                 );
             }
 
@@ -51,23 +50,23 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (Buffer<Rgba32> source = new Buffer<Rgba32>(count))
+                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
                 using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                PixelOperations<Rgba32>.Instance.ToVector4(source, dest, count);
+                                PixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source, dest, count);
                             });
                 }
             }
         }
 
-        public class Argb : PixelOperationsTests<Argb32>
+        public class Argb32 : PixelOperationsTests<ImageSharp.PixelFormats.Argb32>
         {
             // For 4.6 test runner MemberData does not work without redeclaring the public field in the derived test class:
-            public Argb(ITestOutputHelper output)
+            public Argb32(ITestOutputHelper output)
                 : base(output)
             {
             }

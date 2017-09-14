@@ -37,27 +37,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
         
         [Theory]
-        [InlineData(-1, 1, 0, 0)]
-        [InlineData(1, -1, 0, 0)]
-        [InlineData(0, 0, 1, 0)]
-        [InlineData(0, 0, 0, 42)]
-        public void Construct_WhenRectangleIsOutsideOfBufferBoundaries_Throws(int dx, int dy, int dWidth, int dHeight)
-        {
-            using (var buffer = new Buffer2D<int>(10, 20))
-            {
-                Rectangle r = buffer.FullRectangle();
-
-                r = new Rectangle(r.X+dx, r.Y+dy, r.Width + dWidth, r.Height + dHeight );
-
-                Assert.ThrowsAny<ArgumentException>(
-                    () =>
-                        {
-                            var area = new BufferArea<int>(buffer, r);
-                        });
-            }
-        }
-
-        [Theory]
         [InlineData(2, 3, 2, 2)]
         [InlineData(5, 4, 3, 2)]
         public void Indexer(int rx, int ry, int x, int y)

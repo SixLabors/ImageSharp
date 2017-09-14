@@ -11,7 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
-    public partial class PixelOperationsTests
+    public class PixelBlenderTests
     {
 
 

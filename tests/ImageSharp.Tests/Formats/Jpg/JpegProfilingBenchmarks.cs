@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System;
@@ -8,7 +9,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using System.Linq;
     using System.Numerics;
 
+    using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -30,9 +34,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        //[Theory] // Benchmark, enable manually
-        //[MemberData(nameof(DecodeJpegData))]
-        public void DecodeJpeg(string fileName)
+        [Theory] // Benchmark, enable manually
+        [MemberData(nameof(DecodeJpegData))]
+        public void DecodeJpeg_Original(string fileName)
+        {
+            this.DecodeJpegBenchmarkImpl(fileName, new OrigJpegDecoder());
+        }
+
+        [Theory] // Benchmark, enable manually
+        [MemberData(nameof(DecodeJpegData))]
+        public void DecodeJpeg_PdfJs(string fileName)
+        {
+            this.DecodeJpegBenchmarkImpl(fileName, new PdfJsJpegDecoder());
+        }
+
+        private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
         {
             const int ExecutionCount = 30;
 
@@ -48,11 +64,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ExecutionCount,
                 () =>
                     {
-                         Image<Rgba32> img = Image.Load<Rgba32>(bytes);
+                        Image<Rgba32> img = Image.Load<Rgba32>(bytes, decoder);
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
-
         }
 
         // Benchmark, enable manually!

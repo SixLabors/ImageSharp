@@ -5,7 +5,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Common
 {
+    using System.Linq;
+    using System.Runtime.CompilerServices;
+
     using Xunit.Abstractions;
+    using Xunit.Sdk;
 
     public class SimdUtilsTests
     {
@@ -64,14 +68,13 @@ namespace SixLabors.ImageSharp.Tests.Common
             return new Vector<float>(data);
         }
 
-        private static Vector<float> CreateRandomTestVector(int seed, float scale)
+        private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
             float[] data = new float[Vector<float>.Count];
             Random rnd = new Random();
             for (int i = 0; i < Vector<float>.Count; i++)
             {
-                float v = (float)rnd.NextDouble() - 0.5f;
-                v *= 2 * scale;
+                float v = (float)rnd.NextDouble() * (max-min) + min;
                 data[i] = v;
             }
             return new Vector<float>(data);
@@ -97,13 +100,93 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(42, 1000f)]
         public void FastRound_RandomValues(int seed, float scale)
         {
-            Vector<float> v = CreateRandomTestVector(seed, scale);
+            Vector<float> v = CreateRandomTestVector(seed, -scale*0.5f, scale*0.5f);
             Vector<float> r = v.FastRound();
 
             this.Output.WriteLine(v.ToString());
             this.Output.WriteLine(r.ToString());
 
             AssertEvenRoundIsCorrect(r, v);
+        }
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(1, 8)]
+        [InlineData(2, 16)]
+        [InlineData(3, 128)]
+        public void BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
+        {
+            float[] orig =  new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
+            float[] normalized = orig.Select(f => f / 255f).ToArray();
+
+            byte[] dest = new byte[count];
+
+            SimdUtils.BulkConvertNormalizedFloatToByte(normalized, dest);
+
+            byte[] expected = orig.Select(f => (byte)(f)).ToArray();
+
+            Assert.Equal(expected, dest);
+        }
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(1, 8)]
+        [InlineData(2, 16)]
+        [InlineData(3, 128)]
+        public void BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
+        {
+            float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
+            
+            byte[] dest = new byte[count];
+            
+            SimdUtils.BulkConvertNormalizedFloatToByte(source, dest);
+
+            byte[] expected = source.Select(f => (byte)Math.Round(f*255f)).ToArray();
+
+            Assert.Equal(expected, dest);
+        }
+
+        private static float Clamp255(float x) => MathF.Min(255f, MathF.Max(0f, x));
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(1, 8)]
+        [InlineData(2, 16)]
+        [InlineData(3, 128)]
+        public void BulkConvertNormalizedFloatToByteClampOverflows(int seed, int count)
+        {
+            float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, -50, 444);
+            float[] normalized = orig.Select(f => f / 255f).ToArray();
+
+            byte[] dest = new byte[count];
+
+            SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(normalized, dest);
+
+            byte[] expected = orig.Select(f => (byte)Clamp255(f)).ToArray();
+
+            Assert.Equal(expected, dest);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(7)]
+        [InlineData(42)]
+        [InlineData(255)]
+        [InlineData(256)]
+        [InlineData(257)]
+        private void MagicConvertToByte(float value)
+        {
+            byte actual = MagicConvert(value / 256f);
+            byte expected = (byte)value;
+
+            Assert.Equal(expected, actual);
+        }
+
+        private static byte MagicConvert(float x)
+        {
+            float f = 32768.0f + x;
+            uint i = Unsafe.As<float, uint>(ref f);
+            return (byte)i;
         }
 
         private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)

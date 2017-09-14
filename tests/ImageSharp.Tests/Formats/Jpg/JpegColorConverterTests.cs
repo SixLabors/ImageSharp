@@ -228,6 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int componentCount,
             int inputBufferLength,
             int seed,
+            float minVal = 0f,
             float maxVal = 255f)
         {
             var rnd = new Random(seed);
@@ -238,7 +239,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 for (int j = 0; j < inputBufferLength; j++)
                 {
-                    values[j] = (float)rnd.NextDouble() * maxVal;
+                    values[j] = (float)rnd.NextDouble() * (maxVal-minVal)+minVal;
                 }
 
                 // no need to dispose when buffer is not array owner

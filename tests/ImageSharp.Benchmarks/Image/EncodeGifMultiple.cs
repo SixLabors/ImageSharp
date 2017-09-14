@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Benchmarks.Image
+﻿namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System.Collections.Generic;
     using System.Drawing.Imaging;
@@ -6,7 +6,8 @@
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Jobs;
 
-    using ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Gif;
 
     [Config(typeof(SingleRunConfig))]
     public class EncodeGifMultiple : MultiImageBenchmarkBase.WithImagesPreloaded

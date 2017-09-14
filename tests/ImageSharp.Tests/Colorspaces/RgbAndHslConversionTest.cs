@@ -1,19 +1,20 @@
-﻿namespace ImageSharp.Tests.Colorspaces
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System.Collections.Generic;
-
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion;
-
-    using Xunit;
-
     /// <summary>
     /// Tests <see cref="Rgb"/>-<see cref="Hsl"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// See <a href="http://www.colorhexa.com"/>
-    /// See <a href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
+    /// <see href="http://www.colorhexa.com"/>
+    /// <see href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
     /// </remarks>
     public class RgbAndHslConversionTest
     {

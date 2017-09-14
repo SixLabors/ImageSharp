@@ -1,15 +1,13 @@
-﻿// <copyright file="CatmullRomResampler.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// The Catmull-Rom filter is a well known standard Cubic Filter often used as a interpolation function.
     /// This filter produces a reasonably sharp edge, but without a the pronounced gradient change on large
     /// scale image enlargements that a 'Lagrange' filter can produce.
-    /// See <a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
+    /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
     /// </summary>
     public class CatmullRomResampler : IResampler
     {

@@ -1,13 +1,12 @@
-﻿// <copyright file="IccDataReader.Curves.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System.Globalization;
+using System.Numerics;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Globalization;
-    using System.Numerics;
-
     internal static class IccTestDataTagDataEntry
     {
         #region TagDataEntry Header
@@ -93,7 +92,7 @@ namespace ImageSharp.Tests
         );
 
         /// <summary>
-        /// See <a href="InvalidIccProfileException"/>: channel count must be 3 for any enum other than <see cref="ColorantEncoding.Unknown"/>
+        /// <see cref="InvalidIccProfileException"/>: channel count must be 3 for any enum other than <see cref="ColorantEncoding.Unknown"/>
         /// </summary>
         public static readonly byte[] Chromaticity_ArrInvalid1 = ArrayHelper.Concat
         (
@@ -102,7 +101,7 @@ namespace ImageSharp.Tests
         );
 
         /// <summary>
-        /// See <a href="InvalidIccProfileException"/>: invalid enum value
+        /// <see cref="InvalidIccProfileException"/>: invalid enum value
         /// </summary>
         public static readonly byte[] Chromaticity_ArrInvalid2 = ArrayHelper.Concat
         (

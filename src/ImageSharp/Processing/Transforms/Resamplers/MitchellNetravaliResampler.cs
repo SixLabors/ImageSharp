@@ -1,13 +1,11 @@
-﻿// <copyright file="MitchellNetravaliResampler.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the mitchell algorithm as described on
-    /// See <a href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">this link</a> at Wikipedia for more information.
+    /// <see href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</see>
     /// </summary>
     public class MitchellNetravaliResampler : IResampler
     {

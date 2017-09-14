@@ -1,12 +1,11 @@
-﻿// <copyright file="JpegFormat.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the jpeg format.
     /// </summary>
@@ -19,9 +18,9 @@ namespace ImageSharp.Formats
         public string DefaultMimeType => "image/jpeg";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => JpegConstants.MimeTypes;
+        public IEnumerable<string> MimeTypes => OrigJpegConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
+        public IEnumerable<string> FileExtensions => OrigJpegConstants.FileExtensions;
     }
 }

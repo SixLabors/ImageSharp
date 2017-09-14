@@ -1,13 +1,12 @@
-﻿// <copyright file="FileTestBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System.Linq;
+// ReSharper disable InconsistentNaming
 
 // ReSharper disable MemberHidesStaticFromOuterClass
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Linq;
-
     /// <summary>
     /// Class that contains all the relative test image paths in the TestImages/Formats directory.
     /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/> or <see cref="FileTestBase"/>.
@@ -26,7 +25,12 @@ namespace ImageSharp.Tests
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
+            public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
+            public const string Bike = "Png/Bike.png";
+            public const string BikeGrayscale = "Png/BikeGrayscale.png";
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
+            public const string SnakeGame = "Png/SnakeGame.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -43,6 +47,9 @@ namespace ImageSharp.Tests
 
             public const string VersioningImage1 = "Png/versioning-1_1.png";
             public const string VersioningImage2 = "Png/versioning-1_2.png";
+
+            public const string Banner7Adam7InterlaceMode = "Png/banner7-adam.png";
+            public const string Banner8Index = "Png/banner8-index.png";
 
             public static class Bad
             {
@@ -81,7 +88,7 @@ namespace ImageSharp.Tests
             {
                 public static class Bad
                 {
-                    public const string MissingEOF = "Jpg/baseline/badeof.jpg";
+                    public const string BadEOF = "Jpg/baseline/badeof.jpg";
                     public const string ExifUndefType = "Jpg/baseline/ExifUndefType.jpg";
                 }
 
@@ -96,16 +103,24 @@ namespace ImageSharp.Tests
                 public const string Snake = "Jpg/baseline/Snake.jpg";
                 public const string Lake = "Jpg/baseline/Lake.jpg";
                 public const string Jpeg400 = "Jpg/baseline/jpeg400jfif.jpg";
-                public const string Jpeg420 = "Jpg/baseline/jpeg420exif.jpg";
+                public const string Jpeg420Exif = "Jpg/baseline/jpeg420exif.jpg";
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
-                public const string Testimgorig = "Jpg/baseline/testorig.jpg";
+                public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
+                public const string Testorig420 = "Jpg/baseline/testorig.jpg";
 
                 public static readonly string[] All =
                     {
                         Cmyk, Ycck, Exif, Floorplan,
                         Calliphora, Turtle, GammaDalaiLamaGray,
-                        Hiyamugi, Jpeg400, Jpeg420, Jpeg444,
+                        Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
                     };
+            }
+
+            public class Issues
+            {
+                public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
+                public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";
+                public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

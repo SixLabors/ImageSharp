@@ -1,17 +1,15 @@
-﻿// <copyright file="FlipProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods that allow the flipping of an image around its center point.
     /// </summary>
@@ -34,16 +32,16 @@ namespace ImageSharp.Processing.Processors
         public FlipType FlipType { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             switch (this.FlipType)
             {
                 // No default needed as we have already set the pixels.
                 case FlipType.Vertical:
-                    this.FlipX(source);
+                    this.FlipX(source, configuration);
                     break;
                 case FlipType.Horizontal:
-                    this.FlipY(source);
+                    this.FlipY(source, configuration);
                     break;
             }
         }
@@ -53,7 +51,8 @@ namespace ImageSharp.Processing.Processors
         /// at half the height of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
-        private void FlipX(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void FlipX(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -64,12 +63,12 @@ namespace ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     halfHeight,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                         {
                             int newY = height - y - 1;
-                            Span<TPixel> sourceRow = source.GetRowSpan(y);
-                            Span<TPixel> altSourceRow = source.GetRowSpan(newY);
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                            Span<TPixel> altSourceRow = source.GetPixelRowSpan(newY);
                             Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
                             Span<TPixel> altTargetRow = targetPixels.GetRowSpan(newY);
 
@@ -86,7 +85,8 @@ namespace ImageSharp.Processing.Processors
         /// at half of the width of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
-        private void FlipY(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -97,10 +97,10 @@ namespace ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                         {
-                            Span<TPixel> sourceRow = source.GetRowSpan(y);
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                             Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                             for (int x = 0; x < halfWidth; x++)

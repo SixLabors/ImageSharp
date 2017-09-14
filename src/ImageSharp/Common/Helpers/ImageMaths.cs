@@ -1,18 +1,15 @@
-﻿// <copyright file="ImageMaths.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Linq;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides common mathematical methods.
     /// </summary>
@@ -69,7 +66,7 @@ namespace ImageSharp
 
         /// <summary>
         /// Returns the result of a B-C filter against the given value.
-        /// See <a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
+        /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
         /// </summary>
         /// <param name="x">The value to process.</param>
         /// <param name="b">The B-Spline curve variable.</param>
@@ -131,10 +128,10 @@ namespace ImageSharp
         /// </returns>
         public static Rectangle GetBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
         {
-            Vector2 leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
-            Vector2 rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
-            Vector2 leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
-            Vector2 rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
+            var leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
+            var rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
+            var leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
+            var rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
 
             Vector2[] allCorners = { leftTop, rightTop, leftBottom, rightBottom };
             float extentX = allCorners.Select(v => v.X).Max() - allCorners.Select(v => v.X).Min();
@@ -153,7 +150,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageBase<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageFrame<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = bitmap.Width;
@@ -161,7 +158,7 @@ namespace ImageSharp
             var topLeft = default(Point);
             var bottomRight = default(Point);
 
-            Func<ImageBase<TPixel>, int, int, float, bool> delegateFunc;
+            Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
@@ -183,7 +180,7 @@ namespace ImageSharp
                     break;
             }
 
-            int GetMinY(ImageBase<TPixel> pixels)
+            int GetMinY(ImageFrame<TPixel> pixels)
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -199,7 +196,7 @@ namespace ImageSharp
                 return 0;
             }
 
-            int GetMaxY(ImageBase<TPixel> pixels)
+            int GetMaxY(ImageFrame<TPixel> pixels)
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -215,7 +212,7 @@ namespace ImageSharp
                 return height;
             }
 
-            int GetMinX(ImageBase<TPixel> pixels)
+            int GetMinX(ImageFrame<TPixel> pixels)
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -231,7 +228,7 @@ namespace ImageSharp
                 return 0;
             }
 
-            int GetMaxX(ImageBase<TPixel> pixels)
+            int GetMaxX(ImageFrame<TPixel> pixels)
             {
                 for (int x = width - 1; x > -1; x--)
                 {

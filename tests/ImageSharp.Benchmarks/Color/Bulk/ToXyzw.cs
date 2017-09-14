@@ -4,12 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class ToXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>

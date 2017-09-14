@@ -1,15 +1,17 @@
-﻿
-namespace ImageSharp.Tests.Drawing.Text
-{
-    using ImageSharp.Drawing;
-    using SixLabors.Fonts;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using Xunit;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.Fonts;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing.Text
+{
     public class TextGraphicsOptionsTests
     {
         [Fact]

@@ -1,15 +1,12 @@
-﻿// <copyright file="ColorSpaceConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion
+using System.Numerics;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
-    using System.Numerics;
-
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion.Implementation.Lms;
-
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
     /// </summary>
@@ -64,7 +61,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         public CieXyz TargetHunterLabWhitePoint { get; set; }
 
         /// <summary>
-        /// Gets or sets the target working space used *when creating* None colors. (None colors on the input already contain the working space information)
+        /// Gets or sets the target working space used *when creating* RGB colors. (RGB colors on the input already contain the working space information)
         /// Defaults to: <see cref="Rgb.DefaultWorkingSpace"/>.
         /// </summary>
         public IRgbWorkingSpace TargetRgbWorkingSpace { get; set; }

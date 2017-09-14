@@ -1,7 +1,11 @@
-﻿using SixLabors.Primitives;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.Primitives;
 using Xunit;
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     public class ImageRotationTests
     {
@@ -42,12 +46,12 @@ namespace ImageSharp.Tests
 
         private static (Size original, Size rotated) Rotate(int angle)
         {
-            TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
+            var file = TestFile.Create(TestImages.Bmp.Car);
+            using (var image = Image.Load<Rgba32>(file.FullPath))
             {
-                Size original = image.Bounds.Size;
-                image.Rotate(angle);
-                return (original, image.Bounds.Size);
+                Size original = image.Size();
+                image.Mutate(x => x.Rotate(angle));
+                return (original, image.Size());
             }
         }
     }

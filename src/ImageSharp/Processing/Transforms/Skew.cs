@@ -1,16 +1,12 @@
-﻿// <copyright file="Skew.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using Processing.Processors;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -24,7 +20,7 @@ namespace ImageSharp
         /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static Image<TPixel> Skew<TPixel>(this Image<TPixel> source, float degreesX, float degreesY)
+        public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY)
             where TPixel : struct, IPixel<TPixel>
         {
             return Skew(source, degreesX, degreesY, true);
@@ -39,13 +35,8 @@ namespace ImageSharp
         /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
         /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static Image<TPixel> Skew<TPixel>(this Image<TPixel> source, float degreesX, float degreesY, bool expand)
+        public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY, bool expand)
             where TPixel : struct, IPixel<TPixel>
-        {
-            SkewProcessor<TPixel> processor = new SkewProcessor<TPixel> { AngleX = degreesX, AngleY = degreesY, Expand = expand };
-
-            source.ApplyProcessor(processor, source.Bounds);
-            return source;
-        }
+        => source.ApplyProcessor(new SkewProcessor<TPixel> { AngleX = degreesX, AngleY = degreesY, Expand = expand });
     }
 }

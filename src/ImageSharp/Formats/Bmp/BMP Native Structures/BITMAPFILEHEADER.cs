@@ -16,7 +16,7 @@ namespace ImageSharp.Formats
     /// <c>OS22XBITMAPHEADER</c>, <c>BITMAPCOREHEADER</c>, <c>BITMAPV5HEADER</c>, etc. structures.
     /// </para>
     /// </remarks>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183374(v=vs.85).aspx">this MSN link</a> for more information.
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183374(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 14)]
     internal struct BITMAPFILEHEADER
     {

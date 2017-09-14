@@ -1,13 +1,11 @@
-﻿// <copyright file="UpFilter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// The Up filter is just like the Sub filter except that the pixel immediately above the current pixel,
     /// rather than just to its left, is used as the predictor.

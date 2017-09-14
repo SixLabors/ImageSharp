@@ -1,13 +1,11 @@
-﻿// <copyright file="IccDataType.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Enumerates the basic data types as defined in ICC.1:2010 version 4.3.0.0
-    /// See <a href="http://www.color.org/specification/ICC1v43_2010-12.pdf"/> Section 4.2 to 4.15
+    /// <see href="http://www.color.org/specification/ICC1v43_2010-12.pdf"/> Section 4.2 to 4.15
     /// </summary>
     internal enum IccDataType
     {

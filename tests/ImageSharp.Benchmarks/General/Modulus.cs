@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Benchmarks.General
+﻿namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using BenchmarkDotNet.Attributes;
 

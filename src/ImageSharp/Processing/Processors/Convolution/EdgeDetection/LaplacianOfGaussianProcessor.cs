@@ -1,19 +1,16 @@
-﻿// <copyright file="LaplacianOfGaussianProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// The Laplacian of Gaussian operator filter.
-    /// See <a href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>
+    /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [SuppressMessage("ReSharper", "StaticMemberInGenericType", Justification = "We want to use only one instance of each array field for each generic type.")]

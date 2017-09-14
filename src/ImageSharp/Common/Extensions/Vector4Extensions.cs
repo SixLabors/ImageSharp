@@ -1,14 +1,12 @@
-﻿// <copyright file="Vector4Extensions.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Extension methods for the <see cref="Vector4"/> struct.
     /// </summary>
@@ -16,8 +14,8 @@ namespace ImageSharp
     {
         /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
-        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="linear">The <see cref="Vector4"/> whose signal to compress.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
@@ -30,8 +28,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Expands an sRGB color signal to its linear equivalent.
-        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
@@ -44,8 +42,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Gets the compressed sRGB value from an linear signal.
-        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="signal">The signal value to compress.</param>
         /// <returns>
@@ -64,8 +62,8 @@ namespace ImageSharp
 
         /// <summary>
         /// Gets the expanded linear value from an sRGB signal.
-        /// See <a href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
-        /// See <a href="http://entropymine.com/imageworsener/srgbformula/"/>
+        /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
+        /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>
         /// </summary>
         /// <param name="signal">The signal value to expand.</param>
         /// <returns>

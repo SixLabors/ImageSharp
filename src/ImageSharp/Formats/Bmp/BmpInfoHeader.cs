@@ -1,14 +1,12 @@
-﻿// <copyright file="BmpInfoHeader.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// This block of bytes tells the application detailed information
     /// about the image, which will be used to display the image on
     /// the screen.
-    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format"/>
+    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format">this Wikipedia link</a> for more information.
     /// </summary>
     internal sealed class BmpInfoHeader
     {

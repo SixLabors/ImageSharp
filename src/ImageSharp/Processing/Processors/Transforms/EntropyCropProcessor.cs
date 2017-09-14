@@ -1,15 +1,12 @@
-// <copyright file="EntropyCropProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods to allow the cropping of an image to preserve areas of highest
     /// entropy.
@@ -28,24 +25,24 @@ namespace ImageSharp.Processing.Processors
         public EntropyCropProcessor(float threshold)
         {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
-            this.Value = threshold;
+            this.Threshold = threshold;
         }
 
         /// <summary>
         /// Gets the threshold value.
         /// </summary>
-        public float Value { get; }
+        public float Threshold { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            using (ImageBase<TPixel> temp = new Image<TPixel>(source))
+            using (ImageFrame<TPixel> temp = source.Clone())
             {
                 // Detect the edges.
-                new SobelProcessor<TPixel>().Apply(temp, sourceRectangle);
+                new SobelProcessor<TPixel>().Apply(temp, sourceRectangle, configuration);
 
                 // Apply threshold binarization filter.
-                new BinaryThresholdProcessor<TPixel>(this.Value).Apply(temp, sourceRectangle);
+                new BinaryThresholdProcessor<TPixel>(this.Threshold).Apply(temp, sourceRectangle, configuration);
 
                 // Search for the first white pixels
                 Rectangle rectangle = ImageMaths.GetFilteredBoundingRectangle(temp, 0);
@@ -55,7 +52,7 @@ namespace ImageSharp.Processing.Processors
                     return;
                 }
 
-                new CropProcessor<TPixel>(rectangle).Apply(source, sourceRectangle);
+                new CropProcessor<TPixel>(rectangle).Apply(source, sourceRectangle, configuration);
             }
         }
     }

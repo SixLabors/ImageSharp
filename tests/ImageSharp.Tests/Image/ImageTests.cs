@@ -1,21 +1,18 @@
-﻿// <copyright file="ImageTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
-    public class ImageTests
+    public class ImageTests : FileTestBase
     {
         [Fact]
         public void ConstructorByteArray()
@@ -37,7 +34,7 @@ namespace ImageSharp.Tests
         public void ConstructorFileSystem()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FilePath))
+            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FullPath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -67,8 +64,9 @@ namespace ImageSharp.Tests
         [Fact]
         public void Save_DetecedEncoding()
         {
-            string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.png");
-            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
+            string file = System.IO.Path.Combine(dir, "Save_DetecedEncoding.png");
+
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file);
@@ -81,9 +79,11 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void Save_UnknownExtensionsEncoding()
+        public void Save_WhenExtensionIsUnknown_Throws()
         {
-            string file = TestFile.GetPath("../../TestOutput/Save_DetecedEncoding.tmp");
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
+            string file = System.IO.Path.Combine(dir, "Save_UnknownExtensionsEncoding_Throws.tmp");
+
             NotSupportedException ex = Assert.Throws<NotSupportedException>(
                 () =>
                     {
@@ -97,8 +97,9 @@ namespace ImageSharp.Tests
         [Fact]
         public void Save_SetEncoding()
         {
-            string file = TestFile.GetPath("../../TestOutput/Save_SetEncoding.dat");
-            System.IO.DirectoryInfo dir = System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(file));
+            string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
+            string file = System.IO.Path.Combine(dir, "Save_SetEncoding.dat");
+
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file, new PngEncoder());

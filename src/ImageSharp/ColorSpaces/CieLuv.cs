@@ -1,15 +1,13 @@
-﻿// <copyright file="CieLuv.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// The CIE 1976 (L*, u*, v*) color space, commonly known by its abbreviation CIELUV, is a color space adopted by the International
     /// Commission on Illumination (CIE) in 1976, as a simple-to-compute transformation of the 1931 CIE XYZ color space, but which

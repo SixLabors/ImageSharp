@@ -5,20 +5,22 @@
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
-    <AssemblyName>ImageSharp.Sandbox46</AssemblyName>
+    <AssemblyName>SixLabors.ImageSharp.Sandbox46</AssemblyName>
     <Description>A cross-platform library for processing of image files written in C#</Description>
     <Copyright>Copyright © James Jackson-South and contributors.</Copyright>
     <Authors>James Jackson-South and contributors</Authors>
     <Company>James Jackson-South</Company>
+    <RootNamespace>SixLabors.ImageSharp.Sandbox46</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
     <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!--<PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />-->
-    <PackageReference Include="Moq" Version="4.7.99" />
+    <PackageReference Include="BitMiracle.LibJpeg.NET" Version="1.4.280" />
     <PackageReference Include="xunit" Version="2.3.0-beta4-build3742" />
+    <PackageReference Include="Moq" Version="4.7.99" />
+    <!--<PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />-->
     <!--<PackageReference Include="xunit.runner.visualstudio" Version="2.2.0" />-->
   </ItemGroup>
   <ItemGroup>

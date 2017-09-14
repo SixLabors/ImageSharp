@@ -1,39 +1,39 @@
-﻿// <copyright file="ColorEqualityTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using SixLabors.ImageSharp.ColorSpaces;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests.Colorspaces
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System;
-    using System.Numerics;
-    using Xunit;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Test implementations of IEquatable and IAlmostEquatable in our colorspaces
     /// </summary>
     public class ColorSpaceEqualityTests
     {
-        public static readonly TheoryData<IColorVector> EmptyData =
-            new TheoryData<IColorVector>
+        internal static readonly Dictionary<string, IColorVector> EmptyDataLookup =
+            new Dictionary<string, IColorVector>
                 {
-                    CieLab.Empty,
-                    CieLch.Empty,
-                    CieLchuv.Empty,
-                    CieLuv.Empty,
-                    CieXyz.Empty,
-                    CieXyy.Empty,
-                    Hsl.Empty,
-                    Hsl.Empty,
-                    HunterLab.Empty,
-                    Lms.Empty,
-                    LinearRgb.Empty,
-                    Rgb.Empty,
-                    YCbCr.Empty
+                    {nameof( CieLab), CieLab.Empty },
+                    {nameof( CieLch), CieLch.Empty },
+                    {nameof( CieLchuv), CieLchuv.Empty },
+                    {nameof( CieLuv), CieLuv.Empty },
+                    {nameof( CieXyz), CieXyz.Empty },
+                    {nameof( CieXyy), CieXyy.Empty },
+                    {nameof( Hsl), Hsl.Empty },
+                    {nameof( HunterLab), HunterLab.Empty },
+                    {nameof( Lms), Lms.Empty },
+                    {nameof( LinearRgb), LinearRgb.Empty },
+                    {nameof( Rgb), Rgb.Empty },
+                    {nameof( YCbCr), YCbCr.Empty }
                 };
+
+        public static readonly IEnumerable<object[]> EmptyData = EmptyDataLookup.Select(x => new [] { x.Key });
 
         public static readonly TheoryData<object, object, Type> EqualityData =
            new TheoryData<object, object, Type>
@@ -142,10 +142,11 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EmptyData))]
-        public void Vector_Equals_WhenTrue(IColorVector color)
+        public void Vector_Equals_WhenTrue(string color)
         {
+            IColorVector colorVector = EmptyDataLookup[color];
             // Act
-            bool equal = color.Vector.Equals(Vector3.Zero);
+            bool equal = colorVector.Vector.Equals(Vector3.Zero);
 
             // Assert
             Assert.True(equal);

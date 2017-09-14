@@ -1,14 +1,12 @@
-﻿// <copyright file="Bgra4444.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Packed pixel type containing unsigned normalized values, ranging from 0 to 1, using 4 bits each for x, y, z, and w.
     /// <para>

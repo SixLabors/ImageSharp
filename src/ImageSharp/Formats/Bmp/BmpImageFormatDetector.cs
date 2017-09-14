@@ -1,12 +1,10 @@
-﻿// <copyright file="BmpImageFormatDetector.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System;
-
     /// <summary>
     /// Detects bmp file headers
     /// </summary>
@@ -20,7 +18,7 @@ namespace ImageSharp.Formats
         {
             if (this.IsSupportedFileFormat(header))
             {
-                return ImageFormats.Bitmap;
+                return ImageFormats.Bmp;
             }
 
             return null;

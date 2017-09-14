@@ -1,17 +1,16 @@
-﻿// <copyright file="OilPaintingProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to apply an oil painting effect to an <see cref="Image{TPixel}"/>.
     /// </summary>
@@ -49,38 +48,34 @@ namespace ImageSharp.Processing.Processors
         public int BrushSize { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
+            if (this.BrushSize <= 0 || this.BrushSize > source.Height || this.BrushSize > source.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(this.BrushSize));
+            }
+
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
+            int maxY = endY - 1;
+            int maxX = endX - 1;
+
             int radius = this.BrushSize >> 1;
             int levels = this.Levels;
-
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
 
             using (var targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
             {
                 source.CopyTo(targetPixels);
 
                 Parallel.For(
-                    minY,
+                    startY,
                     maxY,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                         for (int x = startX; x < endX; x++)
@@ -100,7 +95,7 @@ namespace ImageSharp.Processing.Processors
 
                                 offsetY = offsetY.Clamp(0, maxY);
 
-                                Span<TPixel> sourceOffsetRow = source.GetRowSpan(offsetY);
+                                Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
 
                                 for (int fx = 0; fx <= radius; fx++)
                                 {

@@ -1,13 +1,11 @@
-﻿// <copyright file="IccNamedColor2TagDataEntry.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Linq;
+
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Linq;
-
     /// <summary>
     /// The namedColor2Type is a count value and array of structures
     /// that provide color coordinates for color names.

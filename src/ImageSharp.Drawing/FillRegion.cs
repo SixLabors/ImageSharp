@@ -1,15 +1,13 @@
-﻿// <copyright file="FillRegion.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using Drawing;
-    using Drawing.Brushes;
-    using Drawing.Processors;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -23,10 +21,10 @@ namespace ImageSharp
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <param name="options">The graphics options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.Apply(new FillProcessor<TPixel>(brush, options));
+            return source.ApplyProcessor(new FillProcessor<TPixel>(brush, options));
         }
 
         /// <summary>
@@ -36,7 +34,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The details how to fill the region of interest.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, GraphicsOptions.Default);
@@ -49,7 +47,7 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color));
@@ -64,10 +62,10 @@ namespace ImageSharp
         /// <param name="region">The region.</param>
         /// <param name="options">The graphics options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Region region, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, Region region, GraphicsOptions options)
           where TPixel : struct, IPixel<TPixel>
         {
-            return source.Apply(new FillRegionProcessor<TPixel>(brush, region, options));
+            return source.ApplyProcessor(new FillRegionProcessor<TPixel>(brush, region, options));
         }
 
         /// <summary>
@@ -78,7 +76,7 @@ namespace ImageSharp
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, Region region)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, Region region)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(brush, region, GraphicsOptions.Default);
@@ -93,7 +91,7 @@ namespace ImageSharp
         /// <param name="region">The region.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Region region, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Region region, GraphicsOptions options)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), region, options);
@@ -107,7 +105,7 @@ namespace ImageSharp
         /// <param name="color">The color.</param>
         /// <param name="region">The region.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Fill<TPixel>(this Image<TPixel> source, TPixel color, Region region)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Region region)
           where TPixel : struct, IPixel<TPixel>
         {
             return source.Fill(new SolidBrush<TPixel>(color), region);

@@ -101,7 +101,6 @@ namespace SixLabors.ImageSharp
                 }
 
                 int remainder = count % Vector<uint>.Count;
-
                 int alignedCount = count - remainder;
 
                 if (alignedCount > 0)
@@ -114,6 +113,35 @@ namespace SixLabors.ImageSharp
                     sourceColors = sourceColors.Slice(alignedCount);
                     destVectors = destVectors.Slice(alignedCount);
                     base.ToVector4(sourceColors, destVectors, remainder);
+                }
+            }
+
+            internal override void PackFromVector4(Span<Vector4> sourceVectors, Span<Rgba32> destColors, int count)
+            {
+                GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
+
+                if (!SimdUtils.IsAvx2)
+                {
+                    base.PackFromVector4(sourceVectors, destColors, count);
+                    return;
+                }
+
+                int remainder = count % 2;
+                int alignedCount = count - remainder;
+
+                if (alignedCount > 0)
+                {
+                    Span<float> flatSrc = sourceVectors.Slice(0, alignedCount).NonPortableCast<Vector4, float>();
+                    Span<byte> flatDest = destColors.NonPortableCast<Rgba32, byte>();
+
+                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(flatSrc, flatDest);
+                }
+
+                if (remainder > 0)
+                {
+                    // actually: remainder == 1
+                    int lastIdx = count - 1;
+                    destColors[lastIdx].PackFromVector4(sourceVectors[lastIdx]);
                 }
             }
 

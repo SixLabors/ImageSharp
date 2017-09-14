@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp
 {
-    using System.Diagnostics;
-
     /// <summary>
     /// Various extension and utility methods for <see cref="Vector4"/> and <see cref="Vector{T}"/> utilizing SIMD capabilities
     /// </summary>
@@ -19,7 +19,6 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public static readonly bool IsAvx2 = Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
-        [Conditional("DEBUG")]
         internal static void GuardAvx2(string operation)
         {
             if (!IsAvx2)
@@ -79,11 +78,16 @@ namespace SixLabors.ImageSharp
 
             ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref source.DangerousGetPinnableReference());
             ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref dest.DangerousGetPinnableReference());
+            int n = source.Length / 8;
 
             Vector<float> magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            int n = source.Length;
+            // need to copy to a temporal struct, because
+            // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
+            // does not work. TODO: This might be a CoreClr bug, need to ask/report
+            var temp = default(Octet.OfUInt32);
+            ref Vector<float> tempRef = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref temp);
 
             for (int i = 0; i < n; i++)
             {
@@ -92,13 +96,10 @@ namespace SixLabors.ImageSharp
                 // return (uint8_t)u.i;
                 Vector<float> x = Unsafe.Add(ref srcBase, i);
                 x = (x * scale) + magick;
-
-                Vector<uint> u = Vector.AsVectorUInt32(x);
-
-                Octet.OfUInt32 ii = Unsafe.As<Vector<uint>, Octet.OfUInt32>(ref u);
+                tempRef = x;
 
                 ref Octet.OfByte d = ref Unsafe.Add(ref destBase, i);
-                d.LoadFrom(ref ii);
+                d.LoadFrom(ref temp);
             }
         }
 
@@ -118,11 +119,16 @@ namespace SixLabors.ImageSharp
 
             ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref source.DangerousGetPinnableReference());
             ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref dest.DangerousGetPinnableReference());
+            int n = source.Length / 8;
 
             Vector<float> magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            int n = source.Length;
+            // need to copy to a temporal struct, because
+            // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
+            // does not work. TODO: This might be a CoreClr bug, need to ask/report
+            var temp = default(Octet.OfUInt32);
+            ref Vector<float> tempRef = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref temp);
 
             for (int i = 0; i < n; i++)
             {
@@ -134,27 +140,80 @@ namespace SixLabors.ImageSharp
                 x = Vector.Min(x, Vector<float>.One);
 
                 x = (x * scale) + magick;
-
-                Vector<uint> u = Vector.AsVectorUInt32(x);
-
-                Octet.OfUInt32 ii = Unsafe.As<Vector<uint>, Octet.OfUInt32>(ref u);
+                tempRef = x;
 
                 ref Octet.OfByte d = ref Unsafe.Add(ref destBase, i);
-                d.LoadFrom(ref ii);
+                d.LoadFrom(ref temp);
             }
         }
 
-#pragma warning disable SA1132 // Do not combine fields
-        private static class Octet
+        // TODO: Replace these with T4-d library level tuples!
+        internal static class Octet
         {
+            [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(uint))]
             public struct OfUInt32
             {
-                public uint V0, V1, V2, V3, V4, V5, V6, V7;
+                [FieldOffset(0 * sizeof(uint))]
+                public uint V0;
+
+                [FieldOffset(1 * sizeof(uint))]
+                public uint V1;
+
+                [FieldOffset(2 * sizeof(uint))]
+                public uint V2;
+
+                [FieldOffset(3 * sizeof(uint))]
+                public uint V3;
+
+                [FieldOffset(4 * sizeof(uint))]
+                public uint V4;
+
+                [FieldOffset(5 * sizeof(uint))]
+                public uint V5;
+
+                [FieldOffset(6 * sizeof(uint))]
+                public uint V6;
+
+                [FieldOffset(7 * sizeof(uint))]
+                public uint V7;
+
+                public override string ToString()
+                {
+                    return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
+                }
             }
 
+            [StructLayout(LayoutKind.Explicit, Size = 8)]
             public struct OfByte
             {
-                public byte V0, V1, V2, V3, V4, V5, V6, V7;
+                [FieldOffset(0)]
+                public byte V0;
+
+                [FieldOffset(1)]
+                public byte V1;
+
+                [FieldOffset(2)]
+                public byte V2;
+
+                [FieldOffset(3)]
+                public byte V3;
+
+                [FieldOffset(4)]
+                public byte V4;
+
+                [FieldOffset(5)]
+                public byte V5;
+
+                [FieldOffset(6)]
+                public byte V6;
+
+                [FieldOffset(7)]
+                public byte V7;
+
+                public override string ToString()
+                {
+                    return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
+                }
 
                 public void LoadFrom(ref OfUInt32 i)
                 {

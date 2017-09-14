@@ -11,7 +11,7 @@ namespace ImageSharp.ColorSpaces
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Represents an RGB color with specified <see cref="IRgbWorkingSpace"/> working space
+    /// Represents an None color with specified <see cref="IRgbWorkingSpace"/> working space
     /// </summary>
     internal struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {

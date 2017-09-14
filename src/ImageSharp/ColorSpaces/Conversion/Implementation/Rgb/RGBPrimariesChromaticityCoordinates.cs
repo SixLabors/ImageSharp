@@ -8,7 +8,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
     using System;
 
     /// <summary>
-    /// Represents the chromaticity coordinates of RGB primaries.
+    /// Represents the chromaticity coordinates of None primaries.
     /// One of the specifiers of <see cref="IRgbWorkingSpace"/>.
     /// </summary>
     internal struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>

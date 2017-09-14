@@ -234,7 +234,7 @@ namespace ImageSharp.Formats
         internal static class Adobe
         {
             /// <summary>
-            /// The color transform is unknown.(RGB or CMYK)
+            /// The color transform is unknown.(None or CMYK)
             /// </summary>
             public const int ColorTransformUnknown = 0;
 

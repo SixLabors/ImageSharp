@@ -179,7 +179,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the RGB components of this struct as <see cref="Rgb24"/>
+        /// Gets or sets the None components of this struct as <see cref="Rgb24"/>
         /// </summary>
         public Rgb24 Rgb
         {
@@ -197,7 +197,7 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets or sets the RGB components of this struct as <see cref="Bgr24"/> reverting the component order.
+        /// Gets or sets the None components of this struct as <see cref="Bgr24"/> reverting the component order.
         /// </summary>
         public Bgr24 Bgr
         {

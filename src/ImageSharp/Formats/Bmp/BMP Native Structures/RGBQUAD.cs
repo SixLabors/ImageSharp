@@ -4,8 +4,8 @@ namespace ImageSharp.Formats
 
     /// <summary>
     /// This represents one Microsoft Windows BMP v3 and IBM OS/2 BMP v2 color table/palette element.
-    /// <para>Supported since Windows 3.0 and OS/2 2.0x.</para>
-    /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
+    /// <para>Supported since Windows 3.0, Windows CE 1.0 and OS/2 2.0.</para>
+    /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(RGBQUAD)</c> returns the size of 4 bytes and is byte aligned.

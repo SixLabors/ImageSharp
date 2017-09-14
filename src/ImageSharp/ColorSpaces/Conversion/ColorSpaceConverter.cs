@@ -64,7 +64,7 @@ namespace ImageSharp.ColorSpaces.Conversion
         public CieXyz TargetHunterLabWhitePoint { get; set; }
 
         /// <summary>
-        /// Gets or sets the target working space used *when creating* RGB colors. (RGB colors on the input already contain the working space information)
+        /// Gets or sets the target working space used *when creating* None colors. (None colors on the input already contain the working space information)
         /// Defaults to: <see cref="Rgb.DefaultWorkingSpace"/>.
         /// </summary>
         public IRgbWorkingSpace TargetRgbWorkingSpace { get; set; }

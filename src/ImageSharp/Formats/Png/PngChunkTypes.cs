@@ -19,7 +19,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// The PLTE chunk contains from 1 to 256 palette entries, each a three byte
-        /// series in the RGB format.
+        /// series in the None format.
         /// </summary>
         public const string Palette = "PLTE";
 

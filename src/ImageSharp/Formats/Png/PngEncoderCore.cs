@@ -498,7 +498,7 @@ namespace ImageSharp.Formats
 
                 // PngColorType.RgbWithAlpha
                 // TODO: Maybe figure out a way to detect if there are any transparent
-                // pixels and encode RGB if none.
+                // pixels and encode None if none.
                 default:
                     return 4;
             }

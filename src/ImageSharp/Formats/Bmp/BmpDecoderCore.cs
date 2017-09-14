@@ -17,17 +17,17 @@ namespace ImageSharp.Formats
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// The mask for the red part of the color for 16 bit RGB bitmaps.
+        /// The mask for the red part of the color for 16 bit None bitmaps.
         /// </summary>
         private const int Rgb16RMask = 0x00007C00;
 
         /// <summary>
-        /// The mask for the green part of the color for 16 bit RGB bitmaps.
+        /// The mask for the green part of the color for 16 bit None bitmaps.
         /// </summary>
         private const int Rgb16GMask = 0x000003E0;
 
         /// <summary>
-        /// The mask for the blue part of the color for 16 bit RGB bitmaps.
+        /// The mask for the blue part of the color for 16 bit None bitmaps.
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
@@ -136,7 +136,7 @@ namespace ImageSharp.Formats
                 {
                     switch (this.infoHeader.Compression)
                     {
-                        case BmpCompression.RGB:
+                        case BmpCompression.None:
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
                                 this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -439,7 +439,7 @@ namespace ImageSharp.Formats
                 YPelsPerMeter = 0,
                 ClrUsed = 0,
                 ClrImportant = 0,
-                Compression = BmpCompression.RGB
+                Compression = BmpCompression.None
             };
         }
 

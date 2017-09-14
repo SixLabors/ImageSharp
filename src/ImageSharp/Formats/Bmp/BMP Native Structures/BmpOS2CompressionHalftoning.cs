@@ -7,7 +7,7 @@ namespace ImageSharp.Formats
 {
     /// <summary>
     /// This is the IBM OS/2 BMP v2 (and above) halftoning type used.
-    /// <para>Supported since OS/2 2.0x.</para>
+    /// <para>Supported since OS/2 2.0.</para>
     /// </summary>
     internal enum BmpOS2CompressionHalftoning
     {

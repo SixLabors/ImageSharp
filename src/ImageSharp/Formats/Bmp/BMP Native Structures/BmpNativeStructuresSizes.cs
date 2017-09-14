@@ -10,7 +10,7 @@
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v2 and OS/2 BMP v1 file format.
         /// <para>
-        /// Supported since OS/2 1.0x (same format as Windows 2.0x).
+        /// Supported since OS/2 1.0 (same format as Windows 2.0).
         /// </para>
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// <seealso cref="BmpNativeStructuresSizes.RGBTRIPLE"/>
@@ -20,7 +20,7 @@
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v3 and OS/2 BMP v2 file format.
         /// <para>
-        /// Supported since OS/2 2.0x (same format as Windows 3.1x).
+        /// Supported since OS/2 2.0 (same format as Windows 3.1x).
         /// </para>
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// <seealso cref="BmpNativeStructuresSizes.RGBQUAD"/>
@@ -32,7 +32,7 @@
         /// <summary>
         /// The size in bytes for the bitmap information header of Windows BMP v2 and OS/2 BMP v1 file format.
         /// <para>
-        /// Supported since OS/2 1.0x (same format as Windows 2.0x).
+        /// Supported since OS/2 1.0 (same format as Windows 2.0).
         /// </para>
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// <seealso cref="BmpNativeStructuresSizes.BITMAPCOREHEADER"/>
@@ -42,7 +42,7 @@
         /// <summary>
         /// The minimum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
         /// <para>
-        /// Supported since OS/2 2.0x.
+        /// Supported since OS/2 2.0.
         /// </para>
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// </summary>
@@ -51,7 +51,7 @@
         /// <summary>
         /// The maximum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
         /// <para>
-        /// Supported since OS/2 2.0x.
+        /// Supported since OS/2 2.0.
         /// </para>
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// </summary>
@@ -60,7 +60,7 @@
         /// <summary>
         /// The maximum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
         /// <para>
-        /// Supported since OS/2 2.0x.
+        /// Supported since OS/2 2.0.
         /// </para>
         /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
         /// </summary>
@@ -71,7 +71,7 @@
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v2 and OS/2 BMP v1 file format.
         /// <para>
-        /// Supported since Windows 2.0x (same format as OS/2 1.0x).
+        /// Supported since Windows 2.0 (same format as OS/2 1.0).
         /// </para>
         /// See <a href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">this link</a> for more information.
         /// </summary>
@@ -80,7 +80,7 @@
         /// <summary>
         /// The size in bytes of a color palette element for Windows BMP v3 and OS/2 BMP v2 file format.
         /// <para>
-        /// Supported since Windows 3.0x (same format as OS/2 2.0x).
+        /// Supported since Windows 3.0 (same format as OS/2 2.0).
         /// </para>
         /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
         /// </summary>
@@ -91,7 +91,7 @@
         /// <summary>
         /// The size in bytes for the file header of Windows BMP v2 and OS/2 BMP v1 file format.
         /// <para>
-        /// Supported since Windows 2.0x and OS/2 1.0x.
+        /// Supported since Windows 2.0 and OS/2 1.0.
         /// </para>
         /// </summary>
         /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
@@ -102,7 +102,7 @@
         /// <summary>
         /// The size in bytes for the bitmap header of Windows BMP v2 and OS/2 BMP v1 file format.
         /// <para>
-        /// Supported since Window 2.0x (same format as OS/2 1.0x).
+        /// Supported since Window 2.0x (same format as OS/2 1.0).
         /// </para>
         /// </summary>
         /// See <a href="https://msdn.microsoft.com/en-us/library/dd183372(v=vs.85).aspx">this link</a> for more information.
@@ -118,7 +118,7 @@
         BITMAPINFOHEADER = 40,
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v3 file format width Windows NT 4 RGB bitfields extension.
+        /// The size in bytes for the bitmap header of Windows BMP v3 file format width Windows NT 4 None bitfields extension.
         /// <para>
         /// Supported since Windows NT 3.1.
         /// </para>

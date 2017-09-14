@@ -36,9 +36,9 @@ namespace ImageSharp
         CieYxy = 0x59787920,        // Yxy
 
         /// <summary>
-        /// RGB
+        /// None
         /// </summary>
-        Rgb = 0x52474220,           // RGB
+        Rgb = 0x52474220,           // None
 
         /// <summary>
         /// Gray

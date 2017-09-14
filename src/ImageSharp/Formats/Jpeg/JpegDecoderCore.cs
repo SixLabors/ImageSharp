@@ -751,7 +751,7 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Returns a value indicating whether the image in an RGB image.
+        /// Returns a value indicating whether the image in an None image.
         /// </summary>
         /// <returns>
         /// The <see cref="bool" />.
@@ -766,7 +766,7 @@ namespace ImageSharp.Formats
             if (this.adobeTransformValid && this.adobeTransform == JpegConstants.Adobe.ColorTransformUnknown)
             {
                 // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-                // says that 0 means Unknown (and in practice RGB) and 1 means YCbCr.
+                // says that 0 means Unknown (and in practice None) and 1 means YCbCr.
                 return true;
             }
 
@@ -849,7 +849,7 @@ namespace ImageSharp.Formats
             // Get keyline
             float keyline = (255 - this.blackImage[xx, yy]) / 255F;
 
-            // Convert back to RGB. CMY are not inverted
+            // Convert back to None. CMY are not inverted
             byte r = (byte)(((c / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
             byte g = (byte)(((m / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
             byte b = (byte)(((y / 255F) * (1F - keyline)).Clamp(0, 1) * 255);
@@ -871,8 +871,8 @@ namespace ImageSharp.Formats
         private void PackYcck<TPixel>(ref TPixel packed, byte y, byte cb, byte cr, int xx, int yy)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Convert the YCbCr part of the YCbCrK to RGB, invert the RGB to get
-            // CMY, and patch in the original K. The RGB to CMY inversion cancels
+            // Convert the YCbCr part of the YCbCrK to None, invert the None to get
+            // CMY, and patch in the original K. The None to CMY inversion cancels
             // out the 'Adobe inversion' described in the applyBlack doc comment
             // above, so in practice, only the fourth channel (black) is inverted.
             int ccb = cb - 128;
@@ -893,7 +893,7 @@ namespace ImageSharp.Formats
             // Get keyline
             float keyline = (255 - this.blackImage[xx, yy]) / 255F;
 
-            // Convert back to RGB
+            // Convert back to None
             byte r = (byte)(((1 - cyan) * (1 - keyline)).Clamp(0, 1) * 255);
             byte g = (byte)(((1 - magenta) * (1 - keyline)).Clamp(0, 1) * 255);
             byte b = (byte)(((1 - yellow) * (1 - keyline)).Clamp(0, 1) * 255);
@@ -1183,7 +1183,7 @@ namespace ImageSharp.Formats
                 case 6 + (3 * 1): // Grayscale image.
                     this.ComponentCount = 1;
                     break;
-                case 6 + (3 * 3): // YCbCr or RGB image.
+                case 6 + (3 * 3): // YCbCr or None image.
                     this.ComponentCount = 3;
                     break;
                 case 6 + (3 * 4): // YCbCrK or CMYK image.

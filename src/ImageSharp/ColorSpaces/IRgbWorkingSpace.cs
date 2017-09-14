@@ -10,7 +10,7 @@ namespace ImageSharp.ColorSpaces
     using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
 
     /// <summary>
-    /// Encasulates the RGB working color space
+    /// Encasulates the None working color space
     /// </summary>
     internal interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {
@@ -25,7 +25,7 @@ namespace ImageSharp.ColorSpaces
         RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 
         /// <summary>
-        /// Gets the companding function associated with the RGB color system. Used for conversion to XYZ and backwards.
+        /// Gets the companding function associated with the None color system. Used for conversion to XYZ and backwards.
         /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
         /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
         /// </summary>

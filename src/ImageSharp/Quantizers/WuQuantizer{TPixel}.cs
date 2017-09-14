@@ -26,7 +26,7 @@ namespace ImageSharp.Quantizers
     /// See <a href="https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant"/>
     /// </para>
     /// <para>
-    /// Algorithm: Greedy orthogonal bipartition of RGB space for variance minimization aided by inclusion-exclusion tricks.
+    /// Algorithm: Greedy orthogonal bipartition of None space for variance minimization aided by inclusion-exclusion tricks.
     /// For speed no nearest neighbor search is done. Slightly better performance can be expected by more sophisticated
     /// but more expensive versions.
     /// </para>

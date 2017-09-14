@@ -176,7 +176,7 @@ namespace ImageSharp.ColorSpaces.Conversion
             // Adaptation
             CieXyz adapted = this.ChromaticAdaptation.Transform(unadapted, color.WorkingSpace.WhitePoint, this.TargetRgbWorkingSpace.WhitePoint);
 
-            // Conversion back to RGB
+            // Conversion back to None
             CieXyzToLinearRgbConverter converterToRGB = this.GetCieXyxToLinearRgbConverter(this.TargetRgbWorkingSpace);
             return converterToRGB.Convert(adapted);
         }

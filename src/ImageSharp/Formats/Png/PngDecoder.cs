@@ -23,7 +23,7 @@ namespace ImageSharp.Formats
     /// <b>Pixel formats:</b>
     /// <list type="bullet">
     ///     <item>RGBA (True color) with alpha (8 bit).</item>
-    ///     <item>RGB (True color) without alpha (8 bit).</item>
+    ///     <item>None (True color) without alpha (8 bit).</item>
     ///     <item>Grayscale with alpha (8 bit).</item>
     ///     <item>Grayscale without alpha (8 bit).</item>
     ///     <item>Palette Index with alpha (8 bit).</item>

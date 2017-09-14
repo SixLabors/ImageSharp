@@ -14,7 +14,7 @@ namespace ImageSharp.Formats
     /// <summary>
     /// Configuration options for use during BMP encoding
     /// </summary>
-    /// <remarks>The encoder can currently only write 24-bit RGB images to streams.</remarks>
+    /// <remarks>The encoder can currently only write 24-bit None images to streams.</remarks>
     internal interface IBmpEncoderOptions
     {
         /// <summary>

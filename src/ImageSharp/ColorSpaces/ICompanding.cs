@@ -24,7 +24,7 @@ namespace ImageSharp.ColorSpaces
         float Expand(float channel);
 
         /// <summary>
-        /// Compresses an uncompanded channel (linear) to its nonlinear equivalent (depends on the RGB color system).
+        /// Compresses an uncompanded channel (linear) to its nonlinear equivalent (depends on the None color system).
         /// </summary>
         /// <remarks>
         /// For more info see:

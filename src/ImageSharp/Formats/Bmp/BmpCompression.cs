@@ -15,7 +15,7 @@ namespace ImageSharp.Formats
     /// </summary>
     internal enum BmpCompression
     {
-        // Microsoft Windows BMP v2 and IBM OS/2 BMP v1
+        // Microsoft Windows BMP v3 and IBM OS/2 BMP v2
 
         /// <summary>
         /// Uncompressed format. The pixels are in plain RGB/RGBA.
@@ -27,10 +27,10 @@ namespace ImageSharp.Formats
         /// a index to the palette. If the number of bits are sixteen,
         /// twenty-four or thirty-two each pixel contains a color.
         /// </para>
-        /// <para>Supported by Windows 2.0x and OS/2 1.0x or later.</para>
-        /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
+        /// <para>Supported by Windows 2.0 and OS/2 1.0 or later.</para>
+        /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
         /// </summary>
-        RGB = 0,
+        None = 0,
 
         /// <summary>
         /// Compressed format using Run-Length Encoded (RLE) 8-bit/pixel. Only for 8 bpp bitmaps.
@@ -42,8 +42,8 @@ namespace ImageSharp.Formats
         /// if it is one, it is the end of the image.
         /// Not supported at the moment.
         /// </para>
-        /// <para>Supported by Windows 2.0x and OS/2 2.0x or later.</para>
-        /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
+        /// <para>Supported by Windows 2.0 and OS/2 2.0 or later.</para>
+        /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
         /// </summary>
         RLE8 = 1,
 
@@ -57,12 +57,10 @@ namespace ImageSharp.Formats
         /// if it is one, it is the end of the image.
         /// Not supported at the moment.
         /// </para>
-        /// <para>Supported by Windows 2.0x and OS/2 2.0x or later.</para>
-        /// <para>From Windows BMP v2 and OS/2 BMP v1.</para>
+        /// <para>Supported by Windows 2.0 and OS/2 2.0 or later.</para>
+        /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
         /// </summary>
         RLE4 = 2,
-
-        // Microsoft Windows BMP v3
 
         /// <summary>
         /// Uncompressed format. For Windows BMP v3 only, the color table consists of three DWORD color bitfield masks
@@ -73,8 +71,8 @@ namespace ImageSharp.Formats
         /// Not supported at the moment.
         /// </para>
         /// <para>This is valid when used with 16 and 32 bpp bitmaps.</para>
-        /// <para>Supported by Windows 3.0x/Windows NT 3.1/Windows CE 2.0 or later.</para>
-        /// <para>From Windows BMP v3.</para>
+        /// <para>Supported by Windows 3.0/Windows NT 3.1/Windows CE 2.0 or later.</para>
+        /// <para>Implemented on Windows BMP v3.</para>
         /// </summary>
         BitFields = 3,
 
@@ -85,7 +83,7 @@ namespace ImageSharp.Formats
         /// Not supported at the moment.
         /// </para>
         /// <para>Supported by Windows 98/Windows 2000 or later.</para>
-        /// <para>From Windows BMP v4.</para>
+        /// <para>Implemented on Windows BMP v4.</para>
         /// </summary>
         JPEG = 4,
 
@@ -96,7 +94,7 @@ namespace ImageSharp.Formats
         /// Not supported at the moment.
         /// </para>
         /// <para>Supported by Windows 98/Windows 2000 or later.</para>
-        /// <para>From Windows BMP v4.</para>
+        /// <para>Implemented on Windows BMP v4.</para>
         /// </summary>
         PNG = 5,
 
@@ -107,7 +105,7 @@ namespace ImageSharp.Formats
         /// that specify the red, green, blue, and alpha components, respectively, of each pixel.
         /// <para>This is valid when used with 16 and 32 bpp bitmaps on Windows CE only.</para>
         /// <para>Supported by Windows CE .NET 4.0 or later.</para>
-        /// <para>From Windows BMP v3.</para>
+        /// <para>Implemented on Windows BMP v3.</para>
         /// </summary>
         /// See <a href="https://msdn.microsoft.com/en-us/library/aa452885.aspx">this link</a> for more information.
         AlphaBitFields = 6,

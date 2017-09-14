@@ -3,13 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System.IO;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp;
+    using SixLabors.ImageSharp;
     using SixLabors.Primitives;
     using CoreImage = ImageSharp.Image;
 

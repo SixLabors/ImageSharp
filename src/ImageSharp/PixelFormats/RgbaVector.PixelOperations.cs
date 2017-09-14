@@ -1,22 +1,19 @@
-﻿// <copyright file="RgbaVector.BulkOperations.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.Memory;
-
     /// <content>
     /// Provides optimized overrides for bulk operations.
     /// </content>
     public partial struct RgbaVector
     {
         /// <summary>
-        /// See <a href="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
+        /// <see cref="PixelOperations{TPixel}"/> implementation optimized for <see cref="RgbaVector"/>.
         /// </summary>
         internal class PixelOperations : PixelOperations<RgbaVector>
         {

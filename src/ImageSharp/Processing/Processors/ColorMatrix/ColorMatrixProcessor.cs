@@ -1,32 +1,30 @@
-﻿// <copyright file="ColorMatrixFilter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// The color matrix filter. Inherit from this class to perform operation involving color matrices.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class ColorMatrixProcessor<TPixel> : ImageProcessor<TPixel>, IColorMatrixFilter<TPixel>
+    internal abstract class ColorMatrixProcessor<TPixel> : ImageProcessor<TPixel>, IColorMatrixProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc/>
         public abstract Matrix4x4 Matrix { get; }
 
         /// <inheritdoc/>
-        public override bool Compand { get; set; } = true;
+        public virtual bool Compand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -53,31 +51,28 @@ namespace ImageSharp.Processing.Processors
             Matrix4x4 matrix = this.Matrix;
             bool compand = this.Compand;
 
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
-            {
-                Parallel.For(
-                    minY,
-                    maxY,
-                    this.ParallelOptions,
-                    y =>
+            Parallel.For(
+                minY,
+                maxY,
+                configuration.ParallelOptions,
+                y =>
+                {
+                    Span<TPixel> row = source.GetPixelRowSpan(y - startY);
+
+                    for (int x = minX; x < maxX; x++)
+                    {
+                        ref TPixel pixel = ref row[x - startX];
+                        var vector = pixel.ToVector4();
+
+                        if (compand)
                         {
-                            Span<TPixel> row = source.GetRowSpan(y - startY);
+                            vector = vector.Expand();
+                        }
 
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                ref TPixel pixel = ref row[x - startX];
-                                var vector = pixel.ToVector4();
-
-                                if (compand)
-                                {
-                                    vector = vector.Expand();
-                                }
-
-                                vector = Vector4.Transform(vector, matrix);
-                                pixel.PackFromVector4(compand ? vector.Compress() : vector);
-                            }
-                        });
-            }
+                        vector = Vector4.Transform(vector, matrix);
+                        pixel.PackFromVector4(compand ? vector.Compress() : vector);
+                    }
+                });
         }
     }
 }

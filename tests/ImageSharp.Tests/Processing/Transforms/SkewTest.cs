@@ -1,33 +1,34 @@
-﻿// <copyright file="SkewTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Transforms
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
-    public class SkewTest : FileTestBase
+    public class SkewTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<float, float> SkewValues
-        = new TheoryData<float, float>
+        [Fact]
+        public void Skew_x_y_CreateSkewProcessorWithAnglesSetAndExpandTrue()
         {
-            { 20, 10 },
-            { -20, -10 }
-        };
+            this.operations.Skew(10, 20);
+            var processor = this.Verify<SkewProcessor<Rgba32>>();
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SkewValues), DefaultPixelType)]
-        public void ImageShouldSkew<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
-            where TPixel : struct, IPixel<TPixel>
+            Assert.Equal(10, processor.AngleX);
+            Assert.Equal(20, processor.AngleY);
+            Assert.True(processor.Expand);
+        }
+
+        [Fact]
+        public void Skew_x_y_expand_CreateSkewProcessorWithAnglesSetAndExpandTrue()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Skew(x, y)
-                    .DebugSave(provider, string.Join("_", x, y), Extensions.Bmp);
-            }
+            this.operations.Skew(10, 20, false);
+            var processor = this.Verify<SkewProcessor<Rgba32>>();
+
+            Assert.Equal(10, processor.AngleX);
+            Assert.Equal(20, processor.AngleY);
+            Assert.False(processor.Expand);
         }
     }
 }

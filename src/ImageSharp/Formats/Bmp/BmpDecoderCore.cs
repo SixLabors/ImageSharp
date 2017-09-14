@@ -1,28 +1,26 @@
-﻿// <copyright file="BmpDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// The mask for the red part of the color for 16 bit None bitmaps.
+        /// The mask for the red part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16RMask = 0x00007C00;
 
         /// <summary>
-        /// The mask for the green part of the color for 16 bit None bitmaps.
+        /// The mask for the green part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16GMask = 0x000003E0;
 
@@ -124,11 +122,11 @@ namespace ImageSharp.Formats
                     this.currentStream.Read(palette, 0, colorMapSize);
                 }
 
-                if (this.infoHeader.Width > Image<TPixel>.MaxWidth || this.infoHeader.Height > Image<TPixel>.MaxHeight)
+                if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
                 {
                     throw new ArgumentOutOfRangeException(
                         $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
-                        + $"bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
+                        + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
                 }
 
                 Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
@@ -151,7 +149,7 @@ namespace ImageSharp.Formats
                             }
                             else if (this.infoHeader.BitsPerPixel <= 8)
                             {
-                                this.ReadRgbpalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
+                                this.ReadRgbPalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
                             }
 
                             break;
@@ -221,7 +219,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgbpalette<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
+        private void ReadRgbPalette<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             // Pixels per byte (bits per pixel)
@@ -422,7 +420,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">this link</a> for more information.
+        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">this MSDN link</a> for more information.
         private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
         {
             return new BmpInfoHeader
@@ -448,7 +446,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">this link</a> for more information.
+        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">this MSDN link</a> for more information.
         private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
         {
             return new BmpInfoHeader

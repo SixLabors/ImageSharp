@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     using CoreSize = SixLabors.Primitives.Size;
 
@@ -41,7 +41,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.Crop(100, 100);
+                image.Mutate(x => x.Crop(100, 100));
                 return new CoreSize(image.Width, image.Height);
             }
         }

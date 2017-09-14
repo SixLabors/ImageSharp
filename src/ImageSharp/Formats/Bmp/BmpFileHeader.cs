@@ -1,13 +1,11 @@
-﻿// <copyright file="BmpFileHeader.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Stores general information about the Bitmap file.
-    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format" />
+    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format">this Wikipedia link</a> for more information.
     /// </summary>
     /// <remarks>
     /// The first two bytes of the Bitmap file format

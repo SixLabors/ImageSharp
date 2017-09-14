@@ -1,9 +1,7 @@
-﻿// <copyright file="PngChunkTypes.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
     /// Contains a list of possible chunk type identifiers.
@@ -19,7 +17,7 @@ namespace ImageSharp.Formats
 
         /// <summary>
         /// The PLTE chunk contains from 1 to 256 palette entries, each a three byte
-        /// series in the None format.
+        /// series in the RGB format.
         /// </summary>
         public const string Palette = "PLTE";
 

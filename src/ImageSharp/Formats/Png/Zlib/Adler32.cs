@@ -1,12 +1,10 @@
-﻿// <copyright file="Adler32.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+
+namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
-    using System;
-
     /// <summary>
     /// Computes Adler32 checksum for a stream of data. An Adler32
     /// checksum is not as reliable as a CRC32 checksum, but a lot faster to

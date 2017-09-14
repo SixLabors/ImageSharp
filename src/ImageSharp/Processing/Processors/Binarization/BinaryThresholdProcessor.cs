@@ -1,19 +1,17 @@
-﻿// <copyright file="BinaryThresholdProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Threading.Tasks;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to perform binary threshold filtering against an
-    /// See <a href="Image{TPixel}"/>. The image will be converted to grayscale before thresholding occurs.
+    /// <see cref="Image{TPixel}"/>. The image will be converted to grayscale before thresholding occurs.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
@@ -50,13 +48,13 @@ namespace ImageSharp.Processing.Processors
         public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             float threshold = this.Threshold;
             TPixel upper = this.UpperColor;
@@ -87,10 +85,10 @@ namespace ImageSharp.Processing.Processors
             Parallel.For(
                 minY,
                 maxY,
-                this.ParallelOptions,
+                configuration.ParallelOptions,
                 y =>
                 {
-                    Span<TPixel> row = source.GetRowSpan(y - startY);
+                    Span<TPixel> row = source.GetPixelRowSpan(y - startY);
 
                     for (int x = minX; x < maxX; x++)
                     {

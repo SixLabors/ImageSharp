@@ -1,17 +1,19 @@
-﻿
-namespace ImageSharp.Tests.Drawing.Paths
-{
-    using System;
-    using ImageSharp;
-    using ImageSharp.Drawing.Brushes;
-    using Xunit;
-    using ImageSharp.Drawing;
-    using System.Numerics;
-    using SixLabors.Shapes;
-    using ImageSharp.Drawing.Processors;
-    using ImageSharp.PixelFormats;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
-    public class FillPathCollection : IDisposable
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing.Paths
+{
+    public class FillPathCollection : BaseImageOperationsExtensionTest
     {
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
@@ -30,29 +32,20 @@ namespace ImageSharp.Tests.Drawing.Paths
                 }));
 
         IPathCollection pathCollection;
-
-        private ProcessorWatchingImage img;
-
+        
         public FillPathCollection()
         {
             this.pathCollection = new PathCollection(path1, path2);
-            this.img = new ProcessorWatchingImage(10, 10);
-        }
-
-        public void Dispose()
-        {
-            img.Dispose();
         }
 
         [Fact]
         public void CorrectlySetsBrushAndPath()
         {
-            img.Fill(brush, pathCollection);
+            this.operations.Fill(brush, pathCollection);
 
-            Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
             {
-                FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[i].processor);
+                FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
                 Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -69,12 +62,11 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            img.Fill(brush, pathCollection, noneDefault);
+            this.operations.Fill(brush, pathCollection, noneDefault);
 
-            Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
             {
-                FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[i].processor);
+                FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
                 Assert.Equal(noneDefault, processor.Options);
 
@@ -89,12 +81,11 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorAndPath()
         {
-            img.Fill(color, pathCollection);
+            this.operations.Fill(color, pathCollection);
 
-            Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
             {
-                FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[i].processor);
+                FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
                 Assert.Equal(GraphicsOptions.Default, processor.Options);
 
@@ -110,12 +101,11 @@ namespace ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            img.Fill(color, pathCollection, noneDefault);
+            this.operations.Fill(color, pathCollection, noneDefault);
 
-            Assert.Equal(2, img.ProcessorApplications.Count);
             for (var i = 0; i < 2; i++)
             {
-                FillRegionProcessor<Rgba32> processor = Assert.IsType<FillRegionProcessor<Rgba32>>(img.ProcessorApplications[i].processor);
+                FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
                 Assert.Equal(noneDefault, processor.Options);
 

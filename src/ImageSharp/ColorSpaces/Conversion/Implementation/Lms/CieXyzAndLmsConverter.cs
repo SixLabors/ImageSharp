@@ -1,15 +1,12 @@
-﻿// <copyright file="CieXyzAndLmsConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Color converter between CIE XYZ and LMS
     /// </summary>
@@ -17,7 +14,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
     {
         /// <summary>
         /// Default transformation matrix used, when no other is set. (Bradford)
-        /// See <a href="LmsAdaptationMatrix"/>
+        /// <see cref="LmsAdaptationMatrix"/>
         /// </summary>
         public static readonly Matrix4x4 DefaultTransformationMatrix = LmsAdaptationMatrix.Bradford;
 
@@ -48,7 +45,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.Lms
 
         /// <summary>
         /// Gets or sets the transformation matrix used for the conversion (definition of the cone response domain).
-        /// See <a href="LmsAdaptationMatrix"/>
+        /// <see cref="LmsAdaptationMatrix"/>
         /// </summary>
         public Matrix4x4 TransformationMatrix
         {

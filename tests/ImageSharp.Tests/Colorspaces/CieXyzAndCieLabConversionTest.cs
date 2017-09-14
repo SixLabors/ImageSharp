@@ -1,17 +1,19 @@
-﻿namespace ImageSharp.Tests.Colorspaces
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System.Collections.Generic;
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion;
-
-    using Xunit;
-
     /// <summary>
     /// Tests <see cref="CieXyz"/>-<see cref="CieLab"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using:
-    /// See <a href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
+    /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
     /// </remarks>
     public class CieXyzAndCieLabConversionTest
     {

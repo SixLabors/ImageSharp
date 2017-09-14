@@ -1,16 +1,14 @@
-﻿// <copyright file="RgbWorkingSpaces.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.ColorSpaces
+namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
-
     /// <summary>
     /// Chromaticity coordinates taken from:
-    /// See <a href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
+    /// <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
     /// </summary>
     internal static class RgbWorkingSpaces
     {
@@ -19,7 +17,7 @@ namespace ImageSharp.ColorSpaces
         /// </summary>
         /// <remarks>
         /// Uses proper companding function, according to:
-        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_Rgb_to_XYZ.html"/>
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_Rgb_to_XYZ.html"/>
         /// </remarks>
         public static readonly IRgbWorkingSpace SRgb = new RgbWorkingSpace(Illuminants.D65, new SRgbCompanding(), new RgbPrimariesChromaticityCoordinates(new CieXyChromaticityCoordinates(0.6400F, 0.3300F), new CieXyChromaticityCoordinates(0.3000F, 0.6000F), new CieXyChromaticityCoordinates(0.1500F, 0.0600F)));
 

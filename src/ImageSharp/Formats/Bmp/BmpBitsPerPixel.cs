@@ -1,27 +1,10 @@
-﻿// <copyright file="BmpBitsPerPixel.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Enumerates the available bits per pixel for bitmap.
-    /// </summary>
-    public enum BmpBitsPerPixel_Original
-    {
-        /// <summary>
-        /// 24 bits per pixel. Each pixel consists of 3 bytes.
-        /// </summary>
-        Pixel24 = 3,
-
-        /// <summary>
-        /// 32 bits per pixel. Each pixel consists of 4 bytes.
-        /// </summary>
-        Pixel32 = 4,
-    }
-
-    /// <summary>
     /// The number of bits-per-pixel (bpp) used in the Microsoft Windows BMP and IBM OS/2 BMP image DIB or file.
     /// </summary>
     /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.

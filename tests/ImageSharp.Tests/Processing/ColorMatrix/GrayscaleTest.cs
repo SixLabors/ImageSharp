@@ -1,61 +1,47 @@
-﻿// <copyright file="GrayscaleTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.ColorMatrix
+using System.Collections;
+using System.Collections.Generic;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.ColorMatrix
 {
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using SixLabors.Primitives;
-    using Xunit;
-
-    public class GrayscaleTest : FileTestBase
+    public class GrayscaleTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<GrayscaleMode> GrayscaleModeTypes
-            = new TheoryData<GrayscaleMode>
-            {
-                GrayscaleMode.Bt601,
-                GrayscaleMode.Bt709
-            };
+        public static IEnumerable<object[]> ModeTheoryData = new[] {
+            new object[]{ new TestType<GrayscaleBt709Processor<Rgba32>>(), GrayscaleMode.Bt709 }
+        };
 
-        /// <summary>
-        /// Use test patterns over loaded images to save decode time.
-        /// </summary>
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, DefaultPixelType)]
-        public void ImageShouldApplyGrayscaleFilterAll<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
-            where TPixel : struct, IPixel<TPixel>
+        [MemberData(nameof(ModeTheoryData))]
+        public void Grayscale_mode_CorrectProcessor<T>(TestType<T> testType, GrayscaleMode mode)
+            where T : IImageProcessor<Rgba32>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Grayscale(value);
-                byte[] data = new byte[3];
-                for (int i = 0; i < image.Pixels.Length; i++)
-                {
-                    image.Pixels[i].ToXyzBytes(data, 0);
-                    Assert.Equal(data[0], data[1]);
-                    Assert.Equal(data[1], data[2]);
-                }
+            this.operations.Grayscale(mode);
+            var p = this.Verify<T>();
 
-                image.DebugSave(provider, value.ToString());
-            }
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, DefaultPixelType)]
-        public void ImageShouldApplyGrayscaleFilterInBox<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
-            where TPixel : struct, IPixel<TPixel>
+        [MemberData(nameof(ModeTheoryData))]
+        public void Grayscale_mode_rect_CorrectProcessor<T>(TestType<T> testType, GrayscaleMode mode)
+            where T : IImageProcessor<Rgba32>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
-                image.Grayscale(value, bounds)
-                     .DebugSave(provider, value.ToString());
+            this.operations.Grayscale(mode, this.rect);
+            this.Verify<T>(this.rect);
+        }
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+        [Fact]
+        public void Grayscale_rect_CorrectProcessor()
+        {
+            this.operations.Grayscale(this.rect);
+            this.Verify<GrayscaleBt709Processor<Rgba32>>(this.rect);
         }
     }
 }

@@ -4,8 +4,13 @@ image: Visual Studio 2017
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
 
-init:
-  - ps: iex ((new-object net.webclient).DownloadString('https://gist.githubusercontent.com/PureKrome/0f79e25693d574807939/raw/8cf3160c9516ef1f4effc825c0a44acc918a0b5a/appveyor-build-info.ps'))
+install:
+  - choco install gitversion.portable -pre -y
+
+before_build:
+  - git submodule -q update --init
+  - cmd: dotnet --version
+  - ps: c:\ProgramData\chocolatey\lib\gitversion.portable\tools\gitversion.exe /l console /output buildserver
 
 build_script:
 - cmd: build.cmd
@@ -13,16 +18,17 @@ build_script:
 test_script:
 - tests\CodeCoverage\CodeCoverage.cmd
 
-artifacts:
-- path: artifacts\bin\ImageSharp\**\*.nupkg
+after_test:
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%GitVersion_NuGetVersion%.nupkg"
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%GitVersion_NuGetVersion%.nupkg"
 
 deploy:
     # MyGet Deployment for builds & releases
- - provider: NuGet
-   server: https://www.myget.org/F/imagesharp/api/v2/package
-   symbol_server: https://www.myget.org/F/imagesharp/symbols/api/v2/package
-   api_key:
-     secure: P2Fz82nty+itjL+kNRCsMQcqzngmVtkU0R4CZqgST7zgUaE6/1q9ekh5MKKlZLkD
-   artifact: /.*\.nupkg/
-   on:
-     branch: master
+  - provider: NuGet
+    server: https://www.myget.org/F/sixlabors/api/v2/package
+    symbol_server: https://www.myget.org/F/sixlabors/symbols/api/v2/package
+    api_key:
+      secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
+    artifact: /.*\.nupkg/
+    on:
+      branch: master

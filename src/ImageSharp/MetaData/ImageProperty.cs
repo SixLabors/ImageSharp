@@ -1,12 +1,10 @@
-﻿// <copyright file="ImageProperty.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+
+namespace SixLabors.ImageSharp.MetaData
 {
-    using System;
-
     /// <summary>
     /// Stores meta information about a image, like the name of the author,
     /// the copyright information, the date, where the image was created
@@ -60,7 +58,7 @@ namespace ImageSharp
         /// <summary>
         /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
         /// of the <see cref="ImageProperty.Name"/> or <see cref="ImageProperty.Value"/> properties of the two
-        /// See <a href="ImageProperty"/> objects are equal.
+        /// <see cref="ImageProperty"/> objects are equal.
         /// </summary>
         /// <param name="left">
         /// The <see cref="ImageProperty"/> on the left side of the operand.
@@ -79,7 +77,7 @@ namespace ImageSharp
         /// <summary>
         /// Compares two <see cref="ImageProperty"/> objects. The result specifies whether the values
         /// of the <see cref="ImageProperty.Name"/> or <see cref="ImageProperty.Value"/> properties of the two
-        /// See <a href="ImageProperty"/> objects are unequal.
+        /// <see cref="ImageProperty"/> objects are unequal.
         /// </summary>
         /// <param name="left">
         /// The <see cref="ImageProperty"/> on the left side of the operand.

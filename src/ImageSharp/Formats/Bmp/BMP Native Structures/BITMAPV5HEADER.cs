@@ -13,7 +13,7 @@ namespace ImageSharp.Formats
     /// <para>The colors (<seealso cref="RGBQUAD"></seealso>) in the palette table should appear in order of importance and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this MSN link</a> for more information.
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 124)]
     internal struct BITMAPV5HEADER
     {

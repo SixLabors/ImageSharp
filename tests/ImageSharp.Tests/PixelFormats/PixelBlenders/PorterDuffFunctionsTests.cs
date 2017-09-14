@@ -1,18 +1,16 @@
-﻿// <copyright file="PorterDuffFunctionsTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.PixelFormats.PixelBlenders
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Text;
+using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
+using SixLabors.ImageSharp.Tests.TestUtilities;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Numerics;
-    using System.Text;
-    using ImageSharp.PixelFormats.PixelBlenders;
-    using ImageSharp.Tests.TestUtilities;
-    using Xunit;
-
     public class PorterDuffFunctionsTests
     {
         public static TheoryData<TestVector4, TestVector4, float, TestVector4> NormalBlendFunctionData = new TheoryData<TestVector4, TestVector4, float, TestVector4>() {

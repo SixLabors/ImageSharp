@@ -1,16 +1,13 @@
-﻿// <copyright file="IRgbWorkingSpace.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces
+using System;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+
+namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-
-    using ImageSharp.ColorSpaces.Conversion.Implementation.Rgb;
-
     /// <summary>
-    /// Encasulates the None working color space
+    /// Encasulates the RGB working color space
     /// </summary>
     internal interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {
@@ -25,9 +22,9 @@ namespace ImageSharp.ColorSpaces
         RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 
         /// <summary>
-        /// Gets the companding function associated with the None color system. Used for conversion to XYZ and backwards.
-        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
-        /// See <a href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
+        /// Gets the companding function associated with the RGB color system. Used for conversion to XYZ and backwards.
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
         /// </summary>
         ICompanding Companding { get; }
     }

@@ -1,16 +1,12 @@
-﻿// <copyright file="LomographProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
@@ -19,7 +15,7 @@ namespace ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
-        private GraphicsOptions options;
+        private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}" /> class.
@@ -31,7 +27,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 Matrix => new Matrix4x4()
+        public override Matrix4x4 Matrix => new Matrix4x4
         {
             M11 = 1.5F,
             M22 = 1.45F,
@@ -43,9 +39,9 @@ namespace ImageSharp.Processing.Processors
         };
 
         /// <inheritdoc/>
-        protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new VignetteProcessor<TPixel>(VeryDarkGreen, this.options).Apply(source, sourceRectangle);
+            new VignetteProcessor<TPixel>(VeryDarkGreen, this.options).Apply(source, sourceRectangle, configuration);
         }
     }
 }

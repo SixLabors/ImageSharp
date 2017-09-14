@@ -1,13 +1,11 @@
-﻿// <copyright file="ColorBuilder{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Globalization;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Globalization;
-
     /// <summary>
     /// A set of named colors mapped to the provided Color space.
     /// </summary>
@@ -46,12 +44,12 @@ namespace ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Creates a new <typeparamref name="TPixel"/> representation from standard None bytes with 100% opacity.
+        /// Creates a new <typeparamref name="TPixel"/> representation from standard RGB bytes with 100% opacity.
         /// </summary>
         /// <param name="red">The red intensity.</param>
         /// <param name="green">The green intensity.</param>
         /// <param name="blue">The blue intensity.</param>
-        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided None values with 100% opacity.</returns>
+        /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGB values with 100% opacity.</returns>
         public static TPixel FromRGB(byte red, byte green, byte blue) => FromRGBA(red, green, blue, 255);
 
         /// <summary>

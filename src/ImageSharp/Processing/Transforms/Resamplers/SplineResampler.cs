@@ -1,13 +1,11 @@
-﻿// <copyright file="SplineResampler.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the spline algorithm.
-    /// See <a href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
+    /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
     /// </summary>
     public class SplineResampler : IResampler
     {

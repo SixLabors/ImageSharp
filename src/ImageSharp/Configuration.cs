@@ -1,19 +1,20 @@
-﻿// <copyright file="Configuration.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.IO;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-
-    using Formats;
-    using ImageSharp.IO;
-
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
@@ -103,10 +104,15 @@ namespace ImageSharp
 
 #if !NETSTANDARD1_1
         /// <summary>
-        /// Gets or sets the fielsystem helper for accessing the local file system.
+        /// Gets or sets the filesystem helper for accessing the local file system.
         /// </summary>
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
 #endif
+
+        /// <summary>
+        /// Gets or sets the image operations provider factory.
+        /// </summary>
+        internal IImageProcessingContextFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProviderFactory();
 
         /// <summary>
         /// Registers a new format provider.
@@ -121,7 +127,7 @@ namespace ImageSharp
         /// <summary>
         /// Registers a new format provider.
         /// </summary>
-        /// <param name="format">The format to register as a well know format.</param>
+        /// <param name="format">The format to register as a known format.</param>
         public void AddImageFormat(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
@@ -135,7 +141,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="extension">The extension to discover</param>
         /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
-        public IImageFormat FindFormatByFileExtensions(string extension)
+        public IImageFormat FindFormatByFileExtension(string extension)
         {
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
         }
@@ -144,7 +150,7 @@ namespace ImageSharp
         /// For the specified mime type find the <see cref="IImageFormat"/>.
         /// </summary>
         /// <param name="mimeType">The mime-type to discover</param>
-        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
         public IImageFormat FindFormatByMimeType(string mimeType)
         {
             return this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));

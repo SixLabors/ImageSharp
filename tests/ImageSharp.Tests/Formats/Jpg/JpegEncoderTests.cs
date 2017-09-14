@@ -1,23 +1,22 @@
-﻿// <copyright file="JpegEncoderTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using ImageSharp.Formats;
-using Xunit;
-using Xunit.Abstractions;
+
+
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using ImageSharp.Formats.Jpg;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
+    using System.Collections.Generic;
+    using System.IO;
+
+    using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.Primitives;
+
+    using Xunit;
+    using Xunit.Abstractions;
 
     public class JpegEncoderTests : MeasureFixture
     {
@@ -36,8 +35,9 @@ namespace ImageSharp.Tests
         public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
+            using (Image<TPixel> image = provider.GetImage(x=>x.Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max })))
             {
+
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
                 JpegEncoder options = new JpegEncoder { Subsample = subsample, Quality = quality };
 

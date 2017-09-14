@@ -1,16 +1,14 @@
-﻿// <copyright file="BlendTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-    using System.Linq;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
     public class DrawImageTest : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
@@ -40,8 +38,8 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
-                image.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
-                     .DebugSave(provider, new { mode });
+                image.Mutate(x => x.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4)));
+                image.DebugSave(provider, new { mode });
             }
         }
     }

@@ -1,12 +1,10 @@
-﻿// <copyright file="GifFormat.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.Collections.Generic;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the bmp format.
     /// </summary>

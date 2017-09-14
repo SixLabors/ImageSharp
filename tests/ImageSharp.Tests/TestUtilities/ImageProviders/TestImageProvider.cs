@@ -1,16 +1,16 @@
-﻿// <copyright file="TestImageProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Reflection;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Reflection;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit.Abstractions;
  	public interface ITestImageProvider
     {
         PixelTypes PixelType { get; }
@@ -32,7 +32,6 @@ namespace ImageSharp.Tests
         /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
-        public GenericFactory<TPixel> Factory { get; private set; } = new GenericFactory<TPixel>();
         public string TypeName { get; private set; }
         public string MethodName { get; private set; }
 
@@ -59,10 +58,10 @@ namespace ImageSharp.Tests
         }
 
         public static TestImageProvider<TPixel> Lambda(
-                Func<GenericFactory<TPixel>, Image<TPixel>> func,
+                Func<Image<TPixel>> factoryFunc,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-            => new LambdaProvider(func).Init(testMethod, pixelTypeOverride);
+            => new LambdaProvider(factoryFunc).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> Solid(
             int width,
@@ -81,6 +80,21 @@ namespace ImageSharp.Tests
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
         public abstract Image<TPixel> GetImage();
+
+        public virtual Image<TPixel> GetImage(IImageDecoder decoder)
+        {
+            throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
+        }
+
+        /// <summary>
+        /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
+        /// </summary>
+        public Image<TPixel> GetImage(Action<IImageProcessingContext<TPixel>> operationsToApply)
+        {
+            var img = GetImage();
+            img.Mutate(operationsToApply);
+            return img;
+        }
 
         public virtual void Deserialize(IXunitSerializationInfo info)
         {
@@ -106,12 +120,7 @@ namespace ImageSharp.Tests
             }
             this.TypeName = typeName;
             this.MethodName = methodName;
-
-            if (pixelTypeOverride == PixelTypes.Rgba32)
-            {
-                this.Factory = new ImageFactory() as GenericFactory<TPixel>;
-            }
-
+            
             this.Utility = new ImagingTestCaseUtility
             {
                 SourceFileOrDescription = this.SourceFileOrDescription,

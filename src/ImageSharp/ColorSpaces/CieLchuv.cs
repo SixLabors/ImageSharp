@@ -1,15 +1,13 @@
-﻿// <copyright file="CieLchuv.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Represents the CIE L*C*h°, cylindrical form of the CIE L*u*v* 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CieLchuv_or_CIEHLC"/>

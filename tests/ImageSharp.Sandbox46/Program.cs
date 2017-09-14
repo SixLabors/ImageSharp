@@ -3,15 +3,17 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Sandbox46
+namespace SixLabors.ImageSharp.Sandbox46
 {
     using System;
     using System.Runtime.DesignerServices;
 
-    using ImageSharp.Tests;
-    using ImageSharp.Tests.Colors;
-    using ImageSharp.Tests.PixelFormats;
-    using ImageSharp.Tests.Processing.Transforms;
+    using SixLabors.ImageSharp.Tests;
+    using SixLabors.ImageSharp.Tests.Colors;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg;
+    using SixLabors.ImageSharp.Tests.PixelFormats;
+    using SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
+    using SixLabors.ImageSharp.Tests.Processing.Transforms;
 
     using Xunit.Abstractions;
 
@@ -39,12 +41,19 @@ namespace ImageSharp.Sandbox46
         /// </param>
         public static void Main(string[] args)
         {
+            RunJpegColorProfilingTests();
+
             // RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
-
-            RunResizeProfilingTest();
+            // RunResizeProfilingTest();
 
             Console.ReadLine();
+        }
+
+        private static void RunJpegColorProfilingTests()
+        {
+            new JpegColorConverterTests(new ConsoleOutput()).BenchmarkYCbCr(false);
+            new JpegColorConverterTests(new ConsoleOutput()).BenchmarkYCbCr(true);
         }
 
         private static void RunResizeProfilingTest()
@@ -55,7 +64,7 @@ namespace ImageSharp.Sandbox46
 
         private static void RunToVector4ProfilingTest()
         {
-            PixelOperationsTests.Color32 tests = new PixelOperationsTests.Color32(new ConsoleOutput());
+            PixelOperationsTests.Rgba32 tests = new PixelOperationsTests.Rgba32(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 
@@ -66,7 +75,7 @@ namespace ImageSharp.Sandbox46
             foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];
-                benchmarks.DecodeJpeg(fileName);
+                benchmarks.DecodeJpeg_Original(fileName);
             }
         }
     }

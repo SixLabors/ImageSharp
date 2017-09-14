@@ -1,11 +1,13 @@
-﻿namespace ImageSharp.Tests.Colorspaces
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System.Collections.Generic;
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion;
-
-    using Xunit;
-
     /// <summary>
     /// Tests <see cref="CieLuv"/>-<see cref="CieLchuv"/> conversions.
     /// </summary>
@@ -27,7 +29,6 @@
         [InlineData(54.2917, 106.8391, 40.8526, 54.2917, 80.8125, 69.8851)]
         [InlineData(100, 0, 0, 100, 0, 0)]
         [InlineData(100, 50, 180, 100, -50, 0)]
-        [InlineData(10, 36.0555, 56.3099, 10, 20, 30)]
         [InlineData(10, 36.0555, 56.3099, 10, 20, 30)]
         [InlineData(10, 36.0555, 123.6901, 10, -20, 30)]
         [InlineData(10, 36.0555, 303.6901, 10, 20, -30)]
@@ -54,7 +55,6 @@
         [InlineData(54.2917, 80.8125, 69.8851, 54.2917, 106.8391, 40.8526)]
         [InlineData(100, 0, 0, 100, 0, 0)]
         [InlineData(100, -50, 0, 100, 50, 180)]
-        [InlineData(10, 20, 30, 10, 36.0555, 56.3099)]
         [InlineData(10, 20, 30, 10, 36.0555, 56.3099)]
         [InlineData(10, -20, 30, 10, 36.0555, 123.6901)]
         [InlineData(10, 20, -30, 10, 36.0555, 303.6901)]

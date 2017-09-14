@@ -7,7 +7,7 @@ Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and emb
 
 > **ImageSharp** has made excellent progress and contains many great features but is still considered by us to be still in early stages (alpha). As such, we cannot support its use on production environments until the library reaches release candidate status.
 >
-> Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/imagesharp).
+> Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/sixlabors).
 
 [![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt)
 [![GitHub issues](https://img.shields.io/github/issues/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/issues)
@@ -31,20 +31,20 @@ At present the code is pre-release but when ready it will be available on [Nuget
 
 **Pre-release downloads**
 
-We already have a [MyGet package repository](https://www.myget.org/gallery/imagesharp) - for bleeding-edge / development NuGet releases.
+We already have a [MyGet package repository](https://www.myget.org/gallery/sixlabors) - for bleeding-edge / development NuGet releases.
 
 ### Packages
 
 The **ImageSharp** library is made up of multiple packages.
 
 Packages include:
-- **ImageSharp**
+- **SixLabors.ImageSharp**
   - Contains the generic `Image<TPixel>` class, PixelFormats, Primitives, Configuration, and other core functionality.
   - The `IImageFormat` interface, Jpeg, Png, Bmp, and Gif formats.
   - Transform methods like Resize, Crop, Skew, Rotate - Anything that alters the dimensions of the image.
   - Non-transform methods like Gaussian Blur, Pixelate, Edge Detection - Anything that maintains the original image dimensions.
 
-- **ImageSharp.Drawing**
+- **SixLabors.ImageSharp.Drawing**
   - Brushes and various drawing algorithms, including drawing images.
   - Various vector drawing methods for drawing paths, polygons etc.
   - Text drawing.
@@ -88,9 +88,10 @@ On platforms supporting netstandard 1.3+
 // Image.Load(string path) is a shortcut for our default type. Other pixel formats use Image.Load<TPixel>(string path))
 using (Image<Rgba32> image = Image.Load("foo.jpg"))
 {
-    image.Resize(image.Width / 2, image.Height / 2)
-         .Grayscale()
-         .Save("bar.jpg"); // automatic encoder selected based on extension.
+    image.Mutate(x => x
+         .Resize(image.Width / 2, image.Height / 2)
+         .Grayscale());
+    image.Save("bar.jpg"); // automatic encoder selected based on extension.
 }
 ```
 on netstandard 1.1 - 1.2
@@ -100,9 +101,10 @@ using (FileStream stream = File.OpenRead("foo.jpg"))
 using (FileStream output = File.OpenWrite("bar.jpg"))
 using (Image<Rgba32> image = Image.Load<Rgba32>(stream))
 {
-    image.Resize(image.Width / 2, image.Height / 2)
-         .Grayscale()
-         .Save(output);
+    image.Mutate(x => x
+         .Resize(image.Width / 2, image.Height / 2)
+         .Grayscale());
+    image.Save(output);
 }
 ```
 
@@ -116,7 +118,7 @@ using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 }
 ```
 
-For optimized access within a loop it is recommended that the following methods are used.
+For optimized synchronous access within a loop it is recommended that the following methods are used.
 
 1. `image.GetRowSpan(y)`
 2. `image.GetRowSpan(x, y)`
@@ -140,9 +142,7 @@ Grand High Eternal Dictator
 
 Core Team
 - [Dirk Lemstra](https://github.com/dlemstra)
-- [Jeavon Leopold](https://github.com/jeavon)
 - [Anton Firsov](https://github.com/antonfirsov)
-- [Olivia Ifrim](https://github.com/olivif)
 - [Scott Williams](https://github.com/tocsoft)
 
 ### Backers

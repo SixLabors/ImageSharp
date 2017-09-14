@@ -1,13 +1,11 @@
-﻿// <copyright file="IccDataWriter.Primitives.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Text;
+
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Text;
-
     /// <summary>
     /// Provides methods to write ICC data types
     /// </summary>

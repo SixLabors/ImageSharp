@@ -1,18 +1,14 @@
-﻿// <copyright file="ColorBlindness.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using ImageSharp.Processing;
-    using Processing.Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -25,10 +21,11 @@ namespace ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="colorBlindness">The type of color blindness simulator to apply.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> ColorBlindness<TPixel>(this Image<TPixel> source, ColorBlindness colorBlindness)
+        public static IImageProcessingContext<TPixel> ColorBlindness<TPixel>(this IImageProcessingContext<TPixel> source, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
-            return ColorBlindness(source, colorBlindness, source.Bounds);
+            source.ApplyProcessor(GetProcessor<TPixel>(colorBlindness));
+            return source;
         }
 
         /// <summary>
@@ -41,48 +38,35 @@ namespace ImageSharp
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> ColorBlindness<TPixel>(this Image<TPixel> source, ColorBlindness colorBlindness, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> ColorBlindness<TPixel>(this IImageProcessingContext<TPixel> source, ColorBlindness colorBlindness, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            IImageProcessor<TPixel> processor;
+            source.ApplyProcessor(GetProcessor<TPixel>(colorBlindness), rectangle);
+            return source;
+        }
 
+        private static IImageProcessor<TPixel> GetProcessor<TPixel>(ColorBlindness colorBlindness)
+            where TPixel : struct, IPixel<TPixel>
+        {
             switch (colorBlindness)
             {
                 case ImageSharp.Processing.ColorBlindness.Achromatomaly:
-                    processor = new AchromatomalyProcessor<TPixel>();
-                    break;
-
+                    return new AchromatomalyProcessor<TPixel>();
                 case ImageSharp.Processing.ColorBlindness.Achromatopsia:
-                    processor = new AchromatopsiaProcessor<TPixel>();
-                    break;
-
+                    return new AchromatopsiaProcessor<TPixel>();
                 case ImageSharp.Processing.ColorBlindness.Deuteranomaly:
-                    processor = new DeuteranomalyProcessor<TPixel>();
-                    break;
-
+                    return new DeuteranomalyProcessor<TPixel>();
                 case ImageSharp.Processing.ColorBlindness.Deuteranopia:
-                    processor = new DeuteranopiaProcessor<TPixel>();
-                    break;
-
+                    return new DeuteranopiaProcessor<TPixel>();
                 case ImageSharp.Processing.ColorBlindness.Protanomaly:
-                    processor = new ProtanomalyProcessor<TPixel>();
-                    break;
-
+                    return new ProtanomalyProcessor<TPixel>();
                 case ImageSharp.Processing.ColorBlindness.Protanopia:
-                    processor = new ProtanopiaProcessor<TPixel>();
-                    break;
-
+                    return new ProtanopiaProcessor<TPixel>();
                 case ImageSharp.Processing.ColorBlindness.Tritanomaly:
-                    processor = new TritanomalyProcessor<TPixel>();
-                    break;
-
+                    return new TritanomalyProcessor<TPixel>();
                 default:
-                    processor = new TritanopiaProcessor<TPixel>();
-                    break;
+                    return new TritanopiaProcessor<TPixel>();
             }
-
-            source.ApplyProcessor(processor, rectangle);
-            return source;
         }
     }
 }

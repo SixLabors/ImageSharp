@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// <summary>
     /// Extension methods over Image{TPixel}
     /// </summary>
-    internal static class ImageExtensions
+    public static class ImageExtensions
     {
         /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer.

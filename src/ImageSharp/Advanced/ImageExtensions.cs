@@ -140,6 +140,5 @@ namespace SixLabors.ImageSharp.Advanced
         private static ref TPixel GetPixelReference<TPixel>(IPixelSource<TPixel> source, int x, int y)
             where TPixel : struct, IPixel<TPixel>
             => ref source.PixelBuffer[x, y];
-
     }
 }

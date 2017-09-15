@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Applies the processor to just a single ImageFrame
+        /// Applies the processor to just a single ImageBase
         /// </summary>
         /// <param name="source">the source image</param>
         /// <param name="sourceRectangle">the target</param>

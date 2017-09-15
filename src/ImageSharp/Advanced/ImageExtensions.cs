@@ -13,8 +13,9 @@ namespace SixLabors.ImageSharp.Advanced
     public static class ImageExtensions
     {
         /// <summary>
-        /// Returns a reference to the 0th element of the Pixel buffer.
-        /// Such a reference can be used for pinning but must never be dereferenced.
+        /// Returns a reference to the 0th element of the Pixel buffer,
+        /// allowing direct manipulation of pixel data through unsafe operations.
+        /// The pixel buffer is a contigous memory area containing Width*Height TPixel elements layed out in row-major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image frame</param>
@@ -24,8 +25,9 @@ namespace SixLabors.ImageSharp.Advanced
          => ref DangerousGetPinnableReferenceToPixelBuffer((IPixelSource<TPixel>)source);
 
         /// <summary>
-        /// Returns a reference to the 0th element of the Pixel buffer.
-        /// Such a reference can be used for pinning but must never be dereferenced.
+        /// Returns a reference to the 0th element of the Pixel buffer,
+        /// allowing direct manipulation of pixel data through unsafe operations.
+        /// The pixel buffer is a contigous memory area containing Width*Height TPixel elements layed out in row-major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>

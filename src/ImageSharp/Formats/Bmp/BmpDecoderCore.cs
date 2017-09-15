@@ -15,17 +15,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// The mask for the red part of the color for 16 bit rgb bitmaps.
+        /// The mask for the red part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16RMask = 0x00007C00;
 
         /// <summary>
-        /// The mask for the green part of the color for 16 bit rgb bitmaps.
+        /// The mask for the green part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16GMask = 0x000003E0;
 
         /// <summary>
-        /// The mask for the blue part of the color for 16 bit rgb bitmaps.
+        /// The mask for the blue part of the color for 16 bit None bitmaps.
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
@@ -94,9 +94,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 if (this.infoHeader.ClrUsed == 0)
                 {
-                    if (this.infoHeader.BitsPerPixel == 1 ||
-                        this.infoHeader.BitsPerPixel == 4 ||
-                        this.infoHeader.BitsPerPixel == 8)
+                    if (this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.MonoChrome) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette4) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette16) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette256))
                     {
                         colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
                     }
@@ -133,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 {
                     switch (this.infoHeader.Compression)
                     {
-                        case BmpCompression.RGB:
+                        case BmpCompression.None:
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
                                 this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -417,7 +418,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">this MSDN link</a> for more information.
         private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
         {
             return new BmpInfoHeader
@@ -443,7 +444,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">this MSDN link</a> for more information.
         private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
         {
             return new BmpInfoHeader

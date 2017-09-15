@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// Returns a reference to the 0th element of the Pixel buffer.
         /// Such a reference can be used for pinning but must never be dereferenced.
         /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image frame</param>
         /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
         public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this ImageFrame<TPixel> source)
@@ -26,6 +27,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// Returns a reference to the 0th element of the Pixel buffer.
         /// Such a reference can be used for pinning but must never be dereferenced.
         /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
         public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this Image<TPixel> source)

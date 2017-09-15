@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// This represents one Microsoft Windows BMP v2 and IBM OS/2 BMP v1 color table/palette element.
     /// <para>Supported since Windows 2.0, Windows CE 2.0 and OS/2 1.0.</para>

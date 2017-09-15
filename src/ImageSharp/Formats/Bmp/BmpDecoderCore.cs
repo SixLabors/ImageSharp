@@ -435,7 +435,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 YPelsPerMeter = 0,
                 ClrUsed = 0,
                 ClrImportant = 0,
-                Compression = BmpCompression.RGB
+                Compression = BmpCompression.None
             };
         }
 

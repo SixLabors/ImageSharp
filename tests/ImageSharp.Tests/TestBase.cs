@@ -3,12 +3,12 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
     using System.IO;
     using System.Reflection;
 
-    using ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats;
 
     /// <summary>
     /// The test base class. Inherit from this class for any image manipulation tests.

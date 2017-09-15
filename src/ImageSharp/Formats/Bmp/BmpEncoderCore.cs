@@ -50,9 +50,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
-            EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
+            var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            BmpInfoHeader infoHeader = new BmpInfoHeader
+            var infoHeader = new BmpInfoHeader
             {
                 HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
                 Height = image.Height,
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 ClrImportant = 0
             };
 
-            BmpFileHeader fileHeader = new BmpFileHeader
+            var fileHeader = new BmpFileHeader
             {
                 Type = 19778, // BM
                 Offset = 54,
@@ -134,11 +134,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 switch (this.bitsPerPixel)
                 {
-                    case BmpBitsPerPixel.Pixel32:
+                    case BmpBitsPerPixel.RGB32:
                         this.Write32Bit(writer, pixels);
                         break;
 
-                    case BmpBitsPerPixel.Pixel24:
+                    case BmpBitsPerPixel.RGB24:
                         this.Write24Bit(writer, pixels);
                         break;
                 }
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write32Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyxw, this.padding))
+            using (var row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyxw, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write24Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyx, this.padding))
+            using (var row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyx, this.padding))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {

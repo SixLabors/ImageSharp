@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp.Memory;
+
 namespace ImageSharp.Dithering.Ordered
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
     /// See <a href="https://en.wikipedia.org/wiki/Ordered_dithering"/>

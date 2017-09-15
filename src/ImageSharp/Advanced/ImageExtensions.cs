@@ -13,26 +13,24 @@ namespace SixLabors.ImageSharp.Advanced
     internal static class ImageExtensions
     {
         /// <summary>
-        /// Gets a reference to the pixel at the specified position.
+        /// Returns a reference to the 0th element of the Pixel buffer.
+        /// Such a reference can be used for pinning but must never be dereferenced.
         /// </summary>
         /// <param name="source">The source image frame</param>
-        /// <param name="x">The x coordinate (row)</param>
-        /// <param name="y">The y coordinate (position at row)</param>
-        /// <returns>A reference to the element.</returns>
-        public static ref TPixel GetPixelReference<TPixel>(this ImageFrame<TPixel> source, int x, int y)
+        /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
+        public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => ref GetPixelReference((IPixelSource<TPixel>)source, x, y);
+         => ref DangerousGetPinnableReferenceToPixelBuffer((IPixelSource<TPixel>)source);
 
         /// <summary>
-        /// Gets a reference to the pixel at the specified position.
+        /// Returns a reference to the 0th element of the Pixel buffer.
+        /// Such a reference can be used for pinning but must never be dereferenced.
         /// </summary>
-        /// <param name="source">The source image frame</param>
-        /// <param name="x">The x coordinate (row)</param>
-        /// <param name="y">The y coordinate (position at row)</param>
-        /// <returns>A reference to the element.</returns>
-        public static ref TPixel GetPixelReference<TPixel>(this Image<TPixel> source, int x, int y)
+        /// <param name="source">The source image</param>
+        /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
+        public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => ref source.Frames.RootFrame.GetPixelReference(x, y);
+         => ref source.Frames.RootFrame.DangerousGetPinnableReferenceToPixelBuffer();
 
         /// <summary>
         /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
@@ -131,14 +129,13 @@ namespace SixLabors.ImageSharp.Advanced
             => source?.Configuration ?? Configuration.Default;
 
         /// <summary>
-        /// Gets a reference to the pixel at the specified position.
+        /// Returns a reference to the 0th element of the Pixel buffer.
+        /// Such a reference can be used for pinning but must never be dereferenced.
         /// </summary>
         /// <param name="source">The source image frame</param>
-        /// <param name="x">The x coordinate (row)</param>
-        /// <param name="y">The y coordinate (position at row)</param>
         /// <returns>A reference to the element.</returns>
-        private static ref TPixel GetPixelReference<TPixel>(IPixelSource<TPixel> source, int x, int y)
+        private static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => ref source.PixelBuffer[x, y];
+            => ref source.PixelBuffer.Span.DangerousGetPinnableReference();
     }
 }

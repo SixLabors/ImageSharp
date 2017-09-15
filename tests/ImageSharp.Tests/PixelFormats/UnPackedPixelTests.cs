@@ -1,11 +1,12 @@
-﻿namespace ImageSharp.Tests.Colors
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Colors
 {
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     public class UnPackedPixelTests
     {
         [Fact]

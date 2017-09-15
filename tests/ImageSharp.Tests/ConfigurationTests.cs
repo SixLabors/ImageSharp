@@ -1,21 +1,18 @@
-﻿// <copyright file="ConfigurationTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
+using Moq;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-
-    using ImageSharp.Formats;
-    using ImageSharp.IO;
-    using ImageSharp.PixelFormats;
-    using Moq;
-    using Xunit;
-
     /// <summary>
     /// Tests the configuration class.
     /// </summary>
@@ -33,15 +30,15 @@ namespace ImageSharp.Tests
         [Fact]
         public void DefaultsToLocalFileSystem()
         {
-            Assert.IsType<LocalFileSystem>(DefaultConfiguration.FileSystem);
-            Assert.IsType<LocalFileSystem>(ConfigurationEmpty.FileSystem);
+            Assert.IsType<LocalFileSystem>(this.DefaultConfiguration.FileSystem);
+            Assert.IsType<LocalFileSystem>(this.ConfigurationEmpty.FileSystem);
         }
 
         [Fact]
         public void IfAutoloadWellknwonFormatesIsTrueAllFormateAreLoaded()
         {
-            Assert.Equal(4, DefaultConfiguration.ImageEncoders.Count());
-            Assert.Equal(4, DefaultConfiguration.ImageDecoders.Count());
+            Assert.Equal(4, this.DefaultConfiguration.ImageEncoders.Count());
+            Assert.Equal(4, this.DefaultConfiguration.ImageDecoders.Count());
         }
 
         /// <summary>
@@ -77,7 +74,7 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.AddImageFormatDetector(null);
+                this.DefaultConfiguration.AddImageFormatDetector(null);
             });
         }
 
@@ -86,15 +83,15 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetEncoder(null, new Mock<IImageEncoder>().Object);
+               this.DefaultConfiguration.SetEncoder(null, new Mock<IImageEncoder>().Object);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetEncoder(ImageFormats.Bitmap, null);
+                this.DefaultConfiguration.SetEncoder(ImageFormats.Bmp, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetEncoder(null, null);
+                this.DefaultConfiguration.SetEncoder(null, null);
             });
         }
 
@@ -103,29 +100,29 @@ namespace ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetDecoder(null, new Mock<IImageDecoder>().Object);
+                this.DefaultConfiguration.SetDecoder(null, new Mock<IImageDecoder>().Object);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetDecoder(ImageFormats.Bitmap, null);
+                this.DefaultConfiguration.SetDecoder(ImageFormats.Bmp, null);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DefaultConfiguration.SetDecoder(null, null);
+                this.DefaultConfiguration.SetDecoder(null, null);
             });
         }
 
         [Fact]
         public void RegisterMimeTypeEncoderReplacesLast()
         {
-            var encoder1 = new Mock<IImageEncoder>().Object;
-            ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder1);
-            var found = ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+            IImageEncoder encoder1 = new Mock<IImageEncoder>().Object;
+            this.ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder1);
+            IImageEncoder found = this.ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
             Assert.Equal(encoder1, found);
 
-            var encoder2 = new Mock<IImageEncoder>().Object;
-            ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder2);
-            var found2 = ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
+            IImageEncoder encoder2 = new Mock<IImageEncoder>().Object;
+            this.ConfigurationEmpty.SetEncoder(TestFormat.GlobalTestFormat, encoder2);
+            IImageEncoder found2 = this.ConfigurationEmpty.FindEncoder(TestFormat.GlobalTestFormat);
             Assert.Equal(encoder2, found2);
             Assert.NotEqual(found, found2);
         }
@@ -133,14 +130,14 @@ namespace ImageSharp.Tests
         [Fact]
         public void RegisterMimeTypeDecoderReplacesLast()
         {
-            var decoder1 = new Mock<IImageDecoder>().Object;
-            ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
-            var found = ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+            IImageDecoder decoder1 = new Mock<IImageDecoder>().Object;
+            this.ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder1);
+            IImageDecoder found = this.ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
             Assert.Equal(decoder1, found);
 
-            var decoder2 = new Mock<IImageDecoder>().Object;
-            ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
-            var found2 = ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
+            IImageDecoder decoder2 = new Mock<IImageDecoder>().Object;
+            this.ConfigurationEmpty.SetDecoder(TestFormat.GlobalTestFormat, decoder2);
+            IImageDecoder found2 = this.ConfigurationEmpty.FindDecoder(TestFormat.GlobalTestFormat);
             Assert.Equal(decoder2, found2);
             Assert.NotEqual(found, found2);
         }

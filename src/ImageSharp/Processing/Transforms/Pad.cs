@@ -1,18 +1,14 @@
-﻿// <copyright file="Pad.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using ImageSharp.Processing;
-    using Processing.Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -26,7 +22,7 @@ namespace ImageSharp
         /// <param name="width">The new width.</param>
         /// <param name="height">The new height.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Pad<TPixel>(this Image<TPixel> source, int width, int height)
+        public static IImageProcessingContext<TPixel> Pad<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             ResizeOptions options = new ResizeOptions

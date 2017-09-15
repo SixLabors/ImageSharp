@@ -1,15 +1,14 @@
-﻿// <copyright file="BmpDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats
-{
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
 
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
+{
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>
@@ -122,11 +121,11 @@ namespace ImageSharp.Formats
                     this.currentStream.Read(palette, 0, colorMapSize);
                 }
 
-                if (this.infoHeader.Width > Image<TPixel>.MaxWidth || this.infoHeader.Height > Image<TPixel>.MaxHeight)
+                if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
                 {
                     throw new ArgumentOutOfRangeException(
                         $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
-                        + $"bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
+                        + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
                 }
 
                 Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
@@ -135,11 +134,6 @@ namespace ImageSharp.Formats
                     switch (this.infoHeader.Compression)
                     {
                         case BmpCompression.RGB:
-                            if (this.infoHeader.HeaderSize != 40)
-                            {
-                                throw new ImageFormatException($"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
-                            }
-
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
                                 this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -374,11 +368,85 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] data = new byte[BmpInfoHeader.Size];
+            byte[] data = new byte[BmpInfoHeader.MaxHeaderSize];
 
-            this.currentStream.Read(data, 0, BmpInfoHeader.Size);
+            // read header size
+            this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
+            int headerSize = BitConverter.ToInt32(data, 0);
+            if (headerSize < BmpInfoHeader.BitmapCoreHeaderSize)
+            {
+                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
 
-            this.infoHeader = new BmpInfoHeader
+            int skipAmmount = 0;
+            if (headerSize > BmpInfoHeader.MaxHeaderSize)
+            {
+                skipAmmount = headerSize - BmpInfoHeader.MaxHeaderSize;
+                headerSize = BmpInfoHeader.MaxHeaderSize;
+            }
+
+            // read the rest of the header
+            this.currentStream.Read(data, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
+
+            switch (headerSize)
+            {
+                case BmpInfoHeader.BitmapCoreHeaderSize:
+                    this.infoHeader = this.ParseBitmapCoreHeader(data);
+                    break;
+                case BmpInfoHeader.BitmapInfoHeaderSize:
+                    this.infoHeader = this.ParseBitmapInfoHeader(data);
+                    break;
+                default:
+                    if (headerSize > BmpInfoHeader.BitmapInfoHeaderSize)
+                    {
+                        this.infoHeader = this.ParseBitmapInfoHeader(data);
+                        break;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    }
+            }
+
+            // skip the remaining header because we can't read those parts
+            this.currentStream.Skip(skipAmmount);
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
+        {
+            return new BmpInfoHeader
+            {
+                HeaderSize = BitConverter.ToInt32(data, 0),
+                Width = BitConverter.ToUInt16(data, 4),
+                Height = BitConverter.ToUInt16(data, 6),
+                Planes = BitConverter.ToInt16(data, 8),
+                BitsPerPixel = BitConverter.ToInt16(data, 10),
+
+                // the rest is not present in the core header
+                ImageSize = 0,
+                XPelsPerMeter = 0,
+                YPelsPerMeter = 0,
+                ClrUsed = 0,
+                ClrImportant = 0,
+                Compression = BmpCompression.RGB
+            };
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPINFOHEADER format.
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
+        {
+            return new BmpInfoHeader
             {
                 HeaderSize = BitConverter.ToInt32(data, 0),
                 Width = BitConverter.ToInt32(data, 4),

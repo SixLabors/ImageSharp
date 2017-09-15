@@ -1,17 +1,15 @@
-﻿// <copyright file="ShapeRegion.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing
+using System;
+using System.Buffers;
+using System.Numerics;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
+
+namespace SixLabors.ImageSharp.Drawing
 {
-    using System;
-    using System.Buffers;
-    using System.Numerics;
-    using ImageSharp.Memory;
-    using SixLabors.Primitives;
-    using SixLabors.Shapes;
-
     /// <summary>
     /// A mapping between a <see cref="IPath"/> and a region.
     /// </summary>
@@ -44,18 +42,18 @@ namespace ImageSharp.Drawing
         public override Rectangle Bounds { get; }
 
         /// <inheritdoc/>
-        public override int Scan(float y, Span<float> buffer)
+        public override int Scan(float y, float[] buffer, int offset)
         {
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
             using (var innerBuffer = new Buffer<PointF>(buffer.Length))
             {
-                var span = innerBuffer.Span;
-                int count = this.Shape.FindIntersections(start, end, span);
+                PointF[] array = innerBuffer.Array;
+                int count = this.Shape.FindIntersections(start, end, array, 0);
 
                 for (int i = 0; i < count; i++)
                 {
-                    buffer[i] = span[i].X;
+                    buffer[i + offset] = array[i].X;
                 }
 
                 return count;

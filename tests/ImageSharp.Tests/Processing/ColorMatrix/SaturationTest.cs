@@ -1,50 +1,32 @@
-﻿// <copyright file="SaturationTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.ColorMatrix
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.ColorMatrix
 {
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
-    public class SaturationTest : FileTestBase
+    public class SaturationTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<int> SaturationValues
-        = new TheoryData<int>
-        {
-            50 ,
-           -50 ,
-        };
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), DefaultPixelType)]
-        public void ImageShouldApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Saturation_amount_SaturationProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Saturation(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
-            }
+            this.operations.Saturation(34);
+            var processor = this.Verify<SaturationProcessor<Rgba32>>();
+
+            Assert.Equal(34, processor.Amount);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), DefaultPixelType)]
-        public void ImageShouldApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void Saturation_amount_rect_SaturationProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.Saturation(5, this.rect);
+            var processor = this.Verify<SaturationProcessor<Rgba32>>(this.rect);
 
-                image.Saturation(value, bounds)
-                    .DebugSave(provider, value, Extensions.Bmp);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            Assert.Equal(5, processor.Amount);
         }
     }
 }

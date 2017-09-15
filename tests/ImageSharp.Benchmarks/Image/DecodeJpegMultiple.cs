@@ -3,11 +3,17 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System.Collections.Generic;
+    using System.IO;
+
     using BenchmarkDotNet.Attributes;
 
+    using ImageSharp.Formats;
+    using ImageSharp.Formats.Jpeg.GolangPort;
+    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Formats.Jpeg;
     using CoreImage = ImageSharp.Image;
 
     [Config(typeof(Config.Short))]
@@ -15,19 +21,20 @@ namespace ImageSharp.Benchmarks.Image
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[]
         {
-            "Jpg/"
+            "Jpg/baseline",
+            "Jpg/progressive",
         };
 
         protected override IEnumerable<string> SearchPatterns => new[] { "*.jpg" };
 
         [Benchmark(Description = "DecodeJpegMultiple - ImageSharp")]
-        public void DecodeJpegImageSharp()
+        public void DecodeJpegImageSharpNwq()
         {
             this.ForEachStream(
                 ms => CoreImage.Load<Rgba32>(ms)
                 );
         }
-
+        
         [Benchmark(Baseline = true, Description = "DecodeJpegMultiple - System.Drawing")]
         public void DecodeJpegSystemDrawing()
         {
@@ -35,6 +42,5 @@ namespace ImageSharp.Benchmarks.Image
                 System.Drawing.Image.FromStream
                 );
         }
-
     }
 }

@@ -1,18 +1,16 @@
-﻿// <copyright file="BlankProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit.Abstractions;
-
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
@@ -49,7 +47,7 @@ namespace ImageSharp.Tests
                     }
                 }
 
-                return new Image<TPixel>(testImages[this.SourceFileOrDescription]);
+                return testImages[this.SourceFileOrDescription].Clone();
             }
 
             /// <summary>
@@ -62,7 +60,7 @@ namespace ImageSharp.Tests
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     BlackWhiteChecker(pixels); // top left
-                    VirticalBars(pixels); // top right
+                    VerticalBars(pixels); // top right
                     TransparentGradients(pixels); // bottom left
                     Rainbow(pixels); // bottom right
                 }
@@ -71,7 +69,7 @@ namespace ImageSharp.Tests
             /// Fills the top right quadrant with alternating solid vertical bars.
             /// </summary>
             /// <param name="pixels"></param>
-            private static void VirticalBars(PixelAccessor<TPixel> pixels)
+            private static void VerticalBars(PixelAccessor<TPixel> pixels)
             {
                 // topLeft
                 int left = pixels.Width / 2;
@@ -80,9 +78,9 @@ namespace ImageSharp.Tests
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 12;
                 TPixel[] c = {
-                        NamedColors<TPixel>.HotPink,
-                        NamedColors<TPixel>.Blue
-                    };
+                                     NamedColors<TPixel>.HotPink,
+                                     NamedColors<TPixel>.Blue
+                                 };
                 int p = 0;
                 for (int y = top; y < bottom; y++)
                 {
@@ -111,9 +109,9 @@ namespace ImageSharp.Tests
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 6;
                 TPixel[] c = {
-                        NamedColors<TPixel>.Black,
-                        NamedColors<TPixel>.White
-                    };
+                                     NamedColors<TPixel>.Black,
+                                     NamedColors<TPixel>.White
+                                 };
 
                 int p = 0;
                 for (int y = top; y < bottom; y++)
@@ -199,14 +197,14 @@ namespace ImageSharp.Tests
                 Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
-                    for (int y = top; y < bottom; y++)
-                    {
-                        t.PackedValue += stepsPerPixel;
-                        Vector4 v = t.ToVector4();
-                        //v.W = (x - left) / (float)left;
-                        c.PackFromVector4(v);
-                        pixels[x, y] = c;
-                    }
+                for (int y = top; y < bottom; y++)
+                {
+                    t.PackedValue += stepsPerPixel;
+                    Vector4 v = t.ToVector4();
+                    //v.W = (x - left) / (float)left;
+                    c.PackFromVector4(v);
+                    pixels[x, y] = c;
+                }
             }
         }
     }

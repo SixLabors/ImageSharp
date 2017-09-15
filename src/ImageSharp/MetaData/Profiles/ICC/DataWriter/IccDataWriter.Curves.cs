@@ -1,12 +1,10 @@
-﻿// <copyright file="IccDataWriter.Curves.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System.Numerics;
+
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System.Numerics;
-
     /// <content>
     /// Provides methods to write ICC data types
     /// </content>

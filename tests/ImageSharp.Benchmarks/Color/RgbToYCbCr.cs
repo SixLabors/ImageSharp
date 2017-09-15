@@ -1,14 +1,16 @@
-﻿namespace ImageSharp.Benchmarks
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System;
-    using System.Buffers;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using BenchmarkDotNet.Attributes;
-
-    using ImageSharp.Formats.Jpg;
-
     public partial class RgbToYCbCr
     {
         private const int InputColorCount = 64;

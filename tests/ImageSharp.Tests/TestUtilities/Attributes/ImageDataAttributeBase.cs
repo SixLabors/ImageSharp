@@ -1,17 +1,14 @@
-﻿// <copyright file="ImageDataAttributeBase.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Xunit.Sdk;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-
-    using Xunit.Sdk;
-
     /// <summary>
     /// Base class for Theory Data attributes which pass an instance of <see cref="TestImageProvider{TPixel}"/> to the test case.
     /// </summary>
@@ -54,7 +51,7 @@ namespace ImageSharp.Tests
             if (!string.IsNullOrWhiteSpace(this.MemberName))
             {
                 Type type = this.MemberType ?? testMethod.DeclaringType;
-                Func<object> accessor = this.GetPropertyAccessor(type) ?? this.GetFieldAccessor(type);
+                Func<object> accessor = this.GetPropertyAccessor(type, this.MemberName) ?? this.GetFieldAccessor(type, this.MemberName);
 
                 if (accessor != null)
                 {
@@ -156,12 +153,12 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Gets the field accessor for the given type.
         /// </summary>
-        Func<object> GetFieldAccessor(Type type)
+        protected Func<object> GetFieldAccessor(Type type, string memberName)
         {
             FieldInfo fieldInfo = null;
             for (Type reflectionType = type; reflectionType != null; reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
-                fieldInfo = reflectionType.GetRuntimeField(this.MemberName);
+                fieldInfo = reflectionType.GetRuntimeField(memberName);
                 if (fieldInfo != null)
                     break;
             }
@@ -175,12 +172,12 @@ namespace ImageSharp.Tests
         /// <summary>
         /// Gets the property accessor for the given type.
         /// </summary>
-        Func<object> GetPropertyAccessor(Type type)
+        protected Func<object> GetPropertyAccessor(Type type, string memberName)
         {
             PropertyInfo propInfo = null;
             for (Type reflectionType = type; reflectionType != null; reflectionType = reflectionType.GetTypeInfo().BaseType)
             {
-                propInfo = reflectionType.GetRuntimeProperty(this.MemberName);
+                propInfo = reflectionType.GetRuntimeProperty(memberName);
                 if (propInfo != null)
                 {
                     break;

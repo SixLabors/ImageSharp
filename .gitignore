@@ -219,3 +219,4 @@ artifacts/
 docs/
 /samples/AvatarWithRoundedCorner/output
 /ImageSharp.Coverage.xml
+/samples/DrawWaterMarkOnImage/output

@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Stores general information about the Bitmap file.
-    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format">this Wikipedia link</a> for more information.
+    /// <see href="https://en.wikipedia.org/wiki/BMP_file_format" />
     /// </summary>
     /// <remarks>
     /// The first two bytes of the Bitmap file format

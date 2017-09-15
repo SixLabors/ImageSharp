@@ -1,7 +1,10 @@
-namespace ImageSharp.Formats
-{
-    using System.Runtime.InteropServices;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
+{
     /// <summary>
     /// This is the Windows BMP v2 and OS/2 BMP v1 (or later) file header that
     /// contains information about the type, size, and layout of the contained DIB (Device Independent Bitmap).

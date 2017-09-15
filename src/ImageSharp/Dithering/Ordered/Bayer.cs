@@ -3,10 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp.Memory;
+
 namespace ImageSharp.Dithering.Ordered
 {
-    using ImageSharp.Memory;
-
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 Bayer dithering matrix.
     /// See <a href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// This block of bytes tells the application detailed information
     /// about the image, which will be used to display the image on
     /// the screen.
-    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format">this Wikipedia link</a> for more information.
+    /// <see href="https://en.wikipedia.org/wiki/BMP_file_format"/>
     /// </summary>
     internal sealed class BmpInfoHeader
     {
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Gets or sets the number of bits per pixel, which is the color depth of the image.
-        /// Valid values are 1, 4, 8, 16, 24 and 32. Windows CE supports 2 bpp BMPs.
+        /// Typical values are 1, 4, 8, 16, 24 and 32.
         /// </summary>
         public short BitsPerPixel { get; set; }
 
@@ -82,13 +82,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Gets or sets the number of colors in the color palette,
-        /// or 0 to default to 2^BitsPerPixel.
+        /// or 0 to default to 2^n.
         /// </summary>
         public int ClrUsed { get; set; }
 
         /// <summary>
         /// Gets or sets the number of important colors used,
-        /// or 0 when every color is important (generally ignored by applications).
+        /// or 0 when every color is important{ get; set; } generally ignored.
         /// </summary>
         public int ClrImportant { get; set; }
     }

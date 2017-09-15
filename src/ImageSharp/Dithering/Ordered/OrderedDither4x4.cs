@@ -3,11 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace ImageSharp.Dithering.Ordered
 {
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// The base class for performing ordered ditheroing using a 4x4 matrix.
     /// </summary>
@@ -27,8 +29,8 @@ namespace ImageSharp.Dithering.Ordered
             this.matrix = matrix;
         }
 
-        /// <inheritdoc />
-        public void Dither<TPixel>(ImageBase<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y, int width, int height)
+        /// <inheritdoc/>
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: This doesn't really cut it for me.

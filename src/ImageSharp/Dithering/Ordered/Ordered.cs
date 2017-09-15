@@ -5,7 +5,7 @@
 
 namespace ImageSharp.Dithering.Ordered
 {
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Memory;
 
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.

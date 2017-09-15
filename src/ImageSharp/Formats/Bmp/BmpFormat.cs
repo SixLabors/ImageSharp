@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Registers the image encoders, decoders and mime type detectors for the BMP format.
+    /// Registers the image encoders, decoders and mime type detectors for the bmp format.
     /// </summary>
     internal sealed class BmpFormat : IImageFormat
     {

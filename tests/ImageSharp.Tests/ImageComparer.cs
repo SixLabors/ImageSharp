@@ -7,8 +7,8 @@ namespace ImageSharp.Tests
 {
     using System;
     using ImageSharp;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.Primitives;
     using Xunit;
 

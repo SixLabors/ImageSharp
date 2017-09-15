@@ -13,12 +13,34 @@ namespace SixLabors.ImageSharp.Advanced
     internal static class ImageExtensions
     {
         /// <summary>
+        /// Gets a reference to the pixel at the specified position.
+        /// </summary>
+        /// <param name="source">The source image frame</param>
+        /// <param name="x">The x coordinate (row)</param>
+        /// <param name="y">The y coordinate (position at row)</param>
+        /// <returns>A reference to the element.</returns>
+        public static ref TPixel GetPixelReference<TPixel>(this ImageFrame<TPixel> source, int x, int y)
+            where TPixel : struct, IPixel<TPixel>
+         => ref GetPixelReference((IPixelSource<TPixel>)source, x, y);
+
+        /// <summary>
+        /// Gets a reference to the pixel at the specified position.
+        /// </summary>
+        /// <param name="source">The source image frame</param>
+        /// <param name="x">The x coordinate (row)</param>
+        /// <param name="y">The y coordinate (position at row)</param>
+        /// <returns>A reference to the element.</returns>
+        public static ref TPixel GetPixelReference<TPixel>(this Image<TPixel> source, int x, int y)
+            where TPixel : struct, IPixel<TPixel>
+         => ref source.Frames.RootFrame.GetPixelReference(x, y);
+
+        /// <summary>
         /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
+        internal static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => GetSpan(source);
 
@@ -29,7 +51,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int row)
+        internal static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
             => GetSpan(source, row);
 
@@ -39,7 +61,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
+        internal static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelSpan();
 
@@ -50,7 +72,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int row)
+        internal static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelRowSpan(row);
 
@@ -60,7 +82,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>Returns the configuration.</returns>
-        public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
+        internal static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => GetConfiguration((IConfigurable)source);
 
@@ -107,5 +129,17 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>Returns the bounds of the image</returns>
         private static Configuration GetConfiguration(IConfigurable source)
             => source?.Configuration ?? Configuration.Default;
+
+        /// <summary>
+        /// Gets a reference to the pixel at the specified position.
+        /// </summary>
+        /// <param name="source">The source image frame</param>
+        /// <param name="x">The x coordinate (row)</param>
+        /// <param name="y">The y coordinate (position at row)</param>
+        /// <returns>A reference to the element.</returns>
+        private static ref TPixel GetPixelReference<TPixel>(IPixelSource<TPixel> source, int x, int y)
+            where TPixel : struct, IPixel<TPixel>
+            => ref source.PixelBuffer[x, y];
+
     }
 }

@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// This value is calculated by the formula:
         /// <para><c>    FileHeaderSize + InfoHeaderSize + PaletteDataSize + GapOptional1 + ImageDataSize + GapOptional2 + IccProfileSize</c></para>
         /// <para><c>    PaletteDataSize = PaletteNumberOfEntries * PaletteElementSize</c></para>
-        /// <para><c>    ImageDataSize = RowSize * modulos(ImageHeight)</c></para>
+        /// <para><c>    ImageDataSize = RowSize * modulus(ImageHeight)</c></para>
         /// <para><c>    RowSize = floor(((BitsPerPixel * ImageWidth) + 31) / 32) * 4</c></para>
         /// <para><c>    PaletteNumberOfEntries_Maximum = 1 &lt;&lt; BitsPerPixel</c></para>
         /// <para><c>    PaletteNumberOfEntries_Present = (BITMAPFILEHEADER.PixelsOffset - FileHeaderSize - InfoHeaderSize) / PaletteElementSize</c></para>

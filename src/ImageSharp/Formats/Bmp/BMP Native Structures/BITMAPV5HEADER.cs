@@ -40,7 +40,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Specifies the height of the bitmap in pixels.
         /// <para>If <c>BITMAPV5HEADER.Height</c> is positive, the bitmap is a bottom-up DIB and its origin is the lower-left corner.</para>
         /// <para>If <c>BITMAPV5HEADER.Height</c> is negative, the bitmap is a top-down DIB and its origin is the upper-left corner.</para>
-        /// <para>Top-down DIBs cannot be compressed: <c>BITMAPV5HEADER.Compression</c> must be either <c>BmpCompression.None</c>,<c>BmpCompression.BitFields</c> or <c>BmpCompression.AlphaBitFields</c>.</para>
+        /// <para>Top-down DIBs cannot be compressed: <c>BITMAPV5HEADER.Compression</c> must be either <c>BmpCompression.None</c>,
+        /// <c>BmpCompression.BitFields</c> or <c>BmpCompression.AlphaBitFields</c>.</para>
         /// <remarks>
         /// On Windows 98, Windows 2000 and above: If <c>BITMAPV5HEADER.Compression</c> is <c>BmpCompression.JPEG</c> or <c>BmpCompression.PNG</c>,
         /// the <c>BITMAPV5HEADER.Width</c> member specifies the width of the decompressed JPEG or PNG image file, respectively.
@@ -55,7 +56,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The number of bits-per-pixel (bpp). This value must be one of: 1, 2, 4, 8, 24 or 32.
-        /// <para>If <c>BITMAPV5HEADER.BitsPerPixel</c> is 0, <c>BITMAPV5HEADER.Compression</c> must be either <c>BmpCompression.JPEG</c> or <c>BmpCompression.PNG</c>.</para>
+        /// <para>If <c>BITMAPV5HEADER.BitsPerPixel</c> is 0, <c>BITMAPV5HEADER.Compression</c> must be either <c>BmpCompression.JPEG</c> or
+        /// <c>BmpCompression.PNG</c>.</para>
         /// <para>If <c>BITMAPV5HEADER.BitsPerPixel</c> is 2, the bitmap is Windows CE 1.0 and above specific.</para>
         /// </summary>
         /// <remarks>

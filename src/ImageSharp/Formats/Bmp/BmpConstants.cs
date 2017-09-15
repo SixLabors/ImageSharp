@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal static class BmpConstants
     {
         /// <summary>
-        /// The list of mimetypes that equate to a bmp.
+        /// The list of mimetypes that equate to a BMP.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/bmp", "image/x-windows-bmp" };
 

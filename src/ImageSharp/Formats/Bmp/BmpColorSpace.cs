@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// The color space used on the Microsoft Windows BMP v4 (and later versions) image DIB or file.
     /// </summary>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this MSDN link</a> for more information.
     internal enum BmpColorSpace
     {
         // Microsoft Windows BMP v4

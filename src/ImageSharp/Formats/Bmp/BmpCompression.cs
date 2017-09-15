@@ -9,8 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// Defines how the compression type of the image data
     /// in the bitmap file.
     /// </para>
-    /// <para>See: https://en.wikipedia.org/wiki/BMP_file_format </para>
     /// </summary>
+    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format">this Wikipedia link</a> for more information.
     internal enum BmpCompression
     {
         // Microsoft Windows BMP v3 and IBM OS/2 BMP v2
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>Supported by Windows CE .NET 4.0 or later.</para>
         /// <para>Implemented on Windows BMP v3.</para>
         /// </summary>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/aa452885.aspx">this link</a> for more information.
+        /// See <a href="https://msdn.microsoft.com/en-us/library/aa452885.aspx">this MSDN link</a> for more information.
         AlphaBitFields = 6,
 
         // Windows Metafile Specific

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// Make shore that <c>sizeof(RGBTRIPLE)</c> returns the size of 3 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
     /// </remarks>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">this link</a> for more information.
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
     internal struct RGBTRIPLE
     {

@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// Enumerates the available bits per pixel for bitmap.
     /// The number of bits-per-pixel (bpp) used in the Microsoft Windows BMP and IBM OS/2 BMP image DIB or file.
     /// </summary>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this MSDN link</a> for more information.
     public enum BmpBitsPerPixel
     {
         // Microsoft Windows BMP v2 and IBM OS/2 BMP v1

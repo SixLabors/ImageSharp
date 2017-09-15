@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Registers the image encoders, decoders and mime type detectors for the bmp format.
+    /// Registers the image encoders, decoders and mime type detectors for the BMP format.
     /// </summary>
     public sealed class BmpConfigurationModule : IConfigurationModule
     {

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// Make shore that <c>sizeof(RGBQUAD)</c> returns the size of 4 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
     /// </remarks>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
+    /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 4)]
     internal struct RGBQUAD
     {
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Not used on Windows BMP v3 and OS/2 BMP v2 and older versions (reserved and must be 0).
         /// </summary>
-        /// <remarks>Optional Alpha color channel on Windows BMP v4. Normaly set to 0.</remarks>
+        /// <remarks>Optional Alpha color channel on Windows BMP v4. Default is set to 0.</remarks>
         public byte Alpha;
     }
 }

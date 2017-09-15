@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Configuration options for use during bmp encoding
+    /// Configuration options for use during BMP encoding
     /// </summary>
     /// <remarks>The encoder can currently only write 24-bit RGB images to streams.</remarks>
     internal interface IBmpEncoderOptions

@@ -13,7 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <remarks>
     /// Make shore that <c>sizeof(OS22XBITMAPHEADER)</c> returns the size of 64 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
-    /// <para>The colors (<seealso cref="RGBQUAD"></seealso>) in the palette table should appear in order of importance and must follow this structure.</para>
+    /// <para>The colors (<seealso cref="RGBQUAD"></seealso>) in the palette table should appear in order
+    /// of importance and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
     /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this FileFormat link</a> for more information.

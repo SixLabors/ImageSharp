@@ -1,9 +1,9 @@
-﻿// <copyright file="IccDataToDataConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
 {
     /// <summary>
     /// Color converter for ICC profiles

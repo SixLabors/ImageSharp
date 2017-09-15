@@ -3,11 +3,12 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.Icc
-{
-    using System;
-    using System.Numerics;
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
+{
     /// <summary>
     /// Color converter for ICC profiles
     /// </summary>

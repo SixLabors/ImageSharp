@@ -1,8 +1,12 @@
-﻿namespace ImageSharp.Tests.Colorspaces.Icc
-{
-    using System.Collections.Generic;
-    using Xunit;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
+{
     /// <summary>
     /// Tests ICC conversion with tone reproduction curves
     /// </summary>

@@ -1,4 +1,9 @@
-﻿namespace ImageSharp.Tests.Colorspaces.Icc
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
 {
     public class IccConversionDataTrc
     {

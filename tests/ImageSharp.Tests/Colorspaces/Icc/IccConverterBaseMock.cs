@@ -1,7 +1,11 @@
-﻿namespace ImageSharp.Tests.Colorspaces.Icc
-{
-    using ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
+{
     internal class IccConverterBaseMock : IccConverterBase
     {
         public new float[] CalculateMpeCurveSet(IccCurveSetProcessElement element, float[] values)

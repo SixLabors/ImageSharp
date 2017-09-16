@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
     /// <summary>
-    /// The None filter, the scanline is transmitted unmodified; it is only necessary to
+    /// The RGB filter, the scanline is transmitted unmodified; it is only necessary to
     /// insert a filter type byte before the data.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>

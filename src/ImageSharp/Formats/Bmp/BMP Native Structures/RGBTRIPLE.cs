@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// This represents one Microsoft Windows BMP v2 and IBM OS/2 BMP v1 color table/palette element.
     /// <para>Supported since Windows 2.0, Windows CE 2.0 and OS/2 1.0.</para>
-    /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
+    /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(RGBTRIPLE)</c> returns the size of 3 bytes and is byte aligned.

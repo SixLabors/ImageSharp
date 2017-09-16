@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// This is the OS/2 2.x BMP v2 DIB (Device Independent Bitmap) information header.
     /// <para>Supported since OS/2 2.0.</para>
-    /// <para>Implemented on OS/2 BMP v2 format.</para>
+    /// <para>Implemented on IBM OS/2 BMP v2 format.</para>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(OS22XBITMAPHEADER)</c> returns the size of 64 bytes and is byte aligned.
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 64)]
     internal struct OS22XBITMAPHEADER
     {
-        // Fields for IBM OS/2 BMP v1 and Microsoft Windows BMP v2
+        // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 DIB header
 
         /// <summary>
         /// The size in bytes required to store this structure: Must be between 16 and 64 bytes.
@@ -57,19 +57,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso cref="Compression"></seealso>
         public ushort BitsPerPixel;
 
-        // Fields added for IBM OS/2 BMP v2
+        // ** Fields added for IBM OS/2 BMP v2 DIB header
 
         /// <summary>
-        /// Specifies the type of compression for a compressed bottom-up bitmap (top-down DIBs cannot be compressed).
+        /// Specifies the type of compression scheme used for compressing a bottom-up bitmap (top-down DIBs cannot be compressed).
         /// <para>
         /// This value must be one of:
         /// <list type="table">
         /// <listheader>
         /// <term>Value</term>
-        /// <description>Type of Compression</description>
+        /// <description>Compression Scheme</description>
         /// </listheader>
         /// <item>
-        /// <term>0 - <seealso cref="BmpOS2Compression.None"></seealso></term>
+        /// <term>0 - <seealso cref="BmpOS2Compression.RGB"></seealso></term>
         /// <description>Uncompressed</description>
         /// </item>
         /// <item>
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public uint Compression;
 
         /// <summary>
-        /// Specifies the size, in bytes, of the image. This may be set to 0 for <seealso cref="BmpOS2Compression.None"></seealso> bitmaps.
+        /// Specifies the size, in bytes, of the image. This may be set to 0 for <seealso cref="BmpOS2Compression.RGB"></seealso> bitmaps.
         /// </summary>
         public uint ImageSize;
 
@@ -157,59 +157,72 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public ushort Units;
 
         /// <summary>
-        /// <term>Reserved</term>
-        /// <description>Unused and is always set to a value of zero.
-        /// Pad structure to 4-byte boundary.</description>
+        /// Reserved for future use. Must be set to 0.
+        /// <para>Pad structure to 4-byte boundary.</para>
         /// </summary>
         public ushort Reserved;
 
         /// <summary>
-        /// <term>Recording</term>
-        /// <description>Specifies how the bitmap scan lines are stored.
-        /// The only valid value for this field is 0,
+        /// Specifies how the bitmap scan lines are stored.
+        /// <para>The only valid value for this field is 0,
         /// indicating that the bitmap is stored from left to right and from the bottom up,
-        /// with the origin being in the lower-left corner of the display.</description>
+        /// with the origin being in the lower-left corner of the display.</para>
         /// </summary>
         public ushort Recording;
 
         /// <summary>
-        /// <term>Rendering</term>
-        /// <description>Specifies the halftoning algorithm used on the bitmap data.
-        /// A value of 0 indicates that no halftoning algorithm was used;
-        /// 1 indicates error diffusion halftoning;
-        /// 2 indicates Processing Algorithm for Noncoded Document Acquisition (PANDA);
-        /// and 3 indicates super-circle halftoning.</description>
-        /// </summary>
+        /// Specifies the halftoning algorithm used when compressing the bitmap data.
+        /// <para>
+        /// This value must be one of:
+        /// <list type="table">
+        /// <listheader>
+        /// <term>Value</term>
+        /// <description>Halftoning Algorithm</description>
+        /// </listheader>
+        /// <item>
+        /// <term>0 - <seealso cref="BmpOS2CompressionHalftoning.NoHalftoning"></seealso></term>
+        /// <description>No halftoning algorithm was used</description>
+        /// </item>
+        /// <item>
+        /// <term>1 - <seealso cref="BmpOS2CompressionHalftoning.ErrorDiffusion"></seealso></term>
+        /// <description>Error Diffusion</description>
+        /// </item>
+        /// <item>
+        /// <term>2 - <seealso cref="BmpOS2CompressionHalftoning.Panda"></seealso></term>
+        /// <description>Processing Algorithm for Noncoded Document Acquisition (PANDA)</description>
+        /// </item>
+        /// <item>
+        /// <term>3 - <seealso cref="BmpOS2CompressionHalftoning.SuperCircle"></seealso></term>
+        /// <description>Super-Circle</description>
+        /// </item>
+        /// </list>
+        /// </para>
         public ushort Rendering;
 
         /// <summary>
-        /// <term>Size1</term>
-        /// <description><c>OS22XBITMAPHEADER.Size1</c> and <c>OS22XBITMAPHEADER.Size2</c> are reserved fields used only by the halftoning algorithm.
-        /// If error diffusion halftoning is used, Size1 is the error damping as a percentage in the range 0 through 100.
-        /// A value of 100 percent indicates no damping, and a value of 0 percent indicates that any errors are not diffused.
-        /// Size2 is not used by error diffusion halftoning.
-        /// If PANDA or super-circle halftoning is specified, <c>OS22XBITMAPHEADER.Size1</c> is the X dimension and <c>OS22XBITMAPHEADER.Size2</c>
-        /// is the Y dimension of the pattern used in pixels.</description>
+        /// Reserved field used only by the halftoning algorithm.
+        /// <para>If Error Diffusion halftoning is used, this is the error damping as a percentage in the range 0 through 100.
+        /// A value of 100 percent indicates no damping, and a value of 0 percent indicates that any errors are not diffused.</para>
+        /// <para>If PANDA or Super-Circle halftoning is specified, this is the X dimension of the pattern used in pixels.</para>
         /// </summary>
         public uint Size1;
 
         /// <summary>
-        /// <term>Size2</term>
-        /// <description>See <c>Size1</c>.</description>
+        /// Reserved field used only by the halftoning algorithm.
+        /// <para>If Error Diffusion halftoning is used, this field is not used by error diffusion halftoning.</para>
+        /// <para>If PANDA or Super-Circle halftoning is specified, this is the Y dimension of the pattern used in pixels.</para>
         /// </summary>
         public uint Size2;
 
         /// <summary>
-        /// <term>ColorEncoding</term>
-        /// <description>Color model used to describe the bitmap data.
-        /// The only valid value is 0, indicating the None encoding scheme.</description>
+        /// Color model used to describe the bitmap data.
+        /// <para>The only valid value is 0, indicating the RGB encoding scheme.</para>
         /// </summary>
         public uint ColorEncoding;
 
         /// <summary>
-        /// <term>Identifier</term>
-        /// <description>Reserved for application use and may
-        /// contain an application-specific value. Normally is set to 0.</description>
+        /// Reserved for application use and may contain an application-specific value.
+        /// <para>Normally is set to 0.</para>
         /// </summary>
         public uint Identifier;
     }

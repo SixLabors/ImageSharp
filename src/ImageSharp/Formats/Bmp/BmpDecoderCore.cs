@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private const int Rgb16GMask = 0x000003E0;
 
         /// <summary>
-        /// The mask for the blue part of the color for 16 bit None bitmaps.
+        /// The mask for the blue part of the color for 16 bit RGB bitmaps.
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
@@ -129,12 +129,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
                 }
 
-                Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)
                     {
-                        case BmpCompression.None:
+                        case BmpCompression.RGB:
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
                                 this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -238,9 +238,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             byte[] row = new byte[arrayWidth + padding];
-            TPixel color = default(TPixel);
+            var color = default(TPixel);
 
-            Rgba32 rgba = default(Rgba32);
+            var rgba = default(Rgba32);
 
             for (int y = 0; y < height; y++)
             {
@@ -286,10 +286,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             const int ScaleG = 4; // 256/64
             const int ComponentCount = 2;
 
-            TPixel color = default(TPixel);
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var color = default(TPixel);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -328,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -352,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -435,7 +435,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 YPelsPerMeter = 0,
                 ClrUsed = 0,
                 ClrImportant = 0,
-                Compression = BmpCompression.None
+                Compression = BmpCompression.RGB
             };
         }
 
@@ -474,10 +474,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             this.fileHeader = new BmpFileHeader
             {
-                Type = BitConverter.ToInt16(data, 0),
-                FileSize = BitConverter.ToInt32(data, 2),
-                Reserved = BitConverter.ToInt32(data, 6),
-                Offset = BitConverter.ToInt32(data, 10)
+                Type = BitConverter.ToUInt16(data, 0),
+                FileSize = BitConverter.ToUInt32(data, 2),
+                Reserved1 = BitConverter.ToUInt16(data, 6),
+                Reserved2 = BitConverter.ToUInt16(data, 8),
+                Offset = BitConverter.ToUInt32(data, 10)
             };
         }
     }

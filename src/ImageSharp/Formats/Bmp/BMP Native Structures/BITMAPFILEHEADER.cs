@@ -6,24 +6,24 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// This is the Windows BMP v2 and OS/2 BMP v1 (or later) file header that
+    /// This is the Microsoft Windows BMP v2 and IBM OS/2 BMP v1 (and later) file header that
     /// contains information about the type, size, and layout of the contained DIB (Device Independent Bitmap).
     /// <para>Supported since Windows 2.0, Windows CE 2.0 and OS/2 1.0.</para>
-    /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
+    /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(BITMAPFILEHEADER)</c> returns the size of 12 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
     /// <para>
     /// The DIB information header must follow the <c>BITMAPFILEHEADER</c> structure, and consist of one of
-    /// <c>OS22XBITMAPHEADER</c>, <c>BITMAPCOREHEADER</c>, <c>BITMAPV5HEADER</c>, etc. structures.
+    /// <seealso cref="OS22XBITMAPHEADER"></seealso>, <seealso cref="BITMAPCOREHEADER"></seealso>, <seealso cref="BITMAPV5HEADER"></seealso>, etc. structures.
     /// </para>
     /// </remarks>
     /// See <a href="https://msdn.microsoft.com/en-us/library/dd183374(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 14)]
     internal struct BITMAPFILEHEADER
     {
-        // Microsoft Windows BMP v2 and IBM OS/2 BMP v1
+        // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file header
 
         /// <summary>
         /// Specifies the BMP file type "Magic ID", must be "BM" in ASCII or 4D42h in hexadecimal.
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public uint FileSize;
 
         /// <summary>
-        /// Reserved; must be zero.
+        /// Reserved for future use. Must be set to 0.
         /// <para>
         /// For OS/2 specific formats, this is the X coordinate of the central point of the hotspot for icons and pointers.
         /// </para>
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public ushort Reserved1;
 
         /// <summary>
-        /// Reserved; must be zero.
+        /// Reserved for future use. Must be set to 0.
         /// <para>
         /// For OS/2 specific formats, this is the Y coordinate of the central point of the hotspot for icons and pointers.
         /// </para>
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public ushort Reserved2;
 
         /// <summary>
-        /// Specifies the offset, in bytes, from the beginning of the BITMAPFILEHEADER structure to the bitmap pixels color bits/image data.
+        /// Specifies the offset, in bytes, from the beginning of the <c>BITMAPFILEHEADER</c> structure to the bitmap pixels color bits/image data.
         /// <para>
         /// This value is obtained by this formula: <c>FileHeaderSize + InfoHeaderSize + PaletteDataSize + GapOptional1</c>
         /// </para>

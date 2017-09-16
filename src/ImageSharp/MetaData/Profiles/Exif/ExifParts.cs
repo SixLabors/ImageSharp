@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     public enum ExifParts
     {
         /// <summary>
-        /// None
+        /// RGB
         /// </summary>
         None = 0,
 

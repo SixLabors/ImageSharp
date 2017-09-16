@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// This is the Windows BMP v2 and OS/2 BMP v1 (or later) DIB (Device Independent Bitmap) information header.
+    /// This is the Microsoft Windows BMP v2 and IBM OS/2 BMP v1 (and later) DIB (Device Independent Bitmap) information header.
     /// <para>Supported since Windows 2.0, Windows CE 2.0 and OS/2 1.0.</para>
-    /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
+    /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(BITMAPCOREHEADER)</c> returns the size of 12 bytes and is byte aligned.
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 12)]
     internal struct BITMAPCOREHEADER
     {
-        // Microsoft Windows BMP v2 and IBM OS/2 BMP v1
+        // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 DIB header
 
         /// <summary>
         /// The size in bytes required to store this structure: Always 12.

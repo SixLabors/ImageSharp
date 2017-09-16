@@ -64,11 +64,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 ClrImportant = 0
             };
 
+            uint offset = (uint)(BmpFileHeader.Size + infoHeader.HeaderSize);
             var fileHeader = new BmpFileHeader
             {
-                Type = 19778, // BM
-                Offset = 54,
-                FileSize = 54 + infoHeader.ImageSize
+                Type = 0x4D42, // BM
+                FileSize = offset + (uint)infoHeader.ImageSize,
+                Reserved1 = 0,
+                Reserved2 = 0,
+                Offset = offset
             };
 
             WriteHeader(writer, fileHeader);
@@ -91,7 +94,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             writer.Write(fileHeader.Type);
             writer.Write(fileHeader.FileSize);
-            writer.Write(fileHeader.Reserved);
+            writer.Write(fileHeader.Reserved1);
+            writer.Write(fileHeader.Reserved2);
             writer.Write(fileHeader.Offset);
         }
 

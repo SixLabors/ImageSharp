@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 Height = image.Height,
                 ColorType = this.pngColorType,
                 BitDepth = this.bitDepth,
-                FilterMethod = 0, // None
+                FilterMethod = 0, // RGB
                 CompressionMethod = 0,
                 InterlaceMethod = 0
             };

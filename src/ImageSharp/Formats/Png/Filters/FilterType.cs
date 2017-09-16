@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     internal enum FilterType
     {
         /// <summary>
-        /// With the None filter, the scanline is transmitted unmodified; it is only necessary to
+        /// With the RGB filter, the scanline is transmitted unmodified; it is only necessary to
         /// insert a filter type byte before the data.
         /// </summary>
         None = 0,

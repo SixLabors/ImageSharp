@@ -1355,7 +1355,7 @@ Stream outside of the Stream itself.
       is not part of the actual graphics in the GIF Data Stream. It is suitable
       for including comments about the graphics, credits, descriptions or any
       other type of non-control and non-graphic data.  The Comment Extension
-      may be ignored by the decoder, or it may be saved for later processing;
+      may be ignored by the decoder, or it may be saved fand later processing;
       under no circumstances should a Comment Extension disrupt or interfere
       with the processing of the Data Stream.
 

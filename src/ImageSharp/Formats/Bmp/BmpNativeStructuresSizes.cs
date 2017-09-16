@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         // IBM OS/2 BMP palette element
 
         /// <summary>
-        /// The size in bytes of a color palette element for Windows BMP v2 and OS/2 BMP v1 file format.
+        /// The size in bytes of a color palette element for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file format.
         /// <para>
         /// Supported since OS/2 1.0 (same format as Windows 2.0).
         /// </para>
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         OS21XpaletteELEMENT = 3,
 
         /// <summary>
-        /// The size in bytes of a color palette element for Windows BMP v3 and OS/2 BMP v2 file format.
+        /// The size in bytes of a color palette element for Microsoft Windows BMP v3 and IBM OS/2 BMP v2 file format.
         /// <para>
         /// Supported since OS/2 2.0 (same format as Windows 3.1x).
         /// </para>
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         // IBM OS/2 BMP DIB header
 
         /// <summary>
-        /// The size in bytes for the bitmap information header of Windows BMP v2 and OS/2 BMP v1 file format.
+        /// The size in bytes for the bitmap information header of Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file format.
         /// <para>
         /// Supported since OS/2 1.0 (same format as Windows 2.0).
         /// </para>
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         OS21XBITMAPHEADER = 12,
 
         /// <summary>
-        /// The minimum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
+        /// The minimum size in bytes for the bitmap information header of IBM OS/2 BMP v2 file format.
         /// <para>
         /// Supported since OS/2 2.0.
         /// </para>
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         OS22XBITMAPHEADER_MIN = 16,
 
         /// <summary>
-        /// The maximum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
+        /// The maximum size in bytes for the bitmap information header of IBM OS/2 BMP v2 file format.
         /// <para>
         /// Supported since OS/2 2.0.
         /// </para>
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         OS22XBITMAPHEADER = 64,
 
         /// <summary>
-        /// The maximum size in bytes for the bitmap information header of OS/2 BMP v2 file format.
+        /// The maximum size in bytes for the bitmap information header of IBM OS/2 BMP v2 file format.
         /// <para>
         /// Supported since OS/2 2.0.
         /// </para>
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         // Microsoft Windows BMP palette element
 
         /// <summary>
-        /// The size in bytes of a color palette element for Windows BMP v2 and OS/2 BMP v1 file format.
+        /// The size in bytes of a color palette element for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file format.
         /// <para>
         /// Supported since Windows 2.0 (same format as OS/2 1.0).
         /// </para>
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         RGBTRIPLE = 3,
 
         /// <summary>
-        /// The size in bytes of a color palette element for Windows BMP v3 and OS/2 BMP v2 file format.
+        /// The size in bytes of a color palette element for Microsoft Windows BMP v3 and IBM OS/2 BMP v2 file format.
         /// <para>
         /// Supported since Windows 3.0 (same format as OS/2 2.0).
         /// </para>
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         // Microsoft Windows BMP and IBM OS/2 file header
 
         /// <summary>
-        /// The size in bytes for the file header of Windows BMP v2 and OS/2 BMP v1 file format.
+        /// The size in bytes for the file header of Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file format.
         /// <para>
         /// Supported since Windows 2.0 and OS/2 1.0.
         /// </para>
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         // Microsoft Windows BMP DIB header
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v2 and OS/2 BMP v1 file format.
+        /// The size in bytes for the bitmap header of Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file format.
         /// <para>
         /// Supported since Window 2.0x (same format as OS/2 1.0).
         /// </para>
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         BITMAPCOREHEADER = 12,
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v3 file format.
+        /// The size in bytes for the bitmap header of Microsoft Windows BMP v3 file format.
         /// <para>
         /// Supported since Window 3.0x, Windows NT 3.1.
         /// </para>
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         BITMAPINFOHEADER = 40,
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v3 file format width Windows NT 4 None bitfields extension.
+        /// The size in bytes for the bitmap header of Microsoft Windows BMP v3 file format width Windows NT 4 RGB bitfields extension.
         /// <para>
         /// Supported since Windows NT 3.1.
         /// </para>
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         BITMAPINFOHEADER_NT = 52,
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v3 file format width Windows CE RGBA bitfields extension.
+        /// The size in bytes for the bitmap header of Microsoft Windows BMP v3 file format width Windows CE RGBA bitfields extension.
         /// <para>
         /// Supported since Windows CE 5.0 with .NET 4.0.
         /// </para>
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         BITMAPINFOHEADER_CE = 56,
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v4 file format.
+        /// The size in bytes for the bitmap header of Microsoft Windows BMP v4 file format.
         /// <para>
         /// Supported since Window 95, Windows NT 4.
         /// </para>
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         BITMAPV4HEADER = 108,
 
         /// <summary>
-        /// The size in bytes for the bitmap header of Windows BMP v5 file format.
+        /// The size in bytes for the bitmap header of Microsoft Windows BMP v5 file format.
         /// <para>
         /// Supported since Window 98, Windows 2000.
         /// </para>

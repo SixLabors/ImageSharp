@@ -25,10 +25,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// a index to the palette. If the number of bits are sixteen,
         /// twenty-four or thirty-two each pixel contains a color.
         /// </para>
-        /// <para>Supported by Windows 2.0 and OS/2 1.0 or later.</para>
-        /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
+        /// <para>Supported by Windows 2.0 and OS/2 1.0 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
         /// </summary>
-        None = 0,
+        RGB = 0,
 
         /// <summary>
         /// Compressed format using Run-Length Encoded (RLE) 8-bit/pixel. Only for 8 bpp bitmaps.
@@ -40,8 +40,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// if it is one, it is the end of the image.
         /// Not supported at the moment.
         /// </para>
-        /// <para>Supported by Windows 2.0 and OS/2 2.0 or later.</para>
-        /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
+        /// <para>Supported by Windows 2.0 and OS/2 2.0 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
         /// </summary>
         RLE8 = 1,
 
@@ -55,13 +55,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// if it is one, it is the end of the image.
         /// Not supported at the moment.
         /// </para>
-        /// <para>Supported by Windows 2.0 and OS/2 2.0 or later.</para>
-        /// <para>Implemented on Windows BMP v2 and OS/2 BMP v1 format.</para>
+        /// <para>Supported by Windows 2.0 and OS/2 2.0 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
         /// </summary>
         RLE4 = 2,
 
         /// <summary>
-        /// Uncompressed format. For Windows BMP v3 only, the color table consists of three DWORD color bitfield masks
+        /// Uncompressed format. For Microsoft Windows BMP v3 only, the color table consists of three DWORD color bitfield masks
         /// that specify the red, green, and blue components, respectively, of each pixel.
         /// <para>
         /// Each image row has a multiple of four elements. If the
@@ -69,8 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Not supported at the moment.
         /// </para>
         /// <para>This is valid when used with 16 and 32 bpp bitmaps.</para>
-        /// <para>Supported by Windows 3.0/Windows NT 3.1/Windows CE 2.0 or later.</para>
-        /// <para>Implemented on Windows BMP v3.</para>
+        /// <para>Supported by Windows 3.0/Windows NT 3.1/Windows CE 2.0 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v3.</para>
         /// </summary>
         BitFields = 3,
 
@@ -80,8 +80,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// The bitmap contains a JPG image.
         /// Not supported at the moment.
         /// </para>
-        /// <para>Supported by Windows 98/Windows 2000 or later.</para>
-        /// <para>Implemented on Windows BMP v4.</para>
+        /// <para>Supported by Windows 98/Windows 2000 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v4.</para>
         /// </summary>
         JPEG = 4,
 
@@ -91,19 +91,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// The bitmap contains a PNG image.
         /// Not supported at the moment.
         /// </para>
-        /// <para>Supported by Windows 98/Windows 2000 or later.</para>
-        /// <para>Implemented on Windows BMP v4.</para>
+        /// <para>Supported by Windows 98/Windows 2000 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v4.</para>
         /// </summary>
         PNG = 5,
 
         // Windows CE Specific
 
         /// <summary>
-        /// Uncompressed format. For Windows BMP v3 only, the color table consists of four DWORD color bitfield masks
+        /// Uncompressed format. For Microsoft Windows BMP v3 only, the color table consists of four DWORD color bitfield masks
         /// that specify the red, green, blue, and alpha components, respectively, of each pixel.
         /// <para>This is valid when used with 16 and 32 bpp bitmaps on Windows CE only.</para>
-        /// <para>Supported by Windows CE .NET 4.0 or later.</para>
-        /// <para>Implemented on Windows BMP v3.</para>
+        /// <para>Supported by Windows CE .NET 4.0 and later.</para>
+        /// <para>Implemented on Microsoft Windows BMP v3.</para>
         /// </summary>
         /// See <a href="https://msdn.microsoft.com/en-us/library/aa452885.aspx">this MSDN link</a> for more information.
         AlphaBitFields = 6,
@@ -114,18 +114,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Uncompressed format using CMYK color scheme instead of RGBA.
         /// <para>Windows Metafile CMYK only.</para>
         /// </summary>
-        CMYK_None = 11,
+        CMYK = 11,
 
         /// <summary>
         /// Compressed format using Run-Length Encoded (RLE) 8-bit/pixel. Only for 8 bpp bitmaps using CMYK color scheme instead of RGBA.
         /// <para>Windows Metafile CMYK only.</para>
         /// </summary>
-        CMYK_RLE_8 = 12,
+        CMYK_RLE8 = 12,
 
         /// <summary>
         /// Compressed format using Run-Length Encoded (RLE) 4-bit/pixel. Only for 4 bpp bitmaps using CMYK color scheme instead of RGBA.
         /// <para>Windows Metafile CMYK only.</para>
         /// </summary>
-        CMYK_RLE_4 = 13
+        CMYK_RLE4 = 13
     }
 }

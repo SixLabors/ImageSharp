@@ -421,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="scaleVec">Vector to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyAllInplace(float scaleVec)
+        public void MultiplyInplace(float scaleVec)
         {
             this.V0L *= scaleVec;
             this.V0R *= scaleVec;
@@ -439,6 +439,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             this.V6R *= scaleVec;
             this.V7L *= scaleVec;
             this.V7R *= scaleVec;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MultiplyInplace(ref Block8x8F other)
+        {
+            this.V0L *= other.V0L;
+            this.V0R *= other.V0R;
+            this.V1L *= other.V1L;
+            this.V1R *= other.V1R;
+            this.V2L *= other.V2L;
+            this.V2R *= other.V2R;
+            this.V3L *= other.V3L;
+            this.V3R *= other.V3R;
+            this.V4L *= other.V4L;
+            this.V4R *= other.V4R;
+            this.V5L *= other.V5L;
+            this.V5R *= other.V5R;
+            this.V6L *= other.V6L;
+            this.V6R *= other.V6R;
+            this.V7L *= other.V7L;
+            this.V7R *= other.V7R;
         }
 
         /// <summary>
@@ -472,16 +493,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
-            for (int zig = 0; zig < Size; zig++)
+            for (int qtIndex = 0; qtIndex < Size; qtIndex++)
             {
-                float* unzigPos = b + unzigPtr[zig];
+                int blockIndex = unzigPtr[qtIndex];
+                float* unzigPos = b + blockIndex;
+
                 float val = *unzigPos;
-                val *= qtp[zig];
+                val *= qtp[qtIndex];
                 *unzigPos = val;
             }
         }

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             float d = x - y;
 
-            return d > -this.Eps && d < this.Eps;
+            return d >= -this.Eps && d <= this.Eps;
         }
 
         public int GetHashCode(float obj)

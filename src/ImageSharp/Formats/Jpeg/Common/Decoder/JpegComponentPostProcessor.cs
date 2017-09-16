@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public unsafe void CopyBlocksToColorBuffer()
         {
             var blockPp = default(JpegBlockPostProcessor);
-            JpegBlockPostProcessor.Init(&blockPp);
+            JpegBlockPostProcessor.Init(&blockPp, this.ImagePostProcessor.RawJpeg, this.Component);
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                         this.blockAreaSize.Width,
                         this.blockAreaSize.Height);
 
-                    blockPp.ProcessBlockColorsInto(this.ImagePostProcessor.RawJpeg, this.Component, ref block, destArea);
+                    blockPp.ProcessBlockColorsInto(ref block, destArea);
                 }
             }
 

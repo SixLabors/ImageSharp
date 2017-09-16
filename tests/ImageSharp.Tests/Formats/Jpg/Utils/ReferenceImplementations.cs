@@ -19,6 +19,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     /// </summary>
     internal static partial class ReferenceImplementations
     {
+        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        {
+            float* b = (float*)blockPtr;
+            float* qtp = (float*)qtPtr;
+            for (int qtIndex = 0; qtIndex < Block8x8F.Size; qtIndex++)
+            {
+                int i = unzigPtr[qtIndex];
+                float* unzigPos = b + i;
+
+                float val = *unzigPos;
+                val *= qtp[qtIndex];
+                *unzigPos = val;
+            }
+        }
+
         /// <summary>
         /// Transpose 8x8 block stored linearly in a <see cref="Span{T}"/> (inplace)
         /// </summary>

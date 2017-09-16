@@ -6,7 +6,7 @@ install:
 
 before_build:
   - cmd: dotnet --version
-  - ps: gitversion /l console /output buildserver
+  - ps: c:\ProgramData\chocolatey\lib\gitversion.portable\tools\gitversion.exe /l console /output buildserver
 
 build_script:
   - cmd: build.cmd

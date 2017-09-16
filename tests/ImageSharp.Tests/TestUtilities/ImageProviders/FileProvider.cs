@@ -105,6 +105,12 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
 
+            // Needed for deserialization!
+            // ReSharper disable once UnusedMember.Local
+            public FileProvider()
+            {
+            }
+
             public FileProvider(string filePath)
             {
                 this.FilePath = filePath;

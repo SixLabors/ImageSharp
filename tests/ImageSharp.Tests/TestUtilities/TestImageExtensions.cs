@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.Advanced;
     using SixLabors.ImageSharp.Memory;
 
+    using Xunit;
+
     public static class TestImageExtensions
     {
         /// <summary>
@@ -81,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests
                 grayscale,
                 appendPixelTypeToFileName);
         }
-
+        
         /// <summary>
         /// Compares the image against the expected Reference output, throws an exception if the images are not similar enough.
         /// The output file should be named identically to the output produced by <see cref="DebugSave{TPixel}(Image{TPixel}, ITestImageProvider, object, string, bool)"/>.
@@ -153,6 +155,24 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        public static Image<TPixel> ComparePixelBufferTo<TPixel>(
+            this Image<TPixel> image,
+            Span<TPixel> expectedPixels)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Span<TPixel> actual = image.GetPixelSpan();
+
+            Assert.True(expectedPixels.Length == actual.Length, "Buffer sizes are not equal!");
+
+            for (int i = 0; i < expectedPixels.Length; i++)
+            {
+                Assert.True(expectedPixels[i].Equals(actual[i]), $"Pixels are different on position {i}!" );
+            }
+            
+            return image;
+        }
+
+
         public static Image<TPixel> CompareToOriginal<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider)
@@ -160,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             return CompareToOriginal(image, provider, ImageComparer.Tolerant());
         }
-
+        
         public static Image<TPixel> CompareToOriginal<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,

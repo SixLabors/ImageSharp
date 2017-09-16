@@ -111,13 +111,15 @@ namespace SixLabors.ImageSharp.Tests
                 TypeInfo info = type.GetTypeInfo();
                 if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
                 {
-                    detailsString = testOutputDetails.ToString();
+                    detailsString =  string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}", testOutputDetails);
                 }
                 else
                 {
                     IEnumerable<PropertyInfo> properties = testOutputDetails.GetType().GetRuntimeProperties();
 
-                    detailsString = String.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(testOutputDetails)).Select(x => $"{x.Key}-{x.Value}"));
+                    detailsString = String.Join(
+                        "_", properties.ToDictionary(x => x.Name, x => string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}", x.GetValue(testOutputDetails))).Select(x => $"{x.Key}-{x.Value}")
+                        );
                 }
             }
             return this.GetTestOutputFileNameImpl(extension, detailsString, appendPixelTypeToFileName);

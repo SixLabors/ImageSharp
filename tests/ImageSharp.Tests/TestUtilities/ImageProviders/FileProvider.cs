@@ -109,11 +109,10 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.FilePath = filePath;
             }
-
-            public FileProvider()
-            {
-            }
-
+            
+            /// <summary>
+            /// Gets the file path relative to the "~/tests/images" folder
+            /// </summary>
             public string FilePath { get; private set; }
 
             public override string SourceFileOrDescription => this.FilePath;

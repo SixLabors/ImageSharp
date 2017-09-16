@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             IDCT8x4_RightPart(ref temp, ref dest);
 
             // TODO: What if we leave the blocks in a scaled-by-x8 state until final color packing?
-            dest.MultiplyAllInplace(C_0_125);
+            dest.MultiplyInplace(C_0_125);
         }
 
         /// <summary>
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             FDCT8x4_LeftPart(ref temp, ref dest);
             FDCT8x4_RightPart(ref temp, ref dest);
 
-            dest.MultiplyAllInplace(C_0_125);
+            dest.MultiplyInplace(C_0_125);
         }
     }
 }

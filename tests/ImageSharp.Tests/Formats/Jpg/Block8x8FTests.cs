@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float[] data = Create8x8FloatData();
             var block = new Block8x8F();
             block.LoadFrom(data);
-            block.MultiplyAllInplace(5);
+            block.MultiplyInplace(5);
 
             int stride = 256;
             int height = 42;
@@ -369,6 +369,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 Assert.Equal(expected, actual);
             }
+        }
+
+        [Fact]
+        public void MultiplyInplace_ByOtherBlock()
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, 42);
+            Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
+
+            Block8x8F actual = original;
+            
+            actual.MultiplyInplace(ref m);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal(original[i]*m[i], actual[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public unsafe void DequantizeBlock(int seed)
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
+            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
+
+            var unzig = UnzigData.Create();
+
+            Block8x8F expected = original;
+            Block8x8F actual = original;
+
+            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
+            Block8x8F.DequantizeBlock(&actual, &qt, unzig.Data);
+
+            this.CompareBlocks(expected, actual, 0);
         }
     }
 }

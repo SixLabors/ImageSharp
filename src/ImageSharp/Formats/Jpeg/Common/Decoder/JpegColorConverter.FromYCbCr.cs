@@ -121,9 +121,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                     tmp.MultiplyInplace(1.772F);
                     b.AddInplace(ref tmp);
 
-                    r.RoundAndDownscale();
-                    g.RoundAndDownscale();
-                    b.RoundAndDownscale();
+                    if (Vector<float>.Count == 4)
+                    {
+                        // TODO: Find a way to properly run & test this path on modern AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
+                        r.RoundAndDownscaleBasic();
+                        g.RoundAndDownscaleBasic();
+                        b.RoundAndDownscaleBasic();
+                    }
+                    else if (Vector<float>.Count == 8)
+                    {
+                        r.RoundAndDownscaleAvx2();
+                        g.RoundAndDownscaleAvx2();
+                        b.RoundAndDownscaleAvx2();
+                    }
+                    else
+                    {
+                        // TODO: Run fallback scalar code here
+                        // However, no issues expected before someone implements this: https://github.com/dotnet/coreclr/issues/12007
+                        throw new NotImplementedException("Your CPU architecture is too modern!");
+                    }
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
@@ -145,15 +161,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 private static readonly Vector4 Half = new Vector4(0.5f);
 
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void RoundAndDownscale()
+                public void RoundAndDownscaleBasic()
                 {
-                    // Emulate rounding:
-                    this.A += Half;
-                    this.B += Half;
+                    ref Vector<float> a = ref Unsafe.As<Vector4, Vector<float>>(ref this.A);
+                    a = a.FastRound();
+
+                    ref Vector<float> b = ref Unsafe.As<Vector4, Vector<float>>(ref this.B);
+                    b = b.FastRound();
 
                     // Downscale by 1/255
                     this.A *= Scale;
                     this.B *= Scale;
+                }
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void RoundAndDownscaleAvx2()
+                {
+                    ref Vector<float> self = ref Unsafe.As<Vector4Pair, Vector<float>>(ref this);
+                    Vector<float> v = self;
+                    v = v.FastRound();
+
+                    // Downscale by 1/255
+                    v *= new Vector<float>(1 / 255f);
+                    self = v;
                 }
 
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]

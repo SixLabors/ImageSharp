@@ -23,21 +23,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// </summary>
         private DataPointers pointers;
 
+        private Size subSamplingDivisors;
+
         /// <summary>
         /// Initialize the <see cref="JpegBlockPostProcessor"/> instance on the stack.
         /// </summary>
-        /// <param name="postProcessor">The <see cref="JpegBlockPostProcessor"/> instance</param>
-        public static void Init(JpegBlockPostProcessor* postProcessor)
+        public static void Init(JpegBlockPostProcessor* postProcessor, IRawJpegData decoder, IJpegComponent component)
         {
             postProcessor->data = ComputationData.Create();
             postProcessor->pointers = new DataPointers(&postProcessor->data);
+
+            int qtIndex = component.QuantizationTableIndex;
+            postProcessor->data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+            postProcessor->subSamplingDivisors = component.SubSamplingDivisors;
         }
 
-        public void QuantizeAndTransform(IRawJpegData decoder, IJpegComponent component, ref Block8x8 sourceBlock)
+        public void QuantizeAndTransform(ref Block8x8 sourceBlock)
         {
             this.data.SourceBlock = sourceBlock.AsFloatBlock();
-            int qtIndex = component.QuantizationTableIndex;
-            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
 
             Block8x8F* b = this.pointers.SourceBlock;
 
@@ -47,12 +50,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         }
 
         public void ProcessBlockColorsInto(
-            IRawJpegData decoder,
-            IJpegComponent component,
             ref Block8x8 sourceBlock,
             BufferArea<float> destArea)
         {
-            this.QuantizeAndTransform(decoder, component, ref sourceBlock);
+            this.QuantizeAndTransform(ref sourceBlock);
 
             this.data.WorkspaceBlock1.NormalizeColorsInplace();
 
@@ -61,8 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             // Unfortunately, we need to emulate this to be "more accurate" :(
             this.data.WorkspaceBlock1.RoundInplace();
 
-            Size divs = component.SubSamplingDivisors;
-            this.data.WorkspaceBlock1.CopyTo(destArea, divs.Width, divs.Height);
+            this.data.WorkspaceBlock1.CopyTo(destArea, this.subSamplingDivisors.Width, this.subSamplingDivisors.Height);
         }
 
         /// <summary>

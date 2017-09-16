@@ -89,7 +89,7 @@ using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 
-Check out [this blog post](https://sixlabors.com/blog/announcing-imagesharp-beta-1/) or our [Samples repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp) for more examples!
+**Check out [this blog post](https://sixlabors.com/blog/announcing-imagesharp-beta-1/) or our [Samples Repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp) for more examples!**
 
 ### Manual build
 

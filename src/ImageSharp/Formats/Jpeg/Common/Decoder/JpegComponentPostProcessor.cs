@@ -66,10 +66,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// Invoke <see cref="JpegBlockPostProcessor"/> for <see cref="BlockRowsPerStep"/> block rows, copy the result into <see cref="ColorBuffer"/>.
         /// </summary>
-        public unsafe void CopyBlocksToColorBuffer()
+        public void CopyBlocksToColorBuffer()
         {
-            var blockPp = default(JpegBlockPostProcessor);
-            JpegBlockPostProcessor.Init(&blockPp, this.ImagePostProcessor.RawJpeg, this.Component);
+            var blockPp = new JpegBlockPostProcessor(this.ImagePostProcessor.RawJpeg, this.Component);
 
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {

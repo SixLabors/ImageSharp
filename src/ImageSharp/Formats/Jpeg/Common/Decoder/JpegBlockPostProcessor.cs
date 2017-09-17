@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             ref Block8x8 sourceBlock,
             BufferArea<float> destArea)
         {
-            this.data.SourceBlock = sourceBlock.AsFloatBlock();
+            sourceBlock.CopyToFloatBlock(ref this.data.SourceBlock);
 
             Block8x8F* b = this.pointers.SourceBlock;
 

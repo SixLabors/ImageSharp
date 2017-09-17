@@ -176,17 +176,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
-        /// Convert into <see cref="Block8x8F"/>
+        /// Convert to <see cref="Block8x8F"/>
         /// </summary>
         public Block8x8F AsFloatBlock()
         {
-            // TODO: Optimize this
             var result = default(Block8x8F);
-            for (int i = 0; i < Size; i++)
-            {
-                result[i] = this[i];
-            }
-
+            this.CopyToFloatBlock(ref result);
             return result;
         }
 
@@ -301,6 +296,86 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Convert values into <see cref="Block8x8F"/> as <see cref="float"/>-s
+        /// </summary>
+        public void CopyToFloatBlock(ref Block8x8F dest)
+        {
+            ref short selfRef = ref Unsafe.As<Block8x8, short>(ref this);
+
+            dest.V0L.X = Unsafe.Add(ref selfRef, 0);
+            dest.V0L.Y = Unsafe.Add(ref selfRef, 1);
+            dest.V0L.Z = Unsafe.Add(ref selfRef, 2);
+            dest.V0L.W = Unsafe.Add(ref selfRef, 3);
+            dest.V0R.X = Unsafe.Add(ref selfRef, 4);
+            dest.V0R.Y = Unsafe.Add(ref selfRef, 5);
+            dest.V0R.Z = Unsafe.Add(ref selfRef, 6);
+            dest.V0R.W = Unsafe.Add(ref selfRef, 7);
+
+            dest.V1L.X = Unsafe.Add(ref selfRef, 8);
+            dest.V1L.Y = Unsafe.Add(ref selfRef, 9);
+            dest.V1L.Z = Unsafe.Add(ref selfRef, 10);
+            dest.V1L.W = Unsafe.Add(ref selfRef, 11);
+            dest.V1R.X = Unsafe.Add(ref selfRef, 12);
+            dest.V1R.Y = Unsafe.Add(ref selfRef, 13);
+            dest.V1R.Z = Unsafe.Add(ref selfRef, 14);
+            dest.V1R.W = Unsafe.Add(ref selfRef, 15);
+
+            dest.V2L.X = Unsafe.Add(ref selfRef, 16);
+            dest.V2L.Y = Unsafe.Add(ref selfRef, 17);
+            dest.V2L.Z = Unsafe.Add(ref selfRef, 18);
+            dest.V2L.W = Unsafe.Add(ref selfRef, 19);
+            dest.V2R.X = Unsafe.Add(ref selfRef, 20);
+            dest.V2R.Y = Unsafe.Add(ref selfRef, 21);
+            dest.V2R.Z = Unsafe.Add(ref selfRef, 22);
+            dest.V2R.W = Unsafe.Add(ref selfRef, 23);
+
+            dest.V3L.X = Unsafe.Add(ref selfRef, 24);
+            dest.V3L.Y = Unsafe.Add(ref selfRef, 25);
+            dest.V3L.Z = Unsafe.Add(ref selfRef, 26);
+            dest.V3L.W = Unsafe.Add(ref selfRef, 27);
+            dest.V3R.X = Unsafe.Add(ref selfRef, 28);
+            dest.V3R.Y = Unsafe.Add(ref selfRef, 29);
+            dest.V3R.Z = Unsafe.Add(ref selfRef, 30);
+            dest.V3R.W = Unsafe.Add(ref selfRef, 31);
+
+            dest.V4L.X = Unsafe.Add(ref selfRef, 32);
+            dest.V4L.Y = Unsafe.Add(ref selfRef, 33);
+            dest.V4L.Z = Unsafe.Add(ref selfRef, 34);
+            dest.V4L.W = Unsafe.Add(ref selfRef, 35);
+            dest.V4R.X = Unsafe.Add(ref selfRef, 36);
+            dest.V4R.Y = Unsafe.Add(ref selfRef, 37);
+            dest.V4R.Z = Unsafe.Add(ref selfRef, 38);
+            dest.V4R.W = Unsafe.Add(ref selfRef, 39);
+
+            dest.V5L.X = Unsafe.Add(ref selfRef, 40);
+            dest.V5L.Y = Unsafe.Add(ref selfRef, 41);
+            dest.V5L.Z = Unsafe.Add(ref selfRef, 42);
+            dest.V5L.W = Unsafe.Add(ref selfRef, 43);
+            dest.V5R.X = Unsafe.Add(ref selfRef, 44);
+            dest.V5R.Y = Unsafe.Add(ref selfRef, 45);
+            dest.V5R.Z = Unsafe.Add(ref selfRef, 46);
+            dest.V5R.W = Unsafe.Add(ref selfRef, 47);
+
+            dest.V6L.X = Unsafe.Add(ref selfRef, 48);
+            dest.V6L.Y = Unsafe.Add(ref selfRef, 49);
+            dest.V6L.Z = Unsafe.Add(ref selfRef, 50);
+            dest.V6L.W = Unsafe.Add(ref selfRef, 51);
+            dest.V6R.X = Unsafe.Add(ref selfRef, 52);
+            dest.V6R.Y = Unsafe.Add(ref selfRef, 53);
+            dest.V6R.Z = Unsafe.Add(ref selfRef, 54);
+            dest.V6R.W = Unsafe.Add(ref selfRef, 55);
+
+            dest.V7L.X = Unsafe.Add(ref selfRef, 56);
+            dest.V7L.Y = Unsafe.Add(ref selfRef, 57);
+            dest.V7L.Z = Unsafe.Add(ref selfRef, 58);
+            dest.V7L.W = Unsafe.Add(ref selfRef, 59);
+            dest.V7R.X = Unsafe.Add(ref selfRef, 60);
+            dest.V7R.Y = Unsafe.Add(ref selfRef, 61);
+            dest.V7R.Z = Unsafe.Add(ref selfRef, 62);
+            dest.V7R.W = Unsafe.Add(ref selfRef, 63);
         }
     }
 }

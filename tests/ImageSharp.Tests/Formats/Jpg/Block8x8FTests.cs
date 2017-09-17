@@ -32,6 +32,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
         }
 
+        private bool SkipOnNonAvx2Runner()
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("AVX2 not supported, skipping!");
+                return true;
+            }
+            return false;
+        }
+
         [Fact]
         public void Indexer()
         {
@@ -263,9 +273,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2)]
         public void NormalizeColorsAndRoundAvx2(int seed)
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (this.SkipOnNonAvx2Runner())
             {
-                this.Output.WriteLine("AVX2 not supported, skipping!");
                 return;
             }
 
@@ -282,6 +291,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine(actual.ToString());
             this.CompareBlocks(expected, actual, 0);
         }
+
 
         [Theory]
         [InlineData(1)]
@@ -412,6 +422,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             actual.MultiplyInplace(ref zigQt);
 
             this.CompareBlocks(expected, actual, 0);
+        }
+
+        [Fact]
+        public void MultiplyInplace_ByScalar()
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500);
+
+            Block8x8F actual = original;
+            actual.MultiplyInplace(42f);
+
+            for (int i = 0; i < 64; i++)
+            {
+                Assert.Equal(original[i]*42f, actual[i]);
+            }
         }
     }
 }

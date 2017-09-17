@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             BufferArea<float> destArea)
         {
             ref Block8x8F b = ref this.SourceBlock;
-            sourceBlock.CopyToFloatBlock(ref b);
+            b.LoadFrom(ref sourceBlock);
 
             // Dequantize:
             b.MultiplyInplace(ref this.DequantiazationTable);
@@ -74,15 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // To be "more accurate", we need to emulate this by rounding!
-            if (SimdUtils.IsAvx2CompatibleArchitecture)
-            {
-                this.WorkspaceBlock1.NormalizeColorsAndRoundInplaceAvx2();
-            }
-            else
-            {
-                this.WorkspaceBlock1.NormalizeColorsInplace();
-                this.WorkspaceBlock1.RoundInplace();
-            }
+            this.WorkspaceBlock1.NormalizeColorsAndRoundInplace();
 
             this.WorkspaceBlock1.CopyTo(destArea, this.subSamplingDivisors.Width, this.subSamplingDivisors.Height);
         }

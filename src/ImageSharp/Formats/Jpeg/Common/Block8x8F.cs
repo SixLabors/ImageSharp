@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.Memory;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
@@ -306,109 +305,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyTo(BufferArea<float> area)
-        {
-            ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
-            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigo());
-            int destStride = area.Stride * sizeof(float);
-
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 1);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 2);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 3);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 4);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 5);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 6);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 7);
-        }
-
-        public void CopyTo(BufferArea<float> area, int horizontalScale, int verticalScale)
-        {
-            if (horizontalScale == 1 && verticalScale == 1)
-            {
-                this.CopyTo(area);
-                return;
-            }
-            else if (horizontalScale == 2 && verticalScale == 2)
-            {
-                this.CopyTo2x2(area);
-                return;
-            }
-
-            // TODO: Optimize: implement all the cases with loopless special code! (T4?)
-            for (int y = 0; y < 8; y++)
-            {
-                int yy = y * verticalScale;
-                int y8 = y * 8;
-
-                for (int x = 0; x < 8; x++)
-                {
-                    int xx = x * horizontalScale;
-
-                    float value = this[y8 + x];
-
-                    for (int i = 0; i < verticalScale; i++)
-                    {
-                        for (int j = 0; j < horizontalScale; j++)
-                        {
-                            area[xx + j, yy + i] = value;
-                        }
-                    }
-                }
-            }
-        }
-
-        private void CopyTo2x2(BufferArea<float> area)
-        {
-            ref float destBase = ref area.GetReferenceToOrigo();
-            int destStride = area.Stride;
-
-            this.CopyRow2x2Impl(ref destBase, 0, destStride);
-            this.CopyRow2x2Impl(ref destBase, 1, destStride);
-            this.CopyRow2x2Impl(ref destBase, 2, destStride);
-            this.CopyRow2x2Impl(ref destBase, 3, destStride);
-            this.CopyRow2x2Impl(ref destBase, 4, destStride);
-            this.CopyRow2x2Impl(ref destBase, 5, destStride);
-            this.CopyRow2x2Impl(ref destBase, 6, destStride);
-            this.CopyRow2x2Impl(ref destBase, 7, destStride);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CopyRowImpl(ref byte selfBase, ref byte destBase, int destStride, int row)
-        {
-            ref byte s = ref Unsafe.Add(ref selfBase, row * 8 * sizeof(float));
-            ref byte d = ref Unsafe.Add(ref destBase, row * destStride);
-            Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyRow2x2Impl(ref float destBase, int row, int destStride)
-        {
-            ref Vector4 selfLeft = ref Unsafe.Add(ref this.V0L, 2 * row);
-            ref Vector4 selfRight = ref Unsafe.Add(ref selfLeft, 1);
-            ref float destLocalOrigo = ref Unsafe.Add(ref destBase, row * 2 * destStride);
-
-            Stride2VectorCopyImpl(ref selfLeft, ref destLocalOrigo);
-            Stride2VectorCopyImpl(ref selfRight, ref Unsafe.Add(ref destLocalOrigo, 8));
-
-            Stride2VectorCopyImpl(ref selfLeft, ref Unsafe.Add(ref destLocalOrigo, destStride));
-            Stride2VectorCopyImpl(ref selfRight, ref Unsafe.Add(ref destLocalOrigo, destStride + 8));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Stride2VectorCopyImpl(ref Vector4 s, ref float destBase)
-        {
-            Unsafe.Add(ref destBase, 0) = s.X;
-            Unsafe.Add(ref destBase, 1) = s.X;
-            Unsafe.Add(ref destBase, 2) = s.Y;
-            Unsafe.Add(ref destBase, 3) = s.Y;
-            Unsafe.Add(ref destBase, 4) = s.Z;
-            Unsafe.Add(ref destBase, 5) = s.Z;
-            Unsafe.Add(ref destBase, 6) = s.W;
-            Unsafe.Add(ref destBase, 7) = s.W;
-        }
-
         public float[] ToArray()
         {
             float[] result = new float[Size];
@@ -543,7 +439,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="block">Source block</param>
         /// <param name="dest">Destination block</param>
         /// <param name="qt">The quantization table</param>
-        /// <param name="unzigPtr">Pointer to elements of <see cref="UnzigData"/></param>
+        /// <param name="unzigPtr">Pointer to elements of <see cref="ZigZag"/></param>
         public static unsafe void UnzigDivRound(
             Block8x8F* block,
             Block8x8F* dest,

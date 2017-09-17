@@ -96,8 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 		/// <summary>
         /// Level shift by +128, clip to [0, 255]
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void NormalizeColorsInplace()
+        public void NormalizeColorsInplace()
         {
             this.V0L = Vector4.Clamp(this.V0L + COff4, CMin4, CMax4);
             this.V0R = Vector4.Clamp(this.V0R + COff4, CMin4, CMax4);
@@ -117,11 +116,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             this.V7R = Vector4.Clamp(this.V7R + COff4, CMin4, CMax4);
         }
 
+        /// <summary>
+        /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void NormalizeColorsAndRoundInplaceAvx2()
         {
             Vector<float> off = new Vector<float>(128f);
             Vector<float> max = new Vector<float>(255F);
-
             
             ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
             row0 = NormalizeAndRound(row0, off, max);
@@ -147,6 +149,86 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
             row7 = NormalizeAndRound(row7, off, max);
                 
+        }
+
+        /// <summary>
+        /// Fill the block from 'source' doing short -> float conversion.
+        /// </summary>
+        public void LoadFrom(ref Block8x8 source)
+        {
+            ref short selfRef = ref Unsafe.As<Block8x8, short>(ref source);
+
+            this.V0L.X =  Unsafe.Add(ref selfRef, 0);
+            this.V0L.Y =  Unsafe.Add(ref selfRef, 1);
+            this.V0L.Z =  Unsafe.Add(ref selfRef, 2);
+            this.V0L.W =  Unsafe.Add(ref selfRef, 3);
+            this.V0R.X =  Unsafe.Add(ref selfRef, 4);
+            this.V0R.Y =  Unsafe.Add(ref selfRef, 5);
+            this.V0R.Z =  Unsafe.Add(ref selfRef, 6);
+            this.V0R.W =  Unsafe.Add(ref selfRef, 7);
+
+            this.V1L.X =  Unsafe.Add(ref selfRef, 8);
+            this.V1L.Y =  Unsafe.Add(ref selfRef, 9);
+            this.V1L.Z =  Unsafe.Add(ref selfRef, 10);
+            this.V1L.W =  Unsafe.Add(ref selfRef, 11);
+            this.V1R.X =  Unsafe.Add(ref selfRef, 12);
+            this.V1R.Y =  Unsafe.Add(ref selfRef, 13);
+            this.V1R.Z =  Unsafe.Add(ref selfRef, 14);
+            this.V1R.W =  Unsafe.Add(ref selfRef, 15);
+
+            this.V2L.X =  Unsafe.Add(ref selfRef, 16);
+            this.V2L.Y =  Unsafe.Add(ref selfRef, 17);
+            this.V2L.Z =  Unsafe.Add(ref selfRef, 18);
+            this.V2L.W =  Unsafe.Add(ref selfRef, 19);
+            this.V2R.X =  Unsafe.Add(ref selfRef, 20);
+            this.V2R.Y =  Unsafe.Add(ref selfRef, 21);
+            this.V2R.Z =  Unsafe.Add(ref selfRef, 22);
+            this.V2R.W =  Unsafe.Add(ref selfRef, 23);
+
+            this.V3L.X =  Unsafe.Add(ref selfRef, 24);
+            this.V3L.Y =  Unsafe.Add(ref selfRef, 25);
+            this.V3L.Z =  Unsafe.Add(ref selfRef, 26);
+            this.V3L.W =  Unsafe.Add(ref selfRef, 27);
+            this.V3R.X =  Unsafe.Add(ref selfRef, 28);
+            this.V3R.Y =  Unsafe.Add(ref selfRef, 29);
+            this.V3R.Z =  Unsafe.Add(ref selfRef, 30);
+            this.V3R.W =  Unsafe.Add(ref selfRef, 31);
+
+            this.V4L.X =  Unsafe.Add(ref selfRef, 32);
+            this.V4L.Y =  Unsafe.Add(ref selfRef, 33);
+            this.V4L.Z =  Unsafe.Add(ref selfRef, 34);
+            this.V4L.W =  Unsafe.Add(ref selfRef, 35);
+            this.V4R.X =  Unsafe.Add(ref selfRef, 36);
+            this.V4R.Y =  Unsafe.Add(ref selfRef, 37);
+            this.V4R.Z =  Unsafe.Add(ref selfRef, 38);
+            this.V4R.W =  Unsafe.Add(ref selfRef, 39);
+
+            this.V5L.X =  Unsafe.Add(ref selfRef, 40);
+            this.V5L.Y =  Unsafe.Add(ref selfRef, 41);
+            this.V5L.Z =  Unsafe.Add(ref selfRef, 42);
+            this.V5L.W =  Unsafe.Add(ref selfRef, 43);
+            this.V5R.X =  Unsafe.Add(ref selfRef, 44);
+            this.V5R.Y =  Unsafe.Add(ref selfRef, 45);
+            this.V5R.Z =  Unsafe.Add(ref selfRef, 46);
+            this.V5R.W =  Unsafe.Add(ref selfRef, 47);
+
+            this.V6L.X =  Unsafe.Add(ref selfRef, 48);
+            this.V6L.Y =  Unsafe.Add(ref selfRef, 49);
+            this.V6L.Z =  Unsafe.Add(ref selfRef, 50);
+            this.V6L.W =  Unsafe.Add(ref selfRef, 51);
+            this.V6R.X =  Unsafe.Add(ref selfRef, 52);
+            this.V6R.Y =  Unsafe.Add(ref selfRef, 53);
+            this.V6R.Z =  Unsafe.Add(ref selfRef, 54);
+            this.V6R.W =  Unsafe.Add(ref selfRef, 55);
+
+            this.V7L.X =  Unsafe.Add(ref selfRef, 56);
+            this.V7L.Y =  Unsafe.Add(ref selfRef, 57);
+            this.V7L.Z =  Unsafe.Add(ref selfRef, 58);
+            this.V7L.W =  Unsafe.Add(ref selfRef, 59);
+            this.V7R.X =  Unsafe.Add(ref selfRef, 60);
+            this.V7R.Y =  Unsafe.Add(ref selfRef, 61);
+            this.V7R.Z =  Unsafe.Add(ref selfRef, 62);
+            this.V7R.W =  Unsafe.Add(ref selfRef, 63);
         }
 	}
 }

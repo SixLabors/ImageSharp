@@ -564,7 +564,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             FastFloatingPointDCT.TransformFDCT(ref *src, ref *tempDest1, ref *tempDest2);
 
-            Block8x8F.UnzigDivRound(tempDest1, tempDest2, quant, unzigPtr);
+            Block8x8F.Quantize(tempDest1, tempDest2, quant, unzigPtr);
             float* unziggedDestPtr = (float*)tempDest2;
 
             int dc = (int)unziggedDestPtr[0];

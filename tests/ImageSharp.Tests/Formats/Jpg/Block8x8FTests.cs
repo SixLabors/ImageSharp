@@ -65,31 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     });
             Assert.Equal(sum, 64f * 63f * 0.5f);
         }
-
-        [Fact]
-        public unsafe void Indexer_GetScalarAt_SetScalarAt()
-        {
-            float sum = 0;
-            this.Measure(
-                Times,
-                () =>
-                    {
-                        var block = new Block8x8F();
-
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            Block8x8F.SetScalarAt(&block, i, i);
-                        }
-
-                        sum = 0;
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            sum += Block8x8F.GetScalarAt(&block, i);
-                        }
-                    });
-            Assert.Equal(sum, 64f * 63f * 0.5f);
-        }
-
+        
         [Fact]
         public void Indexer_ReferenceBenchmarkWithArray()
         {
@@ -296,7 +272,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public unsafe void UnzigDivRound(int seed)
+        public unsafe void Quantize(int seed)
         {
             var block = new Block8x8F();
             block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
@@ -307,11 +283,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var unzig = ZigZag.CreateUnzigTable();
 
             int* expectedResults = stackalloc int[Block8x8F.Size];
-            ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
+            ReferenceImplementations.QuantizeRational(&block, expectedResults, &qt, unzig.Data);
 
             var actualResults = default(Block8x8F);
 
-            Block8x8F.UnzigDivRound(&block, &actualResults, &qt, unzig.Data);
+            Block8x8F.Quantize(&block, &actualResults, &qt, unzig.Data);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {

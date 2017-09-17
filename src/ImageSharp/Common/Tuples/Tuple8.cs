@@ -4,7 +4,7 @@ namespace SixLabors.ImageSharp.Common.Tuples
 {
     /// <summary>
     /// Contains value type tuples of 8 elements.
-    /// TODO: Should T4 this stuff to be DRY
+    /// TODO: We should T4 this stuff to be DRY
     /// </summary>
     internal static class Tuple8
     {
@@ -79,6 +79,9 @@ namespace SixLabors.ImageSharp.Common.Tuples
                 return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
             }
 
+            /// <summary>
+            /// Sets the values of this tuple by casting all elements of the given <see cref="OfUInt32"/> tuple to <see cref="byte"/>.
+            /// </summary>
             public void LoadFrom(ref OfUInt32 i)
             {
                 this.V0 = (byte)i.V0;

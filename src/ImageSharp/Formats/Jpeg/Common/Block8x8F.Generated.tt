@@ -61,9 +61,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 		/// <summary>
         /// Level shift by +128, clip to [0, 255]
         /// </summary>
-        /// <param name="d">The destination block</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void TransformByteConvetibleColorValuesInto(ref Block8x8F d)
+        internal void NormalizeColorsInplace()
         {
             <#
 
@@ -74,10 +73,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 for (int j = 0; j < 2; j++)
                 {
 					char side = j == 0 ? 'L' : 'R';
-					Write($"d.V{i}{side} = Vector4.Clamp(V{i}{side} + COff4, CMin4, CMax4);\r\n");
+					Write($"this.V{i}{side} = Vector4.Clamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
                 }
             }
 			PopIndent();
+			#>
+        }
+
+        public void NormalizeColorsAndRoundInplaceAvx2()
+        {
+            Vector<float> off = new Vector<float>(128f);
+            Vector<float> max = new Vector<float>(255F);
+
+            <#
+
+            for (int i = 0; i < 8; i++)
+            {
+                #>
+
+            ref Vector<float> row<#=i#> = ref Unsafe.As<Vector4, Vector<float>>(ref this.V<#=i#>L);
+            row<#=i#> = NormalizeAndRound(row<#=i#>, off, max);
+                <#
+            }
 			#>
         }
 	}

@@ -315,28 +315,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <summary>
         /// Multiply all elements of the block.
         /// </summary>
-        /// <param name="scaleVec">Vector to multiply by</param>
+        /// <param name="value">The value to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyInplace(float scaleVec)
+        public void MultiplyInplace(float value)
         {
-            this.V0L *= scaleVec;
-            this.V0R *= scaleVec;
-            this.V1L *= scaleVec;
-            this.V1R *= scaleVec;
-            this.V2L *= scaleVec;
-            this.V2R *= scaleVec;
-            this.V3L *= scaleVec;
-            this.V3R *= scaleVec;
-            this.V4L *= scaleVec;
-            this.V4R *= scaleVec;
-            this.V5L *= scaleVec;
-            this.V5R *= scaleVec;
-            this.V6L *= scaleVec;
-            this.V6R *= scaleVec;
-            this.V7L *= scaleVec;
-            this.V7R *= scaleVec;
+            this.V0L *= value;
+            this.V0R *= value;
+            this.V1L *= value;
+            this.V1R *= value;
+            this.V2L *= value;
+            this.V2R *= value;
+            this.V3L *= value;
+            this.V3R *= value;
+            this.V4L *= value;
+            this.V4R *= value;
+            this.V5L *= value;
+            this.V5R *= value;
+            this.V6L *= value;
+            this.V6R *= value;
+            this.V7L *= value;
+            this.V7R *= value;
         }
 
+        /// <summary>
+        /// Multiply all elements of the block by the corresponding elements of 'other'
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MultiplyInplace(ref Block8x8F other)
         {
@@ -402,33 +405,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 float val = *unzigPos;
                 val *= qtp[qtIndex];
                 *unzigPos = val;
-            }
-        }
-
-        /// <summary>
-        /// Level shift by +128, clip to [0, 255], and write to buffer.
-        /// </summary>
-        /// <param name="destinationBuffer">Color buffer</param>
-        /// <param name="stride">Stride offset</param>
-        /// <param name="tempBlockPtr">Temp Block pointer</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyColorsTo(Span<byte> destinationBuffer, int stride, Block8x8F* tempBlockPtr)
-        {
-            this.NormalizeColorsInto(ref *tempBlockPtr);
-            ref byte d = ref destinationBuffer.DangerousGetPinnableReference();
-            float* src = (float*)tempBlockPtr;
-            for (int i = 0; i < 8; i++)
-            {
-                ref byte dRow = ref Unsafe.Add(ref d, i * stride);
-                Unsafe.Add(ref dRow, 0) = (byte)src[0];
-                Unsafe.Add(ref dRow, 1) = (byte)src[1];
-                Unsafe.Add(ref dRow, 2) = (byte)src[2];
-                Unsafe.Add(ref dRow, 3) = (byte)src[3];
-                Unsafe.Add(ref dRow, 4) = (byte)src[4];
-                Unsafe.Add(ref dRow, 5) = (byte)src[5];
-                Unsafe.Add(ref dRow, 6) = (byte)src[6];
-                Unsafe.Add(ref dRow, 7) = (byte)src[7];
-                src += 8;
             }
         }
 
@@ -527,29 +503,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             var result = default(Block8x8);
             this.RoundInto(ref result);
             return result;
-        }
-
-        public void NormalizeColorsAndRoundInplaceAvx2()
-        {
-            Vector<float> off = new Vector<float>(128f);
-            Vector<float> max = new Vector<float>(255F);
-
-            ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
-            row0 = NormalizeAndRound(row0, off, max);
-            ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
-            row1 = NormalizeAndRound(row1, off, max);
-            ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
-            row2 = NormalizeAndRound(row2, off, max);
-            ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
-            row3 = NormalizeAndRound(row3, off, max);
-            ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
-            row4 = NormalizeAndRound(row4, off, max);
-            ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
-            row5 = NormalizeAndRound(row5, off, max);
-            ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
-            row6 = NormalizeAndRound(row6, off, max);
-            ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
-            row7 = NormalizeAndRound(row7, off, max);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

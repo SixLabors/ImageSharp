@@ -123,12 +123,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 
                     if (Vector<float>.Count == 4)
                     {
-                        // TODO: Find a way to properly run & test this path on modern AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
+                        // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
                         r.RoundAndDownscaleBasic();
                         g.RoundAndDownscaleBasic();
                         b.RoundAndDownscaleBasic();
                     }
-                    else if (Vector<float>.Count == 8)
+                    else if (SimdUtils.IsAvx2CompatibleArchitecture)
                     {
                         r.RoundAndDownscaleAvx2();
                         g.RoundAndDownscaleAvx2();

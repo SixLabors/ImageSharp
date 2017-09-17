@@ -529,34 +529,39 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        public void RoundInplace()
+        public void NormalizeColorsAndRoundInplaceAvx2()
         {
-            if (Vector<float>.Count == 8 && Vector<int>.Count == 8)
-            {
-                ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
-                row0 = row0.FastRound();
-                ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
-                row1 = row1.FastRound();
-                ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
-                row2 = row2.FastRound();
-                ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
-                row3 = row3.FastRound();
-                ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
-                row4 = row4.FastRound();
-                ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
-                row5 = row5.FastRound();
-                ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
-                row6 = row6.FastRound();
-                ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
-                row7 = row7.FastRound();
-            }
-            else
-            {
-                this.RoundInplaceSlow();
-            }
+            Vector<float> off = new Vector<float>(128f);
+            Vector<float> max = new Vector<float>(255F);
+
+            ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
+            row0 = NormalizeAndRound(row0, off, max);
+            ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
+            row1 = NormalizeAndRound(row1, off, max);
+            ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
+            row2 = NormalizeAndRound(row2, off, max);
+            ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
+            row3 = NormalizeAndRound(row3, off, max);
+            ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
+            row4 = NormalizeAndRound(row4, off, max);
+            ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
+            row5 = NormalizeAndRound(row5, off, max);
+            ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
+            row6 = NormalizeAndRound(row6, off, max);
+            ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
+            row7 = NormalizeAndRound(row7, off, max);
         }
 
-        internal void RoundInplaceSlow()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
+        {
+            row += off;
+            row = Vector.Max(row, Vector<float>.Zero);
+            row = Vector.Min(row, max);
+            return row.FastRound();
+        }
+
+        public void RoundInplace()
         {
             for (int i = 0; i < Size; i++)
             {
@@ -597,11 +602,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
             DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
-        }
-
-        [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(float))]
-        private struct Row
-        {
         }
     }
 }

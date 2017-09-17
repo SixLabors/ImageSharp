@@ -297,6 +297,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void NormalizeColorsAndRoundAvx2(int seed)
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("AVX2 not supported, skipping!");
+                return;
+            }
+
+            Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
+
+            Block8x8F expected = source;
+            expected.NormalizeColorsInplace();
+            expected.RoundInplace();
+
+            Block8x8F actual = source;
+            actual.NormalizeColorsAndRoundInplaceAvx2();
+
+            this.Output.WriteLine(expected.ToString());
+            this.Output.WriteLine(actual.ToString());
+            this.CompareBlocks(expected, actual, 0);
+        }
 
         [Theory]
         [InlineData(1)]
@@ -352,7 +376,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
-        public void RoundInplace(int seed)
+        public void RoundInplaceSlow(int seed)
         {
             Block8x8F s = CreateRandomFloatBlock(-500, 500, seed);
 

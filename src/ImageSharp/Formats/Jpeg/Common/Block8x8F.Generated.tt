@@ -96,6 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 <#
             }
 			#>
+
         }
 	}
 }

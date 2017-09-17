@@ -556,7 +556,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
-        private void RoundInplaceSlow()
+        internal void RoundInplaceSlow()
         {
             for (int i = 0; i < Size; i++)
             {

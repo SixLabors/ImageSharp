@@ -41,8 +41,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.DecodeJpegBenchmarkImpl(fileName, new OrigJpegDecoder());
         }
 
-        [Theory] // Benchmark, enable manually
-        [MemberData(nameof(DecodeJpegData))]
+        //[Theory] // Benchmark, enable manually
+        //[MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg_PdfJs(string fileName)
         {
             this.DecodeJpegBenchmarkImpl(fileName, new PdfJsJpegDecoder());

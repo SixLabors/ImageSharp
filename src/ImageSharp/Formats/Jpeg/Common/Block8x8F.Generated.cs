@@ -146,6 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 
             ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
             row7 = NormalizeAndRound(row7, off, max);
-                        }
+                
+        }
 	}
 }

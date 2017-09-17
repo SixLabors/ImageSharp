@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Common.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
@@ -124,9 +125,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                     if (Vector<float>.Count == 4)
                     {
                         // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
-                        r.RoundAndDownscaleBasic();
-                        g.RoundAndDownscaleBasic();
-                        b.RoundAndDownscaleBasic();
+                        r.RoundAndDownscalePreAvx2();
+                        g.RoundAndDownscalePreAvx2();
+                        b.RoundAndDownscalePreAvx2();
                     }
                     else if (SimdUtils.IsAvx2CompatibleArchitecture)
                     {
@@ -144,67 +145,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);
                     destination.Collect(ref r, ref g, ref b);
-                }
-            }
-
-            /// <summary>
-            /// Its faster to process multiple Vector4-s together
-            /// </summary>
-            private struct Vector4Pair
-            {
-                public Vector4 A;
-
-                public Vector4 B;
-
-                private static readonly Vector4 Scale = new Vector4(1 / 255f);
-
-                private static readonly Vector4 Half = new Vector4(0.5f);
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void RoundAndDownscaleBasic()
-                {
-                    ref Vector<float> a = ref Unsafe.As<Vector4, Vector<float>>(ref this.A);
-                    a = a.FastRound();
-
-                    ref Vector<float> b = ref Unsafe.As<Vector4, Vector<float>>(ref this.B);
-                    b = b.FastRound();
-
-                    // Downscale by 1/255
-                    this.A *= Scale;
-                    this.B *= Scale;
-                }
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void RoundAndDownscaleAvx2()
-                {
-                    ref Vector<float> self = ref Unsafe.As<Vector4Pair, Vector<float>>(ref this);
-                    Vector<float> v = self;
-                    v = v.FastRound();
-
-                    // Downscale by 1/255
-                    v *= new Vector<float>(1 / 255f);
-                    self = v;
-                }
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void MultiplyInplace(float value)
-                {
-                    this.A *= value;
-                    this.B *= value;
-                }
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void AddInplace(Vector4 value)
-                {
-                    this.A += value;
-                    this.B += value;
-                }
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public void AddInplace(ref Vector4Pair other)
-                {
-                    this.A += other.A;
-                    this.B += other.B;
                 }
             }
 

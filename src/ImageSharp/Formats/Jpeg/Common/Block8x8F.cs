@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyTo(Span<float> dest)
+        public void CopyTo(Span<float> dest)
         {
             ref byte d = ref Unsafe.As<float, byte>(ref dest.DangerousGetPinnableReference());
             ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);

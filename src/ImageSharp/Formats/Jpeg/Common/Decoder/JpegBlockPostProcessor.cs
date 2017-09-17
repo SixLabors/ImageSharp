@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct JpegBlockPostProcessor
+    internal struct JpegBlockPostProcessor
     {
         /// <summary>
         /// Source block

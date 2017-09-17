@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var qt = new Block8x8F();
             qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            var unzig = UnzigData.Create();
+            var unzig = ZigZag.CreateUnzigTable();
 
             int* expectedResults = stackalloc int[Block8x8F.Size];
             ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
@@ -396,13 +396,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
             Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
 
-            var unzig = UnzigData.Create();
+            var unzig = ZigZag.CreateUnzigTable();
 
             Block8x8F expected = original;
             Block8x8F actual = original;
 
             ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
             Block8x8F.DequantizeBlock(&actual, &qt, unzig.Data);
+
+            this.CompareBlocks(expected, actual, 0);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public unsafe void ZigZag_CreateDequantizationTable_MultiplicationShouldQuantize(int seed)
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
+            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
+
+            var unzig = ZigZag.CreateUnzigTable();
+            Block8x8F zigQt = ZigZag.CreateDequantizationTable(ref qt);
+
+            Block8x8F expected = original;
+            Block8x8F actual = original;
+
+            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
+
+            actual.MultiplyInplace(ref zigQt);
 
             this.CompareBlocks(expected, actual, 0);
         }

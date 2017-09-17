@@ -455,7 +455,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
-            UnzigData unzig = UnzigData.Create();
+            ZigZag unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
@@ -912,7 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
-            UnzigData unzig = UnzigData.Create();
+            ZigZag unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;

@@ -34,26 +34,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             postProcessor->pointers = new DataPointers(&postProcessor->data);
 
             int qtIndex = component.QuantizationTableIndex;
-            postProcessor->data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+            postProcessor->data.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
             postProcessor->subSamplingDivisors = component.SubSamplingDivisors;
-        }
-
-        public void QuantizeAndTransform(ref Block8x8 sourceBlock)
-        {
-            this.data.SourceBlock = sourceBlock.AsFloatBlock();
-
-            Block8x8F* b = this.pointers.SourceBlock;
-
-            Block8x8F.DequantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
-
-            FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.WorkspaceBlock1, ref this.data.WorkspaceBlock2);
         }
 
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
             BufferArea<float> destArea)
         {
-            this.QuantizeAndTransform(ref sourceBlock);
+            this.data.SourceBlock = sourceBlock.AsFloatBlock();
+
+            Block8x8F* b = this.pointers.SourceBlock;
+
+            // Dequantize:
+            b->MultiplyInplace(ref this.data.DequantiazationTable);
+
+            FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.WorkspaceBlock1, ref this.data.WorkspaceBlock2);
 
             this.data.WorkspaceBlock1.NormalizeColorsInplace();
 
@@ -89,12 +85,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             /// <summary>
             /// The quantization table as <see cref="Block8x8F"/>
             /// </summary>
-            public Block8x8F QuantiazationTable;
+            public Block8x8F DequantiazationTable;
 
             /// <summary>
             /// The jpeg unzig data
             /// </summary>
-            public UnzigData Unzig;
+            public ZigZag Unzig;
 
             /// <summary>
             /// Creates and initializes a new <see cref="ComputationData"/> instance
@@ -103,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             public static ComputationData Create()
             {
                 var data = default(ComputationData);
-                data.Unzig = UnzigData.Create();
+                data.Unzig = ZigZag.CreateUnzigTable();
                 return data;
             }
         }
@@ -129,9 +125,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             public Block8x8F* WorkspaceBlock2;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
+            /// Pointer to <see cref="ComputationData.DequantiazationTable"/>
             /// </summary>
-            public Block8x8F* QuantiazationTable;
+            public Block8x8F* DequantiazationTable;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.Unzig"/> as int*
@@ -147,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 this.SourceBlock = &dataPtr->SourceBlock;
                 this.WorkspaceBlock1 = &dataPtr->WorkspaceBlock1;
                 this.WorkspaceBlock2 = &dataPtr->WorkspaceBlock2;
-                this.QuantiazationTable = &dataPtr->QuantiazationTable;
+                this.DequantiazationTable = &dataPtr->DequantiazationTable;
                 this.Unzig = dataPtr->Unzig.Data;
             }
         }

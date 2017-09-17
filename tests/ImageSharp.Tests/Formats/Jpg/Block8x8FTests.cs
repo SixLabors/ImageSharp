@@ -222,33 +222,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
         
-        [Fact]
-        public unsafe void CopyColorsTo()
-        {
-            float[] data = Create8x8FloatData();
-            var block = new Block8x8F();
-            block.LoadFrom(data);
-            block.MultiplyInplace(5);
-
-            int stride = 256;
-            int height = 42;
-            int offset = height * 10 + 20;
-
-            byte[] colorsExpected = new byte[stride * height];
-            byte[] colorsActual = new byte[stride * height];
-
-            var temp = new Block8x8F();
-
-            ReferenceImplementations.CopyColorsTo(ref block, new Span<byte>(colorsExpected, offset), stride);
-
-            block.CopyColorsTo(new Span<byte>(colorsActual, offset), stride, &temp);
-
-            // Output.WriteLine("******* EXPECTED: *********");
-            // PrintLinearData(colorsExpected);
-            // Output.WriteLine("******** ACTUAL: **********");
-            Assert.Equal(colorsExpected, colorsActual);
-        }
-
         private static float[] Create8x8ColorCropTestData()
         {
             float[] result = new float[64];
@@ -263,30 +236,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void NormalizeColors(bool inplace)
+        [Fact]
+        public void NormalizeColors()
         {
             var block = default(Block8x8F);
             float[] input = Create8x8ColorCropTestData();
             block.LoadFrom(input);
             this.Output.WriteLine("Input:");
             this.PrintLinearData(input);
-            
-            var dest = default(Block8x8F);
 
-            if (inplace)
-            {
-                dest = block;
-                dest.NormalizeColorsInplace();
-            }
-            else
-            {
-                block.NormalizeColorsInto(ref dest);
-            }
+            Block8x8F dest = block;
+            dest.NormalizeColorsInplace();
             
-
             float[] array = new float[64];
             dest.CopyTo(array);
             this.Output.WriteLine("Result:");

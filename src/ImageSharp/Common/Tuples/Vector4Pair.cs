@@ -39,10 +39,11 @@ namespace SixLabors.ImageSharp.Common.Tuples
         }
 
         /// <summary>
-        /// Color-conversion specific downscale method.
+        /// Downscale method, specific to Jpeg color conversion. Works only if Vector{float}.Count == 4!
+        /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RoundAndDownscaleBasic()
+        internal void RoundAndDownscalePreAvx2()
         {
             ref Vector<float> a = ref Unsafe.As<Vector4, Vector<float>>(ref this.A);
             a = a.FastRound();
@@ -56,7 +57,8 @@ namespace SixLabors.ImageSharp.Common.Tuples
         }
 
         /// <summary>
-        /// AVX2-only color-conversion specific downscale method.
+        /// AVX2-only Downscale method, specific to Jpeg color conversion.
+        /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RoundAndDownscaleAvx2()

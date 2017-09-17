@@ -96,51 +96,56 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 		/// <summary>
         /// Level shift by +128, clip to [0, 255]
         /// </summary>
-        /// <param name="d">The destination block</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void NormalizeColorsInto(ref Block8x8F d)
-        {
-            d.V0L = Vector4.Clamp(V0L + COff4, CMin4, CMax4);
-            d.V0R = Vector4.Clamp(V0R + COff4, CMin4, CMax4);
-            d.V1L = Vector4.Clamp(V1L + COff4, CMin4, CMax4);
-            d.V1R = Vector4.Clamp(V1R + COff4, CMin4, CMax4);
-            d.V2L = Vector4.Clamp(V2L + COff4, CMin4, CMax4);
-            d.V2R = Vector4.Clamp(V2R + COff4, CMin4, CMax4);
-            d.V3L = Vector4.Clamp(V3L + COff4, CMin4, CMax4);
-            d.V3R = Vector4.Clamp(V3R + COff4, CMin4, CMax4);
-            d.V4L = Vector4.Clamp(V4L + COff4, CMin4, CMax4);
-            d.V4R = Vector4.Clamp(V4R + COff4, CMin4, CMax4);
-            d.V5L = Vector4.Clamp(V5L + COff4, CMin4, CMax4);
-            d.V5R = Vector4.Clamp(V5R + COff4, CMin4, CMax4);
-            d.V6L = Vector4.Clamp(V6L + COff4, CMin4, CMax4);
-            d.V6R = Vector4.Clamp(V6R + COff4, CMin4, CMax4);
-            d.V7L = Vector4.Clamp(V7L + COff4, CMin4, CMax4);
-            d.V7R = Vector4.Clamp(V7R + COff4, CMin4, CMax4);
-        }
-
-
-        /// <summary>
-        /// Level shift by +128, clip to [0, 255]
-        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NormalizeColorsInplace()
         {
-            this.V0L = Vector4.Clamp(V0L + COff4, CMin4, CMax4);
-            this.V0R = Vector4.Clamp(V0R + COff4, CMin4, CMax4);
-            this.V1L = Vector4.Clamp(V1L + COff4, CMin4, CMax4);
-            this.V1R = Vector4.Clamp(V1R + COff4, CMin4, CMax4);
-            this.V2L = Vector4.Clamp(V2L + COff4, CMin4, CMax4);
-            this.V2R = Vector4.Clamp(V2R + COff4, CMin4, CMax4);
-            this.V3L = Vector4.Clamp(V3L + COff4, CMin4, CMax4);
-            this.V3R = Vector4.Clamp(V3R + COff4, CMin4, CMax4);
-            this.V4L = Vector4.Clamp(V4L + COff4, CMin4, CMax4);
-            this.V4R = Vector4.Clamp(V4R + COff4, CMin4, CMax4);
-            this.V5L = Vector4.Clamp(V5L + COff4, CMin4, CMax4);
-            this.V5R = Vector4.Clamp(V5R + COff4, CMin4, CMax4);
-            this.V6L = Vector4.Clamp(V6L + COff4, CMin4, CMax4);
-            this.V6R = Vector4.Clamp(V6R + COff4, CMin4, CMax4);
-            this.V7L = Vector4.Clamp(V7L + COff4, CMin4, CMax4);
-            this.V7R = Vector4.Clamp(V7R + COff4, CMin4, CMax4);
+            this.V0L = Vector4.Clamp(this.V0L + COff4, CMin4, CMax4);
+            this.V0R = Vector4.Clamp(this.V0R + COff4, CMin4, CMax4);
+            this.V1L = Vector4.Clamp(this.V1L + COff4, CMin4, CMax4);
+            this.V1R = Vector4.Clamp(this.V1R + COff4, CMin4, CMax4);
+            this.V2L = Vector4.Clamp(this.V2L + COff4, CMin4, CMax4);
+            this.V2R = Vector4.Clamp(this.V2R + COff4, CMin4, CMax4);
+            this.V3L = Vector4.Clamp(this.V3L + COff4, CMin4, CMax4);
+            this.V3R = Vector4.Clamp(this.V3R + COff4, CMin4, CMax4);
+            this.V4L = Vector4.Clamp(this.V4L + COff4, CMin4, CMax4);
+            this.V4R = Vector4.Clamp(this.V4R + COff4, CMin4, CMax4);
+            this.V5L = Vector4.Clamp(this.V5L + COff4, CMin4, CMax4);
+            this.V5R = Vector4.Clamp(this.V5R + COff4, CMin4, CMax4);
+            this.V6L = Vector4.Clamp(this.V6L + COff4, CMin4, CMax4);
+            this.V6R = Vector4.Clamp(this.V6R + COff4, CMin4, CMax4);
+            this.V7L = Vector4.Clamp(this.V7L + COff4, CMin4, CMax4);
+            this.V7R = Vector4.Clamp(this.V7R + COff4, CMin4, CMax4);
         }
-    }
+
+        public void NormalizeColorsAndRoundInplaceAvx2()
+        {
+            Vector<float> off = new Vector<float>(128f);
+            Vector<float> max = new Vector<float>(255F);
+
+            
+            ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
+            row0 = NormalizeAndRound(row0, off, max);
+                
+            ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
+            row1 = NormalizeAndRound(row1, off, max);
+                
+            ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
+            row2 = NormalizeAndRound(row2, off, max);
+                
+            ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
+            row3 = NormalizeAndRound(row3, off, max);
+                
+            ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
+            row4 = NormalizeAndRound(row4, off, max);
+                
+            ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
+            row5 = NormalizeAndRound(row5, off, max);
+                
+            ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
+            row6 = NormalizeAndRound(row6, off, max);
+                
+            ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
+            row7 = NormalizeAndRound(row7, off, max);
+                        }
+	}
 }

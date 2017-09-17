@@ -33,18 +33,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// </summary>
         public Block8x8F DequantiazationTable;
 
+        /// <summary>
+        /// Defines the horizontal and vertical scale we need to apply to the 8x8 sized block.
+        /// </summary>
         private Size subSamplingDivisors;
 
         /// <summary>
-        /// Initialize the <see cref="JpegBlockPostProcessor"/> instance on the stack.
+        /// Initializes a new instance of the <see cref="JpegBlockPostProcessor"/> struct.
         /// </summary>
-        public static void Init(JpegBlockPostProcessor* postProcessor, IRawJpegData decoder, IJpegComponent component)
+        public JpegBlockPostProcessor(IRawJpegData decoder, IJpegComponent component)
         {
             int qtIndex = component.QuantizationTableIndex;
-            postProcessor->DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
-            postProcessor->subSamplingDivisors = component.SubSamplingDivisors;
+            this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
+            this.subSamplingDivisors = component.SubSamplingDivisors;
+
+            this.SourceBlock = default(Block8x8F);
+            this.WorkspaceBlock1 = default(Block8x8F);
+            this.WorkspaceBlock2 = default(Block8x8F);
         }
 
+        /// <summary>
+        /// Processes 'sourceBlock' producing Jpeg color channel values from spectral values:
+        /// - Dequantize
+        /// - Applying IDCT
+        /// - Level shift by +128, clip to [0, 255]
+        /// - Copy the resultin color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
+        /// </summary>
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
             BufferArea<float> destArea)

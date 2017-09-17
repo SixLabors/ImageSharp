@@ -16,16 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     /// </summary>
     internal partial struct Block8x8F
     {
-        // Most of the static methods of this struct are instance methods by actual semantics: they use Block8x8F* as their first parameter.
-        // Example: GetScalarAt() and SetScalarAt() are really just other (optimized) versions of the indexer.
-        // It's much cleaner, easier and safer to work with the code, if the methods with same semantics are next to each other.
-#pragma warning disable SA1204 // StaticElementsMustAppearBeforeInstanceElements
-
-        /// <summary>
-        /// Vector count
-        /// </summary>
-        public const int VectorCount = 16;
-
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
         /// </summary>
@@ -154,36 +144,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             var result = default(Block8x8F);
             result.LoadFrom(data);
             return result;
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (getter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <returns>The scaleVec value at the specified index</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
-        {
-            GuardBlockIndex(idx);
-
-            float* fp = (float*)blockPtr;
-            return fp[idx];
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (setter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <param name="value">Value</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
-        {
-            GuardBlockIndex(idx);
-
-            float* fp = (float*)blockPtr;
-            fp[idx] = value;
         }
 
         /// <summary>
@@ -409,6 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
+        /// Quantize 'block' into 'dest' using the 'qt' quantization table:
         /// Unzig the elements of block into dest, while dividing them by elements of qt and "pre-rounding" the values.
         /// To finish the rounding it's enough to (int)-cast these values.
         /// </summary>
@@ -416,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="dest">Destination block</param>
         /// <param name="qt">The quantization table</param>
         /// <param name="unzigPtr">Pointer to elements of <see cref="ZigZag"/></param>
-        public static unsafe void UnzigDivRound(
+        public static unsafe void Quantize(
             Block8x8F* block,
             Block8x8F* dest,
             Block8x8F* qt,
@@ -505,15 +466,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
+        /// <summary>
+        /// Level shift by +128, clip to [0..255], and round all the values in the block.
+        /// </summary>
+        public void NormalizeColorsAndRoundInplace()
         {
-            row += off;
-            row = Vector.Max(row, Vector<float>.Zero);
-            row = Vector.Min(row, max);
-            return row.FastRound();
+            if (SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.NormalizeColorsAndRoundInplaceAvx2();
+            }
+            else
+            {
+                this.NormalizeColorsInplace();
+                this.RoundInplace();
+            }
         }
 
+        /// <summary>
+        /// Rounds all values in the block.
+        /// </summary>
         public void RoundInplace()
         {
             for (int i = 0; i < Size; i++)
@@ -538,6 +509,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             bld.Append(']');
             return bld.ToString();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
+        {
+            row += off;
+            row = Vector.Max(row, Vector<float>.Zero);
+            row = Vector.Min(row, max);
+            return row.FastRound();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

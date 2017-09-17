@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <param name="src">The input block</param>
         /// <param name="dest">The destination block of integers</param>
         /// <param name="qt">The quantization table</param>
-        /// <param name="unzigPtr">Pointer to <see cref="UnzigData.Data"/> </param>
+        /// <param name="unzigPtr">Pointer to <see cref="ZigZag.Data"/> </param>
         public static unsafe void UnZigDivRoundRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
         {
             float* s = (float*)src;

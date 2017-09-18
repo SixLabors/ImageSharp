@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class JpegColorConverterTests
     {
-        private const float Precision = 1/255f;
+        private const float Precision = 0.1f / 255;
 
         public static readonly TheoryData<int, int, int> CommonConversionData =
             new TheoryData<int, int, int>

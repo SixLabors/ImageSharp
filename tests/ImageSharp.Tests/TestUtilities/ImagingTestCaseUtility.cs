@@ -89,6 +89,8 @@ namespace SixLabors.ImageSharp.Tests
             return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{details}{extension}";
         }
 
+        private static string Inv(FormattableString formattable) => System.FormattableString.Invariant(formattable);
+        
         /// <summary>
         /// Gets the recommended file name for the output of the test
         /// </summary>
@@ -111,13 +113,17 @@ namespace SixLabors.ImageSharp.Tests
                 TypeInfo info = type.GetTypeInfo();
                 if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
                 {
-                    detailsString = testOutputDetails.ToString();
+                    detailsString = Inv($"{testOutputDetails}");
                 }
                 else
                 {
                     IEnumerable<PropertyInfo> properties = testOutputDetails.GetType().GetRuntimeProperties();
 
-                    detailsString = String.Join("_", properties.ToDictionary(x => x.Name, x => x.GetValue(testOutputDetails)).Select(x => $"{x.Key}-{x.Value}"));
+                    detailsString = string.Join(
+                        "_",
+                        properties.ToDictionary(x => x.Name, x => x.GetValue(testOutputDetails))
+                            .Select(x => Inv($"{x.Key}-{x.Value}"))
+                        );
                 }
             }
             return this.GetTestOutputFileNameImpl(extension, detailsString, appendPixelTypeToFileName);

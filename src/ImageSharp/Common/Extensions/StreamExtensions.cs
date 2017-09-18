@@ -32,7 +32,16 @@ namespace SixLabors.ImageSharp
                 byte[] foo = ArrayPool<byte>.Shared.Rent(count);
                 try
                 {
-                    stream.Read(foo, 0, count);
+                    while (count > 0)
+                    {
+                        int bytesRead = stream.Read(foo, 0, count);
+                        if (bytesRead == 0)
+                        {
+                            break;
+                        }
+
+                        count -= bytesRead;
+                    }
                 }
                 finally
                 {

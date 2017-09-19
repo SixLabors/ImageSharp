@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// The jpeg unzig data
             /// </summary>
-            public UnzigData Unzig;
+            public ZigZag Unzig;
 
             /// <summary>
             /// The buffer storing the <see cref="OrigComponentScan"/>-s for each component
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             public static ComputationData Create()
             {
                 ComputationData data = default(ComputationData);
-                data.Unzig = UnzigData.Create();
+                data.Unzig = ZigZag.CreateUnzigTable();
                 return data;
             }
         }

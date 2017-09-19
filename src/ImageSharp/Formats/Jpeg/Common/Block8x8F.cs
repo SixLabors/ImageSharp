@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.Memory;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
@@ -17,16 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     /// </summary>
     internal partial struct Block8x8F
     {
-        // Most of the static methods of this struct are instance methods by actual semantics: they use Block8x8F* as their first parameter.
-        // Example: GetScalarAt() and SetScalarAt() are really just other (optimized) versions of the indexer.
-        // It's much cleaner, easier and safer to work with the code, if the methods with same semantics are next to each other.
-#pragma warning disable SA1204 // StaticElementsMustAppearBeforeInstanceElements
-
-        /// <summary>
-        /// Vector count
-        /// </summary>
-        public const int VectorCount = 16;
-
         /// <summary>
         /// A number of scalar coefficients in a <see cref="Block8x8F"/>
         /// </summary>
@@ -158,36 +147,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
-        /// Pointer-based "Indexer" (getter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <returns>The scaleVec value at the specified index</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe float GetScalarAt(Block8x8F* blockPtr, int idx)
-        {
-            GuardBlockIndex(idx);
-
-            float* fp = (float*)blockPtr;
-            return fp[idx];
-        }
-
-        /// <summary>
-        /// Pointer-based "Indexer" (setter part)
-        /// </summary>
-        /// <param name="blockPtr">Block pointer</param>
-        /// <param name="idx">Index</param>
-        /// <param name="value">Value</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void SetScalarAt(Block8x8F* blockPtr, int idx, float value)
-        {
-            GuardBlockIndex(idx);
-
-            float* fp = (float*)blockPtr;
-            fp[idx] = value;
-        }
-
-        /// <summary>
         /// Fill the block with defaults (zeroes)
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -242,7 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyTo(Span<float> dest)
+        public void CopyTo(Span<float> dest)
         {
             ref byte d = ref Unsafe.As<float, byte>(ref dest.DangerousGetPinnableReference());
             ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);
@@ -306,109 +265,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             }
         }
 
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyTo(BufferArea<float> area)
-        {
-            ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
-            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigo());
-            int destStride = area.Stride * sizeof(float);
-
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 1);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 2);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 3);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 4);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 5);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 6);
-            CopyRowImpl(ref selfBase, ref destBase, destStride, 7);
-        }
-
-        public void CopyTo(BufferArea<float> area, int horizontalScale, int verticalScale)
-        {
-            if (horizontalScale == 1 && verticalScale == 1)
-            {
-                this.CopyTo(area);
-                return;
-            }
-            else if (horizontalScale == 2 && verticalScale == 2)
-            {
-                this.CopyTo2x2(area);
-                return;
-            }
-
-            // TODO: Optimize: implement all the cases with loopless special code! (T4?)
-            for (int y = 0; y < 8; y++)
-            {
-                int yy = y * verticalScale;
-                int y8 = y * 8;
-
-                for (int x = 0; x < 8; x++)
-                {
-                    int xx = x * horizontalScale;
-
-                    float value = this[y8 + x];
-
-                    for (int i = 0; i < verticalScale; i++)
-                    {
-                        for (int j = 0; j < horizontalScale; j++)
-                        {
-                            area[xx + j, yy + i] = value;
-                        }
-                    }
-                }
-            }
-        }
-
-        private void CopyTo2x2(BufferArea<float> area)
-        {
-            ref float destBase = ref area.GetReferenceToOrigo();
-            int destStride = area.Stride;
-
-            this.CopyRow2x2Impl(ref destBase, 0, destStride);
-            this.CopyRow2x2Impl(ref destBase, 1, destStride);
-            this.CopyRow2x2Impl(ref destBase, 2, destStride);
-            this.CopyRow2x2Impl(ref destBase, 3, destStride);
-            this.CopyRow2x2Impl(ref destBase, 4, destStride);
-            this.CopyRow2x2Impl(ref destBase, 5, destStride);
-            this.CopyRow2x2Impl(ref destBase, 6, destStride);
-            this.CopyRow2x2Impl(ref destBase, 7, destStride);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CopyRowImpl(ref byte selfBase, ref byte destBase, int destStride, int row)
-        {
-            ref byte s = ref Unsafe.Add(ref selfBase, row * 8 * sizeof(float));
-            ref byte d = ref Unsafe.Add(ref destBase, row * destStride);
-            Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyRow2x2Impl(ref float destBase, int row, int destStride)
-        {
-            ref Vector4 selfLeft = ref Unsafe.Add(ref this.V0L, 2 * row);
-            ref Vector4 selfRight = ref Unsafe.Add(ref selfLeft, 1);
-            ref float destLocalOrigo = ref Unsafe.Add(ref destBase, row * 2 * destStride);
-
-            Stride2VectorCopyImpl(ref selfLeft, ref destLocalOrigo);
-            Stride2VectorCopyImpl(ref selfRight, ref Unsafe.Add(ref destLocalOrigo, 8));
-
-            Stride2VectorCopyImpl(ref selfLeft, ref Unsafe.Add(ref destLocalOrigo, destStride));
-            Stride2VectorCopyImpl(ref selfRight, ref Unsafe.Add(ref destLocalOrigo, destStride + 8));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Stride2VectorCopyImpl(ref Vector4 s, ref float destBase)
-        {
-            Unsafe.Add(ref destBase, 0) = s.X;
-            Unsafe.Add(ref destBase, 1) = s.X;
-            Unsafe.Add(ref destBase, 2) = s.Y;
-            Unsafe.Add(ref destBase, 3) = s.Y;
-            Unsafe.Add(ref destBase, 4) = s.Z;
-            Unsafe.Add(ref destBase, 5) = s.Z;
-            Unsafe.Add(ref destBase, 6) = s.W;
-            Unsafe.Add(ref destBase, 7) = s.W;
-        }
-
         public float[] ToArray()
         {
             float[] result = new float[Size];
@@ -419,26 +275,50 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <summary>
         /// Multiply all elements of the block.
         /// </summary>
-        /// <param name="scaleVec">Vector to multiply by</param>
+        /// <param name="value">The value to multiply by</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyAllInplace(float scaleVec)
+        public void MultiplyInplace(float value)
         {
-            this.V0L *= scaleVec;
-            this.V0R *= scaleVec;
-            this.V1L *= scaleVec;
-            this.V1R *= scaleVec;
-            this.V2L *= scaleVec;
-            this.V2R *= scaleVec;
-            this.V3L *= scaleVec;
-            this.V3R *= scaleVec;
-            this.V4L *= scaleVec;
-            this.V4R *= scaleVec;
-            this.V5L *= scaleVec;
-            this.V5R *= scaleVec;
-            this.V6L *= scaleVec;
-            this.V6R *= scaleVec;
-            this.V7L *= scaleVec;
-            this.V7R *= scaleVec;
+            this.V0L *= value;
+            this.V0R *= value;
+            this.V1L *= value;
+            this.V1R *= value;
+            this.V2L *= value;
+            this.V2R *= value;
+            this.V3L *= value;
+            this.V3R *= value;
+            this.V4L *= value;
+            this.V4R *= value;
+            this.V5L *= value;
+            this.V5R *= value;
+            this.V6L *= value;
+            this.V6R *= value;
+            this.V7L *= value;
+            this.V7R *= value;
+        }
+
+        /// <summary>
+        /// Multiply all elements of the block by the corresponding elements of 'other'
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MultiplyInplace(ref Block8x8F other)
+        {
+            this.V0L *= other.V0L;
+            this.V0R *= other.V0R;
+            this.V1L *= other.V1L;
+            this.V1R *= other.V1R;
+            this.V2L *= other.V2L;
+            this.V2R *= other.V2R;
+            this.V3L *= other.V3L;
+            this.V3R *= other.V3R;
+            this.V4L *= other.V4L;
+            this.V4R *= other.V4R;
+            this.V5L *= other.V5L;
+            this.V5R *= other.V5R;
+            this.V6L *= other.V6L;
+            this.V6R *= other.V6R;
+            this.V7L *= other.V7L;
+            this.V7R *= other.V7R;
         }
 
         /// <summary>
@@ -472,56 +352,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
-            for (int zig = 0; zig < Size; zig++)
+            for (int qtIndex = 0; qtIndex < Size; qtIndex++)
             {
-                float* unzigPos = b + unzigPtr[zig];
+                int blockIndex = unzigPtr[qtIndex];
+                float* unzigPos = b + blockIndex;
+
                 float val = *unzigPos;
-                val *= qtp[zig];
+                val *= qtp[qtIndex];
                 *unzigPos = val;
             }
         }
 
         /// <summary>
-        /// Level shift by +128, clip to [0, 255], and write to buffer.
-        /// </summary>
-        /// <param name="destinationBuffer">Color buffer</param>
-        /// <param name="stride">Stride offset</param>
-        /// <param name="tempBlockPtr">Temp Block pointer</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyColorsTo(Span<byte> destinationBuffer, int stride, Block8x8F* tempBlockPtr)
-        {
-            this.NormalizeColorsInto(ref *tempBlockPtr);
-            ref byte d = ref destinationBuffer.DangerousGetPinnableReference();
-            float* src = (float*)tempBlockPtr;
-            for (int i = 0; i < 8; i++)
-            {
-                ref byte dRow = ref Unsafe.Add(ref d, i * stride);
-                Unsafe.Add(ref dRow, 0) = (byte)src[0];
-                Unsafe.Add(ref dRow, 1) = (byte)src[1];
-                Unsafe.Add(ref dRow, 2) = (byte)src[2];
-                Unsafe.Add(ref dRow, 3) = (byte)src[3];
-                Unsafe.Add(ref dRow, 4) = (byte)src[4];
-                Unsafe.Add(ref dRow, 5) = (byte)src[5];
-                Unsafe.Add(ref dRow, 6) = (byte)src[6];
-                Unsafe.Add(ref dRow, 7) = (byte)src[7];
-                src += 8;
-            }
-        }
-
-        /// <summary>
+        /// Quantize 'block' into 'dest' using the 'qt' quantization table:
         /// Unzig the elements of block into dest, while dividing them by elements of qt and "pre-rounding" the values.
         /// To finish the rounding it's enough to (int)-cast these values.
         /// </summary>
         /// <param name="block">Source block</param>
         /// <param name="dest">Destination block</param>
         /// <param name="qt">The quantization table</param>
-        /// <param name="unzigPtr">Pointer to elements of <see cref="UnzigData"/></param>
-        public static unsafe void UnzigDivRound(
+        /// <param name="unzigPtr">Pointer to elements of <see cref="ZigZag"/></param>
+        public static unsafe void Quantize(
             Block8x8F* block,
             Block8x8F* dest,
             Block8x8F* qt,
@@ -610,34 +466,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        public void RoundInplace()
+        /// <summary>
+        /// Level shift by +128, clip to [0..255], and round all the values in the block.
+        /// </summary>
+        public void NormalizeColorsAndRoundInplace()
         {
-            if (Vector<float>.Count == 8 && Vector<int>.Count == 8)
+            if (SimdUtils.IsAvx2CompatibleArchitecture)
             {
-                ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V0L);
-                row0 = row0.FastRound();
-                ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V1L);
-                row1 = row1.FastRound();
-                ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V2L);
-                row2 = row2.FastRound();
-                ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V3L);
-                row3 = row3.FastRound();
-                ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V4L);
-                row4 = row4.FastRound();
-                ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V5L);
-                row5 = row5.FastRound();
-                ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V6L);
-                row6 = row6.FastRound();
-                ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref this.V7L);
-                row7 = row7.FastRound();
+                this.NormalizeColorsAndRoundInplaceAvx2();
             }
             else
             {
-                this.RoundInplaceSlow();
+                this.NormalizeColorsInplace();
+                this.RoundInplace();
             }
         }
 
-        private void RoundInplaceSlow()
+        /// <summary>
+        /// Rounds all values in the block.
+        /// </summary>
+        public void RoundInplace()
         {
             for (int i = 0; i < Size; i++)
             {
@@ -664,6 +512,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
+        {
+            row += off;
+            row = Vector.Max(row, Vector<float>.Zero);
+            row = Vector.Min(row, max);
+            return row.FastRound();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
             // sign(dividend) = max(min(dividend, 1), -1)
@@ -678,11 +535,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
             DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
-        }
-
-        [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(float))]
-        private struct Row
-        {
         }
     }
 }

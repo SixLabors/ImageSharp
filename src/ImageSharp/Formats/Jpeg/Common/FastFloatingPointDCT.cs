@@ -50,7 +50,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="temp">Temporary block provided by the caller</param>
         public static void TransformIDCT(ref Block8x8F src, ref Block8x8F dest, ref Block8x8F temp)
         {
+            // TODO: Transpose is a bottleneck now. We need full AVX support to optimize it:
+            // https://github.com/dotnet/corefx/issues/22940
             src.TransposeInto(ref temp);
+
             IDCT8x4_LeftPart(ref temp, ref dest);
             IDCT8x4_RightPart(ref temp, ref dest);
 
@@ -60,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             IDCT8x4_RightPart(ref temp, ref dest);
 
             // TODO: What if we leave the blocks in a scaled-by-x8 state until final color packing?
-            dest.MultiplyAllInplace(C_0_125);
+            dest.MultiplyInplace(C_0_125);
         }
 
         /// <summary>
@@ -334,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             FDCT8x4_LeftPart(ref temp, ref dest);
             FDCT8x4_RightPart(ref temp, ref dest);
 
-            dest.MultiplyAllInplace(C_0_125);
+            dest.MultiplyInplace(C_0_125);
         }
     }
 }

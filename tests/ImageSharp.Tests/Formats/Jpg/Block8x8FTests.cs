@@ -32,6 +32,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
         }
 
+        private bool SkipOnNonAvx2Runner()
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("AVX2 not supported, skipping!");
+                return true;
+            }
+            return false;
+        }
+
         [Fact]
         public void Indexer()
         {
@@ -55,31 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     });
             Assert.Equal(sum, 64f * 63f * 0.5f);
         }
-
-        [Fact]
-        public unsafe void Indexer_GetScalarAt_SetScalarAt()
-        {
-            float sum = 0;
-            this.Measure(
-                Times,
-                () =>
-                    {
-                        var block = new Block8x8F();
-
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            Block8x8F.SetScalarAt(&block, i, i);
-                        }
-
-                        sum = 0;
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            sum += Block8x8F.GetScalarAt(&block, i);
-                        }
-                    });
-            Assert.Equal(sum, 64f * 63f * 0.5f);
-        }
-
+        
         [Fact]
         public void Indexer_ReferenceBenchmarkWithArray()
         {
@@ -222,33 +208,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
         
-        [Fact]
-        public unsafe void CopyColorsTo()
-        {
-            float[] data = Create8x8FloatData();
-            var block = new Block8x8F();
-            block.LoadFrom(data);
-            block.MultiplyAllInplace(5);
-
-            int stride = 256;
-            int height = 42;
-            int offset = height * 10 + 20;
-
-            byte[] colorsExpected = new byte[stride * height];
-            byte[] colorsActual = new byte[stride * height];
-
-            var temp = new Block8x8F();
-
-            ReferenceImplementations.CopyColorsTo(ref block, new Span<byte>(colorsExpected, offset), stride);
-
-            block.CopyColorsTo(new Span<byte>(colorsActual, offset), stride, &temp);
-
-            // Output.WriteLine("******* EXPECTED: *********");
-            // PrintLinearData(colorsExpected);
-            // Output.WriteLine("******** ACTUAL: **********");
-            Assert.Equal(colorsExpected, colorsActual);
-        }
-
         private static float[] Create8x8ColorCropTestData()
         {
             float[] result = new float[64];
@@ -263,30 +222,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return result;
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void NormalizeColors(bool inplace)
+        [Fact]
+        public void NormalizeColors()
         {
             var block = default(Block8x8F);
             float[] input = Create8x8ColorCropTestData();
             block.LoadFrom(input);
             this.Output.WriteLine("Input:");
             this.PrintLinearData(input);
-            
-            var dest = default(Block8x8F);
 
-            if (inplace)
-            {
-                dest = block;
-                dest.NormalizeColorsInplace();
-            }
-            else
-            {
-                block.NormalizeColorsInto(ref dest);
-            }
+            Block8x8F dest = block;
+            dest.NormalizeColorsInplace();
             
-
             float[] array = new float[64];
             dest.CopyTo(array);
             this.Output.WriteLine("Result:");
@@ -297,11 +244,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void NormalizeColorsAndRoundAvx2(int seed)
+        {
+            if (this.SkipOnNonAvx2Runner())
+            {
+                return;
+            }
+
+            Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
+
+            Block8x8F expected = source;
+            expected.NormalizeColorsInplace();
+            expected.RoundInplace();
+
+            Block8x8F actual = source;
+            actual.NormalizeColorsAndRoundInplaceAvx2();
+
+            this.Output.WriteLine(expected.ToString());
+            this.Output.WriteLine(actual.ToString());
+            this.CompareBlocks(expected, actual, 0);
+        }
+
 
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public unsafe void UnzigDivRound(int seed)
+        public unsafe void Quantize(int seed)
         {
             var block = new Block8x8F();
             block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
@@ -309,14 +280,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var qt = new Block8x8F();
             qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            var unzig = UnzigData.Create();
+            var unzig = ZigZag.CreateUnzigTable();
 
             int* expectedResults = stackalloc int[Block8x8F.Size];
-            ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
+            ReferenceImplementations.QuantizeRational(&block, expectedResults, &qt, unzig.Data);
 
             var actualResults = default(Block8x8F);
 
-            Block8x8F.UnzigDivRound(&block, &actualResults, &qt, unzig.Data);
+            Block8x8F.Quantize(&block, &actualResults, &qt, unzig.Data);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
@@ -352,7 +323,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
-        public void RoundInplace(int seed)
+        public void RoundInplaceSlow(int seed)
         {
             Block8x8F s = CreateRandomFloatBlock(-500, 500, seed);
 
@@ -368,6 +339,78 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float actual = d[i];
 
                 Assert.Equal(expected, actual);
+            }
+        }
+
+        [Fact]
+        public void MultiplyInplace_ByOtherBlock()
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, 42);
+            Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
+
+            Block8x8F actual = original;
+            
+            actual.MultiplyInplace(ref m);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal(original[i]*m[i], actual[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public unsafe void DequantizeBlock(int seed)
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
+            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
+
+            var unzig = ZigZag.CreateUnzigTable();
+
+            Block8x8F expected = original;
+            Block8x8F actual = original;
+
+            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
+            Block8x8F.DequantizeBlock(&actual, &qt, unzig.Data);
+
+            this.CompareBlocks(expected, actual, 0);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public unsafe void ZigZag_CreateDequantizationTable_MultiplicationShouldQuantize(int seed)
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
+            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
+
+            var unzig = ZigZag.CreateUnzigTable();
+            Block8x8F zigQt = ZigZag.CreateDequantizationTable(ref qt);
+
+            Block8x8F expected = original;
+            Block8x8F actual = original;
+
+            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
+
+            actual.MultiplyInplace(ref zigQt);
+
+            this.CompareBlocks(expected, actual, 0);
+        }
+
+        [Fact]
+        public void MultiplyInplace_ByScalar()
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500);
+
+            Block8x8F actual = original;
+            actual.MultiplyInplace(42f);
+
+            for (int i = 0; i < 64; i++)
+            {
+                Assert.Equal(original[i]*42f, actual[i]);
             }
         }
     }

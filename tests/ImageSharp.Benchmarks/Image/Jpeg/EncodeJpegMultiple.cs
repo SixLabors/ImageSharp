@@ -3,14 +3,13 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 {
     using System.Collections.Generic;
     using System.Drawing.Imaging;
 
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Jpeg;
 
     [Config(typeof(Config.Short))] // It's long enough to iterate through multiple files

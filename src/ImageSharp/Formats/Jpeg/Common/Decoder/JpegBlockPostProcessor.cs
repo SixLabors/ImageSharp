@@ -11,145 +11,72 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct JpegBlockPostProcessor
+    internal struct JpegBlockPostProcessor
     {
         /// <summary>
-        /// The <see cref="ComputationData"/>
+        /// Source block
         /// </summary>
-        private ComputationData data;
+        public Block8x8F SourceBlock;
 
         /// <summary>
-        /// Pointers to elements of <see cref="data"/>
+        /// Temporal block 1 to store intermediate and/or final computation results
         /// </summary>
-        private DataPointers pointers;
+        public Block8x8F WorkspaceBlock1;
 
         /// <summary>
-        /// Initialize the <see cref="JpegBlockPostProcessor"/> instance on the stack.
+        /// Temporal block 2 to store intermediate and/or final computation results
         /// </summary>
-        /// <param name="postProcessor">The <see cref="JpegBlockPostProcessor"/> instance</param>
-        public static void Init(JpegBlockPostProcessor* postProcessor)
-        {
-            postProcessor->data = ComputationData.Create();
-            postProcessor->pointers = new DataPointers(&postProcessor->data);
-        }
+        public Block8x8F WorkspaceBlock2;
 
-        public void QuantizeAndTransform(IRawJpegData decoder, IJpegComponent component, ref Block8x8 sourceBlock)
+        /// <summary>
+        /// The quantization table as <see cref="Block8x8F"/>
+        /// </summary>
+        public Block8x8F DequantiazationTable;
+
+        /// <summary>
+        /// Defines the horizontal and vertical scale we need to apply to the 8x8 sized block.
+        /// </summary>
+        private Size subSamplingDivisors;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JpegBlockPostProcessor"/> struct.
+        /// </summary>
+        public JpegBlockPostProcessor(IRawJpegData decoder, IJpegComponent component)
         {
-            this.data.SourceBlock = sourceBlock.AsFloatBlock();
             int qtIndex = component.QuantizationTableIndex;
-            this.data.QuantiazationTable = decoder.QuantizationTables[qtIndex];
+            this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
+            this.subSamplingDivisors = component.SubSamplingDivisors;
 
-            Block8x8F* b = this.pointers.SourceBlock;
-
-            Block8x8F.DequantizeBlock(b, this.pointers.QuantiazationTable, this.pointers.Unzig);
-
-            FastFloatingPointDCT.TransformIDCT(ref *b, ref this.data.WorkspaceBlock1, ref this.data.WorkspaceBlock2);
+            this.SourceBlock = default(Block8x8F);
+            this.WorkspaceBlock1 = default(Block8x8F);
+            this.WorkspaceBlock2 = default(Block8x8F);
         }
 
+        /// <summary>
+        /// Processes 'sourceBlock' producing Jpeg color channel values from spectral values:
+        /// - Dequantize
+        /// - Applying IDCT
+        /// - Level shift by +128, clip to [0, 255]
+        /// - Copy the resultin color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>
+        /// </summary>
         public void ProcessBlockColorsInto(
-            IRawJpegData decoder,
-            IJpegComponent component,
             ref Block8x8 sourceBlock,
             BufferArea<float> destArea)
         {
-            this.QuantizeAndTransform(decoder, component, ref sourceBlock);
+            ref Block8x8F b = ref this.SourceBlock;
+            b.LoadFrom(ref sourceBlock);
 
-            this.data.WorkspaceBlock1.NormalizeColorsInplace();
+            // Dequantize:
+            b.MultiplyInplace(ref this.DequantiazationTable);
+
+            FastFloatingPointDCT.TransformIDCT(ref b, ref this.WorkspaceBlock1, ref this.WorkspaceBlock2);
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
-            // Unfortunately, we need to emulate this to be "more accurate" :(
-            this.data.WorkspaceBlock1.RoundInplace();
+            // To be "more accurate", we need to emulate this by rounding!
+            this.WorkspaceBlock1.NormalizeColorsAndRoundInplace();
 
-            Size divs = component.SubSamplingDivisors;
-            this.data.WorkspaceBlock1.CopyTo(destArea, divs.Width, divs.Height);
-        }
-
-        /// <summary>
-        /// Holds the "large" data blocks needed for computations.
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential)]
-        public struct ComputationData
-        {
-            /// <summary>
-            /// Source block
-            /// </summary>
-            public Block8x8F SourceBlock;
-
-            /// <summary>
-            /// Temporal block 1 to store intermediate and/or final computation results
-            /// </summary>
-            public Block8x8F WorkspaceBlock1;
-
-            /// <summary>
-            /// Temporal block 2 to store intermediate and/or final computation results
-            /// </summary>
-            public Block8x8F WorkspaceBlock2;
-
-            /// <summary>
-            /// The quantization table as <see cref="Block8x8F"/>
-            /// </summary>
-            public Block8x8F QuantiazationTable;
-
-            /// <summary>
-            /// The jpeg unzig data
-            /// </summary>
-            public UnzigData Unzig;
-
-            /// <summary>
-            /// Creates and initializes a new <see cref="ComputationData"/> instance
-            /// </summary>
-            /// <returns>The <see cref="ComputationData"/></returns>
-            public static ComputationData Create()
-            {
-                var data = default(ComputationData);
-                data.Unzig = UnzigData.Create();
-                return data;
-            }
-        }
-
-        /// <summary>
-        /// Contains pointers to the memory regions of <see cref="ComputationData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
-        /// </summary>
-        public struct DataPointers
-        {
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.SourceBlock"/>
-            /// </summary>
-            public Block8x8F* SourceBlock;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.WorkspaceBlock1"/>
-            /// </summary>
-            public Block8x8F* WorkspaceBlock1;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.WorkspaceBlock2"/>
-            /// </summary>
-            public Block8x8F* WorkspaceBlock2;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.QuantiazationTable"/>
-            /// </summary>
-            public Block8x8F* QuantiazationTable;
-
-            /// <summary>
-            /// Pointer to <see cref="ComputationData.Unzig"/> as int*
-            /// </summary>
-            public int* Unzig;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="DataPointers" /> struct.
-            /// </summary>
-            /// <param name="dataPtr">Pointer to <see cref="ComputationData"/></param>
-            internal DataPointers(ComputationData* dataPtr)
-            {
-                this.SourceBlock = &dataPtr->SourceBlock;
-                this.WorkspaceBlock1 = &dataPtr->WorkspaceBlock1;
-                this.WorkspaceBlock2 = &dataPtr->WorkspaceBlock2;
-                this.QuantiazationTable = &dataPtr->QuantiazationTable;
-                this.Unzig = dataPtr->Unzig.Data;
-            }
+            this.WorkspaceBlock1.CopyTo(destArea, this.subSamplingDivisors.Width, this.subSamplingDivisors.Height);
         }
     }
 }

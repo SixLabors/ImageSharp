@@ -9,6 +9,7 @@ using System;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
 
@@ -24,6 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using Xunit;
     using Xunit.Abstractions;
 
+    // TODO: Scatter test cases into multiple test classes
     public class JpegDecoderTests
     {
         public static string[] BaselineTestJpegs =
@@ -50,16 +52,43 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
             };
 
+        private static readonly Dictionary<string, float> CustomToleranceValues = new Dictionary<string, float>
+        {
+            // Baseline:
+            [TestImages.Jpeg.Baseline.Calliphora] = 0.00002f / 100,
+            [TestImages.Jpeg.Baseline.Bad.ExifUndefType] = 0.011f / 100,
+            [TestImages.Jpeg.Baseline.Bad.BadEOF] = 0.38f / 100,
+            [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
+
+            // Progressive:
+            [TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159] = 0.34f / 100,
+            [TestImages.Jpeg.Issues.BadCoeffsProgressive178] = 0.38f / 100,
+            [TestImages.Jpeg.Progressive.Bad.BadEOF] = 0.3f / 100,
+            [TestImages.Jpeg.Progressive.Festzug] = 0.02f / 100,
+            [TestImages.Jpeg.Progressive.Fb] = 0.16f / 100,
+            [TestImages.Jpeg.Progressive.Progress] = 0.31f / 100,
+        };
+
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
 
-        // TODO: We should make this comparer less tolerant ...
-        private static readonly ImageComparer VeryTolerantJpegComparer =
-            ImageComparer.Tolerant(0.005f, perPixelManhattanThreshold: 4);
+        private const float BaselineTolerance_Orig = 0.001f / 100;
+        private const float BaselineTolerance_PdfJs = 0.005f;
 
-        // BUG: PDF.js output is wrong on spectral level!
-        private static readonly ImageComparer PdfJsProgressiveComparer =
-            ImageComparer.Tolerant(0.015f, perPixelManhattanThreshold: 4);
+        private const float ProgressiveTolerance_Orig = 0.2f / 100;
+        private const float ProgressiveTolerance_PdfJs = 1.5f / 100; // PDF.js Progressive output is wrong on spectral level!
 
+        private ImageComparer GetImageComparerForOrigDecoder<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            string file = provider.SourceFileOrDescription;
+
+            if (!CustomToleranceValues.TryGetValue(file, out float tolerance))
+            {
+                tolerance = file.ToLower().Contains("baseline") ? BaselineTolerance_Orig : ProgressiveTolerance_Orig;
+            }
+
+            return ImageComparer.Tolerant(tolerance);
+        }
 
         public JpegDecoderTests(ITestOutputHelper output)
         {
@@ -71,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static IImageDecoder OrigJpegDecoder => new OrigJpegDecoder();
 
         private static IImageDecoder PdfJsJpegDecoder => new PdfJsJpegDecoder();
-        
+
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()
         {
@@ -84,22 +113,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
             }
         }
-        
+
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
 
-        [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
-            {
-                image.DebugSave(provider);
-
-                provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
-            }
-        }
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, false)]
@@ -113,10 +129,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(provider, ImageComparer.Tolerant(BaselineTolerance_PdfJs), appendPixelTypeToFileName: false);
             }
         }
-        
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
@@ -125,9 +141,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
+                provider.Utility.TestName = DecodeBaselineJpegOutputName;
+                image.CompareToReferenceOutput(
+                    provider,
+                    this.GetImageComparerForOrigDecoder(provider),
+                    appendPixelTypeToFileName: false);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
+        public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
+            {
+                image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(
+                    provider,
+                    ImageComparer.Tolerant(BaselineTolerance_PdfJs),
+                    appendPixelTypeToFileName: false);
             }
         }
 
@@ -144,20 +179,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
-            {
-                image.DebugSave(provider);
-
-                provider.Utility.TestName = DecodeProgressiveJpegOutputName;
-                image.CompareToReferenceOutput(provider, PdfJsProgressiveComparer, appendPixelTypeToFileName: false);
-            }
-        }
-
-        [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -166,15 +187,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
-                image.CompareToReferenceOutput(provider, VeryTolerantJpegComparer, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(
+                    provider,
+                    this.GetImageComparerForOrigDecoder(provider),
+                    appendPixelTypeToFileName: false);
             }
         }
-        
-        private float GetDifferenceInPercents<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
+
+        [Theory]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
+        public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
+            {
+                image.DebugSave(provider);
+
+                provider.Utility.TestName = DecodeProgressiveJpegOutputName;
+                image.CompareToReferenceOutput(
+                    provider,
+                    ImageComparer.Tolerant(ProgressiveTolerance_PdfJs),
+                    appendPixelTypeToFileName: false);
+            }
+        }
+
+        private string GetDifferenceInPercentageString<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             var reportingComparer = ImageComparer.Tolerant(0, 0);
-            
+
             ImageSimilarityReport report = image.GetReferenceOutputSimilarityReports(
                 provider,
                 reportingComparer,
@@ -183,10 +224,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             if (report != null && report.TotalNormalizedDifference.HasValue)
             {
-                return report.TotalNormalizedDifference.Value * 100;
+                return report.DifferencePercentageString;
             }
 
-            return 0;
+            return "0%";
         }
 
         private void CompareJpegDecodersImpl<TPixel>(TestImageProvider<TPixel> provider, string testName)
@@ -202,14 +243,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
-                double d = this.GetDifferenceInPercents(image, provider);
-                this.Output.WriteLine($"Difference using ORIGINAL decoder: {d:0.0000}%");
+                string d = this.GetDifferenceInPercentageString(image, provider);
+
+                this.Output.WriteLine($"Difference using ORIGINAL decoder: {d}");
             }
 
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
-                double d = this.GetDifferenceInPercents(image, provider);
-                this.Output.WriteLine($"Difference using PDFJS decoder: {d:0.0000}%");
+                string d = this.GetDifferenceInPercentageString(image, provider);
+                this.Output.WriteLine($"Difference using PDFJS decoder: {d}");
             }
         }
 
@@ -228,7 +270,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             this.CompareJpegDecodersImpl(provider, DecodeProgressiveJpegOutputName);
         }
-        
+
         [Theory]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio420, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio420, 100)]
@@ -256,7 +298,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var mirror = Image.Load<TPixel>(data, OrigJpegDecoder);
             mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
-        
+
         [Fact]
         public void Decoder_Reads_Correct_Resolution_From_Jfif()
         {
@@ -314,7 +356,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
         //[Theory]
         //[WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
-        public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider, 
+        public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider,
             string pdfJsOriginalResultImage)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -335,7 +377,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 ImageSimilarityReport originalReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsOriginalResult);
                 ImageSimilarityReport portReport = comparer.CompareImagesOrFrames(expectedImage, pdfJsPortResult);
-                
+
                 this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
                 this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
             }

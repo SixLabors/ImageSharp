@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(IFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
         {
             var extension = new GifGraphicsControlExtension
             {

@@ -6,13 +6,12 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
     /// <summary>
-    /// TODO: This should be simply just a <see cref="Block8x8"/>!
     /// Holds the Jpeg UnZig array in a value/stack type.
     /// Unzig maps from the zigzag ordering to the natural ordering. For example,
     /// unzig[3] is the column and row of the fourth element in zigzag order. The
     /// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
     /// </summary>
-    internal unsafe struct UnzigData
+    internal unsafe struct ZigZag
     {
         /// <summary>
         /// Copy of <see cref="Unzig"/> in a value type
@@ -33,14 +32,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             };
 
         /// <summary>
-        /// Creates and fills an instance of <see cref="UnzigData"/> with Jpeg unzig indices
+        /// Creates and fills an instance of <see cref="ZigZag"/> with Jpeg unzig indices
         /// </summary>
         /// <returns>The new instance</returns>
-        public static UnzigData Create()
+        public static ZigZag CreateUnzigTable()
         {
-            UnzigData result = default(UnzigData);
+            ZigZag result = default(ZigZag);
             int* unzigPtr = result.Data;
             Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
+            return result;
+        }
+
+        /// <summary>
+        /// Apply Zigging to the given quantization table, so it will be sufficient to multiply blocks for dequantizing them.
+        /// </summary>
+        public static Block8x8F CreateDequantizationTable(ref Block8x8F qt)
+        {
+            Block8x8F result = default(Block8x8F);
+
+            for (int i = 0; i < 64; i++)
+            {
+                result[Unzig[i]] = qt[i];
+            }
+
             return result;
         }
     }

@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 this.image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
 
-                this.SetFrameMetaData(this.metaData);
+                this.SetFrameMetaData(this.image.Frames.RootFrame.MetaData);
 
                 image = this.image.Frames.RootFrame;
             }
@@ -522,7 +522,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetaData(IFrameMetaData metaData)
+        private void SetFrameMetaData(ImageFrameMetaData metaData)
         {
             if (this.graphicsControlExtension != null)
             {

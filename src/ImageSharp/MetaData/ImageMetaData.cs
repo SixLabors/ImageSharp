@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData
     /// <summary>
     /// Encapsulates the metadata of an image.
     /// </summary>
-    public sealed class ImageMetaData : IFrameMetaData
+    public sealed class ImageMetaData
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -51,8 +51,6 @@ namespace SixLabors.ImageSharp.MetaData
 
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
-            this.FrameDelay = other.FrameDelay;
-            this.DisposalMethod = other.DisposalMethod;
             this.RepeatCount = other.RepeatCount;
 
             foreach (ImageProperty property in other.Properties)
@@ -114,12 +112,6 @@ namespace SixLabors.ImageSharp.MetaData
         /// Gets or sets the list of ICC profiles.
         /// </summary>
         public IccProfile IccProfile { get; set; }
-
-        /// <inheritdoc/>
-        public int FrameDelay { get; set; }
-
-        /// <inheritdoc/>
-        public DisposalMethod DisposalMethod { get; set; }
 
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.

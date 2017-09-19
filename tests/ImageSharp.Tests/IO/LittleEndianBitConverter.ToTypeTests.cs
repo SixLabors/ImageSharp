@@ -162,6 +162,8 @@ namespace SixLabors.ImageSharp.Tests.IO
             Assert.Equal(1099511627776L * 256 * 256, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, 0));
             Assert.Equal(-1L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, 0));
             Assert.Equal(257L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0 }, 0));
+            Assert.Equal(4294967295L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 255, 255, 255, 255, 0, 0, 0, 0 }, 0));
+            Assert.Equal(-4294967296L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 0, 0, 0, 255, 255, 255, 255 }, 0));
 
             Assert.Equal(0L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 }, 1));
             Assert.Equal(1L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0, 0 }, 1));
@@ -174,6 +176,8 @@ namespace SixLabors.ImageSharp.Tests.IO
             Assert.Equal(1099511627776L * 256 * 256, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0, 1 }, 1));
             Assert.Equal(-1L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 255, 255, 255, 255, 255, 255, 255, 255 }, 1));
             Assert.Equal(257L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 1, 1, 0, 0, 0, 0, 0, 0 }, 1));
+            Assert.Equal(4294967295L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 255, 255, 255, 255, 0, 0, 0, 0 }, 1));
+            Assert.Equal(-4294967296L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 0, 0, 0, 0, 255, 255, 255, 255 }, 1));
         }
 
         /// <summary>

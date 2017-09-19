@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -107,6 +108,65 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<Rgba32> img = Image.Load(file, out var mime))
             {
                 Assert.Equal("image/png", mime.DefaultMimeType);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
+        public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                img.Frames.Add(new ImageFrame<TPixel>(10, 10));// add a frame anyway
+                using (Image<TPixel> cloned = img.Clone(0))
+                {
+                    Assert.Equal(2, img.Frames.Count);
+                    cloned.ComparePixelBufferTo(img.GetPixelSpan());
+                }
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
+        public void CloneFrameAs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                img.Frames.Add(new ImageFrame<TPixel>(10, 10));// add a frame anyway
+                using (Image<Bgra32> cloned = img.CloneAs<Bgra32>(0))
+                {
+                    for (var x = 0; x < img.Width; x++)
+                    {
+                        for (var y = 0; y < img.Height; y++)
+                        {
+                            Bgra32 pixelClone = cloned[x, y];
+                            Bgra32 pixelSource = default(Bgra32);
+                            img[x, y].ToBgra32(ref pixelSource);
+                            Assert.Equal(pixelSource, pixelClone);
+                        }
+                    }
+                    Assert.Equal(2, img.Frames.Count);
+                }
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
+        public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> img = provider.GetImage())
+            {
+                var sourcePixelData = img.GetPixelSpan().ToArray();
+
+                img.Frames.Add(new ImageFrame<TPixel>(10, 10));
+                using (Image<TPixel> cloned = img.Extract(0))
+                {
+                    Assert.Equal(1, img.Frames.Count);
+                    cloned.ComparePixelBufferTo(sourcePixelData);
+                }
             }
         }
     }

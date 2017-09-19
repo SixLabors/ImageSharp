@@ -1,21 +1,23 @@
 ﻿using System;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal class FromGrayScale : JpegColorConverter
+        internal class FromRgb : ColorConverters.JpegColorConverter
         {
-            public FromGrayScale()
-                : base(JpegColorSpace.GrayScale)
+            public FromRgb()
+                : base(JpegColorSpace.RGB)
             {
             }
 
             public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
             {
                 // TODO: We can optimize a lot here with Vector<float> and SRCS.Unsafe()!
-                ReadOnlySpan<float> yVals = values.Component0;
+                ReadOnlySpan<float> rVals = values.Component0;
+                ReadOnlySpan<float> gVals = values.Component1;
+                ReadOnlySpan<float> bVals = values.Component2;
 
                 var v = new Vector4(0, 0, 0, 1);
 
@@ -23,11 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 
                 for (int i = 0; i < result.Length; i++)
                 {
-                    float y = yVals[i];
+                    float r = rVals[i];
+                    float g = gVals[i];
+                    float b = bVals[i];
 
-                    v.X = y;
-                    v.Y = y;
-                    v.Z = y;
+                    v.X = r;
+                    v.Y = g;
+                    v.Z = b;
 
                     v *= scale;
 

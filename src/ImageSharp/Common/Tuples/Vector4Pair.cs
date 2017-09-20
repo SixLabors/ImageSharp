@@ -71,5 +71,10 @@ namespace SixLabors.ImageSharp.Common.Tuples
             v *= new Vector<float>(1 / 255f);
             self = v;
         }
+
+        public override string ToString()
+        {
+            return $"{this.A}, {this.B}";
+        }
     }
 }

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 
     using CoreSize = SixLabors.Primitives.Size;
     
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class DecodeJpeg : BenchmarkBase
     {
         private byte[] jpegBytes;

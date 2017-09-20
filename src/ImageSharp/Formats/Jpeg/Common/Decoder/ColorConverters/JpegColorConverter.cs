@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
         /// </summary>
         private static readonly JpegColorConverter[] Converters =
             {
-                new FromYCbCrSimd(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb()
+                GetYCbCrConverter(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb()
             };
 
         /// <summary>
@@ -53,6 +56,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
         /// <param name="values">The input as a stack-only <see cref="ComponentValues"/> struct</param>
         /// <param name="result">The destination buffer of <see cref="Vector4"/> values</param>
         public abstract void ConvertToRGBA(ComponentValues values, Span<Vector4> result);
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
+        /// </summary>
+        private static JpegColorConverter GetYCbCrConverter() =>
+            FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2() : new FromYCbCrSimd();
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

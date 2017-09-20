@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 
     using SixLabors.ImageSharp.Formats.Jpeg;
 
-    [Config(typeof(Config.Short))] // It's long enough to iterate through multiple files
+    [Config(typeof(Config.ShortClr))] // It's long enough to iterate through multiple files
     public class EncodeJpegMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Bmp/", "Jpg/baseline" };

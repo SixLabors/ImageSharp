@@ -1,15 +1,64 @@
 ﻿namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 {
     using System;
+    using System.Numerics;
+
+    using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters;
     using SixLabors.ImageSharp.Memory;
-
-    using JpegColorConverter = SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters.JpegColorConverter;
-
+    
+    [Config(typeof(Config.ShortClr))]
     public class YCbCrColorConversion
     {
-        private static JpegColorConverter.ComponentValues CreateRandomValues(
+        private Buffer2D<float>[] input;
+
+        private Vector4[] output;
+
+        public const int Count = 64;
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            this.input = CreateRandomValues(3, Count);
+            this.output = new Vector4[Count];
+        }
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            foreach (Buffer2D<float> buffer in this.input)
+            {
+                buffer.Dispose();
+            }
+        }
+
+        [Benchmark(Baseline = true)]
+        public void Scalar()
+        {
+            var values = new JpegColorConverter.ComponentValues(this.input, 0);
+
+            JpegColorConverter.FromYCbCrBasic.ConvertCore(values, this.output);
+        }
+
+        [Benchmark]
+        public void SimdVector4()
+        {
+            var values = new JpegColorConverter.ComponentValues(this.input, 0);
+
+            JpegColorConverter.FromYCbCrSimd.ConvertCore(values, this.output);
+        }
+
+        [Benchmark]
+        public void SimdAvx2()
+        {
+            var values = new JpegColorConverter.ComponentValues(this.input, 0);
+
+            JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore(values, this.output);
+        }
+        
+        private static Buffer2D<float>[] CreateRandomValues(
             int componentCount,
             int inputBufferLength,
             float minVal = 0f,
@@ -29,8 +78,9 @@
                 // no need to dispose when buffer is not array owner
                 buffers[i] = new Buffer2D<float>(values, values.Length, 1);
             }
-            return new JpegColorConverter.ComponentValues(buffers, 0);
-        }
 
+            return buffers;
+        }
+        
     }
 }

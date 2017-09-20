@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 
     using CoreImage = SixLabors.ImageSharp.Image;
 
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class DecodeJpegMultiple : MultiImageBenchmarkBase
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[]

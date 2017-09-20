@@ -388,15 +388,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     previousFrame = this.previousFrame;
                 }
 
-                currentFrame = this.previousFrame.Clone();
+                currentFrame = this.image.Frames.AddFrame(this.previousFrame); // this clones the frame and adds it the collection
 
                 this.SetFrameMetaData(currentFrame.MetaData);
 
                 image = currentFrame;
 
                 this.RestoreToBackground(image);
-
-                this.image.Frames.Add(currentFrame);
             }
 
             int i = 0;

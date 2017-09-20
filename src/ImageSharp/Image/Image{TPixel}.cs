@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp
         {
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
-            this.frames = new ImageFrameCollection<TPixel>(width, height);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
-            this.frames = new ImageFrameCollection<TPixel>(frames);
+            this.frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
         /// <summary>
@@ -148,30 +148,6 @@ namespace SixLabors.ImageSharp
             return new Image<TPixel>(this.configuration, this.MetaData.Clone(), frames);
         }
 
-        /// <summary>
-        /// Clones the current image
-        /// </summary>
-        /// <param name="frameIndex">The index of the frame to clone into the new image</param>
-        /// <returns>Returns a new image with all the same metadata as the original but only the single frame.</returns>
-        public Image<TPixel> Clone(int frameIndex)
-        {
-            ImageFrame<TPixel> frame = this.frames[frameIndex];
-            ImageFrame<TPixel> clonedFrame = frame.Clone();
-            return new Image<TPixel>(this.configuration, this.MetaData.Clone(), new[] { clonedFrame });
-        }
-
-        /// <summary>
-        /// Extracts a frame from the current image
-        /// </summary>
-        /// <param name="frameIndex">The index of the frame to cloen into the new image</param>
-        /// <returns>Returns a new image with all the same metadata as the original but only the single frame.</returns>
-        public Image<TPixel> Extract(int frameIndex)
-        {
-            ImageFrame<TPixel> frame = this.frames[frameIndex];
-            this.frames.Remove(frame); // try and remove frame from the current image
-            return new Image<TPixel>(this.configuration, this.MetaData.Clone(), new[] { frame });
-        }
-
         /// <inheritdoc/>
         public override string ToString()
         {
@@ -188,22 +164,6 @@ namespace SixLabors.ImageSharp
         {
             IEnumerable<ImageFrame<TPixel2>> frames = this.frames.Select(x => x.CloneAs<TPixel2>()).ToArray();
             var target = new Image<TPixel2>(this.configuration, this.MetaData, frames);
-
-            return target;
-        }
-
-        /// <summary>
-        /// Returns a copy of the image in the given pixel format.
-        /// </summary>
-        /// <typeparam name="TPixel2">The pixel format.</typeparam>
-        /// <param name="frameIndex">The index of the frame to clone into the new image</param>
-        /// <returns>Returns a new <see cref="Image{TPixel2}"/> with all the same metadata as the original but only the single frame.</returns>
-        public Image<TPixel2> CloneAs<TPixel2>(int frameIndex)
-            where TPixel2 : struct, IPixel<TPixel2>
-        {
-            ImageFrame<TPixel> frame = this.frames[frameIndex];
-            ImageFrame<TPixel2> clonedFrame = frame.CloneAs<TPixel2>();
-            var target = new Image<TPixel2>(this.configuration, this.MetaData, new[] { clonedFrame });
 
             return target;
         }

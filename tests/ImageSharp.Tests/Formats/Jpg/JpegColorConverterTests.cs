@@ -89,6 +89,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
+            //JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
+
             ValidateConversion(
                 new JpegColorConverter.FromYCbCrSimdAvx2(),
                 3,

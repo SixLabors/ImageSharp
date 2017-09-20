@@ -1,8 +1,12 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Tuples;
 
+// ReSharper disable ImpureMethodCallOnReadonlyValueField
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
@@ -14,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
             {
             }
 
-            public static bool IsAvailable => Vector.IsHardwareAccelerated && Vector<float>.Count == 8;
+            public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.IsAvx2CompatibleArchitecture;
 
             public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
             {
@@ -56,6 +60,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
                 // Walking 8 elements at one step:
                 int n = result.Length / 8;
 
+                var rr = default(Vector4Pair);
+                var gg = default(Vector4Pair);
+                var bb = default(Vector4Pair);
+
+                ref Vector<float> rrRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref rr);
+                ref Vector<float> ggRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref gg);
+                ref Vector<float> bbRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref bb);
+
+                var scale = new Vector<float>(1 / 255f);
+
                 for (int i = 0; i < n; i++)
                 {
                     // y = yVals[i];
@@ -73,15 +87,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
                     Vector<float> g = y - (cb * new Vector<float>(0.344136F)) - (cr * new Vector<float>(0.714136F));
                     Vector<float> b = y + (cb * new Vector<float>(1.772F));
 
-                    // Vector<float> has no .Clamp(), need to switch to Vector4 for the next operation:
-                    // TODO: Is it worth to use Vector<float> at all?
-                    Vector4Pair rr = Unsafe.As<Vector<float>, Vector4Pair>(ref r);
-                    Vector4Pair gg = Unsafe.As<Vector<float>, Vector4Pair>(ref g);
-                    Vector4Pair bb = Unsafe.As<Vector<float>, Vector4Pair>(ref b);
+                    r = r.FastRound();
+                    g = g.FastRound();
+                    b = b.FastRound();
+                    r *= scale;
+                    g *= scale;
+                    b *= scale;
 
-                    rr.RoundAndDownscaleAvx2();
-                    gg.RoundAndDownscaleAvx2();
-                    bb.RoundAndDownscaleAvx2();
+                    rrRefAsVector = r;
+                    ggRefAsVector = g;
+                    bbRefAsVector = b;
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);

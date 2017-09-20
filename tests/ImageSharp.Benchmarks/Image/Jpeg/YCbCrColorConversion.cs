@@ -16,7 +16,7 @@
 
         private Vector4[] output;
 
-        public const int Count = 64;
+        public const int Count = 128;
 
         [GlobalSetup]
         public void Setup()
@@ -55,7 +55,7 @@
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
 
-            JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore(values, this.output);
+            JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore16(values, this.output);
         }
         
         private static Buffer2D<float>[] CreateRandomValues(

@@ -72,11 +72,11 @@ namespace SixLabors.ImageSharp.Tests.Colors
         {
             // Arrange
             int precision = 2;
-            Vector4 vector4ToPack = new Vector4(vector4ComponentsToPack[0], vector4ComponentsToPack[1], vector4ComponentsToPack[2], vector4ComponentsToPack[3]);
+            var vector4ToPack = new Vector4(vector4ComponentsToPack[0], vector4ComponentsToPack[1], vector4ComponentsToPack[2], vector4ComponentsToPack[3]);
             packedVector.PackFromVector4(vector4ToPack);
 
             // Act
-            Vector4 vector4 = packedVector.ToVector4();
+            var vector4 = packedVector.ToVector4();
 
             // Assert
             Assert.Equal(vector4ToPack.X, vector4.X, precision);

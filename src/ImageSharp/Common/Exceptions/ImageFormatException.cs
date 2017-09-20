@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp
 {
+    using System;
+
     /// <summary>
     /// The exception that is thrown when the library tries to load
     /// an image, which has an invalid format.

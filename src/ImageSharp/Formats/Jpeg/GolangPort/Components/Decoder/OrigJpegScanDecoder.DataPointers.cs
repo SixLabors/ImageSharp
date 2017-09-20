@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
     /// <content>
     /// Conains the definition of <see cref="DataPointers"/>
     /// </content>

@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
-using System.Linq;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp
 {
+    using System.IO;
+    using System.Linq;
+    using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>

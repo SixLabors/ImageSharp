@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Primitives;
+
     /// <inheritdoc cref="IJpegComponent" />
     /// <summary>
     /// Represents a single color component

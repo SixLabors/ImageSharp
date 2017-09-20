@@ -17,18 +17,18 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPath()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                LinearLineSegment linerSegemnt = new LinearLineSegment(
+                var linerSegemnt = new LinearLineSegment(
                     new Vector2(10, 10),
                     new Vector2(200, 150),
                     new Vector2(50, 300));
-                CubicBezierLineSegment bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
+                var bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
                     new Vector2(500, 500),
                     new Vector2(60, 10),
                     new Vector2(10, 400));
 
-                ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
+                var p = new ShapePath(linerSegemnt, bazierSegment);
 
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -52,23 +52,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Path");
 
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
 
-            LinearLineSegment linerSegemnt = new LinearLineSegment(
+            var linerSegemnt = new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
                     );
 
-            CubicBezierLineSegment bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
+            var bazierSegment = new CubicBezierLineSegment(new Vector2(50, 300),
                 new Vector2(500, 500),
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
+            var p = new ShapePath(linerSegemnt, bazierSegment);
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
-                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+                var mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {

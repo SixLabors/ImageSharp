@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Globalization;
-using System.Text;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
+    using System;
+    using System.Globalization;
+    using System.Text;
+
     /// <summary>
     /// Represents a number that can be expressed as a fraction
     /// </summary>
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return this.Numerator.ToString(provider);
             }
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(this.Numerator.ToString(provider));
             sb.Append("/");
             sb.Append(this.Denominator.ToString(provider));

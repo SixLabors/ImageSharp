@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
+    using SixLabors.ImageSharp.ColorSpaces;
+    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce;
+    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce;
+
     /// <content>
     /// Allows conversion to <see cref="CieLuv"/>.
     /// </content>

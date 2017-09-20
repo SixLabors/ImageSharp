@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     return null;
                 }
 
-                Image<Rgba32> result = new Image<Rgba32>(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
+                var result = new Image<Rgba32>(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
 
                 for (int by = 0; by < c0.HeightInBlocks; by++)
                 {
@@ -90,8 +90,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         float val1 = c0.GetBlockValue(block1, x, y);
                         float val2 = c0.GetBlockValue(block2, x, y);
 
-                        Vector4 v = new Vector4(val0, val1, val2, 1);
-                        Rgba32 color = default(Rgba32);
+                        var v = new Vector4(val0, val1, val2, 1);
+                        var color = default(Rgba32);
                         color.PackFromVector4(v);
 
                         int yy = by * 8 + y;

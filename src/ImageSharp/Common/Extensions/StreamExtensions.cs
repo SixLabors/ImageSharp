@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Buffers;
-using System.IO;
-
 namespace SixLabors.ImageSharp
 {
+    using System.Buffers;
+    using System.IO;
+
     /// <summary>
     /// Extension methods for the <see cref="Stream"/> type.
     /// </summary>
@@ -32,7 +32,16 @@ namespace SixLabors.ImageSharp
                 byte[] foo = ArrayPool<byte>.Shared.Rent(count);
                 try
                 {
-                    stream.Read(foo, 0, count);
+                    while (count > 0)
+                    {
+                        int bytesRead = stream.Read(foo, 0, count);
+                        if (bytesRead == 0)
+                        {
+                            break;
+                        }
+
+                        count -= bytesRead;
+                    }
                 }
                 finally
                 {

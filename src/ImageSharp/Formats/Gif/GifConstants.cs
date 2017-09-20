@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using System.Text;
-
 namespace SixLabors.ImageSharp.Formats.Gif
 {
+    using System.Collections.Generic;
+    using System.Text;
+
     /// <summary>
     /// Constants that define specific points within a gif.
     /// </summary>

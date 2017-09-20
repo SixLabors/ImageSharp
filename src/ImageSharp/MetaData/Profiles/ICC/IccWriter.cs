@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     /// <summary>
     /// Contains methods for writing ICC profiles.
     /// </summary>

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
+    using System;
+
     /// <summary>
     /// The parametricCurveType describes a one-dimensional curve by
     /// specifying one of a predefined set of functions using the parameters.

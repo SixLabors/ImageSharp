@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The read <see cref="IccMultiProcessElement"/></returns>
         public IccMultiProcessElement ReadMultiProcessElement()
         {
-            IccMultiProcessElementSignature signature = (IccMultiProcessElementSignature)this.ReadUInt32();
+            var signature = (IccMultiProcessElementSignature)this.ReadUInt32();
             ushort inChannelCount = this.ReadUInt16();
             ushort outChannelCount = this.ReadUInt16();
 

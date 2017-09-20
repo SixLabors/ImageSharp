@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
             Block8x8F b1 = this.inputDividend;
             Block8x8F b2 = this.inputDivisior;
-            float* pDividend = (float*)&b1;
-            float* pDivisor = (float*)&b2;
+            var pDividend = (float*)&b1;
+            var pDivisor = (float*)&b2;
 
             int* result = stackalloc int[Block8x8F.Size];
 
@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
             Block8x8F b1 = this.inputDividend;
             Block8x8F b2 = this.inputDivisior;
-            float* pDividend = (float*)&b1;
-            float* pDivisor = (float*)&b2;
+            var pDividend = (float*)&b1;
+            var pDivisor = (float*)&b2;
 
             for (int cnt = 0; cnt < ExecutionCount; cnt++)
             {
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
             Block8x8F bDividend = this.inputDividend;
             Block8x8F bDivisor = this.inputDivisior;
-            float* pDividend = (float*)&bDividend;
+            var pDividend = (float*)&bDividend;
 
             for (int cnt = 0; cnt < ExecutionCount; cnt++)
             {
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
-            Vector4 sign = Vector4.Min(dividend, Vector4.One);
+            var sign = Vector4.Min(dividend, Vector4.One);
             sign = Vector4.Max(sign, MinusOne);
 
             return dividend / divisor + sign * Half;

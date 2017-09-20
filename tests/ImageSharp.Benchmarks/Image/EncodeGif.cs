@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
         public void GifSystemDrawing()
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
                 this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
             }
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Gif")]
         public void GifCore()
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
                 this.bmpCore.SaveAsGif(memoryStream);
             }

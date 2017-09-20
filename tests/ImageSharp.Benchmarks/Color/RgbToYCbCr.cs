@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
                 public static Byte Create(byte[] data)
                 {
-                    Byte result = default(Byte);
+                    var result = default(Byte);
                     for (int i = 0; i < data.Length; i++)
                     {
                         result.Data[i] = data[i];
@@ -134,13 +134,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         public unsafe void RgbaToYcbCrScalarFloat()
         {
             // Copy the input to the stack:
-            OnStackInputCache.Byte input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
+            var input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
 
             // On-stack output:
-            Result result = default(Result);
-            float* yPtr = (float*)&result.Y;
-            float* cbPtr = (float*)&result.Cb;
-            float* crPtr = (float*)&result.Cr;
+            var result = default(Result);
+            var yPtr = (float*)&result.Y;
+            var cbPtr = (float*)&result.Cb;
+            var crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
@@ -160,20 +160,20 @@ namespace SixLabors.ImageSharp.Benchmarks
         public unsafe void RgbaToYcbCrSimdFloat()
         {
             // Copy the input to the stack:
-            OnStackInputCache.Byte input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
+            var input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
 
             // On-stack output:
-            Result result = default(Result);
-            float* yPtr = (float*)&result.Y;
-            float* cbPtr = (float*)&result.Cb;
-            float* crPtr = (float*)&result.Cr;
+            var result = default(Result);
+            var yPtr = (float*)&result.Y;
+            var cbPtr = (float*)&result.Cb;
+            var crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
             {
                 int i3 = i * 3;
 
-                Vector3 vectorRgb = new Vector3(
+                var vectorRgb = new Vector3(
                     input.Data[i3 + 0],
                     input.Data[i3 + 1],
                     input.Data[i3 + 2]
@@ -206,15 +206,15 @@ namespace SixLabors.ImageSharp.Benchmarks
             // Copy the input to the stack:
 
             // On-stack output:
-            Result result = default(Result);
-            float* yPtr = (float*)&result.Y;
-            float* cbPtr = (float*)&result.Cb;
-            float* crPtr = (float*)&result.Cr;
+            var result = default(Result);
+            var yPtr = (float*)&result.Y;
+            var cbPtr = (float*)&result.Cb;
+            var crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
             
-            Vector<int> yCoeffs = new Vector<int>(ScaledCoeffs.Y);
-            Vector<int> cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
-            Vector<int> crCoeffs = new Vector<int>(ScaledCoeffs.Cr);
+            var yCoeffs = new Vector<int>(ScaledCoeffs.Y);
+            var cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
+            var crCoeffs = new Vector<int>(ScaledCoeffs.Cr);
             
             for (int i = 0; i < this.inputSourceRGB.Length; i++)
             {
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
             for (int i = 0; i < InputColorCount; i += 2)
             {
-                Vector<int> rgb = new Vector<int>(this.inputSourceRGBAsInteger, i * 3);
+                var rgb = new Vector<int>(this.inputSourceRGBAsInteger, i * 3);
 
                 Vector<int> y = yCoeffs * rgb;
                 Vector<int> cb = cbCoeffs * rgb;
@@ -252,23 +252,23 @@ namespace SixLabors.ImageSharp.Benchmarks
             // Copy the input to the stack:
 
             // On-stack output:
-            Result result = default(Result);
-            float* yPtr = (float*)&result.Y;
-            float* cbPtr = (float*)&result.Cb;
-            float* crPtr = (float*)&result.Cr;
+            var result = default(Result);
+            var yPtr = (float*)&result.Y;
+            var cbPtr = (float*)&result.Cb;
+            var crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
 
-            Vector<int> yCoeffs = new Vector<int>(ScaledCoeffs.Y);
-            Vector<int> cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
-            Vector<int> crCoeffs = new Vector<int>(ScaledCoeffs.Cr);
+            var yCoeffs = new Vector<int>(ScaledCoeffs.Y);
+            var cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
+            var crCoeffs = new Vector<int>(ScaledCoeffs.Cr);
 
-            Vector<int> leftY = new Vector<int>(ScaledCoeffs.SelectLeft.Y);
-            Vector<int> leftCb = new Vector<int>(ScaledCoeffs.SelectLeft.Cb);
-            Vector<int> leftCr = new Vector<int>(ScaledCoeffs.SelectLeft.Cr);
+            var leftY = new Vector<int>(ScaledCoeffs.SelectLeft.Y);
+            var leftCb = new Vector<int>(ScaledCoeffs.SelectLeft.Cb);
+            var leftCr = new Vector<int>(ScaledCoeffs.SelectLeft.Cr);
 
-            Vector<int> rightY = new Vector<int>(ScaledCoeffs.SelectRight.Y);
-            Vector<int> rightCb = new Vector<int>(ScaledCoeffs.SelectRight.Cb);
-            Vector<int> rightCr = new Vector<int>(ScaledCoeffs.SelectRight.Cr);
+            var rightY = new Vector<int>(ScaledCoeffs.SelectRight.Y);
+            var rightCb = new Vector<int>(ScaledCoeffs.SelectRight.Cb);
+            var rightCr = new Vector<int>(ScaledCoeffs.SelectRight.Cr);
 
             for (int i = 0; i < this.inputSourceRGB.Length; i++)
             {
@@ -277,7 +277,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
             for (int i = 0; i < InputColorCount; i += 2)
             {
-                Vector<int> rgb = new Vector<int>(this.inputSourceRGBAsInteger, i * 3);
+                var rgb = new Vector<int>(this.inputSourceRGBAsInteger, i * 3);
 
                 Vector<int> y = yCoeffs * rgb;
                 Vector<int> cb = cbCoeffs * rgb;
@@ -312,13 +312,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         public unsafe void RgbaToYcbCrScaledInteger()
         {
             // Copy the input to the stack:
-            OnStackInputCache.Byte input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
+            var input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
 
             // On-stack output:
-            Result result = default(Result);
-            float* yPtr = (float*)&result.Y;
-            float* cbPtr = (float*)&result.Cb;
-            float* crPtr = (float*)&result.Cr;
+            var result = default(Result);
+            var yPtr = (float*)&result.Y;
+            var cbPtr = (float*)&result.Cb;
+            var crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)
@@ -351,13 +351,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         public unsafe void RgbaToYcbCrScaledIntegerLut()
         {
             // Copy the input to the stack:
-            OnStackInputCache.Byte input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
+            var input = OnStackInputCache.Byte.Create(this.inputSourceRGB);
 
             // On-stack output:
-            Result result = default(Result);
-            float* yPtr = (float*)&result.Y;
-            float* cbPtr = (float*)&result.Cb;
-            float* crPtr = (float*)&result.Cr;
+            var result = default(Result);
+            var yPtr = (float*)&result.Y;
+            var cbPtr = (float*)&result.Cb;
+            var crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
 
             for (int i = 0; i < InputColorCount; i++)

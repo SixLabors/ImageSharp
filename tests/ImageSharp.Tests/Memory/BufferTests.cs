@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(1111)]
         public void ConstructWithOwnArray(int count)
         {
-            using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(count))
+            using (var buffer = new Buffer<TestStructs.Foo>(count))
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.NotNull(buffer.Array);
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void ConstructWithExistingArray(int count)
         {
             TestStructs.Foo[] array = new TestStructs.Foo[count];
-            using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(array))
+            using (var buffer = new Buffer<TestStructs.Foo>(array))
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.Equal(array, buffer.Array);
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void Clear()
         {
             TestStructs.Foo[] a = { new TestStructs.Foo() { A = 1, B = 2 }, new TestStructs.Foo() { A = 3, B = 4 } };
-            using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(a))
+            using (var buffer = new Buffer<TestStructs.Foo>(a))
             {
                 buffer.Clear();
 
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             for (int i = 0; i < 100; i++)
             {
-                using (Buffer<int> buffer = Buffer<int>.CreateClean(42))
+                using (var buffer = Buffer<int>.CreateClean(42))
                 {
                     for (int j = 0; j < buffer.Length; j++)
                     {
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
                 
-                using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(a))
+                using (var buffer = new Buffer<TestStructs.Foo>(a))
                 {
                     TestStructs.Foo element = buffer[index];
 
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
 
-                using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(a))
+                using (var buffer = new Buffer<TestStructs.Foo>(a))
                 {
                     buffer[index] = new TestStructs.Foo(666, 666);
 
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Dispose()
         {
-            Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(42);
+            var buffer = new Buffer<TestStructs.Foo>(42);
             buffer.Dispose();
 
             Assert.True(buffer.IsDisposedOrLostArrayOwnership);
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(123)]
         public void CastToSpan(int bufferLength)
         {
-            using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(bufferLength))
+            using (var buffer = new Buffer<TestStructs.Foo>(bufferLength))
             {
                 Span<TestStructs.Foo> span = buffer;
 
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Span()
         {
-            using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(42))
+            using (var buffer = new Buffer<TestStructs.Foo>(42))
             {
                 Span<TestStructs.Foo> span = buffer.Span;
 
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [InlineData(123, 17)]
             public void WithStartOnly(int bufferLength, int start)
             {
-                using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(bufferLength))
+                using (var buffer = new Buffer<TestStructs.Foo>(bufferLength))
                 {
                     Span<TestStructs.Foo> span = buffer.Slice(start);
 
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [InlineData(123, 17, 42)]
             public void WithStartAndLength(int bufferLength, int start, int spanLength)
             {
-                using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(bufferLength))
+                using (var buffer = new Buffer<TestStructs.Foo>(bufferLength))
                 {
                     Span<TestStructs.Foo> span = buffer.Slice(start, spanLength);
 
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void UnPinAndTakeArrayOwnership()
         {
             TestStructs.Foo[] data = null;
-            using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(42))
+            using (var buffer = new Buffer<TestStructs.Foo>(42))
             {
                 data = buffer.TakeArrayOwnership();
                 Assert.True(buffer.IsDisposedOrLostArrayOwnership);
@@ -216,9 +216,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Fact]
             public void ReturnsPinnedPointerToTheBeginningOfArray()
             {
-                using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(42))
+                using (var buffer = new Buffer<TestStructs.Foo>(42))
                 {
-                    TestStructs.Foo* actual = (TestStructs.Foo*)buffer.Pin();
+                    var actual = (TestStructs.Foo*)buffer.Pin();
                     fixed (TestStructs.Foo* expected = buffer.Array)
                     {
                         Assert.Equal(expected, actual);
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Fact]
             public void SecondCallReturnsTheSamePointer()
             {
-                using (Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(42))
+                using (var buffer = new Buffer<TestStructs.Foo>(42))
                 {
                     IntPtr ptr1 = buffer.Pin();
                     IntPtr ptr2 = buffer.Pin();
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Fact]
             public void WhenCalledOnDisposedBuffer_ThrowsInvalidOperationException()
             {
-                Buffer<TestStructs.Foo> buffer = new Buffer<TestStructs.Foo>(42);
+                var buffer = new Buffer<TestStructs.Foo>(42);
                 buffer.Dispose();
 
                 Assert.Throws<InvalidOperationException>(() => buffer.Pin());

@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering.Base;
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Dithering
 {
+    using SixLabors.ImageSharp.Dithering.Base;
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Applies error diffusion based dithering using the Sierra2 image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>

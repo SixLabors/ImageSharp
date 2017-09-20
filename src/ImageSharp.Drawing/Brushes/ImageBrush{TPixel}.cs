@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Drawing.Brushes.Processors;
-using SixLabors.ImageSharp.Drawing.Processors;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Drawing.Brushes
 {
+    using System;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+    using SixLabors.ImageSharp.Drawing.Processors;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Provides an implementation of an image brush for painting images within areas.
     /// </summary>

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+
     /// <summary>
     /// Abstract base class for calling pixel composition functions
     /// </summary>

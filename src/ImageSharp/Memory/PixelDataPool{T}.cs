@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Buffers;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Memory
 {
+    using System.Buffers;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides a resource pool that enables reusing instances of value type arrays for image data <see cref="T:T[]"/>.
     /// </summary>

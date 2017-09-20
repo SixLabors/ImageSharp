@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Packed pixel type containing four 16-bit signed integer values.
     /// <para>
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgba32(Rgba32 source)
         {
-            Vector4 vector = source.ToVector4();
+            var vector = source.ToVector4();
             vector *= 65534;
             vector -= new Vector4(32767);
             this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToScaledVector4()
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             vector /= 65534;
             vector *= 255;
             vector += Half;

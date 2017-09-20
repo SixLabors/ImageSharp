@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using System;
+    using System.Diagnostics;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
+    using System.Text;
+
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             fixed (Vector4* ptr = &this.V0L)
             {
-                float* fp = (float*)ptr;
+                var fp = (float*)ptr;
                 for (int i = 0; i < Size; i++)
                 {
                     fp[i] = source[i];
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void CopyTo(Block8x8F* blockPtr, Span<byte> dest)
         {
-            float* fPtr = (float*)blockPtr;
+            var fPtr = (float*)blockPtr;
             for (int i = 0; i < Size; i++)
             {
                 dest[i] = (byte)*fPtr;
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             fixed (Vector4* ptr = &this.V0L)
             {
-                float* fp = (float*)ptr;
+                var fp = (float*)ptr;
                 for (int i = 0; i < Size; i++)
                 {
                     dest[i] = (int)fp[i];
@@ -355,8 +355,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
-            float* b = (float*)blockPtr;
-            float* qtp = (float*)qtPtr;
+            var b = (float*)blockPtr;
+            var qtp = (float*)qtPtr;
             for (int qtIndex = 0; qtIndex < Size; qtIndex++)
             {
                 int blockIndex = unzigPtr[qtIndex];
@@ -383,8 +383,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             Block8x8F* qt,
             int* unzigPtr)
         {
-            float* s = (float*)block;
-            float* d = (float*)dest;
+            var s = (float*)block;
+            var d = (float*)dest;
 
             for (int zig = 0; zig < Size; zig++)
             {
@@ -401,12 +401,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="source">The source block.</param>
         public static unsafe void Scale16X16To8X8(Block8x8F* destination, Block8x8F* source)
         {
-            float* d = (float*)destination;
+            var d = (float*)destination;
             for (int i = 0; i < 4; i++)
             {
                 int dstOff = ((i & 2) << 4) | ((i & 1) << 2);
 
-                float* iSource = (float*)(source + i);
+                var iSource = (float*)(source + i);
 
                 for (int y = 0; y < 4; y++)
                 {

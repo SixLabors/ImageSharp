@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
-using System.IO;
-using System.Linq;
-using System.Text;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
-
 namespace SixLabors.ImageSharp.Formats.Gif
 {
+    using System;
+    using System.Buffers;
+    using System.IO;
+    using System.Linq;
+    using System.Text;
+    using SixLabors.ImageSharp.IO;
+    using SixLabors.ImageSharp.MetaData;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Quantizers;
+
     /// <summary>
     /// Performs the gif encoding operation.
     /// </summary>

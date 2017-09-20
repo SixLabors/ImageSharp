@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    using System.Numerics;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Converts the colors of the image to Grayscale applying the formula as specified by ITU-R Recommendation BT.601
     /// <see href="https://en.wikipedia.org/wiki/Luma_%28video%29#Rec._601_luma_versus_Rec._709_luma_coefficients"/>.

@@ -1,7 +1,7 @@
-using System;
-
 namespace SixLabors.ImageSharp.Memory
 {
+    using System;
+
     /// <inheritdoc />
     /// <summary>
     /// Represents a contigous memory buffer of value-type items "promising" a <see cref="Span{T}"/>

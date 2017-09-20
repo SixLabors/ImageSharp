@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Brushes.Processors;
-using SixLabors.ImageSharp.Drawing.Processors;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Drawing.Brushes
 {
+    using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+    using SixLabors.ImageSharp.Drawing.Processors;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Brush represents a logical configuration of a brush which can be used to source pixel colors
     /// </summary>

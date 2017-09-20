@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Reflection;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
+    using System;
+    using System.Reflection;
+
     /// <summary>
     /// Class that provides a description for an ExifTag value.
     /// </summary>

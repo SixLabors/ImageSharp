@@ -19,14 +19,14 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Beziers")]
         public void DrawPathSystemDrawing()
         {
-            using (Bitmap destination = new Bitmap(800, 800))
+            using (var destination = new Bitmap(800, 800))
             {
 
-                using (Graphics graphics = Graphics.FromImage(destination))
+                using (var graphics = Graphics.FromImage(destination))
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    Pen pen = new Pen(System.Drawing.Color.HotPink, 10);
+                    var pen = new Pen(System.Drawing.Color.HotPink, 10);
                     graphics.DrawBeziers(pen, new[] {
                         new PointF(10, 500),
                         new PointF(30, 10),
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     });
                 }
 
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     destination.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
                 }
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Beziers")]
         public void DrawLinesCore()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 image.Mutate(x => x.DrawBeziers(
                     Rgba32.HotPink,
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                         new Vector2(300, 500)
                     }));
 
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     image.SaveAsBmp(ms);
                 }

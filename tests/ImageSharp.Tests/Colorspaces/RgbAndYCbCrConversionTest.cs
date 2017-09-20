@@ -30,10 +30,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_YCbCr_To_Rgb(float y, float cb, float cr, float r, float g, float b)
         {
             // Arrange
-            YCbCr input = new YCbCr(y, cb, cr);
+            var input = new YCbCr(y, cb, cr);
 
             // Act
-            Rgb output = Converter.ToRgb(input);
+            var output = Converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
@@ -53,10 +53,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Rgb_To_YCbCr(float r, float g, float b, float y, float cb, float cr)
         {
             // Arrange
-            Rgb input = new Rgb(r, g, b);
+            var input = new Rgb(r, g, b);
 
             // Act
-            YCbCr output = Converter.ToYCbCr(input);
+            var output = Converter.ToYCbCr(input);
 
             // Assert
             Assert.Equal(y, output.Y, FloatRoundingComparer);

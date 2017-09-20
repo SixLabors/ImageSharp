@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }));
                 var c = NamedColors<TPixel>.Red.ToVector4();
                 c.W *= 0.5f;
-                TPixel pixel = default(TPixel);
+                var pixel = default(TPixel);
                 pixel.PackFromVector4(c);
 
                 img.Mutate(x => x.Fill(pixel, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)

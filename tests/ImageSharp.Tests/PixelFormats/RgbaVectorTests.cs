@@ -19,12 +19,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreEqual()
         {
-            RgbaVector color1 = new RgbaVector(0, 0, 0F);
-            RgbaVector color2 = new RgbaVector(0, 0, 0, 1F);
-            RgbaVector color3 = RgbaVector.FromHex("#000");
-            RgbaVector color4 = RgbaVector.FromHex("#000F");
-            RgbaVector color5 = RgbaVector.FromHex("#000000");
-            RgbaVector color6 = RgbaVector.FromHex("#000000FF");
+            var color1 = new RgbaVector(0, 0, 0F);
+            var color2 = new RgbaVector(0, 0, 0, 1F);
+            var color3 = RgbaVector.FromHex("#000");
+            var color4 = RgbaVector.FromHex("#000F");
+            var color5 = RgbaVector.FromHex("#000000");
+            var color6 = RgbaVector.FromHex("#000000FF");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
@@ -39,11 +39,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreNotEqual()
         {
-            RgbaVector color1 = new RgbaVector(1, 0, 0, 1);
-            RgbaVector color2 = new RgbaVector(0, 0, 0, 1);
-            RgbaVector color3 = RgbaVector.FromHex("#000");
-            RgbaVector color4 = RgbaVector.FromHex("#000000");
-            RgbaVector color5 = RgbaVector.FromHex("#FF000000");
+            var color1 = new RgbaVector(1, 0, 0, 1);
+            var color2 = new RgbaVector(0, 0, 0, 1);
+            var color3 = RgbaVector.FromHex("#000");
+            var color4 = RgbaVector.FromHex("#000000");
+            var color5 = RgbaVector.FromHex("#FF000000");
 
             Assert.NotEqual(color1, color2);
             Assert.NotEqual(color1, color3);
@@ -57,25 +57,25 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            RgbaVector color1 = new RgbaVector(1, .1F, .133F, .864F);
+            var color1 = new RgbaVector(1, .1F, .133F, .864F);
             Assert.Equal(1F, color1.R);
             Assert.Equal(.1F, color1.G);
             Assert.Equal(.133F, color1.B);
             Assert.Equal(.864F, color1.A);
 
-            RgbaVector color2 = new RgbaVector(1, .1f, .133f);
+            var color2 = new RgbaVector(1, .1f, .133f);
             Assert.Equal(1F, color2.R);
             Assert.Equal(.1F, color2.G);
             Assert.Equal(.133F, color2.B);
             Assert.Equal(1F, color2.A);
 
-            RgbaVector color4 = new RgbaVector(new Vector3(1, .1f, .133f));
+            var color4 = new RgbaVector(new Vector3(1, .1f, .133f));
             Assert.Equal(1F, color4.R);
             Assert.Equal(.1F, color4.G);
             Assert.Equal(.133F, color4.B);
             Assert.Equal(1F, color4.A);
 
-            RgbaVector color5 = new RgbaVector(new Vector4(1, .1f, .133f, .5f));
+            var color5 = new RgbaVector(new Vector4(1, .1f, .133f, .5f));
             Assert.Equal(1F, color5.R);
             Assert.Equal(.1F, color5.G);
             Assert.Equal(.133F, color5.B);
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void FromAndToHex()
         {
-            RgbaVector color = RgbaVector.FromHex("#AABBCCDD");
+            var color = RgbaVector.FromHex("#AABBCCDD");
             Assert.Equal(170 / 255F, color.R);
             Assert.Equal(187 / 255F, color.G);
             Assert.Equal(204 / 255F, color.B);
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void FloatLayout()
         {
-            RgbaVector color = new RgbaVector(1F, 2, 3, 4);
+            var color = new RgbaVector(1F, 2, 3, 4);
             Vector4 colorBase = Unsafe.As<RgbaVector, Vector4>(ref Unsafe.Add(ref color, 0));
             float[] ordered = new float[4];
             colorBase.CopyTo(ordered);

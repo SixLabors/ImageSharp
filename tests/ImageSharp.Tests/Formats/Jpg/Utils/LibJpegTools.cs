@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// </summary>
         public static SpectralData ExtractSpectralData(string inputFile)
         {
-            TestFile testFile = TestFile.Create(inputFile);
+            var testFile = TestFile.Create(inputFile);
 
             string outDir = TestEnvironment.CreateOutputDirectory(".Temp", $"JpegCoeffs");
             string fn = $"{Path.GetFileName(inputFile)}-{new Random().Next(1000)}.dctcoeffs";
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     {
                         int widthInBlocks = rdr.ReadInt16();
                         int heightInBlocks = rdr.ReadInt16();
-                        ComponentData resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
+                        var resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
                         result[i] = resultComponent;
                     }
 

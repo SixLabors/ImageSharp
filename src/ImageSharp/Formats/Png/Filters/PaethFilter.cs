@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
+    using System;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// The Paeth filter computes a simple linear function of the three neighboring pixels (left, above, upper left),
     /// then chooses as predictor the neighboring pixel closest to the computed value.

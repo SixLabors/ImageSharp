@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce
 {
+    using System.Numerics;
+
     /// <summary>
     /// AdaptionMatrix3X3 used for transformation from XYZ to LMS, defining the cone response domain.
     /// Used in <see cref="IChromaticAdaptation"/>

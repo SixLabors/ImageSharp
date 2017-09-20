@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Packed pixel type containing four 16-bit floating-point values.
     /// <para>
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="w">The w-component.</param>
         public HalfVector4(float x, float y, float z, float w)
         {
-            Vector4 vector = new Vector4(x, y, z, w);
+            var vector = new Vector4(x, y, z, w);
             this.PackedValue = Pack(ref vector);
         }
 
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToScaledVector4()
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);

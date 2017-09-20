@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.InteropServices;
-
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
+    using System.Runtime.InteropServices;
+
     /// <summary>
     /// This is the Windows 2000 and Windows 98 BMP v5 DIB (Device Independent Bitmap) information header.
     /// <para>Supported since Windows 2000 and Windows 98.</para>

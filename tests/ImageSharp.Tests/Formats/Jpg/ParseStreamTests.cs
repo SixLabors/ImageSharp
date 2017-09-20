@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Cmyk)]
         public void PrintComponentData(string imageFile)
         {
-            StringBuilder bld = new StringBuilder();
+            var bld = new StringBuilder();
 
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
             {
@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             object expectedLumaFactors,
             object expectedChromaFactors)
         {
-            Size fLuma = (Size)expectedLumaFactors;
-            Size fChroma = (Size)expectedChromaFactors;
+            var fLuma = (Size)expectedLumaFactors;
+            var fChroma = (Size)expectedChromaFactors;
 
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
             {

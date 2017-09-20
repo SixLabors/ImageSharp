@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> src = provider.GetImage())
-            using (Image<TPixel> dest = new Image<TPixel>(8,8))
-            using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+            using (var dest = new Image<TPixel>(8,8))
+            using (var area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
             using (PixelAccessor<TPixel> s = src.Lock())
             using (PixelAccessor<TPixel> d = dest.Lock())
             {
@@ -66,8 +66,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> src = provider.GetImage())
-            using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
-            using (Image<TPixel> dest = new Image<TPixel>(8, 8))
+            using (var area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+            using (var dest = new Image<TPixel>(8, 8))
             using (PixelAccessor<TPixel> s = src.Lock())
             using (PixelAccessor<TPixel> d = dest.Lock())
             {

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+
     /// <summary>
     /// This interface exists for ensuring signature compatibility to MonoGame and XNA packed color types.
     /// <see href="https://msdn.microsoft.com/en-us/library/bb197661.aspx" />

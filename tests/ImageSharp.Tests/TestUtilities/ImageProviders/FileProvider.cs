@@ -105,15 +105,20 @@ namespace SixLabors.ImageSharp.Tests
 
             private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
 
-            public FileProvider(string filePath)
-            {
-                this.FilePath = filePath;
-            }
-
+            // Needed for deserialization!
+            // ReSharper disable once UnusedMember.Local
             public FileProvider()
             {
             }
 
+            public FileProvider(string filePath)
+            {
+                this.FilePath = filePath;
+            }
+            
+            /// <summary>
+            /// Gets the file path relative to the "~/tests/images" folder
+            /// </summary>
             public string FilePath { get; private set; }
 
             public override string SourceFileOrDescription => this.FilePath;
@@ -128,13 +133,13 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Guard.NotNull(decoder, nameof(decoder));
 
-                Key key = new Key(this.PixelType, this.FilePath, decoder);
+                var key = new Key(this.PixelType, this.FilePath, decoder);
 
                 Image<TPixel> cachedImage = cache.GetOrAdd(
                     key,
                     fn =>
                         {
-                            TestFile testFile = TestFile.Create(this.FilePath);
+                            var testFile = TestFile.Create(this.FilePath);
                             return Image.Load<TPixel>(testFile.Bytes, decoder);
                         });
 

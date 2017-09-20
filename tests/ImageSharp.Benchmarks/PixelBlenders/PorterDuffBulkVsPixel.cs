@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-            using (Buffer<Vector4> buffer = new Buffer<Vector4>(destination.Length * 3))
+            using (var buffer = new Buffer<Vector4>(destination.Length * 3))
             {
                 Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -57,9 +57,9 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkVectorConvert")]
         public CoreSize BulkVectorConvert()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
-                Buffer<float> amounts = new Buffer<float>(image.Width);
+                var amounts = new Buffer<float>(image.Width);
 
                 for (int x = 0; x < image.Width; x++)
                 {
@@ -80,9 +80,9 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkPixelConvert")]
         public CoreSize BulkPixelConvert()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
-                Buffer<float> amounts = new Buffer<float>(image.Width);
+                var amounts = new Buffer<float>(image.Width);
 
                 for (int x = 0; x < image.Width; x++)
                 {

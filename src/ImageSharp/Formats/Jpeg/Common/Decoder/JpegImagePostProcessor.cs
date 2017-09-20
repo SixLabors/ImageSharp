@@ -1,14 +1,14 @@
-using System;
-using System.Linq;
-using System.Numerics;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Helpers;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System;
+    using System.Linq;
+    using System.Numerics;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Helpers;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Encapsulates the execution od post-processing algorithms to be applied on a <see cref="IRawJpegData"/> to produce a valid <see cref="Image{TPixel}"/>: <br/>
     /// (1) Dequantization <br/>

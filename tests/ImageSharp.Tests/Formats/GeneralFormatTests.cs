@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
 
             foreach (TestFile file in Files)
             {
-                using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
+                using (var srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
                 {
                     using (Image<Rgba32> image = srcImage.Clone())
                     {
@@ -132,15 +132,15 @@ namespace SixLabors.ImageSharp.Tests
             foreach (TestFile file in Files)
             {
                 byte[] serialized;
-                using (Image<Rgba32> image = Image.Load(file.Bytes, out IImageFormat mimeType))
-                using (MemoryStream memoryStream = new MemoryStream())
+                using (var image = Image.Load(file.Bytes, out IImageFormat mimeType))
+                using (var memoryStream = new MemoryStream())
                 {
                     image.Save(memoryStream, mimeType);
                     memoryStream.Flush();
                     serialized = memoryStream.ToArray();
                 }
 
-                using (Image<Rgba32> image2 = Image.Load<Rgba32>(serialized))
+                using (var image2 = Image.Load<Rgba32>(serialized))
                 {
                     image2.Save($"{path}/{file.FileName}");
                 }

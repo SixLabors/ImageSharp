@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.IO;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
+    using System;
+    using System.IO;
+    using System.Runtime.CompilerServices;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>

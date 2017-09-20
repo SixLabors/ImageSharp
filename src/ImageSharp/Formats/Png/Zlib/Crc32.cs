@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
+    using System;
+
     /// <summary>
     /// Generate a table for a byte-wise 32-bit CRC calculation on the polynomial:
     /// x^32+x^26+x^23+x^22+x^16+x^12+x^11+x^10+x^8+x^7+x^5+x^4+x^2+x+1.

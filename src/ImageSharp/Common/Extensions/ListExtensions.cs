@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-
 namespace SixLabors.ImageSharp.Common.Extensions
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Collections.Generic.List"/> class.
     /// </summary>

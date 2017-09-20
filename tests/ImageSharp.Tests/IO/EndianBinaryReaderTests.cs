@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void ReadCharsBeyondInternalBufferSize()
         {
-            MemoryStream stream = new MemoryStream(TestBytes);
-            using (EndianBinaryReader subject = new EndianBinaryReader(Endianness.LittleEndian, stream))
+            var stream = new MemoryStream(TestBytes);
+            using (var subject = new EndianBinaryReader(Endianness.LittleEndian, stream))
             {
                 char[] chars = new char[TestString.Length];
                 subject.Read(chars, 0, chars.Length);
@@ -48,8 +48,8 @@ namespace SixLabors.ImageSharp.Tests.IO
             Assert.Throws<ArgumentException>(
                 () =>
                     {
-                        MemoryStream stream = new MemoryStream(TestBytes);
-                        using (EndianBinaryReader subject = new EndianBinaryReader(Endianness.LittleEndian, stream))
+                        var stream = new MemoryStream(TestBytes);
+                        using (var subject = new EndianBinaryReader(Endianness.LittleEndian, stream))
                         {
                             char[] chars = new char[TestString.Length - 1];
 

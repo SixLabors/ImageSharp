@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
 
             ExifProfile profile = GetExifProfile();
 
-            ExifProfile clone = new ExifProfile(profile);
+            var clone = new ExifProfile(profile);
             TestProfile(clone);
 
             profile.SetValue(ExifTag.ColorSpace, (ushort)2);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void WriteFraction()
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (var memStream = new MemoryStream())
             {
                 double exposureTime = 1.0 / 1600;
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
 
-                Image<Rgba32> image = new Image<Rgba32>(1, 1);
+                var image = new Image<Rgba32>(1, 1);
                 image.MetaData.ExifProfile = profile;
 
                 image.SaveAsJpeg(memStream);
@@ -207,11 +207,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Syncs()
         {
-            ExifProfile exifProfile = new ExifProfile();
+            var exifProfile = new ExifProfile();
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            ImageMetaData metaData = new ImageMetaData();
+            var metaData = new ImageMetaData();
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 200;
             metaData.VerticalResolution = 300;
@@ -253,17 +253,17 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void WriteTooLargeProfile()
         {
-            StringBuilder junk = new StringBuilder();
+            var junk = new StringBuilder();
             for (int i = 0; i < 65500; i++)
             {
                 junk.Append("I");
             }
 
-            Image<Rgba32> image = new Image<Rgba32>(100, 100);
+            var image = new Image<Rgba32>(100, 100);
             image.MetaData.ExifProfile = new ExifProfile();
             image.MetaData.ExifProfile.SetValue(ExifTag.ImageDescription, junk.ToString());
 
-            using (MemoryStream memStream = new MemoryStream())
+            using (var memStream = new MemoryStream())
             {
                 Assert.Throws<ImageFormatException>(() => image.SaveAsJpeg(memStream));
             }
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Image<Rgba32> WriteAndRead(Image<Rgba32> image)
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (var memStream = new MemoryStream())
             {
                 image.SaveAsJpeg(memStream);
                 image.Dispose();

@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Packed pixel type containing a single 16 bit floating point value.
     /// <para>

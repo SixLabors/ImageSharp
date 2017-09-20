@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    using System;
+    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
     /// </summary>

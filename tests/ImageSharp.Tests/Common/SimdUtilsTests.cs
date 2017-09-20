@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
             float[] data = new float[Vector<float>.Count];
-            Random rnd = new Random();
+            var rnd = new Random();
             for (int i = 0; i < Vector<float>.Count; i++)
             {
                 float v = (float)rnd.NextDouble() * (max-min) + min;
@@ -238,14 +238,14 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private void MagicConvert(Span<float> source, Span<byte> dest)
         {
-            Vector<float> magick = new Vector<float>(32768.0f);
+            var magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
             Vector<float> x = source.NonPortableCast<float, Vector<float>>()[0];
             
             x = (x * scale) + magick;
 
-            Tuple8.OfUInt32 ii = default(Tuple8.OfUInt32);
+            var ii = default(Tuple8.OfUInt32);
 
             ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
 

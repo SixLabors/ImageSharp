@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Packed pixel type containing two 16-bit signed integer values.
     /// <para>
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector2 ToScaledVector2()
         {
-            Vector2 vector = this.ToVector2();
+            var vector = this.ToVector2();
             vector /= 65534;
             vector *= 255;
             vector += Half;

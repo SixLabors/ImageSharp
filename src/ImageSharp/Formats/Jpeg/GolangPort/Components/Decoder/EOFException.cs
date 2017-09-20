@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System;
+
     /// <summary>
     /// The EOF (End of File exception).
     /// Thrown when the decoder encounters an EOF marker without a proceeding EOI (End Of Image) marker

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void TestExifTag()
         {
-            ExifProfile exifProfile = new ExifProfile();
+            var exifProfile = new ExifProfile();
 
             exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)1);
             ExifValue value = exifProfile.GetValue(ExifTag.ResolutionUnit);

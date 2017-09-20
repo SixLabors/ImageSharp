@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
         private SixLabors.Primitives.Size LoadPng(MemoryStream stream)
         {
-            using (Image<Rgba32> image = CoreImage.Load<Rgba32>(stream))
+            using (var image = CoreImage.Load<Rgba32>(stream))
             {
                 return new SixLabors.Primitives.Size(image.Width, image.Height);
             }

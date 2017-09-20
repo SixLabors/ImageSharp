@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Quantizers
 {
+    using SixLabors.ImageSharp.Dithering;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Provides methods for for allowing quantization of images pixels with configurable dithering.
     /// </summary>

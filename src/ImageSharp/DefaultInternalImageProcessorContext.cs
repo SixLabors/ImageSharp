@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Helpers;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp
 {
+    using SixLabors.ImageSharp.Helpers;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Performs processor application operations on the source image
     /// </summary>

@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
+    using System.IO;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encoder for writing the data image to a stream in jpeg format.
     /// </summary>

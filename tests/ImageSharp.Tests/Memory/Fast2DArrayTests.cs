@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Fast2DArray<float> fast = new Fast2DArray<float>(null);
+                var fast = new Fast2DArray<float>(null);
             });
         }
 
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
-                Fast2DArray<float> fast = new Fast2DArray<float>(0, 10);
+                var fast = new Fast2DArray<float>(0, 10);
             });
         }
 
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
-                Fast2DArray<float> fast = new Fast2DArray<float>(10, 0);
+                var fast = new Fast2DArray<float>(10, 0);
             });
         }
 
@@ -49,14 +49,14 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
-                Fast2DArray<float> fast = new Fast2DArray<float>(new float[0, 0]);
+                var fast = new Fast2DArray<float>(new float[0, 0]);
             });
         }
 
         [Fact]
         public void Fast2DArrayReturnsCorrectDimensions()
         {
-            Fast2DArray<float> fast = new Fast2DArray<float>(FloydSteinbergMatrix);
+            var fast = new Fast2DArray<float>(FloydSteinbergMatrix);
             Assert.True(fast.Width == FloydSteinbergMatrix.GetLength(1));
             Assert.True(fast.Height == FloydSteinbergMatrix.GetLength(0));
         }
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Fast2DArrayGetSetReturnsCorrectResults()
         {
-            Fast2DArray<float> fast = new Fast2DArray<float>(4, 4);
+            var fast = new Fast2DArray<float>(4, 4);
             const float Val = 5F;
 
             fast[3, 3] = Val;

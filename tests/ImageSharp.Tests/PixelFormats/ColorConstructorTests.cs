@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         {
             get
             {
-                Dictionary<Vector3, Vector4> vector3Values = new Dictionary<Vector3, Vector4>()
+                var vector3Values = new Dictionary<Vector3, Vector4>()
                     {
                         { Vector3.One, Vector4.One },
                         { Vector3.Zero, new Vector4(0, 0, 0, 1) },
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         {
             get
             {
-                Dictionary<Vector3, Vector4> vector3Values = new Dictionary<Vector3, Vector4>()
+                var vector3Values = new Dictionary<Vector3, Vector4>()
                     {
                         { Vector3.One, Vector4.One },
                         { Vector3.Zero, new Vector4(0, 0, 0, 1) },
@@ -136,10 +136,10 @@ namespace SixLabors.ImageSharp.Tests.Colors
             // Arrange
             int precision = 2;
             // using float array to work around a bug in xunit corruptint the state of any Vector4 passed as MemberData
-            Vector4 expectedVector4 = new Vector4(expectedVector4Components[0], expectedVector4Components[1], expectedVector4Components[2], expectedVector4Components[3]);
+            var expectedVector4 = new Vector4(expectedVector4Components[0], expectedVector4Components[1], expectedVector4Components[2], expectedVector4Components[3]);
 
             // Act
-            Vector4 vector4 = packedVector.ToVector4();
+            var vector4 = packedVector.ToVector4();
 
             // Assert
             Assert.Equal(expectedVector4.X, vector4.X, precision);

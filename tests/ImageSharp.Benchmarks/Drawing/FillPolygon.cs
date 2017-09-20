@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Fill Polygon")]
         public void DrawSolidPolygonSystemDrawing()
         {
-            using (Bitmap destination = new Bitmap(800, 800))
+            using (var destination = new Bitmap(800, 800))
             {
 
-                using (Graphics graphics = Graphics.FromImage(destination))
+                using (var graphics = Graphics.FromImage(destination))
                 {
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
                     graphics.FillPolygon(Brushes.HotPink,
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                         new Point(200, 400)
                     });
                 }
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     destination.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
                 }
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill Polygon")]
         public void DrawSolidPolygonCore()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 image.Mutate(x => x.FillPolygon(
                     Rgba32.HotPink,
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                         new Vector2(200, 400)
                     }));
 
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     image.SaveAsBmp(ms);
                 }
@@ -73,13 +73,13 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Fill Polygon - cached shape")]
         public void DrawSolidPolygonCoreCahced()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 image.Mutate(x => x.Fill(
                     Rgba32.HotPink,
                     this.shape));
 
-                using (MemoryStream ms = new MemoryStream())
+                using (var ms = new MemoryStream())
                 {
                     image.SaveAsBmp(ms);
                 }

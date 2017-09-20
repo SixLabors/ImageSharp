@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(true)));
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true)));
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new Vector2(50, 300)
             };
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -103,9 +103,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             };
 
             using (Image<Rgba32> brushImage = TestFile.Create(TestImages.Bmp.Car).CreateImage())
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                ImageBrush<Rgba32> brush = new ImageBrush<Rgba32>(brushImage);
+                var brush = new ImageBrush<Rgba32>(brushImage);
 
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -123,9 +123,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new Vector2(200, 150),
                             new Vector2(50, 300)
             };
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
-                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+                var mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            using (Image<Rgba32> image = new Image<Rgba32>(100, 100))
+            using (var image = new Image<Rgba32>(100, 100))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -195,9 +195,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            Configuration config = Configuration.CreateDefaultInstance();
+            var config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
+            using (var image = new Image<Rgba32>(config, 100, 100))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -211,9 +211,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            Configuration config = Configuration.CreateDefaultInstance();
+            var config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image<Rgba32> image = new Image<Rgba32>(config, 100, 100))
+            using (var image = new Image<Rgba32>(config, 100, 100))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -228,9 +228,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
-            Configuration config = Configuration.CreateDefaultInstance();
+            var config = Configuration.CreateDefaultInstance();
             config.ParallelOptions.MaxDegreeOfParallelism = 1;
-            using (Image<Rgba32> image = new Image<Rgba32>(config, 200, 200))
+            using (var image = new Image<Rgba32>(config, 200, 200))
             {
                 image.Mutate(x => x
                     .Fill(Rgba32.Blue)

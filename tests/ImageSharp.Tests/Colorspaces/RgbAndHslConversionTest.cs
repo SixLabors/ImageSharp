@@ -35,10 +35,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Hsl_To_Rgb(float h, float s, float l, float r, float g, float b)
         {
             // Arrange
-            Hsl input = new Hsl(h, s, l);
+            var input = new Hsl(h, s, l);
 
             // Act
-            Rgb output = Converter.ToRgb(input);
+            var output = Converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
@@ -59,10 +59,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Rgb_To_Hsl(float r, float g, float b, float h, float s, float l)
         {
             // Arrange
-            Rgb input = new Rgb(r, g, b);
+            var input = new Rgb(r, g, b);
 
             // Act
-            Hsl output = Converter.ToHsl(input);
+            var output = Converter.ToHsl(input);
 
             // Assert
             Assert.Equal(h, output.H, FloatRoundingComparer);

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void ExplicitCastOfGraphicsOptions()
         {
-            GraphicsOptions opt = new GraphicsOptions(false)
+            var opt = new GraphicsOptions(false)
             {
                 AntialiasSubpixelDepth = 99
             };
@@ -31,12 +31,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void ImplicitCastToGraphicsOptions()
         {
-            TextGraphicsOptions textOptions = new TextGraphicsOptions(false)
+            var textOptions = new TextGraphicsOptions(false)
             {
                 AntialiasSubpixelDepth = 99
             };
 
-            GraphicsOptions opt = (GraphicsOptions)textOptions;
+            var opt = (GraphicsOptions)textOptions;
 
             Assert.False(opt.Antialias);
             Assert.Equal(99, opt.AntialiasSubpixelDepth);

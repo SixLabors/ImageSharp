@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark(Baseline = true)]
         public void Standard()
         {
-            UIntFloatUnion u = default(UIntFloatUnion);
+            var u = default(UIntFloatUnion);
             for (int i = 0; i < this.input.Length; i++)
             {
                 u.i = this.input[i];
@@ -53,8 +53,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         {
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<uint> a = new Vector<uint>(this.input, i);
-                Vector<float> b = Vector.AsVectorSingle(a);
+                var a = new Vector<uint>(this.input, i);
+                var b = Vector.AsVectorSingle(a);
                 b.CopyTo(this.result, i);
             }
         }

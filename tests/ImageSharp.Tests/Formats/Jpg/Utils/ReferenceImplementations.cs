@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     {
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
         {
-            float* b = (float*)blockPtr;
-            float* qtp = (float*)qtPtr;
+            var b = (float*)blockPtr;
+            var qtp = (float*)qtPtr;
             for (int qtIndex = 0; qtIndex < Block8x8F.Size; qtIndex++)
             {
                 int i = unzigPtr[qtIndex];
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             fixed (Block8x8F* p = &block)
             {
-                float* b = (float*)p;
+                var b = (float*)p;
 
                 for (int y = 0; y < 8; y++)
                 {
@@ -117,8 +117,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <param name="unzigPtr">Pointer to <see cref="ZigZag.Data"/> </param>
         public static unsafe void QuantizeRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
         {
-            float* s = (float*)src;
-            float* q = (float*)qt;
+            var s = (float*)src;
+            var q = (float*)qt;
 
             for (int zig = 0; zig < Block8x8F.Size; zig++)
             {

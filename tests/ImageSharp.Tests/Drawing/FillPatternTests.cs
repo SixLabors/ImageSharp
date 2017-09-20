@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
             string path = TestEnvironment.CreateOutputDirectory("Fill", "PatternBrush");
-            using (Image<Rgba32> image = new Image<Rgba32>(20, 20))
+            using (var image = new Image<Rgba32>(20, 20))
             {
                 image.Mutate(x => x
                     .Fill(background)
@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     // lets pick random spots to start checking
-                    Random r = new Random();
-                    Fast2DArray<Rgba32> expectedPatternFast = new Fast2DArray<Rgba32>(expectedPattern);
+                    var r = new Random();
+                    var expectedPatternFast = new Fast2DArray<Rgba32>(expectedPattern);
                     int xStride = expectedPatternFast.Width;
                     int yStride = expectedPatternFast.Height;
                     int offsetX = r.Next(image.Width / xStride) * xStride;

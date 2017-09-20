@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSapce;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
+    using SixLabors.ImageSharp.ColorSpaces;
+    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSapce;
+
     /// <content>
     /// Allows conversion to <see cref="Hsl"/>.
     /// </content>

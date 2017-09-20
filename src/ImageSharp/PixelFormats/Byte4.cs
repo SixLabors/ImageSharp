@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
     /// <para>
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="w">The w-component</param>
         public Byte4(float x, float y, float z, float w)
         {
-            Vector4 vector = new Vector4(x, y, z, w);
+            var vector = new Vector4(x, y, z, w);
             this.PackedValue = Pack(ref vector);
         }
 
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             dest.R = (byte)vector.X;
             dest.G = (byte)vector.Y;
             dest.B = (byte)vector.Z;
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             dest.R = (byte)vector.X;
             dest.G = (byte)vector.Y;
             dest.B = (byte)vector.Z;
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgr24(ref Bgr24 dest)
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             dest.R = (byte)vector.X;
             dest.G = (byte)vector.Y;
             dest.B = (byte)vector.Z;
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgra32(ref Bgra32 dest)
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             dest.R = (byte)vector.X;
             dest.G = (byte)vector.Y;
             dest.B = (byte)vector.Z;

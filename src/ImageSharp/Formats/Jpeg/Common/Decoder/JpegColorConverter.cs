@@ -1,12 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Numerics;
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Encapsulates the conversion of Jpeg channels to RGBA values packed in <see cref="Vector4"/> buffer.
     /// </summary>

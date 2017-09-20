@@ -1,8 +1,8 @@
-﻿using System;
-using System.Numerics;
-
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+﻿namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System;
+    using System.Numerics;
+
     internal abstract partial class JpegColorConverter
     {
         internal class FromYccK : JpegColorConverter

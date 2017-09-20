@@ -47,9 +47,9 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> src = provider.GetImage())
             {
-                using (Image<TPixel> dest = new Image<TPixel>(src.Width, src.Height))
+                using (var dest = new Image<TPixel>(src.Width, src.Height))
                 {
-                    using (PixelArea<TPixel> area = new PixelArea<TPixel>(src.Width, src.Height, order))
+                    using (var area = new PixelArea<TPixel>(src.Width, src.Height, order))
                     {
                         using (PixelAccessor<TPixel> srcPixels = src.Lock())
                         {
@@ -75,14 +75,14 @@ namespace SixLabors.ImageSharp.Tests
         internal void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> destImage = new Image<TPixel>(8, 8))
+            using (var destImage = new Image<TPixel>(8, 8))
             {
                 using (Image<TPixel> srcImage = provider.GetImage())
                 {
                     srcImage.Mutate(x => x.Fill(NamedColors<TPixel>.Red, new Rectangle(4, 4, 8, 8)));
                     using (PixelAccessor<TPixel> srcPixels = srcImage.Lock())
                     {
-                        using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, order))
+                        using (var area = new PixelArea<TPixel>(8, 8, order))
                         {
                             srcPixels.CopyTo(area, 4, 4);
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests
                 provider.Utility.SourceFileOrDescription = order.ToString();
                 provider.Utility.SaveTestOutputFile(destImage, "bmp");
 
-                using (Image<TPixel> expectedImage = new Image<TPixel>(8, 8))
+                using (var expectedImage = new Image<TPixel>(8, 8))
                 {
                     expectedImage.Mutate(x => x.Fill(NamedColors<TPixel>.Red));
                     Assert.True(destImage.IsEquivalentTo(expectedImage));
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CopyFromZYX()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
+            using (var image = new Image<Rgba32>(1, 1))
             {
                 CopyFromZYXImpl(image);
             }
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CopyFromZYXW()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
+            using (var image = new Image<Rgba32>(1, 1))
             {
                 CopyFromZYXWImpl(image);
             }
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CopyToZYX()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
+            using (var image = new Image<Rgba32>(1, 1))
             {
                 CopyToZYXImpl(image);
             }
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void CopyToZYXW()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
+            using (var image = new Image<Rgba32>(1, 1))
             {
                 CopyToZYXWImpl(image);
             }
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 255;
 
-                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyx))
+                using (var row = new PixelArea<TPixel>(1, ComponentOrder.Zyx))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Rgba32 color = (Rgba32)(object)pixels[0, 0];
+                    var color = (Rgba32)(object)pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyxw))
+                using (var row = new PixelArea<TPixel>(1, ComponentOrder.Zyxw))
                 {
                     row.Bytes[0] = blue;
                     row.Bytes[1] = green;
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests
 
                     pixels.CopyFrom(row, 0);
 
-                    Rgba32 color = (Rgba32)(object)pixels[0, 0];
+                    var color = (Rgba32)(object)pixels[0, 0];
                     Assert.Equal(red, color.R);
                     Assert.Equal(green, color.G);
                     Assert.Equal(blue, color.B);
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests
                 byte green = 2;
                 byte blue = 3;
 
-                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyx))
+                using (var row = new PixelArea<TPixel>(1, ComponentOrder.Zyx))
                 {
                     pixels[0, 0] = (TPixel)(object)new Rgba32(red, green, blue);
 
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests
                 byte blue = 3;
                 byte alpha = 4;
 
-                using (PixelArea<TPixel> row = new PixelArea<TPixel>(1, ComponentOrder.Zyxw))
+                using (var row = new PixelArea<TPixel>(1, ComponentOrder.Zyxw))
                 {
                     pixels[0, 0] = (TPixel)(object)new Rgba32(red, green, blue, alpha);
 

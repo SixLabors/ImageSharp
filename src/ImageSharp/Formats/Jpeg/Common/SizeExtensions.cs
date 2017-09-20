@@ -1,8 +1,8 @@
-using System.Numerics;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using System.Numerics;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Extension methods for <see cref="Size"/>
     /// </summary>

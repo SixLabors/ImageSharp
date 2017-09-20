@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Dithering;
-using SixLabors.ImageSharp.Helpers;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    using System;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Dithering;
+    using SixLabors.ImageSharp.Helpers;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.
     /// </summary>

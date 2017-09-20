@@ -1,19 +1,19 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.IO;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 {
+    using System;
+    using System.IO;
+    using System.Runtime.CompilerServices;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.MetaData;
+    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+    using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors

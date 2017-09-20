@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Contains inaccurate, but fast forward and inverse DCT implementations.
     /// </summary>

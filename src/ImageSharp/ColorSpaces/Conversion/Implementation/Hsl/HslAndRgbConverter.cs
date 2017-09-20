@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSapce
 {
+    using System.Runtime.CompilerServices;
+    using SixLabors.ImageSharp.ColorSpaces;
+
     /// <summary>
     /// Color converter between HSL and Rgb
     /// See <see href="http://www.poynton.com/PDFs/coloureq.pdf"/> for formulas.

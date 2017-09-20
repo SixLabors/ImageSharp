@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Gif;
-
 namespace SixLabors.ImageSharp.MetaData
 {
+    using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Gif;
+
     /// <summary>
     /// Encapsulates the metadata of an image frame.
     /// </summary>

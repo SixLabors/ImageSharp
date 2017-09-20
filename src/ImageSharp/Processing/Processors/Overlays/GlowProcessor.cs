@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Helpers;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    using System;
+    using System.Numerics;
+    using System.Threading.Tasks;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Helpers;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> that applies a radial glow effect an <see cref="Image{TPixel}"/>.
     /// </summary>

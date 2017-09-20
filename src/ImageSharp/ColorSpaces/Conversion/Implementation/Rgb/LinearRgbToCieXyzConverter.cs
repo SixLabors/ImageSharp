@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
+    using System.Numerics;
+
     /// <summary>
     /// Color converter between LinearRgb and CieXyz
     /// </summary>
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             DebugGuard.NotNull(input, nameof(input));
             Guard.IsTrue(input.WorkingSpace.Equals(this.SourceWorkingSpace), nameof(input.WorkingSpace), "Input and source working spaces must be equal.");
 
-            Vector3 vector = Vector3.Transform(input.Vector, this.conversionMatrix);
+            var vector = Vector3.Transform(input.Vector, this.conversionMatrix);
             return new CieXyz(vector);
         }
     }

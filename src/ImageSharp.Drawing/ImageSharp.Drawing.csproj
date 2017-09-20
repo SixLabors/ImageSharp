@@ -31,7 +31,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
-    <AdditionalFiles Include="..\..\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />

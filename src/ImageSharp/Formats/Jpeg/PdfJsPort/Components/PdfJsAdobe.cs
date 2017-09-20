@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
+    using System;
+
     /// <summary>
     /// Provides information about the Adobe marker segment
     /// </summary>

@@ -1,13 +1,13 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using Unsafe = System.Runtime.CompilerServices.Unsafe;
-
 namespace SixLabors.ImageSharp.Memory
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+    using Unsafe = System.Runtime.CompilerServices.Unsafe;
+
     /// <summary>
     /// Utility methods for <see cref="Span{T}"/>
     /// </summary>

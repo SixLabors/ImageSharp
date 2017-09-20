@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Text;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Text;
+
     /// <summary>
     /// Contains methods for writing EXIF metadata.
     /// </summary>
@@ -436,7 +436,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return new Collection<int>();
             }
 
-            Collection<int> result = new Collection<int>();
+            var result = new Collection<int>();
             for (int i = 0; i < this.values.Count; i++)
             {
                 ExifValue value = this.values[i];

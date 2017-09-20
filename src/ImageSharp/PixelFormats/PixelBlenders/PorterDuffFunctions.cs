@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Collection of Porter Duff alpha blending functions applying an the 'Over' composition model.
     /// </summary>

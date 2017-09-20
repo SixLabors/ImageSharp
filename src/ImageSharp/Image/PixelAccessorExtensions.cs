@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
-using Unsafe = System.Runtime.CompilerServices.Unsafe;
-
 namespace SixLabors.ImageSharp
 {
+    using System;
+    using System.Diagnostics;
+    using System.Runtime.CompilerServices;
+    using System.Threading.Tasks;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
+    using Unsafe = System.Runtime.CompilerServices.Unsafe;
+
     /// <summary>
     /// Helper methods fro acccess pixel accessors
     /// </summary>

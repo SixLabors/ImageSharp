@@ -30,9 +30,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
         public Size GifSystemDrawing()
         {
-            using (MemoryStream memoryStream = new MemoryStream(this.gifBytes))
+            using (var memoryStream = new MemoryStream(this.gifBytes))
             {
-                using (Image image = Image.FromStream(memoryStream))
+                using (var image = Image.FromStream(memoryStream))
                 {
                     return image.Size;
                 }
@@ -42,9 +42,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Gif")]
         public CoreSize GifCore()
         {
-            using (MemoryStream memoryStream = new MemoryStream(this.gifBytes))
+            using (var memoryStream = new MemoryStream(this.gifBytes))
             {
-                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream))
+                using (var image = CoreImage.Load<Rgba32>(memoryStream))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

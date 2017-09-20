@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.IO
 {
+    using System;
+
     /// <summary>
     /// Equivalent of <see cref="BitConverter"/>, but with either endianness.
     /// </summary>
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.IO
             CheckByteArgument(value, startIndex, 16);
 
             decimal result = 0m;
-            int* presult = (int*)&result;
+            var presult = (int*)&result;
             presult[0] = this.ToInt32(value, startIndex);
             presult[1] = this.ToInt32(value, startIndex + 4);
             presult[2] = this.ToInt32(value, startIndex + 8);

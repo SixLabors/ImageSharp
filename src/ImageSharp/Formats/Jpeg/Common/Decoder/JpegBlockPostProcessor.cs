@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System.Runtime.InteropServices;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
     /// </summary>

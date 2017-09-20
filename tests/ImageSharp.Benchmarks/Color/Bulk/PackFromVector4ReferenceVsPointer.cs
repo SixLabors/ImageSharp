@@ -41,15 +41,15 @@
         [Benchmark(Baseline = true)]
         public void PackUsingPointers()
         {
-            Vector4* sp = (Vector4*)this.source.Pin();
-            byte* dp = (byte*)this.destination.Pin();
+            var sp = (Vector4*)this.source.Pin();
+            var dp = (byte*)this.destination.Pin();
             int count = this.Count;
             int size = sizeof(Rgba32);
 
             for (int i = 0; i < count; i++)
             {
                 Vector4 v = Unsafe.Read<Vector4>(sp);
-                Rgba32 c = default(Rgba32);
+                var c = default(Rgba32);
                 c.PackFromVector4(v);
                 Unsafe.Write(dp, c);
 

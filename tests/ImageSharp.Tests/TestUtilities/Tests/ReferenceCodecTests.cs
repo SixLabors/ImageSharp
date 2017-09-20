@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
-            using (Image<TPixel> image = Image.Load<TPixel>(path, SystemDrawingReferenceDecoder.Instance))
+            using (var image = Image.Load<TPixel>(path, SystemDrawingReferenceDecoder.Instance))
             {
                 image.DebugSave(dummyProvider);
             }

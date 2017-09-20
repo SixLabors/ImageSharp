@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Dithering;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Quantizers.Base
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Dithering;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
     /// </summary>

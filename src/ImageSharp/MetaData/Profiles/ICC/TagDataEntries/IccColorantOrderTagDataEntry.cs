@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Linq;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
+    using System;
+    using System.Linq;
+
     /// <summary>
     /// This tag specifies the laydown order in which colorants
     /// will be printed on an n-colorant device.

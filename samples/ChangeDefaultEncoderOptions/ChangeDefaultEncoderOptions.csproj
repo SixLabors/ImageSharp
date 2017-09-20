@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="NETStandard.Library" Version="1.6.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
 

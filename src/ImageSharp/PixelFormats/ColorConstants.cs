@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
+    using System;
+    using System.Collections.Generic;
+
     /// <summary>
     /// Provides useful color definitions.
     /// </summary>

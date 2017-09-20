@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
             {
-                using (MemoryStream memoryStream = new MemoryStream(kv.Value))
+                using (var memoryStream = new MemoryStream(kv.Value))
                 {
                     try
                     {
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
                     byte[] bytes = kv.Value;
                     string fn = kv.Key;
 
-                    using (MemoryStream ms1 = new MemoryStream(bytes))
+                    using (var ms1 = new MemoryStream(bytes))
                     {
                         this.FileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
 
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
             protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
             {
-                using (MemoryStream workStream = new MemoryStream())
+                using (var workStream = new MemoryStream())
                 {
 
                     this.ForEachImageSharpImage(
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
             protected void ForEachSystemDrawingImage(Func<System.Drawing.Bitmap, MemoryStream, object> operation)
             {
-                using (MemoryStream workStream = new MemoryStream())
+                using (var workStream = new MemoryStream())
                 {
 
                     this.ForEachSystemDrawingImage(

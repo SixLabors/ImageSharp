@@ -16,11 +16,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorImageFrameMetaData()
         {
-            ImageFrameMetaData metaData = new ImageFrameMetaData();
+            var metaData = new ImageFrameMetaData();
             metaData.FrameDelay = 42;
             metaData.DisposalMethod = DisposalMethod.RestoreToBackground;
 
-            ImageFrameMetaData clone = new ImageFrameMetaData(metaData);
+            var clone = new ImageFrameMetaData(metaData);
 
             Assert.Equal(42, clone.FrameDelay);
             Assert.Equal(DisposalMethod.RestoreToBackground, clone.DisposalMethod);

@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-using SixLabors.ImageSharp.Memory;
-
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Encapsulates the impementation of Jpeg SOS Huffman decoding. See JpegScanDecoder.md!
     ///

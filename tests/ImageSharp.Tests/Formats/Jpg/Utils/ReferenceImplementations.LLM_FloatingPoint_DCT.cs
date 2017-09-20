@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float[] temp = new float[64];
 
                 iDCT2D_llm(s, d, temp);
-                Block8x8F result = default(Block8x8F);
+                var result = default(Block8x8F);
                 result.LoadFrom(d);
                 return result;
             }
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 float[] temp = new float[64];
 
                 fDCT2D_llm(s, d, temp);
-                Block8x8F result = default(Block8x8F);
+                var result = default(Block8x8F);
                 result.LoadFrom(d);
                 return result;
             }
@@ -215,8 +215,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 /*y[0] = c0 + c1;
                 y[4] = c0 - c1;*/
 
-                Vector4 w0 = new Vector4(0.541196f);
-                Vector4 w1 = new Vector4(1.306563f);
+                var w0 = new Vector4(0.541196f);
+                var w1 = new Vector4(1.306563f);
 
                 _mm_store_ps(d, 16, ((w0 * c2) + (w1 * c3)));
 
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 _mm_store_ps(d, 40, (c3 - c1));
                 //y[5] = c3 - c1; y[3] = c0 - c2;
 
-                Vector4 invsqrt2 = new Vector4(0.707107f);
+                var invsqrt2 = new Vector4(0.707107f);
                 c0 = ((c0 + c2) * invsqrt2);
                 c3 = ((c3 + c1) * invsqrt2);
                 //c0 = (c0 + c2) * invsqrt2;
@@ -280,7 +280,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 fDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-                Vector4 c = new Vector4(0.1250f);
+                var c = new Vector4(0.1250f);
 
                 _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//0
                 _mm_store_ps(d, 0, (_mm_load_ps(d, 0) * c)); d = d.Slice(4);//1

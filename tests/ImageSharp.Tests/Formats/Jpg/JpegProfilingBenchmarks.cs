@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ExecutionCount,
                 () =>
                     {
-                        Image<Rgba32> img = Image.Load<Rgba32>(bytes, decoder);
+                        var img = Image.Load<Rgba32>(bytes, decoder);
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
@@ -87,14 +87,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.Rgba32).GetImage())
                     .ToArray();
 
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 this.Measure(executionCount,
                     () =>
                     {
                         foreach (Image<Rgba32> img in testImages)
                         {
-                            JpegEncoder options = new JpegEncoder { Quality = quality, Subsample = subsample };
+                            var options = new JpegEncoder { Quality = quality, Subsample = subsample };
                             img.Save(ms, options);
                             ms.Seek(0, SeekOrigin.Begin);
                         }

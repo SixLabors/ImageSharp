@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
+    using System.Numerics;
+    using SixLabors.ImageSharp.ColorSpaces;
+    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
+
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
     /// </summary>

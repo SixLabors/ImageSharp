@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests
         public unsafe void ByteLayoutIsSequentialBgra()
         {
             var color = new Bgra32(1, 2, 3, 4);
-            byte* ptr = (byte*)&color;
+            var ptr = (byte*)&color;
 
             Assert.Equal(3, ptr[0]);
             Assert.Equal(2, ptr[1]);

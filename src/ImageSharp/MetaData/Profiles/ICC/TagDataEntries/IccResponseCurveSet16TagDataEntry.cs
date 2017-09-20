@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Linq;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
+    using System;
+    using System.Linq;
+
     /// <summary>
     /// The purpose of this tag type is to provide a mechanism to relate physical
     /// colorant amounts with the normalized device codes produced by lut8Type, lut16Type,

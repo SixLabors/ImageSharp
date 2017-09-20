@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
+    using System;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Encapsulates exception thrower methods for the Jpeg Encoder
     /// </summary>

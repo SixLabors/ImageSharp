@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
+    using SixLabors.ImageSharp.ColorSpaces;
+
     /// <summary>
     /// Chromatic adaptation.
     /// A linear transformation of a source color (XS, YS, ZS) into a destination color (XD, YD, ZD) by a linear transformation [M]

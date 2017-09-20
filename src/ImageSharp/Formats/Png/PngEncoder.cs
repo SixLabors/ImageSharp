@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using System.IO;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
-
 namespace SixLabors.ImageSharp.Formats.Png
 {
+    using System.Collections.Generic;
+    using System.IO;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Quantizers;
+
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
     /// </summary>

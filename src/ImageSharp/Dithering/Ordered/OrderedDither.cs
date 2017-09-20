@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering.Base;
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Dithering
 {
+    using SixLabors.ImageSharp.Dithering.Base;
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Applies error diffusion based dithering using the 4x4 ordered dithering matrix.
     /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>

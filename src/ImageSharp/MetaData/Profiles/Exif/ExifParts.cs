@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
+    using System;
+
     /// <summary>
     /// Specifies which parts will be written when the profile is added to an image.
     /// </summary>

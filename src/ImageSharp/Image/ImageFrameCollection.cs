@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Encapsulates an imaged collection of frames.
     /// </summary>

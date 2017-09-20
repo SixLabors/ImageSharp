@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
-
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
-using SixLabors.ImageSharp.PixelFormats;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
+    using System.IO;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>

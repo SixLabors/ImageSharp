@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Defines a pair of huffman tables
     /// </summary>

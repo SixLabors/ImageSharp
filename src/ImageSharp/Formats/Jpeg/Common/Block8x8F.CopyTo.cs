@@ -1,10 +1,10 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
-
-// ReSharper disable InconsistentNaming
+﻿// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+    using SixLabors.ImageSharp.Memory;
+
     internal partial struct Block8x8F
     {
         /// <summary>

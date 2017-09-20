@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabColorSapce
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// The base class for converting between <see cref="HunterLab"/> and <see cref="CieXyz"/> color spaces.
     /// </summary>

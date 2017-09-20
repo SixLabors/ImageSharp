@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.IO
 {
+    using System;
+
     /// <summary>
     /// Equivalent of <see cref="BitConverter"/>, but with either endianness.
     /// </summary>

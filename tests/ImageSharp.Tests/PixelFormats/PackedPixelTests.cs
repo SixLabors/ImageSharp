@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(26, new Alpha8(0.1F).PackedValue);
 
             // Test ordering
-            Vector4 vector = new Alpha8(.5F).ToVector4();
+            var vector = new Alpha8(.5F).ToVector4();
 
             Assert.Equal(0, vector.X);
             Assert.Equal(0, vector.Y);
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float y = -0.3f;
             float z = +0.5f;
             float w = -0.7f;
-            Argb32 argb = new Argb32(x, y, z, w);
+            var argb = new Argb32(x, y, z, w);
             Assert.Equal(0x001a0080u, argb.PackedValue);
 
             // Test ordering
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Byte4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 0, 128, 0 });
 
-            Byte4 r = new Byte4();
+            var r = new Byte4();
             r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
@@ -443,7 +443,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float x = 0.1f;
             float y = -0.3f;
             Assert.Equal(0xda0d, new NormalizedByte2(x, y).PackedValue);
-            NormalizedByte2 n = new NormalizedByte2();
+            var n = new NormalizedByte2();
             n.PackFromRgba32(new Rgba32(141, 90, 0, 0));
             Assert.Equal(0xda0d, n.PackedValue);
 
@@ -486,7 +486,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float z = 0.5f;
             float w = -0.7f;
             Assert.Equal(0xA740DA0D, new NormalizedByte4(x, y, z, w).PackedValue);
-            NormalizedByte4 n = new NormalizedByte4();
+            var n = new NormalizedByte4();
             n.PackFromRgba32(new Rgba32(141, 90, 192, 39));
             Assert.Equal(0xA740DA0D, n.PackedValue);
 
@@ -510,7 +510,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(bgra, new byte[] { 192, 90, 141, 39 });
 
             // http://community.monogame.net/t/normalizedbyte4-texture2d-gives-different-results-from-xna/8012/8
-            NormalizedByte4 r = new NormalizedByte4();
+            var r = new NormalizedByte4();
             r.PackFromRgba32(new Rgba32(9, 115, 202, 127));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
@@ -549,7 +549,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             byte[] bgr = new byte[3];
             byte[] bgra = new byte[4];
 
-            NormalizedShort2 n = new NormalizedShort2();
+            var n = new NormalizedShort2();
             n.PackFromRgba32(new Rgba32(141, 90, 0, 0));
             n.ToXyzBytes(rgb, 0);
             Assert.Equal(rgb, new byte[] { 141, 90, 0 });
@@ -610,7 +610,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new NormalizedShort4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 192, 90, 141, 39 });
 
-            NormalizedShort4 r = new NormalizedShort4();
+            var r = new NormalizedShort4();
             r.PackFromRgba32(new Rgba32(9, 115, 202, 127));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 9, 115, 202, 127 });
@@ -703,7 +703,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(bgra, new byte[] { 128, 0, 25, 0 });
 
             // Alpha component accuracy will be awful.
-            Rgba1010102 r = new Rgba1010102();
+            var r = new Rgba1010102();
             r.PackFromRgba32(new Rgba32(25, 0, 128, 0));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 25, 0, 128, 0 });
@@ -732,7 +732,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float y = -0.3f;
             float z = +0.5f;
             float w = -0.7f;
-            Rgba32 rgba32 = new Rgba32(x, y, z, w);
+            var rgba32 = new Rgba32(x, y, z, w);
             Assert.Equal(0x80001Au, rgba32.PackedValue);
 
             // Test ordering
@@ -796,7 +796,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Rgba64(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 76, 38, 20, 115 });
 
-            Rgba64 r = new Rgba64();
+            var r = new Rgba64();
             r.PackFromRgba32(new Rgba32(20, 38, 76, 115));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 76, 115 });
@@ -851,7 +851,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Short2(x, y).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 0, 127, 128, 255 });
 
-            Short2 r = new Short2();
+            var r = new Short2();
             r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });
@@ -908,7 +908,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Short4(x, y, z, w).ToZyxwBytes(bgra, 0);
             Assert.Equal(bgra, new byte[] { 243, 177, 172, 128 });
 
-            Short4 r = new Short4();
+            var r = new Short4();
             r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
             r.ToXyzwBytes(rgba, 0);
             Assert.Equal(rgba, new byte[] { 20, 38, 0, 255 });

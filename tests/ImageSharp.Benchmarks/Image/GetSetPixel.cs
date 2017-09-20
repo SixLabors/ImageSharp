@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing GetSet pixel")]
         public SystemColor ResizeSystemDrawing()
         {
-            using (Bitmap source = new Bitmap(400, 400))
+            using (var source = new Bitmap(400, 400))
             {
                 source.SetPixel(200, 200, SystemColor.White);
                 return source.GetPixel(200, 200);
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp GetSet pixel")]
         public Rgba32 ResizeCore()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
+            using (var image = new Image<Rgba32>(400, 400))
             {
                 using (PixelAccessor<Rgba32> imagePixels = image.Lock())
                 {

@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
-
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System;
+    using System.Collections.Generic;
+    using SixLabors.Primitives;
+
     /// <inheritdoc />
     /// <summary>
     /// Represents decompressed, unprocessed jpeg data with spectral space <see cref="T:SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.IJpegComponent" />-s.

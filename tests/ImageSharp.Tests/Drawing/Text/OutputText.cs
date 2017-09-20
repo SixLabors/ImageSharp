@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void DrawAB()
         {
             //draws 2 overlapping triangle glyphs twice 1 set on each line
-            using (Image<Rgba32> img = new Image<Rgba32>(100, 200))
+            using (var img = new Image<Rgba32>(100, 200))
             {
                 img.Mutate(x => x.Fill(Rgba32.DarkBlue)
                    .DrawText("AB\nAB", new Font(this.Font, 50), Rgba32.Red, new Vector2(0, 0)));

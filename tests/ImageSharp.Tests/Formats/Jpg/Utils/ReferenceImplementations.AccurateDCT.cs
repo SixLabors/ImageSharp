@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 int x, y, u, v;
                 double tmp, tmp2;
-                Block8x8F res = default(Block8x8F);
+                var res = default(Block8x8F);
 
                 for (y=0; y<8; y++) {
                     for (x=0; x<8; x++) {
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 int x, y, u, v;
                 double tmp, tmp2;
-                Block8x8F res = default(Block8x8F);
+                var res = default(Block8x8F);
 
                 for (v = 0; v < 8; v++)
                 {

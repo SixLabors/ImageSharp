@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
+    using System;
+
     /// <summary>
     /// A single channel of a <see cref="IccScreeningTagDataEntry"/>
     /// </summary>

@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Tests
                 Image.Load<Rgba32>((byte[])null);
             });
 
-            TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.Bytes))
+            var file = TestFile.Create(TestImages.Bmp.Car);
+            using (var image = Image.Load<Rgba32>(file.Bytes))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -33,8 +33,8 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorFileSystem()
         {
-            TestFile file = TestFile.Create(TestImages.Bmp.Car);
-            using (Image<Rgba32> image = Image.Load<Rgba32>(file.FullPath))
+            var file = TestFile.Create(TestImages.Bmp.Car);
+            using (var image = Image.Load<Rgba32>(file.FullPath))
             {
                 Assert.Equal(600, image.Width);
                 Assert.Equal(450, image.Height);
@@ -67,12 +67,12 @@ namespace SixLabors.ImageSharp.Tests
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = System.IO.Path.Combine(dir, "Save_DetecedEncoding.png");
 
-            using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file);
             }
 
-            using (Image<Rgba32> img = Image.Load(file, out var mime))
+            using (var img = Image.Load(file, out var mime))
             {
                 Assert.Equal("image/png", mime.DefaultMimeType);
             }
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests
             NotSupportedException ex = Assert.Throws<NotSupportedException>(
                 () =>
                     {
-                        using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
+                        using (var image = new Image<Rgba32>(10, 10))
                         {
                             image.Save(file);
                         }
@@ -100,11 +100,11 @@ namespace SixLabors.ImageSharp.Tests
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
             string file = System.IO.Path.Combine(dir, "Save_SetEncoding.dat");
 
-            using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(10, 10))
             {
                 image.Save(file, new PngEncoder());
             }
-            using (Image<Rgba32> img = Image.Load(file, out var mime))
+            using (var img = Image.Load(file, out var mime))
             {
                 Assert.Equal("image/png", mime.DefaultMimeType);
             }

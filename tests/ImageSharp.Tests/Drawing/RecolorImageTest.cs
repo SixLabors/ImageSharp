@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
+            var brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
+            var brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {

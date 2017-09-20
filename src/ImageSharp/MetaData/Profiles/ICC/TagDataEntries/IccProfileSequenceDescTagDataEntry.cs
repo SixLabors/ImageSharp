@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Linq;
-
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
+    using System;
+    using System.Linq;
+
     /// <summary>
     /// This type is an array of structures, each of which contains information
     /// from the header fields and tags from the original profiles which were

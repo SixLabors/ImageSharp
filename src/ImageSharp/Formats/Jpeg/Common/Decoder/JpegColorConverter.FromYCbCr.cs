@@ -1,10 +1,10 @@
-﻿using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Common.Tuples;
-
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+﻿namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+    using SixLabors.ImageSharp.Common.Tuples;
+
     internal abstract partial class JpegColorConverter
     {
         internal class FromYCbCrBasic : JpegColorConverter

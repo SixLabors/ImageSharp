@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
 
             BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-            byte* sourcePtrBase = (byte*)data.Scan0;
+            var sourcePtrBase = (byte*)data.Scan0;
 
             long sourceRowByteCount = data.Stride;
             long destRowByteCount = w * sizeof(Argb32);
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
 
             BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-            byte* sourcePtrBase = (byte*)data.Scan0;
+            var sourcePtrBase = (byte*)data.Scan0;
 
             long sourceRowByteCount = data.Stride;
             long destRowByteCount = w * sizeof(Rgb24);
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             var resultBitmap = new System.Drawing.Bitmap(w, h, PixelFormat.Format32bppArgb);
             var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
             BitmapData data = resultBitmap.LockBits(fullRect, ImageLockMode.ReadWrite, resultBitmap.PixelFormat);
-            byte* destPtrBase = (byte*)data.Scan0;
+            var destPtrBase = (byte*)data.Scan0;
 
             long destRowByteCount = data.Stride;
             long sourceRowByteCount = w * sizeof(Argb32);

@@ -11,11 +11,11 @@
     <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>
     <PackageId>SixLabors.ImageSharp.Drawing</PackageId>
     <PackageTags>Image Draw Shape Path Font</PackageTags>
-    <PackageIconUrl>https://raw.githubusercontent.com/SixLabor/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/SixLabors/ImageSharp</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/SixLabor/ImageSharp</RepositoryUrl>
+    <RepositoryUrl>https://github.com/SixLabors/ImageSharp</RepositoryUrl>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
@@ -37,9 +37,9 @@
     <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0002" />
-    <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0001" />
-    <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0001" />
+    <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0003" />
+    <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0002" />
+    <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0002" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>

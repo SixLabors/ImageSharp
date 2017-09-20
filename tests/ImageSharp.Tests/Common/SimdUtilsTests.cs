@@ -8,6 +8,8 @@ namespace SixLabors.ImageSharp.Tests.Common
     using System.Linq;
     using System.Runtime.CompilerServices;
 
+    using SixLabors.ImageSharp.Common.Tuples;
+
     using Xunit.Abstractions;
     using Xunit.Sdk;
 
@@ -109,6 +111,16 @@ namespace SixLabors.ImageSharp.Tests.Common
             AssertEvenRoundIsCorrect(r, v);
         }
 
+        private bool SkipOnNonAvx2([CallerMemberName] string testCaseName = null)
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
+                return true;
+            }
+            return false;
+        }
+
         [Theory]
         [InlineData(1, 0)]
         [InlineData(1, 8)]
@@ -116,6 +128,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(3, 128)]
         public void BulkConvertNormalizedFloatToByte_WithRoundedData(int seed, int count)
         {
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
+
             float[] orig =  new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
             float[] normalized = orig.Select(f => f / 255f).ToArray();
 
@@ -135,6 +152,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(3, 128)]
         public void BulkConvertNormalizedFloatToByte_WithNonRoundedData(int seed, int count)
         {
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
+
             float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
             
             byte[] dest = new byte[count];
@@ -155,6 +177,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(3, 128)]
         public void BulkConvertNormalizedFloatToByteClampOverflows(int seed, int count)
         {
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
+
             float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, -50, 444);
             float[] normalized = orig.Select(f => f / 255f).ToArray();
 
@@ -185,6 +212,11 @@ namespace SixLabors.ImageSharp.Tests.Common
         [Fact]
         private void BulkConvertNormalizedFloatToByte_Step()
         {
+            if (this.SkipOnNonAvx2())
+            {
+                return;
+            }
+
             float[] source = {0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f};
             byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
 
@@ -213,15 +245,15 @@ namespace SixLabors.ImageSharp.Tests.Common
             
             x = (x * scale) + magick;
 
-            SimdUtils.Octet.OfUInt32 ii = default(SimdUtils.Octet.OfUInt32);
+            Tuple8.OfUInt32 ii = default(Tuple8.OfUInt32);
 
-            ref Vector<float> iiRef = ref Unsafe.As<SimdUtils.Octet.OfUInt32, Vector<float>>(ref ii);
+            ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
 
             iiRef = x;
 
-            //SimdUtils.Octet.OfUInt32 ii = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x);
+            //Tuple8.OfUInt32 ii = Unsafe.As<Vector<float>, Tuple8.OfUInt32>(ref x);
             
-            ref SimdUtils.Octet.OfByte d = ref dest.NonPortableCast<byte, SimdUtils.Octet.OfByte>()[0];
+            ref Tuple8.OfByte d = ref dest.NonPortableCast<byte, Tuple8.OfByte>()[0];
             d.LoadFrom(ref ii);
 
             this.Output.WriteLine(ii.ToString());

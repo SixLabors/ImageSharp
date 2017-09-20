@@ -176,17 +176,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
-        /// Convert into <see cref="Block8x8F"/>
+        /// Convert to <see cref="Block8x8F"/>
         /// </summary>
         public Block8x8F AsFloatBlock()
         {
-            // TODO: Optimize this
             var result = default(Block8x8F);
-            for (int i = 0; i < Size; i++)
-            {
-                result[i] = this[i];
-            }
-
+            result.LoadFrom(ref this);
             return result;
         }
 

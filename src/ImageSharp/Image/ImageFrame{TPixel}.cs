@@ -104,15 +104,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Performs an explicit conversion from <see cref="Image{TPixel}"/> to <see cref="ImageFrame{TPixel}"/>.
-        /// </summary>
-        /// <param name="image">The image.</param>
-        /// <returns>
-        /// The result of the conversion.
-        /// </returns>
-        public static implicit operator ImageFrame<TPixel>(Image<TPixel> image) => image.Frames[0];
-
-        /// <summary>
         /// Gets a reference to the pixel at the specified position.
         /// </summary>
         /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
@@ -172,7 +163,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Disposes the object and frees resources for the Garbage Collector.
         /// </summary>
-        public void Dispose()
+        internal void Dispose()
         {
             if (this.isDisposed)
             {
@@ -197,7 +188,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
-        public ImageFrame<TPixel2> CloneAs<TPixel2>()
+        internal ImageFrame<TPixel2> CloneAs<TPixel2>()
             where TPixel2 : struct, IPixel<TPixel2>
         {
             if (typeof(TPixel2) == typeof(TPixel))
@@ -234,9 +225,15 @@ namespace SixLabors.ImageSharp
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        public ImageFrame<TPixel> Clone()
+        internal ImageFrame<TPixel> Clone()
         {
             return new ImageFrame<TPixel>(this);
+        }
+
+        /// <inheritdoc/>
+        void IDisposable.Dispose()
+        {
+            this.Dispose();
         }
     }
 }

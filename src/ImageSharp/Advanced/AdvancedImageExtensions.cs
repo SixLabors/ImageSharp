@@ -13,6 +13,16 @@ namespace SixLabors.ImageSharp.Advanced
     public static class AdvancedImageExtensions
     {
         /// <summary>
+        /// Gets the configuration for the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the configuration.</returns>
+        public static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => GetConfiguration((IConfigurable)source);
+
+        /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer,
         /// allowing direct manipulation of pixel data through unsafe operations.
         /// The pixel buffer is a contigous memory area containing Width*Height TPixel elements layed out in row-major order.
@@ -77,16 +87,6 @@ namespace SixLabors.ImageSharp.Advanced
         internal static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelRowSpan(row);
-
-        /// <summary>
-        /// Gets the configuration for the image.
-        /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <returns>Returns the configuration.</returns>
-        internal static Configuration GetConfiguration<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => GetConfiguration((IConfigurable)source);
 
         /// <summary>
         /// Gets the span to the backing buffer.

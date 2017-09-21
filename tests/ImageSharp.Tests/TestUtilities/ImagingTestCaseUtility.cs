@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests
         public static void ModifyPixel<TPixel>(Image<TPixel> img, int x, int y, byte perChannelChange)
             where TPixel : struct, IPixel<TPixel>
         {
-            ModifyPixel((ImageFrame<TPixel>)img, x, y, perChannelChange);
+            ModifyPixel(img.Frames.RootFrame, x, y, perChannelChange);
         }
 
         public static void ModifyPixel<TPixel>(ImageFrame<TPixel> img, int x, int y, byte perChannelChange)

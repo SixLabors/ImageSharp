@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp
         {
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
-            this.frames = new ImageFrameCollection<TPixel>(width, height);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration ?? Configuration.Default;
             this.MetaData = metadata ?? new ImageMetaData();
 
-            this.frames = new ImageFrameCollection<TPixel>(frames);
+            this.frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
         /// <summary>

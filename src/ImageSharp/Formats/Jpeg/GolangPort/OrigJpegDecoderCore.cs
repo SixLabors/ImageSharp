@@ -329,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
                         else
                         {
-                            this.ProcessDqt(remaining);
+                            this.ProcessDefineQuantizationTablesMarker(remaining);
                         }
 
                         break;
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         // when this is a progressive image this gets called a number of times
                         // need to know how many times this should be called in total.
-                        this.ProcessStartOfScan(remaining);
+                        this.ProcessStartOfScanMarker(remaining);
                         if (this.InputProcessor.ReachedEOF || !this.IsProgressive)
                         {
                             // if unexpeced EOF reached or this is not a progressive image we can stop processing bytes as we now have the image data.
@@ -403,7 +403,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Missing SOF Marker
         /// SOS has wrong length
         /// </exception>
-        private void ProcessStartOfScan(int remaining)
+        private void ProcessStartOfScanMarker(int remaining)
         {
             var scan = default(OrigJpegScanDecoder);
             OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
@@ -645,7 +645,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <exception cref="ImageFormatException">
         /// Thrown if the tables do not match the header
         /// </exception>
-        private void ProcessDqt(int remaining)
+        private void ProcessDefineQuantizationTablesMarker(int remaining)
         {
             while (remaining > 0)
             {

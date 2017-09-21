@@ -58,19 +58,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private bool adobeTransformValid;
 
         /// <summary>
+        /// The horizontal resolution. Calculated if the image has a JFIF header.
+        /// </summary>
+        private short horizontalResolution;
+
+        /// <summary>
         /// Whether the image has a JFIF header
         /// </summary>
         private bool isJfif;
 
         /// <summary>
-        /// Contains information about the JFIF marker
-        /// </summary>
-        private JFifMarker jFif;
-
-        /// <summary>
         /// Whether the image has a EXIF header
         /// </summary>
         private bool isExif;
+
+        /// <summary>
+        /// The vertical resolution. Calculated if the image has a JFIF header.
+        /// </summary>
+        private short verticalResolution;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
@@ -356,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case OrigJpegConstants.Markers.APP0:
-                        this.ProcessApplicationHeaderMarker(remaining);
+                        this.ProcessApplicationHeader(remaining);
                         break;
                     case OrigJpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining);
@@ -387,76 +392,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 }
             }
 
-            this.AssignResolution();
-        }
-
-        /// <summary>
-        /// Processes the application header containing the JFIF identifier plus extra data.
-        /// </summary>
-        /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApplicationHeaderMarker(int remaining)
-        {
-            if (remaining < 5)
-            {
-                // Skip the application header length
-                this.InputProcessor.Skip(remaining);
-                return;
-            }
-
-            this.InputProcessor.ReadFull(this.Temp, 0, 13);
-            remaining -= 13;
-
-            this.isJfif = this.Temp[0] == OrigJpegConstants.JFif.J &&
-                          this.Temp[1] == OrigJpegConstants.JFif.F &&
-                          this.Temp[2] == OrigJpegConstants.JFif.I &&
-                          this.Temp[3] == OrigJpegConstants.JFif.F &&
-                          this.Temp[4] == OrigJpegConstants.JFif.Null;
-
-            if (this.isJfif)
-            {
-                this.jFif = new JFifMarker
-                {
-                    MajorVersion = this.Temp[5],
-                    MinorVersion = this.Temp[6],
-                    DensityUnits = this.Temp[7],
-                    XDensity = (short)((this.Temp[8] << 8) | this.Temp[9]),
-                    YDensity = (short)((this.Temp[10] << 8) | this.Temp[11])
-                };
-            }
-
-            // TODO: thumbnail
-            if (remaining > 0)
-            {
-                this.InputStream.Skip(remaining);
-            }
-        }
-
-        /// <summary>
-        /// Processes the App1 marker retrieving any stored metadata
-        /// </summary>
-        /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApp1Marker(int remaining)
-        {
-            if (remaining < 6 || this.IgnoreMetadata)
-            {
-                // Skip the application header length
-                this.InputProcessor.Skip(remaining);
-                return;
-            }
-
-            byte[] profile = new byte[remaining];
-            this.InputProcessor.ReadFull(profile, 0, remaining);
-
-            if (profile[0] == OrigJpegConstants.Exif.E &&
-                profile[1] == OrigJpegConstants.Exif.X &&
-                profile[2] == OrigJpegConstants.Exif.I &&
-                profile[3] == OrigJpegConstants.Exif.F &&
-                profile[4] == OrigJpegConstants.Exif.Null &&
-                profile[5] == OrigJpegConstants.Exif.Null)
-            {
-                this.isExif = true;
-                this.MetaData.ExifProfile = new ExifProfile(profile);
-            }
+            this.InitDerivedMetaDataProperties();
         }
 
         /// <summary>
@@ -476,11 +412,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Assigns the horizontal and vertical resolution to the image if it has a JFIF header or EXIF metadata.
+        /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
-        private void AssignResolution()
+        private void InitDerivedMetaDataProperties()
         {
-            if (this.isExif)
+            if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
+            {
+                this.MetaData.HorizontalResolution = this.horizontalResolution;
+                this.MetaData.VerticalResolution = this.verticalResolution;
+            }
+            else if (this.isExif)
             {
                 ExifValue horizontal = this.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
                 ExifValue vertical = this.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
@@ -492,11 +433,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
-            }
-            else if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
-            {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -555,6 +491,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
+        /// Processes the App1 marker retrieving any stored metadata
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessApp1Marker(int remaining)
+        {
+            if (remaining < 6 || this.IgnoreMetadata)
+            {
+                this.InputProcessor.Skip(remaining);
+                return;
+            }
+
+            byte[] profile = new byte[remaining];
+            this.InputProcessor.ReadFull(profile, 0, remaining);
+
+            if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
+                && profile[5] == '\0')
+            {
+                this.isExif = true;
+                this.MetaData.ExifProfile = new ExifProfile(profile);
+            }
+        }
+
+        /// <summary>
         /// Processes the App2 marker retrieving any stored ICC profile information
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
@@ -591,6 +550,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             else
             {
                 // not an ICC profile we can handle read the remaining so we can carry on and ignore this.
+                this.InputProcessor.Skip(remaining);
+            }
+        }
+
+        /// <summary>
+        /// Processes the application header containing the JFIF identifier plus extra data.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessApplicationHeader(int remaining)
+        {
+            if (remaining < 5)
+            {
+                this.InputProcessor.Skip(remaining);
+                return;
+            }
+
+            this.InputProcessor.ReadFull(this.Temp, 0, 13);
+            remaining -= 13;
+
+            // TODO: We should be using constants for this.
+            this.isJfif = this.Temp[0] == 'J' && this.Temp[1] == 'F' && this.Temp[2] == 'I' && this.Temp[3] == 'F'
+                          && this.Temp[4] == '\x00';
+
+            if (this.isJfif)
+            {
+                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[8] << 8));
+                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[10] << 8));
+            }
+
+            if (remaining > 0)
+            {
                 this.InputProcessor.Skip(remaining);
             }
         }

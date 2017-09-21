@@ -166,6 +166,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
+        /// Contains JFIF specific markers
+        /// </summary>
+        public static class JFif
+        {
+            /// <summary>
+            /// Represents J in ASCII
+            /// </summary>
+            public const byte J = 0x4A;
+
+            /// <summary>
+            /// Represents F in ASCII
+            /// </summary>
+            public const byte F = 0x46;
+
+            /// <summary>
+            /// Represents I in ASCII
+            /// </summary>
+            public const byte I = 0x49;
+
+            /// <summary>
+            /// Represents the null "0" marker
+            /// </summary>
+            public const byte Null = 0x0;
+        }
+
+        /// <summary>
         /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
         /// </summary>
         internal static class Adobe

@@ -12,6 +12,8 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters;
+
     public class JpegColorConverterTests
     {
         private const float Precision = 0.1f / 255;
@@ -68,8 +70,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrSimd(int inputBufferLength, int resultBufferLength, int seed)
         {
-            ValidateConversion(new JpegColorConverter.FromYCbCrSimd(), 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+            ValidateConversion(
+                new JpegColorConverter.FromYCbCrSimd(),
+                3,
+                inputBufferLength,
+                resultBufferLength,
+                seed,
+                ValidateYCbCr);
         }
+
+        [Theory]
+        [MemberData(nameof(CommonConversionData))]
+        public void FromYCbCrSimdAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("No AVX2 present, skipping test!");
+                return;
+            }
+
+            //JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
+
+            ValidateConversion(
+                new JpegColorConverter.FromYCbCrSimdAvx2(),
+                3,
+                inputBufferLength,
+                resultBufferLength,
+                seed,
+                ValidateYCbCr);
+        }
+
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]

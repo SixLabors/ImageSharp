@@ -3,20 +3,15 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 {
     using System.Collections.Generic;
-    using System.IO;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Jpeg.GolangPort;
-    using ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using CoreImage = ImageSharp.Image;
+    using CoreImage = SixLabors.ImageSharp.Image;
 
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class DecodeJpegMultiple : MultiImageBenchmarkBase
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[]

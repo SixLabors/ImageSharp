@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
     
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class ArrayCopy
     {
         [Params(10, 100, 1000, 10000)]

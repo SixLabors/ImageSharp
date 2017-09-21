@@ -818,34 +818,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             switch (this.ComponentCount)
             {
-                case 1: return JpegColorSpace.GrayScale;
-                case 3: return this.IsRGB() ? JpegColorSpace.RGB : JpegColorSpace.YCbCr;
-                case 4:
-
-                    if (!this.adobeTransformValid)
+                case 1:
+                    return JpegColorSpace.GrayScale;
+                case 3:
+                    if (!this.isAdobe || this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
                     {
-                        throw new ImageFormatException(
-                            "Unknown color model: 4-component JPEG doesn't have Adobe APP14 metadata");
+                        return JpegColorSpace.YCbCr;
                     }
 
-                    // See http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-                    // See https://docs.oracle.com/javase/8/docs/api/javax/imageio/metadata/doc-files/jpeg_metadata.html
-                    // TODO: YCbCrA?
-                    if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
+                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
+                    {
+                        return JpegColorSpace.RGB;
+                    }
+
+                    break;
+                case 4:
+                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
                     {
                         return JpegColorSpace.Ycck;
                     }
-                    else if (this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
-                    {
-                        // Assume CMYK
-                        return JpegColorSpace.Cmyk;
-                    }
 
-                    goto default;
-
-                default:
-                    throw new ImageFormatException("JpegDecoder only supports RGB, CMYK and Grayscale color spaces.");
+                    return JpegColorSpace.Cmyk;
             }
+
+            throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}."
+                                           + "JpegDecoder only supports YCbCr, RGB, YccK, CMYK and Grayscale color spaces.");
         }
 
         private Image<TPixel> PostProcessIntoImage<TPixel>()

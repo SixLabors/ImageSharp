@@ -73,6 +73,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private bool isExif;
 
         /// <summary>
+        /// Whether the image has an Adobe marker
+        /// </summary>
+        private bool isAdobe;
+
+        /// <summary>
+        /// Contains information about the Adobe marker
+        /// </summary>
+        private AdobeMarker adobe;
+
+        /// <summary>
         /// The vertical resolution. Calculated if the image has a JFIF header.
         /// </summary>
         private short verticalResolution;
@@ -461,15 +471,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Processes the "Adobe" APP14 segment stores image encoding information for DCT filters.
-        /// This segment may be copied or deleted as a block using the Extra "Adobe" tag, but note that it is not
-        /// deleted by default when deleting all metadata because it may affect the appearance of the image.
+        /// Processes the application header containing the Adobe identifier
+        /// which stores image encoding information for DCT filters.
         /// </summary>
-        /// <param name="remaining">The remaining number of bytes in the stream.</param>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp14Marker(int remaining)
         {
             if (remaining < 12)
             {
+                // Skip the application header length
                 this.InputProcessor.Skip(remaining);
                 return;
             }
@@ -477,11 +487,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 12);
             remaining -= 12;
 
-            if (this.Temp[0] == 'A' && this.Temp[1] == 'd' && this.Temp[2] == 'o' && this.Temp[3] == 'b'
-                && this.Temp[4] == 'e')
+            this.isAdobe = this.Temp[0] == OrigJpegConstants.Adobe.A &&
+                           this.Temp[1] == OrigJpegConstants.Adobe.D &&
+                           this.Temp[2] == OrigJpegConstants.Adobe.O &&
+                           this.Temp[3] == OrigJpegConstants.Adobe.B &&
+                           this.Temp[4] == OrigJpegConstants.Adobe.E;
+
+            if (this.isAdobe)
             {
+                // TODO: delete these 2 lines
                 this.adobeTransformValid = true;
                 this.adobeTransform = this.Temp[11];
+
+                this.adobe = new AdobeMarker
+                {
+                    DCTEncodeVersion = (short)((this.Temp[5] << 8) | this.Temp[6]),
+                    APP14Flags0 = (short)((this.Temp[7] << 8) | this.Temp[8]),
+                    APP14Flags1 = (short)((this.Temp[9] << 8) | this.Temp[10]),
+                    ColorTransform = this.Temp[11]
+                };
             }
 
             if (remaining > 0)

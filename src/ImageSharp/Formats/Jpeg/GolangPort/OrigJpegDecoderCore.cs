@@ -48,14 +48,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private readonly Configuration configuration;
 
         /// <summary>
-        /// The horizontal resolution. Calculated if the image has a JFIF header.
-        /// </summary>
-        private short horizontalResolution;
-
-        /// <summary>
         /// Whether the image has a JFIF header
         /// </summary>
-        private bool isJfif;
+        private bool isJFif;
+
+        /// <summary>
+        /// Contains information about the JFIF marker
+        /// </summary>
+        private JFifMarker jFif;
 
         /// <summary>
         /// Whether the image has a EXIF header
@@ -71,11 +71,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Contains information about the Adobe marker
         /// </summary>
         private AdobeMarker adobe;
-
-        /// <summary>
-        /// The vertical resolution. Calculated if the image has a JFIF header.
-        /// </summary>
-        private short verticalResolution;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
@@ -305,7 +300,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     case OrigJpegConstants.Markers.SOF2:
                         this.IsProgressive = marker == OrigJpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining);
-                        if (metadataOnly && this.isJfif)
+                        if (metadataOnly && this.isJFif)
                         {
                             return;
                         }
@@ -400,12 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         private void InitDerivedMetaDataProperties()
         {
-            if (this.isJfif && this.horizontalResolution > 0 && this.verticalResolution > 0)
-            {
-                this.MetaData.HorizontalResolution = this.horizontalResolution;
-                this.MetaData.VerticalResolution = this.verticalResolution;
-            }
-            else if (this.isExif)
+            if (this.isExif)
             {
                 ExifValue horizontal = this.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
                 ExifValue vertical = this.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
@@ -417,6 +407,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
+            }
+            else if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
+            {
+                this.MetaData.HorizontalResolution = this.jFif.XDensity;
+                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -435,16 +430,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
-            this.isJfif = this.Temp[0] == OrigJpegConstants.JFif.J &&
+            this.isJFif = this.Temp[0] == OrigJpegConstants.JFif.J &&
                           this.Temp[1] == OrigJpegConstants.JFif.F &&
                           this.Temp[2] == OrigJpegConstants.JFif.I &&
                           this.Temp[3] == OrigJpegConstants.JFif.F &&
                           this.Temp[4] == OrigJpegConstants.JFif.Null;
 
-            if (this.isJfif)
+            if (this.isJFif)
             {
-                this.horizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
-                this.verticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
+                this.jFif = new JFifMarker
+                {
+                    MajorVersion = this.Temp[5],
+                    MinorVersion = this.Temp[6],
+                    DensityUnits = this.Temp[7],
+                    XDensity = (short)((this.Temp[8] << 8) | this.Temp[9]),
+                    YDensity = (short)((this.Temp[10] << 8) | this.Temp[11])
+                };
             }
 
             if (remaining > 0)

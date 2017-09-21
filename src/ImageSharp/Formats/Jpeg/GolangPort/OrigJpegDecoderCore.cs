@@ -361,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case OrigJpegConstants.Markers.APP0:
-                        this.ProcessApplicationHeader(remaining);
+                        this.ProcessApplicationHeaderMarker(remaining);
                         break;
                     case OrigJpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining);
@@ -558,7 +558,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Processes the application header containing the JFIF identifier plus extra data.
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApplicationHeader(int remaining)
+        private void ProcessApplicationHeaderMarker(int remaining)
         {
             if (remaining < 5)
             {
@@ -569,14 +569,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
-            // TODO: We should be using constants for this.
-            this.isJfif = this.Temp[0] == 'J' && this.Temp[1] == 'F' && this.Temp[2] == 'I' && this.Temp[3] == 'F'
-                          && this.Temp[4] == '\x00';
+            this.isJfif = this.Temp[0] == OrigJpegConstants.JFif.J &&
+                          this.Temp[1] == OrigJpegConstants.JFif.F &&
+                          this.Temp[2] == OrigJpegConstants.JFif.I &&
+                          this.Temp[3] == OrigJpegConstants.JFif.F &&
+                          this.Temp[4] == OrigJpegConstants.JFif.Null;
 
             if (this.isJfif)
             {
-                this.horizontalResolution = (short)(this.Temp[9] + (this.Temp[8] << 8));
-                this.verticalResolution = (short)(this.Temp[11] + (this.Temp[10] << 8));
+                this.horizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
+                this.verticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
             }
 
             if (remaining > 0)

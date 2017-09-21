@@ -48,16 +48,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private readonly Configuration configuration;
 
         /// <summary>
-        /// The App14 marker color-space
-        /// </summary>
-        private byte adobeTransform;
-
-        /// <summary>
-        /// Whether the image is in CMYK format with an App14 marker
-        /// </summary>
-        private bool adobeTransformValid;
-
-        /// <summary>
         /// The horizontal resolution. Calculated if the image has a JFIF header.
         /// </summary>
         private short horizontalResolution;
@@ -447,30 +437,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Returns a value indicating whether the image in an RGB image.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="bool" />.
-        /// </returns>
-        private bool IsRGB()
-        {
-            if (this.isJfif)
-            {
-                return false;
-            }
-
-            if (this.adobeTransformValid && this.adobeTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
-            {
-                // http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe
-                // says that 0 means Unknown (and in practice RGB) and 1 means YCbCr.
-                return true;
-            }
-
-            return this.Components[0].Identifier == 'R' && this.Components[1].Identifier == 'G'
-                   && this.Components[2].Identifier == 'B';
-        }
-
-        /// <summary>
         /// Processes the application header containing the Adobe identifier
         /// which stores image encoding information for DCT filters.
         /// </summary>
@@ -495,10 +461,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (this.isAdobe)
             {
-                // TODO: delete these 2 lines
-                this.adobeTransformValid = true;
-                this.adobeTransform = this.Temp[11];
-
                 this.adobe = new AdobeMarker
                 {
                     DCTEncodeVersion = (short)((this.Temp[5] << 8) | this.Temp[6]),

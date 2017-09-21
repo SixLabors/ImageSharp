@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
@@ -53,12 +54,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <summary>
         /// Contains information about the JFIF marker
         /// </summary>
-        private PdfJsJFif jFif;
+        private JFifMarker jFif;
 
         /// <summary>
         /// Contains information about the Adobe marker
         /// </summary>
-        private PdfJsAdobe adobe;
+        private AdobeMarker adobe;
 
         /// <summary>
         /// Initializes static members of the <see cref="PdfJsJpegDecoderCore"/> class.
@@ -345,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (this.NumberOfComponents == 3)
             {
-                if (this.adobe.Equals(default(PdfJsAdobe)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                if (this.adobe.Equals(default(AdobeMarker)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
                     this.FillYCbCrImage(image);
                 }
@@ -420,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (isJfif)
             {
-                this.jFif = new PdfJsJFif
+                this.jFif = new JFifMarker
                 {
                     MajorVersion = this.temp[5],
                     MinorVersion = this.temp[6],
@@ -542,7 +543,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (isAdobe)
             {
-                this.adobe = new PdfJsAdobe
+                this.adobe = new AdobeMarker
                 {
                     DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
                     APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),

@@ -4,12 +4,12 @@
 using System;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
     /// Provides information about the Adobe marker segment
     /// </summary>
-    internal struct PdfJsAdobe : IEquatable<PdfJsAdobe>
+    internal struct AdobeMarker : IEquatable<AdobeMarker>
     {
         /// <summary>
         /// The DCT Encode Version
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public byte ColorTransform;
 
         /// <inheritdoc/>
-        public bool Equals(PdfJsAdobe other)
+        public bool Equals(AdobeMarker other)
         {
             return this.DCTEncodeVersion == other.DCTEncodeVersion
                 && this.APP14Flags0 == other.APP14Flags0
@@ -52,21 +52,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 return false;
             }
 
-            return obj is PdfJsAdobe && this.Equals((PdfJsAdobe)obj);
+            return obj is AdobeMarker && this.Equals((AdobeMarker)obj);
         }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                // TODO: Merge and use HashCodeHelpers
-                int hashCode = this.DCTEncodeVersion.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.APP14Flags0.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.APP14Flags1.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.ColorTransform.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
+        }
+
+        private static int GetHashCode(AdobeMarker marker)
+        {
+            return HashHelpers.Combine(
+                marker.DCTEncodeVersion.GetHashCode(),
+                HashHelpers.Combine(
+                    marker.APP14Flags0.GetHashCode(),
+                    HashHelpers.Combine(
+                        marker.APP14Flags1.GetHashCode(),
+                        marker.ColorTransform.GetHashCode())));
         }
     }
 }

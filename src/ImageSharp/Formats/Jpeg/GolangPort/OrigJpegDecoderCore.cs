@@ -505,8 +505,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             byte[] profile = new byte[remaining];
             this.InputProcessor.ReadFull(profile, 0, remaining);
 
-            if (profile[0] == 'E' && profile[1] == 'x' && profile[2] == 'i' && profile[3] == 'f' && profile[4] == '\0'
-                && profile[5] == '\0')
+            if (profile[0] == OrigJpegConstants.Exif.E &&
+                profile[1] == OrigJpegConstants.Exif.X &&
+                profile[2] == OrigJpegConstants.Exif.I &&
+                profile[3] == OrigJpegConstants.Exif.F &&
+                profile[4] == OrigJpegConstants.Exif.Null &&
+                profile[5] == OrigJpegConstants.Exif.Null)
             {
                 this.isExif = true;
                 this.MetaData.ExifProfile = new ExifProfile(profile);

@@ -396,22 +396,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Processes the SOS (Start of scan marker).
-        /// </summary>
-        /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <exception cref="ImageFormatException">
-        /// Missing SOF Marker
-        /// SOS has wrong length
-        /// </exception>
-        private void ProcessStartOfScanMarker(int remaining)
-        {
-            var scan = default(OrigJpegScanDecoder);
-            OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
-            this.InputProcessor.Bits = default(Bits);
-            scan.DecodeBlocks(this);
-        }
-
-        /// <summary>
         /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
         private void InitDerivedMetaDataProperties()
@@ -437,37 +421,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Processes the application header containing the Adobe identifier
-        /// which stores image encoding information for DCT filters.
+        /// Processes the application header containing the JFIF identifier plus extra data.
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApp14Marker(int remaining)
+        private void ProcessApplicationHeaderMarker(int remaining)
         {
-            if (remaining < 12)
+            if (remaining < 5)
             {
-                // Skip the application header length
                 this.InputProcessor.Skip(remaining);
                 return;
             }
 
-            this.InputProcessor.ReadFull(this.Temp, 0, 12);
-            remaining -= 12;
+            this.InputProcessor.ReadFull(this.Temp, 0, 13);
+            remaining -= 13;
 
-            this.isAdobe = this.Temp[0] == OrigJpegConstants.Adobe.A &&
-                           this.Temp[1] == OrigJpegConstants.Adobe.D &&
-                           this.Temp[2] == OrigJpegConstants.Adobe.O &&
-                           this.Temp[3] == OrigJpegConstants.Adobe.B &&
-                           this.Temp[4] == OrigJpegConstants.Adobe.E;
+            this.isJfif = this.Temp[0] == OrigJpegConstants.JFif.J &&
+                          this.Temp[1] == OrigJpegConstants.JFif.F &&
+                          this.Temp[2] == OrigJpegConstants.JFif.I &&
+                          this.Temp[3] == OrigJpegConstants.JFif.F &&
+                          this.Temp[4] == OrigJpegConstants.JFif.Null;
 
-            if (this.isAdobe)
+            if (this.isJfif)
             {
-                this.adobe = new AdobeMarker
-                {
-                    DCTEncodeVersion = (short)((this.Temp[5] << 8) | this.Temp[6]),
-                    APP14Flags0 = (short)((this.Temp[7] << 8) | this.Temp[8]),
-                    APP14Flags1 = (short)((this.Temp[9] << 8) | this.Temp[10]),
-                    ColorTransform = this.Temp[11]
-                };
+                this.horizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
+                this.verticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
             }
 
             if (remaining > 0)
@@ -554,88 +531,43 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Processes the application header containing the JFIF identifier plus extra data.
+        /// Processes the application header containing the Adobe identifier
+        /// which stores image encoding information for DCT filters.
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApplicationHeaderMarker(int remaining)
+        private void ProcessApp14Marker(int remaining)
         {
-            if (remaining < 5)
+            if (remaining < 12)
             {
+                // Skip the application header length
                 this.InputProcessor.Skip(remaining);
                 return;
             }
 
-            this.InputProcessor.ReadFull(this.Temp, 0, 13);
-            remaining -= 13;
+            this.InputProcessor.ReadFull(this.Temp, 0, 12);
+            remaining -= 12;
 
-            this.isJfif = this.Temp[0] == OrigJpegConstants.JFif.J &&
-                          this.Temp[1] == OrigJpegConstants.JFif.F &&
-                          this.Temp[2] == OrigJpegConstants.JFif.I &&
-                          this.Temp[3] == OrigJpegConstants.JFif.F &&
-                          this.Temp[4] == OrigJpegConstants.JFif.Null;
+            this.isAdobe = this.Temp[0] == OrigJpegConstants.Adobe.A &&
+                           this.Temp[1] == OrigJpegConstants.Adobe.D &&
+                           this.Temp[2] == OrigJpegConstants.Adobe.O &&
+                           this.Temp[3] == OrigJpegConstants.Adobe.B &&
+                           this.Temp[4] == OrigJpegConstants.Adobe.E;
 
-            if (this.isJfif)
+            if (this.isAdobe)
             {
-                this.horizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
-                this.verticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
+                this.adobe = new AdobeMarker
+                {
+                    DCTEncodeVersion = (short)((this.Temp[5] << 8) | this.Temp[6]),
+                    APP14Flags0 = (short)((this.Temp[7] << 8) | this.Temp[8]),
+                    APP14Flags1 = (short)((this.Temp[9] << 8) | this.Temp[10]),
+                    ColorTransform = this.Temp[11]
+                };
             }
 
             if (remaining > 0)
             {
                 this.InputProcessor.Skip(remaining);
             }
-        }
-
-        /// <summary>
-        /// Processes a Define Huffman Table marker, and initializes a huffman
-        /// struct from its contents. Specified in section B.2.4.2.
-        /// </summary>
-        /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessDefineHuffmanTablesMarker(int remaining)
-        {
-            while (remaining > 0)
-            {
-                if (remaining < 17)
-                {
-                    throw new ImageFormatException("DHT has wrong length");
-                }
-
-                this.InputProcessor.ReadFull(this.Temp, 0, 17);
-
-                int tc = this.Temp[0] >> 4;
-                if (tc > OrigHuffmanTree.MaxTc)
-                {
-                    throw new ImageFormatException("Bad Tc value");
-                }
-
-                int th = this.Temp[0] & 0x0f;
-                if (th > OrigHuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
-                {
-                    throw new ImageFormatException("Bad Th value");
-                }
-
-                int huffTreeIndex = (tc * OrigHuffmanTree.ThRowSize) + th;
-                this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
-                    ref this.InputProcessor,
-                    this.Temp,
-                    ref remaining);
-            }
-        }
-
-        /// <summary>
-        /// Processes the DRI (Define Restart Interval Marker) Which specifies the interval between RSTn markers, in
-        /// macroblocks
-        /// </summary>
-        /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessDefineRestartIntervalMarker(int remaining)
-        {
-            if (remaining != 2)
-            {
-                throw new ImageFormatException("DRI has wrong length");
-            }
-
-            this.InputProcessor.ReadFull(this.Temp, 0, remaining);
-            this.RestartInterval = (this.Temp[0] << 8) + this.Temp[1];
         }
 
         /// <summary>
@@ -774,6 +706,74 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             this.ColorSpace = this.DeduceJpegColorSpace();
+        }
+
+        /// <summary>
+        /// Processes a Define Huffman Table marker, and initializes a huffman
+        /// struct from its contents. Specified in section B.2.4.2.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessDefineHuffmanTablesMarker(int remaining)
+        {
+            while (remaining > 0)
+            {
+                if (remaining < 17)
+                {
+                    throw new ImageFormatException("DHT has wrong length");
+                }
+
+                this.InputProcessor.ReadFull(this.Temp, 0, 17);
+
+                int tc = this.Temp[0] >> 4;
+                if (tc > OrigHuffmanTree.MaxTc)
+                {
+                    throw new ImageFormatException("Bad Tc value");
+                }
+
+                int th = this.Temp[0] & 0x0f;
+                if (th > OrigHuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
+                {
+                    throw new ImageFormatException("Bad Th value");
+                }
+
+                int huffTreeIndex = (tc * OrigHuffmanTree.ThRowSize) + th;
+                this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
+                    ref this.InputProcessor,
+                    this.Temp,
+                    ref remaining);
+            }
+        }
+
+        /// <summary>
+        /// Processes the DRI (Define Restart Interval Marker) Which specifies the interval between RSTn markers, in
+        /// macroblocks
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessDefineRestartIntervalMarker(int remaining)
+        {
+            if (remaining != 2)
+            {
+                throw new ImageFormatException("DRI has wrong length");
+            }
+
+            this.InputProcessor.ReadFull(this.Temp, 0, remaining);
+            this.RestartInterval = (this.Temp[0] << 8) + this.Temp[1];
+        }
+
+        /// <summary>
+        /// Processes the SOS (Start of scan marker).
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        /// <exception cref="ImageFormatException">
+        /// Missing SOF Marker
+        /// SOS has wrong length
+        /// </exception>
+        private void ProcessStartOfScanMarker(int remaining)
+        {
+            var scan = default(OrigJpegScanDecoder);
+            OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
+            this.InputProcessor.Bits = default(Bits);
+            scan.DecodeBlocks(this);
         }
 
         private JpegColorSpace DeduceJpegColorSpace()

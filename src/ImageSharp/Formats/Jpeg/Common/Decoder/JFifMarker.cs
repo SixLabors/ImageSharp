@@ -3,13 +3,13 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
     /// Provides information about the JFIF marker segment
     /// TODO: Thumbnail?
     /// </summary>
-    internal struct PdfJsJFif : IEquatable<PdfJsJFif>
+    internal struct JFifMarker : IEquatable<JFifMarker>
     {
         /// <summary>
         /// The major version
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public short YDensity;
 
         /// <inheritdoc/>
-        public bool Equals(PdfJsJFif other)
+        public bool Equals(JFifMarker other)
         {
             return this.MajorVersion == other.MajorVersion
                 && this.MinorVersion == other.MinorVersion
@@ -57,21 +57,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 return false;
             }
 
-            return obj is PdfJsJFif && this.Equals((PdfJsJFif)obj);
+            return obj is JFifMarker && this.Equals((JFifMarker)obj);
         }
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.MajorVersion.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.MinorVersion.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.DensityUnits.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.XDensity.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.YDensity.GetHashCode();
-                return hashCode;
-            }
+            return GetHashCode(this);
+        }
+
+        private static int GetHashCode(JFifMarker marker)
+        {
+            return HashHelpers.Combine(
+                marker.MajorVersion.GetHashCode(),
+                HashHelpers.Combine(
+                    marker.MinorVersion.GetHashCode(),
+                    HashHelpers.Combine(
+                        marker.DensityUnits.GetHashCode(),
+                        HashHelpers.Combine(marker.XDensity, marker.YDensity))));
         }
     }
 }

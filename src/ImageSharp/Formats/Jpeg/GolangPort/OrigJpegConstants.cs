@@ -26,67 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
 
         /// <summary>
-        /// Represents high detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourFourFourHorizontal = { 0x11, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents high detail chroma vertical subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourFourFourVertical = { 0x11, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents medium detail chroma vertical subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoVertical = { 0x11, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents low detail chroma vertical subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroVertical = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents medium detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents low detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
-        /// Describes component ids for start of frame components.
-        /// </summary>
-        internal static class Components
-        {
-            /// <summary>
-            /// The YCbCr luminance component id.
-            /// </summary>
-            public const byte Y = 1;
-
-            /// <summary>
-            /// The YCbCr chroma component id.
-            /// </summary>
-            public const byte Cb = 2;
-
-            /// <summary>
-            /// The YCbCr chroma component id.
-            /// </summary>
-            public const byte Cr = 3;
-
-            /// <summary>
-            /// The YIQ x coordinate component id.
-            /// </summary>
-            public const byte I = 4;
-
-            /// <summary>
-            /// The YIQ y coordinate component id.
-            /// </summary>
-            public const byte Q = 5;
-        }
-
-        /// <summary>
         /// Describes common Jpeg markers
         /// </summary>
         internal static class Markers
@@ -232,6 +171,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         internal static class Adobe
         {
             /// <summary>
+            /// Represents A in ASCII
+            /// </summary>
+            public const byte A = 0x41;
+
+            /// <summary>
+            /// Represents d in ASCII
+            /// </summary>
+            public const byte D = 0x64;
+
+            /// <summary>
+            /// Represents b in ASCII
+            /// </summary>
+            public const byte O = 0x6F;
+
+            /// <summary>
+            /// Represents b in ASCII
+            /// </summary>
+            public const byte B = 0x62;
+
+            /// <summary>
+            /// Represents e in ASCII
+            /// </summary>
+            public const byte E = 0x65;
+
+            /// <summary>
             /// The color transform is unknown.(RGB or CMYK)
             /// </summary>
             public const int ColorTransformUnknown = 0;
@@ -245,6 +209,93 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
             /// </summary>
             public const int ColorTransformYcck = 2;
+        }
+
+        /// <summary>
+        /// Contains EXIF specific markers
+        /// </summary>
+        internal static class Exif
+        {
+            /// <summary>
+            /// Represents E in ASCII
+            /// </summary>
+            public const byte E = 0x45;
+
+            /// <summary>
+            /// Represents x in ASCII
+            /// </summary>
+            public const byte X = 0x78;
+
+            /// <summary>
+            /// Represents i in ASCII
+            /// </summary>
+            public const byte I = 0x69;
+
+            /// <summary>
+            /// Represents f in ASCII
+            /// </summary>
+            public const byte F = 0x66;
+
+            /// <summary>
+            /// Represents the null "0" marker
+            /// </summary>
+            public const byte Null = 0x0;
+        }
+
+        /// <summary>
+        /// Contains ICC specific markers
+        /// </summary>
+        internal static class ICC
+        {
+            /// <summary>
+            /// Represents I in ASCII
+            /// </summary>
+            public const byte I = 0x49;
+
+            /// <summary>
+            /// Represents C in ASCII
+            /// </summary>
+            public const byte C = 0x43;
+
+            /// <summary>
+            /// Represents _ in ASCII
+            /// </summary>
+            public const byte UnderScore = 0x5F;
+
+            /// <summary>
+            /// Represents P in ASCII
+            /// </summary>
+            public const byte P = 0x50;
+
+            /// <summary>
+            /// Represents R in ASCII
+            /// </summary>
+            public const byte R = 0x52;
+
+            /// <summary>
+            /// Represents O in ASCII
+            /// </summary>
+            public const byte O = 0x4F;
+
+            /// <summary>
+            /// Represents F in ASCII
+            /// </summary>
+            public const byte F = 0x46;
+
+            /// <summary>
+            /// Represents L in ASCII
+            /// </summary>
+            public const byte L = 0x4C;
+
+            /// <summary>
+            /// Represents E in ASCII
+            /// </summary>
+            public const byte E = 0x45;
+
+            /// <summary>
+            /// Represents the null "0" marker
+            /// </summary>
+            public const byte Null = 0x0;
         }
     }
 }

@@ -1,11 +1,14 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
+using SixLabors.ImageSharp.Common.Tuples;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
 {
     /// <summary>
     /// Encapsulates the conversion of Jpeg channels to RGBA values packed in <see cref="Vector4"/> buffer.
@@ -15,7 +18,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// The avalilable converters
         /// </summary>
-        private static readonly JpegColorConverter[] Converters = { new FromYCbCrSimd(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb() };
+        private static readonly JpegColorConverter[] Converters =
+            {
+                GetYCbCrConverter(), new FromYccK(), new FromCmyk(), new FromGrayScale(), new FromRgb()
+            };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.
@@ -50,6 +56,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <param name="values">The input as a stack-only <see cref="ComponentValues"/> struct</param>
         /// <param name="result">The destination buffer of <see cref="Vector4"/> values</param>
         public abstract void ConvertToRGBA(ComponentValues values, Span<Vector4> result);
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
+        /// </summary>
+        private static JpegColorConverter GetYCbCrConverter() =>
+            FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2() : new FromYCbCrSimd();
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.
@@ -131,6 +143,58 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 ReadOnlySpan<float> c3 = this.ComponentCount > 3 ? this.Component3.Slice(start, length) : ReadOnlySpan<float>.Empty;
 
                 return new ComponentValues(this.ComponentCount, c0, c1, c2, c3);
+            }
+        }
+
+        internal struct Vector4Octet
+        {
+#pragma warning disable SA1132 // Do not combine fields
+            public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
+
+            /// <summary>
+            /// Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order.
+            /// </summary>
+            public void Collect(ref Vector4Pair r, ref Vector4Pair g, ref Vector4Pair b)
+            {
+                this.V0.X = r.A.X;
+                this.V0.Y = g.A.X;
+                this.V0.Z = b.A.X;
+                this.V0.W = 1f;
+
+                this.V1.X = r.A.Y;
+                this.V1.Y = g.A.Y;
+                this.V1.Z = b.A.Y;
+                this.V1.W = 1f;
+
+                this.V2.X = r.A.Z;
+                this.V2.Y = g.A.Z;
+                this.V2.Z = b.A.Z;
+                this.V2.W = 1f;
+
+                this.V3.X = r.A.W;
+                this.V3.Y = g.A.W;
+                this.V3.Z = b.A.W;
+                this.V3.W = 1f;
+
+                this.V4.X = r.B.X;
+                this.V4.Y = g.B.X;
+                this.V4.Z = b.B.X;
+                this.V4.W = 1f;
+
+                this.V5.X = r.B.Y;
+                this.V5.Y = g.B.Y;
+                this.V5.Z = b.B.Y;
+                this.V5.W = 1f;
+
+                this.V6.X = r.B.Z;
+                this.V6.Y = g.B.Z;
+                this.V6.Z = b.B.Z;
+                this.V6.W = 1f;
+
+                this.V7.X = r.B.W;
+                this.V7.Y = g.B.W;
+                this.V7.Z = b.B.W;
+                this.V7.W = 1f;
             }
         }
     }

@@ -53,9 +53,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private bool isJFif;
 
         /// <summary>
-        /// Contains information about the JFIF marker
+        /// The horizontal resolution gleaned from a JFIF marker if present
         /// </summary>
-        private JFifMarker jFif;
+        private short jFifHorizontalResolution;
+
+        /// <summary>
+        /// The vertical resolution gleaned from a JFIF marker if present
+        /// </summary>
+        private short jFifVerticalResolution;
 
         /// <summary>
         /// Whether the image has a EXIF header
@@ -68,9 +73,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private bool isAdobe;
 
         /// <summary>
-        /// Contains information about the Adobe marker
+        /// The Adobe color transform value for determining what color space the image uses.
         /// </summary>
-        private AdobeMarker adobe;
+        private byte adobeColorTransform;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
@@ -408,10 +413,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.VerticalResolution = verticalValue;
                 }
             }
-            else if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
+            else if (this.jFifHorizontalResolution > 0 && this.jFifVerticalResolution > 0)
             {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
+                this.MetaData.HorizontalResolution = this.jFifHorizontalResolution;
+                this.MetaData.VerticalResolution = this.jFifVerticalResolution;
             }
         }
 
@@ -438,14 +443,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (this.isJFif)
             {
-                this.jFif = new JFifMarker
-                {
-                    MajorVersion = this.Temp[5],
-                    MinorVersion = this.Temp[6],
-                    DensityUnits = this.Temp[7],
-                    XDensity = (short)((this.Temp[8] << 8) | this.Temp[9]),
-                    YDensity = (short)((this.Temp[10] << 8) | this.Temp[11])
-                };
+                this.jFifHorizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
+                this.jFifVerticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
             }
 
             if (remaining > 0)
@@ -556,13 +555,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (this.isAdobe)
             {
-                this.adobe = new AdobeMarker
-                {
-                    DCTEncodeVersion = (short)((this.Temp[5] << 8) | this.Temp[6]),
-                    APP14Flags0 = (short)((this.Temp[7] << 8) | this.Temp[8]),
-                    APP14Flags1 = (short)((this.Temp[9] << 8) | this.Temp[10]),
-                    ColorTransform = this.Temp[11]
-                };
+                this.adobeColorTransform = this.Temp[11];
             }
 
             if (remaining > 0)
@@ -784,19 +777,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 case 1:
                     return JpegColorSpace.GrayScale;
                 case 3:
-                    if (!this.isAdobe || this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
+                    if (!this.isAdobe || this.adobeColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
                     {
                         return JpegColorSpace.YCbCr;
                     }
 
-                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
+                    if (this.adobeColorTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
                     {
                         return JpegColorSpace.RGB;
                     }
 
                     break;
                 case 4:
-                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
+                    if (this.adobeColorTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
                     {
                         return JpegColorSpace.Ycck;
                     }

@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int mask = 0xFF >> (8 - bits);
             int resultOffset = 0;
 
-            for (int i = 0; i < bytesPerScanline; i++)
+            for (int i = 0; i < bytesPerScanline - 1; i++)
             {
                 byte b = source[i];
                 for (int shift = 0; shift < 8; shift += bits)

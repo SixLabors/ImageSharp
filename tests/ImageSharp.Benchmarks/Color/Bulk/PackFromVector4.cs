@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.PixelFormats;
 
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public abstract class PackFromVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {

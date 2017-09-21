@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 this.image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
 
-                this.SetFrameMetaData(this.metaData);
+                this.SetFrameMetaData(this.image.Frames.RootFrame.MetaData);
 
                 image = this.image.Frames.RootFrame;
             }
@@ -388,15 +388,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     previousFrame = this.previousFrame;
                 }
 
-                currentFrame = this.previousFrame.Clone();
+                currentFrame = this.image.Frames.AddFrame(this.previousFrame); // this clones the frame and adds it the collection
 
                 this.SetFrameMetaData(currentFrame.MetaData);
 
                 image = currentFrame;
 
                 this.RestoreToBackground(image);
-
-                this.image.Frames.Add(currentFrame);
             }
 
             int i = 0;
@@ -522,7 +520,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetaData(IFrameMetaData metaData)
+        private void SetFrameMetaData(ImageFrameMetaData metaData)
         {
             if (this.graphicsControlExtension != null)
             {

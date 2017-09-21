@@ -533,11 +533,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             byte[] identifier = new byte[Icclength];
             this.InputProcessor.ReadFull(identifier, 0, Icclength);
-            remaining -= Icclength; // we have read it by this point
+            remaining -= Icclength; // We have read it by this point
 
-            if (identifier[0] == 'I' && identifier[1] == 'C' && identifier[2] == 'C' && identifier[3] == '_'
-                && identifier[4] == 'P' && identifier[5] == 'R' && identifier[6] == 'O' && identifier[7] == 'F'
-                && identifier[8] == 'I' && identifier[9] == 'L' && identifier[10] == 'E' && identifier[11] == '\0')
+            if (identifier[0] == OrigJpegConstants.ICC.I &&
+                identifier[1] == OrigJpegConstants.ICC.C &&
+                identifier[2] == OrigJpegConstants.ICC.C &&
+                identifier[3] == OrigJpegConstants.ICC.UnderScore &&
+                identifier[4] == OrigJpegConstants.ICC.P &&
+                identifier[5] == OrigJpegConstants.ICC.R &&
+                identifier[6] == OrigJpegConstants.ICC.O &&
+                identifier[7] == OrigJpegConstants.ICC.F &&
+                identifier[8] == OrigJpegConstants.ICC.I &&
+                identifier[9] == OrigJpegConstants.ICC.L &&
+                identifier[10] == OrigJpegConstants.ICC.E &&
+                identifier[11] == OrigJpegConstants.ICC.Null)
             {
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
@@ -553,7 +562,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
             else
             {
-                // not an ICC profile we can handle read the remaining so we can carry on and ignore this.
+                // Not an ICC profile we can handle. Skip the remaining bytes so we can carry on and ignore this.
                 this.InputProcessor.Skip(remaining);
             }
         }

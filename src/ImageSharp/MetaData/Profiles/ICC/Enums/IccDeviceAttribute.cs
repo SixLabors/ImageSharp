@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-
     /// <summary>
     /// Device attributes. Can be combined with a logical OR
     /// The least-significant 32 bits are defined by the ICC,

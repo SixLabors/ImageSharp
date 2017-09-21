@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-
     /// <summary>
     /// Defines a generalized method that a value type or class implements to create
     /// a type-specific method for determining approximate equality of instances.

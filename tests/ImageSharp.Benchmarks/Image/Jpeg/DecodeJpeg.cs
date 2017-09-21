@@ -3,23 +3,22 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 {
     using System.Drawing;
     using System.IO;
 
     using BenchmarkDotNet.Attributes;
-    using BenchmarkDotNet.Attributes.Jobs;
 
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
     using SixLabors.ImageSharp.Tests;
 
-    using CoreImage = ImageSharp.Image;
+    using CoreImage = SixLabors.ImageSharp.Image;
 
     using CoreSize = SixLabors.Primitives.Size;
     
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class DecodeJpeg : BenchmarkBase
     {
         private byte[] jpegBytes;
@@ -43,9 +42,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "Decode Jpeg - System.Drawing")]
         public Size JpegSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
+            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.FromStream(memoryStream))
+                using (Image image = Image.FromStream(memoryStream))
                 {
                     return image.Size;
                 }
@@ -55,9 +54,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "Decode Jpeg - ImageSharp")]
         public CoreSize JpegImageSharpOrig()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
+            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = CoreImage.Load<Rgba32>(memoryStream, new OrigJpegDecoder()))
+                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream, new OrigJpegDecoder()))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }
@@ -67,9 +66,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "Decode Jpeg - ImageSharp PdfJs")]
         public CoreSize JpegImageSharpPdfJs()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
+            using (MemoryStream memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = CoreImage.Load<Rgba32>(memoryStream, new PdfJsJpegDecoder()))
+                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream, new PdfJsJpegDecoder()))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

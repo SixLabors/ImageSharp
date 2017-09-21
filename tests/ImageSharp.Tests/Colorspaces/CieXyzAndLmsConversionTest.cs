@@ -31,11 +31,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Lms_to_CieXyz(float l, float m, float s, float x, float y, float z)
         {
             // Arrange
-            var input = new Lms(l, m, s);
-            var converter = new ColorSpaceConverter();
+            Lms input = new Lms(l, m, s);
+            ColorSpaceConverter converter = new ColorSpaceConverter();
 
             // Act
-            var output = converter.ToCieXyz(input);
+            CieXyz output = converter.ToCieXyz(input);
 
             // Assert
             Assert.Equal(x, output.X, FloatRoundingComparer);
@@ -56,11 +56,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_CieXyz_to_Lms(float x, float y, float z, float l, float m, float s)
         {
             // Arrange
-            var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter();
+            CieXyz input = new CieXyz(x, y, z);
+            ColorSpaceConverter converter = new ColorSpaceConverter();
 
             // Act
-            var output = converter.ToLms(input);
+            Lms output = converter.ToLms(input);
 
             // Assert
             Assert.Equal(l, output.L, FloatRoundingComparer);

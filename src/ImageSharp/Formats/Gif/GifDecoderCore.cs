@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using System.Text;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.MetaData;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
@@ -388,15 +388,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     previousFrame = this.previousFrame;
                 }
 
-                currentFrame = this.previousFrame.Clone();
+                currentFrame = this.image.Frames.AddFrame(this.previousFrame); // this clones the frame and adds it the collection
 
                 this.SetFrameMetaData(currentFrame.MetaData);
 
                 image = currentFrame;
 
                 this.RestoreToBackground(image);
-
-                this.image.Frames.Add(currentFrame);
             }
 
             int i = 0;
@@ -443,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(writeY);
 
-                var rgba = new Rgba32(0, 0, 0, 255);
+                Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
                 for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
                 {

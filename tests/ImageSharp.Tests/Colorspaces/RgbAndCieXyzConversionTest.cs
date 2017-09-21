@@ -33,11 +33,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_XYZ_D50_to_SRGB(float x, float y, float z, float r, float g, float b)
         {
             // Arrange
-            var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            CieXyz input = new CieXyz(x, y, z);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
 
             // Act
-            var output = converter.ToRgb(input);
+            Rgb output = converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
@@ -61,11 +61,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_XYZ_D65_to_SRGB(float x, float y, float z, float r, float g, float b)
         {
             // Arrange
-            var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            CieXyz input = new CieXyz(x, y, z);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
 
             // Act
-            var output = converter.ToRgb(input);
+            Rgb output = converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
@@ -88,11 +88,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_SRGB_to_XYZ_D50(float r, float g, float b, float x, float y, float z)
         {
             // Arrange
-            var input = new Rgb(r, g, b);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50 };
+            Rgb input = new Rgb(r, g, b);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50 };
 
             // Act
-            var output = converter.ToCieXyz(input);
+            CieXyz output = converter.ToCieXyz(input);
 
             // Assert
             Assert.Equal(x, output.X, FloatRoundingComparer);
@@ -114,11 +114,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_SRGB_to_XYZ_D65(float r, float g, float b, float x, float y, float z)
         {
             // Arrange
-            var input = new Rgb(r, g, b);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            Rgb input = new Rgb(r, g, b);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
 
             // Act
-            var output = converter.ToCieXyz(input);
+            CieXyz output = converter.ToCieXyz(input);
 
             // Assert
             Assert.Equal(x, output.X, FloatRoundingComparer);

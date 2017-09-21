@@ -45,12 +45,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {
-            var options = new GifDecoder()
+            GifDecoder options = new GifDecoder()
             {
                 IgnoreMetadata = false
             };
 
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
+            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
@@ -63,12 +63,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
         {
-            var options = new GifDecoder()
+            GifDecoder options = new GifDecoder()
             {
                 IgnoreMetadata = true
             };
 
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
+            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
@@ -79,12 +79,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
         {
-            var options = new GifDecoder()
+            GifDecoder options = new GifDecoder()
             {
                 TextEncoding = Encoding.Unicode
             };
 
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
+            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {

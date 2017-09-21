@@ -1,20 +1,21 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using SixLabors.ImageSharp.MetaData;
-    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-    using SixLabors.ImageSharp.MetaData.Profiles.Icc;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <inheritdoc />
     /// <summary>
     /// Performs the jpeg decoding operation.

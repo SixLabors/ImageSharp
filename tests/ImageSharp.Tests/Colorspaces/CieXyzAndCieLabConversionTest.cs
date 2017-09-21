@@ -34,11 +34,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Lab_to_Xyz(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
-            var input = new CieLab(l, a, b, Illuminants.D65);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            CieLab input = new CieLab(l, a, b, Illuminants.D65);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
-            var output = converter.ToCieXyz(input);
+            CieXyz output = converter.ToCieXyz(input);
 
             // Assert
             Assert.Equal(x, output.X, FloatRoundingComparer);
@@ -59,11 +59,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Xyz_to_Lab(float x, float y, float z, float l, float a, float b)
         {
             // Arrange
-            var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            CieXyz input = new CieXyz(x, y, z);
+            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
-            var output = converter.ToCieLab(input);
+            CieLab output = converter.ToCieLab(input);
 
             // Assert
             Assert.Equal(l, output.L, FloatRoundingComparer);

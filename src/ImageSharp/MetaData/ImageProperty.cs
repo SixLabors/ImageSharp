@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.MetaData
 {
-    using System;
-
     /// <summary>
     /// Stores meta information about a image, like the name of the author,
     /// the copyright information, the date, where the image was created
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public override bool Equals(object obj)
         {
-            var other = obj as ImageProperty;
+            ImageProperty other = obj as ImageProperty;
 
             return this.Equals(other);
         }

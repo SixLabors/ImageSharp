@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeFloodFilledWithColorOnDefaultBackground()
         {
             string path = TestEnvironment.CreateOutputDirectory("Fill", "SolidBrush");
-            using (var image = new Image<Rgba32>(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .Fill(Rgba32.HotPink));
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeFloodFilledWithColor()
         {
             string path = TestEnvironment.CreateOutputDirectory("Fill", "SolidBrush");
-            using (var image = new Image<Rgba32>(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeFloodFilledWithColorOpacity()
         {
             string path = TestEnvironment.CreateOutputDirectory("Fill", "SolidBrush");
-            using (var image = new Image<Rgba32>(500, 500))
+            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+                Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
-                var mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())

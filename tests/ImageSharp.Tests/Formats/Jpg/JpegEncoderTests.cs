@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
 
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
-                var options = new JpegEncoder { Subsample = subsample, Quality = quality };
+                JpegEncoder options = new JpegEncoder { Subsample = subsample, Quality = quality };
 
                 provider.Utility.TestName += $"{subsample}_Q{quality}";
                 provider.Utility.SaveTestOutputFile(image, "png");
@@ -72,21 +72,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_ExifProfileIsWritten()
         {
-            var options = new JpegEncoder()
+            JpegEncoder options = new JpegEncoder()
             {
                 IgnoreMetadata = false
             };
 
-            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
-                using (var memStream = new MemoryStream())
+                using (MemoryStream memStream = new MemoryStream())
                 {
                     input.Save(memStream,  options);
 
                     memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.NotNull(output.MetaData.ExifProfile);
                     }
@@ -97,21 +97,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_ExifProfileIgnored()
         {
-            var options = new JpegEncoder()
+            JpegEncoder options = new JpegEncoder()
             {
                 IgnoreMetadata = true
             };
 
-            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
+            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
-                using (var memStream = new MemoryStream())
+                using (MemoryStream memStream = new MemoryStream())
                 {
                     input.SaveAsJpeg(memStream, options);
 
                     memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Null(output.MetaData.ExifProfile);
                     }

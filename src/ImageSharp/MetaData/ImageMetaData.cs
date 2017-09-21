@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
 namespace SixLabors.ImageSharp.MetaData
 {
-    using System.Collections.Generic;
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Formats.Gif;
-    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-    using SixLabors.ImageSharp.MetaData.Profiles.Icc;
-
     /// <summary>
     /// Encapsulates the metadata of an image.
     /// </summary>

@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Globalization;
+using System.Text;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
-    using System;
-    using System.Globalization;
-    using System.Text;
-
     /// <summary>
     /// Represent the value of the EXIF profile.
     /// </summary>

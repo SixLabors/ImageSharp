@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Dithering.Base
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// The base class for performing error diffusion based dithering.
     /// </summary>

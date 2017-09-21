@@ -1,20 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
-
-/* Unmerged change from project 'ImageSharp(netstandard1.3)'
-Before:
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
-
-#if !NETSTANDARD1_1
-After:
-// Licensed under the Apache License, Version 2.0.
-
-
-#if !NETSTANDARD1_1
-*/
-// Licensed under the Apache License, Version 2.0.
 
 #if !NETSTANDARD1_1
 using System.Security.Cryptography;
@@ -22,19 +10,6 @@ using System.Security.Cryptography;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-
-/* Unmerged change from project 'ImageSharp(netstandard1.3)'
-Before:
-    /// <summary>
-After:
-    using System;
-    using System.Collections.Generic;
-
-    /// <summary>
-*/
-    using System;
-    using System.Collections.Generic;
-
     /// <summary>
     /// Represents an ICC profile
     /// </summary>

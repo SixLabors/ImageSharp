@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Color converter between CIE XYZ and LMS
     /// </summary>
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
         {
             DebugGuard.NotNull(input, nameof(input));
 
-            var vector = Vector3.Transform(input.Vector, this.transformationMatrix);
+            Vector3 vector = Vector3.Transform(input.Vector, this.transformationMatrix);
             return new Lms(vector);
         }
 
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
         {
             DebugGuard.NotNull(input, nameof(input));
 
-            var vector = Vector3.Transform(input.Vector, this.inverseTransformationMatrix);
+            Vector3 vector = Vector3.Transform(input.Vector, this.inverseTransformationMatrix);
             return new CieXyz(vector);
         }
     }

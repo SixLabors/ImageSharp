@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// The Average filter uses the average of the two neighboring pixels (left and above) to predict
     /// the value of a pixel.

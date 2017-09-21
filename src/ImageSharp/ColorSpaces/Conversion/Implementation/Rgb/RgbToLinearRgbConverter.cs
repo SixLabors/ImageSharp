@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
-    using System.Numerics;
-
     /// <summary>
     /// Color converter between Rgb and LinearRgb
     /// </summary>

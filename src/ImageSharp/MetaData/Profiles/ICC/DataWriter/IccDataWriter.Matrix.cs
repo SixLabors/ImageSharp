@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System.Numerics;
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Provides methods to write ICC data types
     /// </summary>

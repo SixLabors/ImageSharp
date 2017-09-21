@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Processing
 {
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Encapsulates methods to alter the pixels of a new image, cloned from the original image.
     /// </summary>

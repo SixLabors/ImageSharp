@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// Various extension and utility methods for <see cref="Vector4"/> and <see cref="Vector{T}"/> utilizing SIMD capabilities
     /// </summary>
@@ -18,10 +19,6 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public static bool IsAvx2CompatibleArchitecture => Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
-        /// <summary>
-        /// .
-        /// </summary>
-        /// <param name="operation">operation.</param>
         internal static void GuardAvx2(string operation)
         {
             if (!IsAvx2CompatibleArchitecture)
@@ -33,8 +30,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Transform all scalars in 'v' in a way that converting them to <see cref="int"/> would have rounding semantics.
         /// </summary>
-        /// <param name="v">v.</param>
-        /// <returns>r.</returns>>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector4 PseudoRound(this Vector4 v)
         {
@@ -50,17 +45,15 @@ namespace SixLabors.ImageSharp
         ///     <cref>https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L110</cref>
         /// </see>
         /// </summary>
-        /// <param name="x">x.</param>
-        /// <returns>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector<float> FastRound(this Vector<float> x)
         {
-            var magic0 = new Vector<int>(int.MinValue); // 0x80000000
-            var sgn0 = Vector.AsVectorSingle(magic0);
-            var and0 = Vector.BitwiseAnd(sgn0, x);
-            var or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
-            var add0 = Vector.Add(x, or0);
-            var sub0 = Vector.Subtract(add0, or0);
+            Vector<int> magic0 = new Vector<int>(int.MinValue); // 0x80000000
+            Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
+            Vector<float> and0 = Vector.BitwiseAnd(sgn0, x);
+            Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
+            Vector<float> add0 = Vector.Add(x, or0);
+            Vector<float> sub0 = Vector.Subtract(add0, or0);
             return sub0;
         }
 
@@ -72,8 +65,6 @@ namespace SixLabors.ImageSharp
         ///     <cref>http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions</cref>
         /// </see>
         /// </summary>
-        /// <param name="source">.</param>
-        /// <param name="dest">dest.</param>
         internal static void BulkConvertNormalizedFloatToByte(ReadOnlySpan<float> source, Span<byte> dest)
         {
             GuardAvx2(nameof(BulkConvertNormalizedFloatToByte));
@@ -89,7 +80,7 @@ namespace SixLabors.ImageSharp
             ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref dest.DangerousGetPinnableReference());
             int n = source.Length / 8;
 
-            var magick = new Vector<float>(32768.0f);
+            Vector<float> magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
             // need to copy to a temporal struct, because
@@ -115,8 +106,6 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Same as <see cref="BulkConvertNormalizedFloatToByte"/> but clamps overflown values before conversion.
         /// </summary>
-        /// <param name="source">.</param>
-        /// <param name="dest">dest.</param>
         internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
         {
             GuardAvx2(nameof(BulkConvertNormalizedFloatToByte));
@@ -132,7 +121,7 @@ namespace SixLabors.ImageSharp
             ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref dest.DangerousGetPinnableReference());
             int n = source.Length / 8;
 
-            var magick = new Vector<float>(32768.0f);
+            Vector<float> magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
             // need to copy to a temporal struct, because
@@ -159,137 +148,73 @@ namespace SixLabors.ImageSharp
         }
 
         // TODO: Replace these with T4-d library level tuples!
-
-        /// <summary>
-        /// .
-        /// </summary>
         internal static class Octet
         {
-            /// <summary>
-            /// .
-            /// </summary>
             [StructLayout(LayoutKind.Explicit, Size = 8 * sizeof(uint))]
             public struct OfUInt32
             {
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(0 * sizeof(uint))]
                 public uint V0;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(1 * sizeof(uint))]
                 public uint V1;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(2 * sizeof(uint))]
                 public uint V2;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(3 * sizeof(uint))]
                 public uint V3;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(4 * sizeof(uint))]
                 public uint V4;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(5 * sizeof(uint))]
                 public uint V5;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(6 * sizeof(uint))]
                 public uint V6;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(7 * sizeof(uint))]
                 public uint V7;
 
-                /// <inheritdoc/>
                 public override string ToString()
                 {
                     return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
                 }
             }
 
-            /// <summary>
-            /// .
-            /// </summary>
             [StructLayout(LayoutKind.Explicit, Size = 8)]
             public struct OfByte
             {
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(0)]
                 public byte V0;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(1)]
                 public byte V1;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(2)]
                 public byte V2;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(3)]
                 public byte V3;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(4)]
                 public byte V4;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(5)]
                 public byte V5;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(6)]
                 public byte V6;
 
-                /// <summary>
-                /// .
-                /// </summary>
                 [FieldOffset(7)]
                 public byte V7;
 
-                /// <inheritdoc/>
                 public override string ToString()
                 {
                     return $"[{this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7}]";
                 }
 
-                /// <summary>
-                /// .
-                /// </summary>
-                /// <param name="i">i.</param>
                 public void LoadFrom(ref OfUInt32 i)
                 {
                     this.V0 = (byte)i.V0;

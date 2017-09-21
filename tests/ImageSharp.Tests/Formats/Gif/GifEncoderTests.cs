@@ -28,21 +28,21 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_CommentsAreWritten()
         {
-            var options = new GifEncoder()
+            GifEncoder options = new GifEncoder()
             {
                 IgnoreMetadata = false
             };
 
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
+            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
-                using (var memStream = new MemoryStream())
+                using (MemoryStream memStream = new MemoryStream())
                 {
                     input.Save(memStream, options);
 
                     memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);
@@ -55,21 +55,21 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
         {
-            var options = new GifEncoder()
+            GifEncoder options = new GifEncoder()
             {
                 IgnoreMetadata = true
             };
 
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
+            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
-                using (var memStream = new MemoryStream())
+                using (MemoryStream memStream = new MemoryStream())
                 {
                     input.SaveAsGif(memStream, options);
 
                     memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(0, output.MetaData.Properties.Count);
                     }
@@ -80,17 +80,17 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Encode_CommentIsToLong_CommentIsTrimmed()
         {
-            using (var input = new Image<Rgba32>(1, 1))
+            using (Image<Rgba32> input = new Image<Rgba32>(1, 1))
             {
                 string comments = new string('c', 256);
                 input.MetaData.Properties.Add(new ImageProperty("Comments", comments));
 
-                using (var memStream = new MemoryStream())
+                using (MemoryStream memStream = new MemoryStream())
                 {
                     input.Save(memStream, new GifEncoder());
 
                     memStream.Position = 0;
-                    using (var output = Image.Load<Rgba32>(memStream))
+                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);

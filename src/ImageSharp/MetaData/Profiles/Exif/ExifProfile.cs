@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.IO;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// Represents an EXIF profile providing access to the collection of values.
     /// </summary>

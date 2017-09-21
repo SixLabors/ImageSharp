@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             Image<TPixelB> actual)
             where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
         {
-            return comparer.CompareImagesOrFrames((ImageFrame<TPixelA>)expected, (ImageFrame<TPixelB>)actual);
+            return comparer.CompareImagesOrFrames(expected.Frames.RootFrame, actual.Frames.RootFrame);
         }
 
         public static IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> CompareImages<TPixelA, TPixelB>(
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> reports = comparer.CompareImages(expected, actual);
             if (reports.Any())
             {
-                var cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
+                List<ImageSimilarityReport<TPixelA, TPixelB>> cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
                 foreach (var r in reports)
                 {
                     var outsideChanges = r.Differences.Where(x => !(

@@ -50,8 +50,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (var source = new Buffer<ImageSharp.Rgba32>(count))
-                using (var dest = new Buffer<Vector4>(count))
+                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
+                using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
                 {
                     this.Measure(
                         times,
@@ -344,8 +344,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDest) == typeof(Vector4))
                 {
-                    var expected = this.ExpectedDestBuffer.Array as Vector4[];
-                    var actual = this.ActualDestBuffer.Array as Vector4[];
+                    Vector4[] expected = this.ExpectedDestBuffer.Array as Vector4[];
+                    Vector4[] actual = this.ActualDestBuffer.Array as Vector4[];
 
                     for (int i = 0; i < count; i++)
                     {
@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             where TSource : struct
             where TDest : struct
         {
-            using (var buffers = new TestBuffers<TSource, TDest>(source, expected))
+            using (TestBuffers<TSource, TDest> buffers = new TestBuffers<TSource, TDest>(source, expected))
             {
                 action(buffers.Source, buffers.ActualDestBuffer);
                 buffers.Verify();
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static Vector4[] CreateVector4TestData(int length)
         {
             Vector4[] result = new Vector4[length];
-            var rnd = new Random(42); // Deterministic random values
+            Random rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
@@ -396,7 +396,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] result = new TPixel[length];
 
-            var rnd = new Random(42); // Deterministic random values
+            Random rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
@@ -410,7 +410,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static byte[] CreateByteTestData(int length)
         {
             byte[] result = new byte[length];
-            var rnd = new Random(42); // Deterministic random values
+            Random rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {

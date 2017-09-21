@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
 {
-    using System;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// primitive that converts a point in to a color for discovering the fill color based on an implementation
     /// </summary>

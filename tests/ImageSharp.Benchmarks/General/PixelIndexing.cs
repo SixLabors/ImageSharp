@@ -172,7 +172,7 @@
         public Vector4 IndexWithPointersBasic()
         {
             Vector4 sum = Vector4.Zero;
-            var data = new Data(this.buffer);
+            Data data = new Data(this.buffer);
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
             {
@@ -186,7 +186,7 @@
         public Vector4 IndexWithPointersSrcsUnsafe()
         {
             Vector4 sum = Vector4.Zero;
-            var data = new Data(this.buffer);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -201,7 +201,7 @@
         public Vector4 IndexWithReferences()
         {
             Vector4 sum = Vector4.Zero;
-            var data = new Data(this.buffer);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -216,7 +216,7 @@
         public Vector4 IndexWithReferencesRefReturns()
         {
             Vector4 sum = Vector4.Zero;
-            var data = new Data(this.buffer);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -233,8 +233,8 @@
         [Benchmark(Description = "!!! Index.Set: Pointers|arithmetics", Baseline = true)]
         public void IndexWithPointersBasic()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -246,8 +246,8 @@
         [Benchmark(Description = "Index.Set: Pointers|SRCS.Unsafe")]
         public void IndexWithPointersSrcsUnsafe()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -259,8 +259,8 @@
         [Benchmark(Description = "Index.Set: References|IncorrectPinnable")]
         public void IndexWithReferencesPinnableBasic()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -272,8 +272,8 @@
         [Benchmark(Description = "Index.Set: References|IncorrectPinnable|refreturn")]
         public void IndexWithReferencesPinnableRefReturn()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -285,8 +285,8 @@
         [Benchmark(Description = "Index.Set: References|Array[0]Unsafe")]
         public void IndexWithReferencesArrayBasic()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -298,8 +298,8 @@
         [Benchmark(Description = "Index.Set: References|Array[0]Unsafe|refreturn")]
         public void IndexWithReferencesArrayRefReturn()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -311,8 +311,8 @@
         [Benchmark(Description = "!!! Index.Set: References|Array+Straight")]
         public void IndexWithReferencesArrayStraightforward()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -328,8 +328,8 @@
         [Benchmark(Description = "!!! Index.Set: References|Array+Straight|refreturn")]
         public void IndexWithReferencesArrayStraightforwardRefReturn()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
             
             int y = this.startIndex;
             for (int x = this.startIndex; x < this.endIndex; x++)
@@ -344,8 +344,8 @@
         [Benchmark(Description = "!!! Index.Set: SmartUnsafe")]
         public void SmartUnsafe()
         {
-            var v = new Vector4(1, 2, 3, 4);
-            var data = new Data(this.buffer);
+            Vector4 v = new Vector4(1, 2, 3, 4);
+            Data data = new Data(this.buffer);
 
             // This method is basically an unsafe variant of .GetRowSpan(y) + indexing individual pixels in the row.
             // If a user seriously needs by-pixel manipulation to be performant, we should provide this option.

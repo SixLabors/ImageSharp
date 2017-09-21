@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+
 namespace SixLabors.ImageSharp
 {
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Formats.Bmp;
-    using SixLabors.ImageSharp.Formats.Gif;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Png;
-
     /// <summary>
     /// The static collection of all the default image formats
     /// </summary>

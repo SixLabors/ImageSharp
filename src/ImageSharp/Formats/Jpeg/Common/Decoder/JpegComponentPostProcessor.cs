@@ -1,9 +1,9 @@
+using System;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
-    using System;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Encapsulates postprocessing data for one component for <see cref="JpegImagePostProcessor"/>.
     /// </summary>

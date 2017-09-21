@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
-    using SixLabors.ImageSharp.ColorSpaces;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColorSapce;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabColorSapce;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
-
     /// <content>
     /// Allows conversion to <see cref="CieXyz"/>.
     /// </content>

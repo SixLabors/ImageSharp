@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Text;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
     /// <summary>
     /// The various blending modes.
     /// </summary>

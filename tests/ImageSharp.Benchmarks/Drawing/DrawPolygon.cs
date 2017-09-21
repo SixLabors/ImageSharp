@@ -20,14 +20,14 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Polygon")]
         public void DrawPolygonSystemDrawing()
         {
-            using (var destination = new Bitmap(800, 800))
+            using (Bitmap destination = new Bitmap(800, 800))
             {
 
-                using (var graphics = Graphics.FromImage(destination))
+                using (Graphics graphics = Graphics.FromImage(destination))
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    var pen = new Pen(System.Drawing.Color.HotPink, 10);
+                    Pen pen = new Pen(System.Drawing.Color.HotPink, 10);
                     graphics.DrawPolygon(pen, new[] {
                         new PointF(10, 10),
                         new PointF(550, 50),
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     });
                 }
 
-                using (var ms = new MemoryStream())
+                using (MemoryStream ms = new MemoryStream())
                 {
                     destination.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
                 }
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Draw Polygon")]
         public void DrawPolygonCore()
         {
-            using (var image = new Image<Rgba32>(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.Mutate(x => x.DrawPolygon(
                     Rgba32.HotPink,
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                         new Vector2(200, 400)
                     }));
 
-                using (var ms = new MemoryStream())
+                using (MemoryStream ms = new MemoryStream())
                 {
                     image.SaveAsBmp(ms);
                 }

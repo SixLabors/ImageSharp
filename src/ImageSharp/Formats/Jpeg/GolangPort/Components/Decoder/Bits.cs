@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Holds the unprocessed bits that have been taken from the byte-stream.
     /// The n least significant bits of a form the unread bits, to be read in MSB to

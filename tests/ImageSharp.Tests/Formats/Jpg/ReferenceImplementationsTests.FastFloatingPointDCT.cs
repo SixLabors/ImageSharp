@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 float[] floatData = JpegFixture.Create8x8RandomFloatData(-1000, 1000);
 
-                var source = default(Block8x8F);
+                Block8x8F source = default(Block8x8F);
                 source.LoadFrom(floatData);
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);

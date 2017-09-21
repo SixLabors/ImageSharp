@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Dithering
 {
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// Encapsulates properties and methods required to perfom diffused error dithering on an image.
     /// </summary>

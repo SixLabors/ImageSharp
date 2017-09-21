@@ -36,10 +36,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Lchuv_to_Luv(float l, float c, float h, float l2, float u, float v)
         {
             // Arrange
-            var input = new CieLchuv(l, c, h);
+            CieLchuv input = new CieLchuv(l, c, h);
 
             // Act
-            var output = Converter.ToCieLuv(input);
+            CieLuv output = Converter.ToCieLuv(input);
 
             // Assert
             Assert.Equal(l2, output.L, FloatRoundingComparer);
@@ -63,10 +63,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Luv_to_LCHuv(float l, float u, float v, float l2, float c, float h)
         {
             // Arrange
-            var input = new CieLuv(l, u, v);
+            CieLuv input = new CieLuv(l, u, v);
 
             // Act
-            var output = Converter.ToCieLchuv(input);
+            CieLchuv output = Converter.ToCieLchuv(input);
 
             // Assert
             Assert.Equal(l2, output.L, FloatRoundingComparer);

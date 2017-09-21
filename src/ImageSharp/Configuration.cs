@@ -1,20 +1,20 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.IO;
+
 namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Formats.Bmp;
-    using SixLabors.ImageSharp.Formats.Gif;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Png;
-    using SixLabors.ImageSharp.IO;
-
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>

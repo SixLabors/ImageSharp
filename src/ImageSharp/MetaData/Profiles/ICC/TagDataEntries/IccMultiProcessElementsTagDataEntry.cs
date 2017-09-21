@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Linq;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Linq;
-
     /// <summary>
     /// This structure represents a color transform, containing
     /// a sequence of processing elements.

@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public Image<Rgba32> CreateGrayScaleImage()
             {
-                var result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
+                Image<Rgba32> result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
                 
                 for (int by = 0; by < this.HeightInBlocks; by++)
                 {
@@ -119,8 +119,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     {
                         var val = this.GetBlockValue(block, x, y);
 
-                        var v = new Vector4(val, val, val, 1);
-                        var color = default(Rgba32);
+                        Vector4 v = new Vector4(val, val, val, 1);
+                        Rgba32 color = default(Rgba32);
                         color.PackFromVector4(v);
 
                         int yy = by * 8 + y;

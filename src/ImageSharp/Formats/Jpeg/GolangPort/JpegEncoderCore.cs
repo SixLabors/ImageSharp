@@ -1,20 +1,20 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.PixelFormats;
+using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
-    using System.Buffers;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
-    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-    using SixLabors.ImageSharp.MetaData.Profiles.Icc;
-    using SixLabors.ImageSharp.PixelFormats;
-    using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
-
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
@@ -317,9 +317,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             PixelArea<TPixel> rgbBytes)
             where TPixel : struct, IPixel<TPixel>
         {
-            var yBlockRaw = (float*)yBlock;
-            var cbBlockRaw = (float*)cbBlock;
-            var crBlockRaw = (float*)crBlock;
+            float* yBlockRaw = (float*)yBlock;
+            float* cbBlockRaw = (float*)cbBlock;
+            float* crBlockRaw = (float*)crBlock;
 
             rgbBytes.Reset();
             pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
@@ -445,24 +445,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            var b = default(Block8x8F);
-            var cb = default(Block8x8F);
-            var cr = default(Block8x8F);
+            Block8x8F b = default(Block8x8F);
+            Block8x8F cb = default(Block8x8F);
+            Block8x8F cr = default(Block8x8F);
 
-            var temp1 = default(Block8x8F);
-            var temp2 = default(Block8x8F);
+            Block8x8F temp1 = default(Block8x8F);
+            Block8x8F temp2 = default(Block8x8F);
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
-            var unzig = ZigZag.CreateUnzigTable();
+            ZigZag unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {
-                using (var rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
                 {
                     for (int y = 0; y < pixels.Height; y += 8)
                     {
@@ -565,7 +565,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             FastFloatingPointDCT.TransformFDCT(ref *src, ref *tempDest1, ref *tempDest2);
 
             Block8x8F.Quantize(tempDest1, tempDest2, quant, unzigPtr);
-            var unziggedDestPtr = (float*)tempDest2;
+            float* unziggedDestPtr = (float*)tempDest2;
 
             int dc = (int)unziggedDestPtr[0];
 
@@ -573,7 +573,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
-            var h = (HuffIndex)((2 * (int)index) + 1);
+            HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
@@ -899,26 +899,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            var b = default(Block8x8F);
+            Block8x8F b = default(Block8x8F);
 
-            var cb = default(BlockQuad);
-            var cr = default(BlockQuad);
-            var cbPtr = (Block8x8F*)cb.Data;
-            var crPtr = (Block8x8F*)cr.Data;
+            BlockQuad cb = default(BlockQuad);
+            BlockQuad cr = default(BlockQuad);
+            Block8x8F* cbPtr = (Block8x8F*)cb.Data;
+            Block8x8F* crPtr = (Block8x8F*)cr.Data;
 
-            var temp1 = default(Block8x8F);
-            var temp2 = default(Block8x8F);
+            Block8x8F temp1 = default(Block8x8F);
+            Block8x8F temp2 = default(Block8x8F);
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
-            var unzig = ZigZag.CreateUnzigTable();
+            ZigZag unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
             fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {
-                using (var rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
                 {
                     for (int y = 0; y < pixels.Height; y += 16)
                     {

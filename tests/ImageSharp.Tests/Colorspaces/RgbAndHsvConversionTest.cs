@@ -34,10 +34,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Hsv_To_Rgb(float h, float s, float v, float r, float g, float b)
         {
             // Arrange
-            var input = new Hsv(h, s, v);
+            Hsv input = new Hsv(h, s, v);
 
             // Act
-            var output = Converter.ToRgb(input);
+            Rgb output = Converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
@@ -58,10 +58,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Rgb_To_Hsv(float r, float g, float b, float h, float s, float v)
         {
             // Arrange
-            var input = new Rgb(r, g, b);
+            Rgb input = new Rgb(r, g, b);
 
             // Act
-            var output = Converter.ToHsv(input);
+            Hsv output = Converter.ToHsv(input);
 
             // Assert
             Assert.Equal(h, output.H, FloatRoundingComparer);

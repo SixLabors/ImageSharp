@@ -19,11 +19,11 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Crop")]
         public Size CropSystemDrawing()
         {
-            using (var source = new Bitmap(800, 800))
+            using (Bitmap source = new Bitmap(800, 800))
             {
-                using (var destination = new Bitmap(100, 100))
+                using (Bitmap destination = new Bitmap(100, 100))
                 {
-                    using (var graphics = Graphics.FromImage(destination))
+                    using (Graphics graphics = Graphics.FromImage(destination))
                     {
                         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Crop")]
         public CoreSize CropResizeCore()
         {
-            using (var image = new Image<Rgba32>(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 image.Mutate(x => x.Crop(100, 100));
                 return new CoreSize(image.Width, image.Height);

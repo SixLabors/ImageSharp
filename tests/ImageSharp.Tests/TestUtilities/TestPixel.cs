@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public TPixel AsPixel()
         {
-            var pix = default(TPixel);
+            TPixel pix = default(TPixel);
             pix.PackFromVector4(new System.Numerics.Vector4(this.Red, this.Green, this.Blue, this.Alpha));
             return pix;
         }

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+using System;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using System;
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// Holds the Jpeg UnZig array in a value/stack type.
     /// Unzig maps from the zigzag ordering to the natural ordering. For example,
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <returns>The new instance</returns>
         public static ZigZag CreateUnzigTable()
         {
-            var result = default(ZigZag);
+            ZigZag result = default(ZigZag);
             int* unzigPtr = result.Data;
             Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, 64);
             return result;
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         public static Block8x8F CreateDequantizationTable(ref Block8x8F qt)
         {
-            var result = default(Block8x8F);
+            Block8x8F result = default(Block8x8F);
 
             for (int i = 0; i < 64; i++)
             {

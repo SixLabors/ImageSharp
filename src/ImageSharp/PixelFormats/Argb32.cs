@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in alpha, red, green, and blue order.
@@ -321,7 +321,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
-            var value = new Vector4(x, y, z, w);
+            Vector4 value = new Vector4(x, y, z, w);
             return Pack(ref value);
         }
 
@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector3 vector)
         {
-            var value = new Vector4(vector, 1);
+            Vector4 value = new Vector4(vector, 1);
             return Pack(ref value);
         }
 

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System.Collections.Generic;
-
     /// <summary>
     /// Reads and parses ICC data from a byte array
     /// </summary>

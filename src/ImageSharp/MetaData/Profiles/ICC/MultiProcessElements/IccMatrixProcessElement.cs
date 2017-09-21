@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Linq;
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Linq;
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// A matrix element to process data
     /// </summary>

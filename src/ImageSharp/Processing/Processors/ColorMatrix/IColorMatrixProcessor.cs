@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System.Numerics;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// Encapsulates properties and methods for creating processors that utilize a matrix to
     /// alter the image pixels.

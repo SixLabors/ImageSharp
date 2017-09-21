@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
-    using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
-
     /// <content>
     /// Provides access to pixel blenders
     /// </content>

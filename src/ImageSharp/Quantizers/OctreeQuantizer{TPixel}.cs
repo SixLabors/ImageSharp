@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers.Base;
+
 namespace SixLabors.ImageSharp.Quantizers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Quantizers.Base;
-
     /// <summary>
     /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>

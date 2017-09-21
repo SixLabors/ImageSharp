@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (var buffer = new Buffer2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void Construct_FromExternalArray(int width, int height)
         {
             TestStructs.Foo[] array = new TestStructs.Foo[width * height + 10];
-            using (var buffer = new Buffer2D<TestStructs.Foo>(array, width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(array, width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             for (int i = 0; i < 100; i++)
             {
-                using (var buffer = Buffer2D<int>.CreateClean(42, 42))
+                using (Buffer2D<int> buffer = Buffer2D<int>.CreateClean(42, 42))
                 {
                     for (int j = 0; j < buffer.Length; j++)
                     {
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (var buffer = new Buffer2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (var buffer = new Buffer2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(x, y);
 
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (var buffer = new Buffer2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
                 TestStructs.Foo[] array = buffer.Array;
 

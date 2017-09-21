@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests
             public override Image<TPixel> GetImage()
             {
                 Image<TPixel> image = base.GetImage();
-                var color = default(TPixel);
+                TPixel color = default(TPixel);
                 color.PackFromRgba32(new Rgba32(this.r, this.g, this.b, this.a));
 
                 image.Mutate(x => x.Fill(color));

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-
     /// <summary>
     /// Represents a byte of data in a GIF data stream which contains a number
     /// of data items.
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>The <see cref="PackedField"/></returns>
         public static PackedField FromInt(byte value)
         {
-            var packed = default(PackedField);
+            PackedField packed = default(PackedField);
             packed.SetBits(0, 8, value);
             return packed;
         }
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            var field = obj as PackedField?;
+            PackedField? field = obj as PackedField?;
 
             return this.Byte == field?.Byte;
         }

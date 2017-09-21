@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
+using System.IO;
+
 namespace SixLabors.ImageSharp
 {
-    using System.Buffers;
-    using System.IO;
-
     /// <summary>
     /// Extension methods for the <see cref="Stream"/> type.
     /// </summary>

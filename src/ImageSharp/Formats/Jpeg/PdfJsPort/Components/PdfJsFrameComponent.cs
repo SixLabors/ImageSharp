@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Represents a single frame component
     /// </summary>

@@ -29,10 +29,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_xyY_to_XYZ(float xyzX, float xyzY, float xyzZ, float x, float y, float yl)
         {
             // Arrange
-            var input = new CieXyy(x, y, yl);
+            CieXyy input = new CieXyy(x, y, yl);
 
             // Act
-            var output = Converter.ToCieXyz(input);
+            CieXyz output = Converter.ToCieXyz(input);
 
             // Assert
             Assert.Equal(xyzX, output.X, FloatRoundingComparer);
@@ -48,10 +48,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_XYZ_to_xyY(float xyzX, float xyzY, float xyzZ, float x, float y, float yl)
         {
             // Arrange
-            var input = new CieXyz(xyzX, xyzY, xyzZ);
+            CieXyz input = new CieXyz(xyzX, xyzY, xyzZ);
 
             // Act
-            var output = Converter.ToCieXyy(input);
+            CieXyy output = Converter.ToCieXyy(input);
 
             // Assert
             Assert.Equal(x, output.X, FloatRoundingComparer);

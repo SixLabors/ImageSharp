@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
 {
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     ///     Jpeg specific utilities and extension methods
     /// </summary>

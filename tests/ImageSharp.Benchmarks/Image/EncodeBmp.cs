@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
         public void BmpSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
                 this.bmpDrawing.Save(memoryStream, ImageFormat.Bmp);
             }
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Bmp")]
         public void BmpCore()
         {
-            using (var memoryStream = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
                 this.bmpCore.SaveAsBmp(memoryStream);
             }

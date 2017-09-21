@@ -25,18 +25,18 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialising is off.
         public void MinimumAntialiasSubpixelDepth(bool antialias, int antialiasSubpixelDepth, int expectedAntialiasSubpixelDepth)
         {
-            var bounds = new SixLabors.Primitives.Rectangle(0, 0, 1, 1);
+            SixLabors.Primitives.Rectangle bounds = new SixLabors.Primitives.Rectangle(0, 0, 1, 1);
 
-            var brush = new Mock<IBrush<Rgba32>>();
-            var region = new Mock<Region>();
+            Mock<IBrush<Rgba32>> brush = new Mock<IBrush<Rgba32>>();
+            Mock<Region> region = new Mock<Region>();
             region.Setup(x => x.Bounds).Returns(bounds);
 
-            var options = new GraphicsOptions(antialias)
+            GraphicsOptions options = new GraphicsOptions(antialias)
             {
                 AntialiasSubpixelDepth = 1
             };
-            var processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
-            var img = new Image<Rgba32>(1, 1);
+            FillRegionProcessor<Rgba32> processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
+            Image<Rgba32> img = new Image<Rgba32>(1, 1);
             processor.Apply(img, bounds);
 
             region.Verify(x => x.Scan(It.IsAny<float>(), It.IsAny<float[]>(), It.IsAny<int>()), Times.Exactly(4));
@@ -46,10 +46,10 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void FillOffCanvas()
         {
 
-            var bounds = new SixLabors.Primitives.Rectangle(-100, -10, 10, 10);
+            SixLabors.Primitives.Rectangle bounds = new SixLabors.Primitives.Rectangle(-100, -10, 10, 10);
 
-            var brush = new Mock<IBrush<Rgba32>>();
-            var region = new Mock<Region>();
+            Mock<IBrush<Rgba32>> brush = new Mock<IBrush<Rgba32>>();
+            Mock<Region> region = new Mock<Region>();
             region.Setup(x => x.Bounds).Returns(bounds);
 
             region.Setup(x => x.MaxIntersections).Returns(10);
@@ -65,11 +65,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     return 0;
                 });
 
-            var options = new GraphicsOptions(true)
+            GraphicsOptions options = new GraphicsOptions(true)
             {
             };
-            var processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
-            var img = new Image<Rgba32>(10, 10);
+            FillRegionProcessor<Rgba32> processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
+            Image<Rgba32> img = new Image<Rgba32>(10, 10);
             processor.Apply(img, bounds);
         }
 

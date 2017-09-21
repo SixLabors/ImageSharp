@@ -37,8 +37,8 @@ namespace SixLabors.ImageSharp.Tests
             Assert.True(specific.Attributes.HasFlag(FieldAttributes.Static), "specific must be static");
             Assert.True(generic.Attributes.HasFlag(FieldAttributes.Public), "generic must be public");
             Assert.True(generic.Attributes.HasFlag(FieldAttributes.Static), "generic must be static");
-            var expected = (Rgba32)generic.GetValue(null);
-            var actual = (Rgba32)specific.GetValue(null);
+            Rgba32 expected = (Rgba32)generic.GetValue(null);
+            Rgba32 actual = (Rgba32)specific.GetValue(null);
             Assert.Equal(expected, actual);
         }
     }

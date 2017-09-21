@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// The Kirsch operator filter.
     /// <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-
     /// <summary>
     /// A placeholder <see cref="IccMultiProcessElement"/> (might be used for future ICC versions)
     /// </summary>

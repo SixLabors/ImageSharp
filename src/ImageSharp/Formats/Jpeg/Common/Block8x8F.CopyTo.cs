@@ -1,10 +1,13 @@
-﻿// ReSharper disable InconsistentNaming
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Memory;
-
     internal partial struct Block8x8F
     {
         /// <summary>

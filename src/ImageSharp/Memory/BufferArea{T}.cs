@@ -1,9 +1,9 @@
+using System;
+using System.Runtime.CompilerServices;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Memory
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Represents a rectangular area inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).
     /// This type is kind-of 2D Span, but it can live on heap.

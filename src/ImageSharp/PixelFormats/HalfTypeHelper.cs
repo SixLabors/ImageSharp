@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// Helper methods for packing and unpacking floating point values
     /// </summary>
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ushort Pack(float value)
         {
-            var uif = new Uif { F = value };
+            Uif uif = new Uif { F = value };
             return Pack(uif.I);
         }
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 result = ((((uint)value & 0x8000) << 16) | ((((((uint)value >> 10) & 0x1f) - 15) + 127) << 23)) | (mantissa << 13);
             }
 
-            var uif = new Uif { U = result };
+            Uif uif = new Uif { U = result };
             return uif.F;
         }
 

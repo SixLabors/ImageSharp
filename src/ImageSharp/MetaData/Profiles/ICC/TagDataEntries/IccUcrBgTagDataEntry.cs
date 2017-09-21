@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Linq;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Linq;
-
     /// <summary>
     /// This type contains curves representing the under color removal and black generation
     /// and a text string which is a general description of the method used for the UCR and BG.

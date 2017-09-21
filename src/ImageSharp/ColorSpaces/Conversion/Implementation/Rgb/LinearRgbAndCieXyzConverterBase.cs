@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
-    using System.Numerics;
-
     /// <summary>
     /// Provides base methods for converting between Rgb and CieXyz color spaces.
     /// </summary>
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             const float Yb = 1;
             float mZb = (1 - xb - yb) / yb;
 
-            var xyzMatrix = new Matrix4x4
+            Matrix4x4 xyzMatrix = new Matrix4x4
             {
                 M11 = mXr, M21 = mXg, M31 = mXb,
                 M12 = Yr,  M22 = Yg,  M32 = Yb,
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             Matrix4x4 inverseXyzMatrix;
             Matrix4x4.Invert(xyzMatrix, out inverseXyzMatrix);
 
-            var vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
+            Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 
             // Use transposed Rows/Coloumns
             // TODO: Is there a built in method for this multiplication?

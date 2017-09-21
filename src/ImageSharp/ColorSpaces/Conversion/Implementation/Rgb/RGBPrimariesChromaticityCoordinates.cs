@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
-    using System;
-
     /// <summary>
     /// Represents the chromaticity coordinates of RGB primaries.
     /// One of the specifiers of <see cref="IRgbWorkingSpace"/>.

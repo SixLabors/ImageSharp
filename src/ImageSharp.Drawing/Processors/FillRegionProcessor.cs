@@ -1,20 +1,20 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Drawing.Processors
 {
-    using System;
-    using System.Buffers;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Drawing;
-    using SixLabors.ImageSharp.Drawing.Brushes;
-    using SixLabors.ImageSharp.Drawing.Brushes.Processors;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Usinf a brsuh and a shape fills shape with contents of brush the
     /// </summary>

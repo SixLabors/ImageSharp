@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Memory
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
     /// <inheritdoc />
     /// <summary>
     /// Manages a buffer of value type objects as a Disposable resource.
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Buffer<T> CreateClean(int count)
         {
-            var buffer = new Buffer<T>(count);
+            Buffer<T> buffer = new Buffer<T>(count);
             buffer.Clear();
             return buffer;
         }

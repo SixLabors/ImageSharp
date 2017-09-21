@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Defines a sampler that detects edges within an image using a eight two dimensional matrices.
     /// </summary>
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                         int offsetX = x - shiftX;
 
                                         // Grab the max components of the two pixels
-                                        var packed = default(TPixel);
+                                        TPixel packed = default(TPixel);
                                         packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
                                         targetPixels[offsetX, offsetY] = packed;
                                     }

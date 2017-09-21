@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+using System.Numerics;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
+
 namespace SixLabors.ImageSharp.Drawing
 {
-    using System;
-    using System.Buffers;
-    using System.Numerics;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.Primitives;
-    using SixLabors.Shapes;
-
     /// <summary>
     /// A mapping between a <see cref="IPath"/> and a region.
     /// </summary>

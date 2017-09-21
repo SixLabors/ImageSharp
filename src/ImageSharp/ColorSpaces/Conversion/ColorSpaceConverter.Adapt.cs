@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
-    using System;
-    using SixLabors.ImageSharp.ColorSpaces;
-    using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
-
     /// <content>
     /// Performs chromatic adaptation on the various color spaces.
     /// </content>
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 return color;
             }
 
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
 
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 return color;
             }
 
-            var labColor = this.ToCieLab(color);
+            CieLab labColor = this.ToCieLab(color);
             return this.ToCieLch(labColor);
         }
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 return color;
             }
 
-            var luvColor = this.ToCieLuv(color);
+            CieLuv luvColor = this.ToCieLuv(color);
             return this.ToCieLchuv(luvColor);
         }
 
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 return color;
             }
 
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 return color;
             }
 
-            var xyzColor = this.ToCieXyz(color);
+            CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            var linearInput = this.ToLinearRgb(color);
+            LinearRgb linearInput = this.ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);
             return this.ToRgb(linearOutput);
         }

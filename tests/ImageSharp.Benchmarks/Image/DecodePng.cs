@@ -30,9 +30,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
         public Size PngSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream(this.pngBytes))
+            using (MemoryStream memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (var image = Image.FromStream(memoryStream))
+                using (Image image = Image.FromStream(memoryStream))
                 {
                     return image.Size;
                 }
@@ -42,9 +42,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Png")]
         public CoreSize PngCore()
         {
-            using (var memoryStream = new MemoryStream(this.pngBytes))
+            using (MemoryStream memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (var image = CoreImage.Load<Rgba32>(memoryStream))
+                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

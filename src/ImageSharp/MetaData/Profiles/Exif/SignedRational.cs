@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Globalization;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
-    using System;
-    using System.Globalization;
-
     /// <summary>
     /// Represents a number that can be expressed as a fraction.
     /// </summary>
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <param name="simplify">Specified if the rational should be simplified.</param>
         public SignedRational(int numerator, int denominator, bool simplify)
         {
-            var rational = new LongRational(numerator, denominator, simplify);
+            LongRational rational = new LongRational(numerator, denominator, simplify);
 
             this.Numerator = (int)rational.Numerator;
             this.Denominator = (int)rational.Denominator;
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
         public SignedRational(double value, bool bestPrecision)
         {
-            var rational = new LongRational(value, bestPrecision);
+            LongRational rational = new LongRational(value, bestPrecision);
 
             this.Numerator = (int)rational.Numerator;
             this.Denominator = (int)rational.Denominator;
@@ -140,8 +140,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc/>
         public bool Equals(SignedRational other)
         {
-            var left = new LongRational(this.Numerator, this.Denominator);
-            var right = new LongRational(other.Numerator, other.Denominator);
+            LongRational left = new LongRational(this.Numerator, this.Denominator);
+            LongRational right = new LongRational(other.Numerator, other.Denominator);
 
             return left.Equals(right);
         }
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            var self = new LongRational(this.Numerator, this.Denominator);
+            LongRational self = new LongRational(this.Numerator, this.Denominator);
             return self.GetHashCode();
         }
 
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>The <see cref="string"/></returns>
         public string ToString(IFormatProvider provider)
         {
-            var rational = new LongRational(this.Numerator, this.Denominator);
+            LongRational rational = new LongRational(this.Numerator, this.Denominator);
             return rational.ToString(provider);
         }
     }

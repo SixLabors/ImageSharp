@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Drawing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Helpers;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                 maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
 
                 int width = maxX - minX;
-                using (var amount = new Buffer<float>(width))
+                using (Buffer<float> amount = new Buffer<float>(width))
                 using (PixelAccessor<TPixel> toBlendPixels = targetImage.Lock())
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {

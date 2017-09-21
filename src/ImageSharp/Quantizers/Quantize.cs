@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers;
+
 namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Quantizers;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp
             return source.Apply(img =>
             {
                 // TODO : move helper logic into the processor
-                QuantizedImage<TPixel> quantized = quantizer.Quantize(img, maxColors);
+                QuantizedImage<TPixel> quantized = quantizer.Quantize(img.Frames.RootFrame, maxColors);
                 int palleteCount = quantized.Palette.Length - 1;
 
                 using (var pixels = new PixelAccessor<TPixel>(quantized.Width, quantized.Height))

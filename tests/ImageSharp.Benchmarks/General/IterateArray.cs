@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [Benchmark(Baseline = true)]
         public Vector4 IterateIndexed()
         {
-            var sum = new Vector4();
+            Vector4 sum = new Vector4();
             Vector4[] a = this.array;
 
             for (int i = 0; i < a.Length; i++)
@@ -42,9 +42,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [Benchmark]
         public unsafe Vector4 IterateUsingPointers()
         {
-            var sum = new Vector4();
+            Vector4 sum = new Vector4();
 
-            var ptr = (Vector4*) this.buffer.Pin();
+            Vector4* ptr = (Vector4*) this.buffer.Pin();
             Vector4* end = ptr + this.Length;
 
             for (; ptr < end; ptr++)
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [Benchmark]
         public Vector4 IterateUsingReferences()
         {
-            var sum = new Vector4();
+            Vector4 sum = new Vector4();
 
             ref Vector4 start = ref this.array[0];
 

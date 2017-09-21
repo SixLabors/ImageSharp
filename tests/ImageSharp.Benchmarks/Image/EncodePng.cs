@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
         public void PngSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
                 this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
             }
@@ -65,14 +65,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Png")]
         public void PngCore()
         {
-            using (var memoryStream = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
                 QuantizerBase<Rgba32> quantizer = this.UseOctreeQuantizer
                 ? (QuantizerBase<Rgba32>)
                 new OctreeQuantizer<Rgba32>()
                 : new PaletteQuantizer<Rgba32>();
 
-                var options = new PngEncoder() { Quantizer = quantizer };
+                PngEncoder options = new PngEncoder() { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

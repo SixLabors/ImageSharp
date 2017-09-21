@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Bulk")]
         public CoreSize GlowBulk()
         {
-            using (var image = new Image<Rgba32>(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 this.bulk.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Glow - Parallel")]
         public CoreSize GLowSimple()
         {
-            using (var image = new Image<Rgba32>(800, 800))
+            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 this.parallel.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 
                 int width = maxX - minX;
-                using (var rowColors = new Buffer<TPixel>(width))
+                using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     for (int i = 0; i < width; i++)
@@ -123,8 +123,8 @@ namespace SixLabors.ImageSharp.Benchmarks
                             {
                                 int offsetX = x - startX;
                                 float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                var sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                var packed = default(TPixel);
+                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                TPixel packed = default(TPixel);
                                 packed.PackFromVector4(PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
                                 sourcePixels[offsetX, offsetY] = packed;
                             }
@@ -156,9 +156,9 @@ namespace SixLabors.ImageSharp.Benchmarks
                 // https://en.wikipedia.org/wiki/Alpha_compositing
                 // Vout =  Vs + Vb (1 - Vsa)
                 // Aout = Vsa + Vsb (1 - Vsa)
-                var inverseW = new Vector3(1 - source.W);
-                var xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
-                var xyzS = new Vector3(source.X, source.Y, source.Z);
+                Vector3 inverseW = new Vector3(1 - source.W);
+                Vector3 xyzB = new Vector3(backdrop.X, backdrop.Y, backdrop.Z);
+                Vector3 xyzS = new Vector3(source.X, source.Y, source.Z);
 
                 return new Vector4(xyzS + (xyzB * inverseW), source.W + (backdrop.W * (1 - source.W)));
             }

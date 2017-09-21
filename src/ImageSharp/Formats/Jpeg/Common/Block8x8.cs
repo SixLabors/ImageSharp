@@ -1,10 +1,13 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Text;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using System;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
-    using System.Text;
-
     /// <summary>
     /// Represents a Jpeg block with <see cref="short"/> coefficiens.
     /// </summary>

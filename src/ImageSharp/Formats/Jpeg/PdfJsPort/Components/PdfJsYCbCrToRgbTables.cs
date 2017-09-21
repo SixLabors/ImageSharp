@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// Provides 8-bit lookup tables for converting from YCbCr to Rgb colorspace.
     /// Methods to build the tables are based on libjpeg implementation.

@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             float[] stuff = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-            var span = new Span<float>(stuff);
+            Span<float> span = new Span<float>(stuff);
 
             ref Vector<float> v = ref span.FetchVector();
 
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             TestStructs.Foo[] fooz = { new TestStructs.Foo(1, 2), new TestStructs.Foo(3, 4), new TestStructs.Foo(5, 6) };
 
-            using (var colorBuf = new Buffer<TestStructs.Foo>(fooz))
+            using (Buffer<TestStructs.Foo> colorBuf = new Buffer<TestStructs.Foo>(fooz))
             {
                 Span<TestStructs.Foo> orig = colorBuf.Slice(1);
                 Span<byte> asBytes = orig.AsBytes();
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.Foo[] array = TestStructs.Foo.CreateArray(3);
 
                 // Act:
-                var span = new Span<TestStructs.Foo>(array);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array);
 
                 // Assert:
                 Assert.Equal(array, span.ToArray());
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int start = 2;
 
                 // Act:
-                var span = new Span<TestStructs.Foo>(array, start);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start);
 
                 // Assert:
                 Assert.SameRefs(ref array[start], ref span.DangerousGetPinnableReference());
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int start = 2;
                 int length = 3;
                 // Act:
-                var span = new Span<TestStructs.Foo>(array, start, length);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start, length);
 
                 // Assert:
                 Assert.SameRefs(ref array[start], ref span.DangerousGetPinnableReference());
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int start1 = 2;
                 int totalOffset = start0 + start1;
 
-                var span = new Span<TestStructs.Foo>(array, start0);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start0);
 
                 // Act:
                 span = span.Slice(start1);
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int totalOffset = start0 + start1;
                 int sliceLength = 3;
 
-                var span = new Span<TestStructs.Foo>(array, start0);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(array, start0);
 
                 // Act:
                 span = span.Slice(start1, sliceLength);
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public void Read(int length, int start, int index)
             {
                 TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
-                var span = new Span<TestStructs.Foo>(a, start);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
 
                 TestStructs.Foo element = span[index];
 
@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public void Write(int length, int start, int index)
             {
                 TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
-                var span = new Span<TestStructs.Foo>(a, start);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
 
                 span[index] = new TestStructs.Foo(666, 666);
 
@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public void AsBytes_Read(int length, int start, int index, int byteOffset)
             {
                 TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
-                var span = new Span<TestStructs.Foo>(a, start);
+                Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
 
                 Span<byte> bytes = span.AsBytes();
 
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void DangerousGetPinnableReference(int start, int length)
         {
             TestStructs.Foo[] a = TestStructs.Foo.CreateArray(length);
-            var span = new Span<TestStructs.Foo>(a, start);
+            Span<TestStructs.Foo> span = new Span<TestStructs.Foo>(a, start);
             ref TestStructs.Foo r = ref span.DangerousGetPinnableReference();
 
             Assert.True(Unsafe.AreSame(ref a[start], ref r));
@@ -267,8 +267,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.Foo[] source = TestStructs.Foo.CreateArray(count + 2);
                 TestStructs.Foo[] dest = new TestStructs.Foo[count + 5];
 
-                var apSource = new Span<TestStructs.Foo>(source, 1);
-                var apDest = new Span<TestStructs.Foo>(dest, 1);
+                Span<TestStructs.Foo> apSource = new Span<TestStructs.Foo>(source, 1);
+                Span<TestStructs.Foo> apDest = new Span<TestStructs.Foo>(dest, 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -290,8 +290,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
                 TestStructs.AlignedFoo[] dest = new TestStructs.AlignedFoo[count + 5];
 
-                var apSource = new Span<TestStructs.AlignedFoo>(source, 1);
-                var apDest = new Span<TestStructs.AlignedFoo>(dest, 1);
+                Span<TestStructs.AlignedFoo> apSource = new Span<TestStructs.AlignedFoo>(source, 1);
+                Span<TestStructs.AlignedFoo> apDest = new Span<TestStructs.AlignedFoo>(dest, 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -313,8 +313,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int[] source = CreateTestInts(count + 2);
                 int[] dest = new int[count + 5];
 
-                var apSource = new Span<int>(source, 1);
-                var apDest = new Span<int>(dest, 1);
+                Span<int> apSource = new Span<int>(source, 1);
+                Span<int> apDest = new Span<int>(dest, 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -337,8 +337,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.Foo[] source = TestStructs.Foo.CreateArray(count + 2);
                 byte[] dest = new byte[destCount + sizeof(TestStructs.Foo) * 2];
 
-                var apSource = new Span<TestStructs.Foo>(source, 1);
-                var apDest = new Span<byte>(dest, sizeof(TestStructs.Foo));
+                Span<TestStructs.Foo> apSource = new Span<TestStructs.Foo>(source, 1);
+                Span<byte> apDest = new Span<byte>(dest, sizeof(TestStructs.Foo));
 
                 SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(TestStructs.Foo));
 
@@ -360,8 +360,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
                 byte[] dest = new byte[destCount + sizeof(TestStructs.AlignedFoo) * 2];
 
-                var apSource = new Span<TestStructs.AlignedFoo>(source, 1);
-                var apDest = new Span<byte>(dest, sizeof(TestStructs.AlignedFoo));
+                Span<TestStructs.AlignedFoo> apSource = new Span<TestStructs.AlignedFoo>(source, 1);
+                Span<byte> apDest = new Span<byte>(dest, sizeof(TestStructs.AlignedFoo));
 
                 SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(TestStructs.AlignedFoo));
 
@@ -383,8 +383,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int[] source = CreateTestInts(count + 2);
                 byte[] dest = new byte[destCount + sizeof(int) + 1];
 
-                var apSource = new Span<int>(source);
-                var apDest = new Span<byte>(dest);
+                Span<int> apSource = new Span<int>(source);
+                Span<byte> apDest = new Span<byte>(dest);
 
                 SpanHelper.Copy(apSource.AsBytes(), apDest, count * sizeof(int));
 
@@ -404,8 +404,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 byte[] source = CreateTestBytes(srcCount);
                 TestStructs.Foo[] dest = new TestStructs.Foo[count + 2];
 
-                var apSource = new Span<byte>(source);
-                var apDest = new Span<TestStructs.Foo>(dest);
+                Span<byte> apSource = new Span<byte>(source);
+                Span<TestStructs.Foo> apDest = new Span<TestStructs.Foo>(dest);
 
                 SpanHelper.Copy(apSource, apDest.AsBytes(), count * sizeof(TestStructs.Foo));
 
@@ -423,8 +423,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Rgba32[] colors = { new Rgba32(0, 1, 2, 3), new Rgba32(4, 5, 6, 7), new Rgba32(8, 9, 10, 11), };
 
-                using (var colorBuf = new Buffer<Rgba32>(colors))
-                using (var byteBuf = new Buffer<byte>(colors.Length * 4))
+                using (Buffer<Rgba32> colorBuf = new Buffer<Rgba32>(colors))
+                using (Buffer<byte> byteBuf = new Buffer<byte>(colors.Length * 4))
                 {
                     SpanHelper.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length * sizeof(Rgba32));
 
@@ -442,7 +442,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 fixed (TestStructs.Foo* pArray = array)
                 fixed (byte* pRaw = rawArray)
                 {
-                    var pCasted = (TestStructs.Foo*)pRaw;
+                    TestStructs.Foo* pCasted = (TestStructs.Foo*)pRaw;
 
                     TestStructs.Foo val1 = pArray[index];
                     TestStructs.Foo val2 = pCasted[index];
@@ -456,7 +456,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 fixed (TestStructs.AlignedFoo* pArray = array)
                 fixed (byte* pRaw = rawArray)
                 {
-                    var pCasted = (TestStructs.AlignedFoo*)pRaw;
+                    TestStructs.AlignedFoo* pCasted = (TestStructs.AlignedFoo*)pRaw;
 
                     TestStructs.AlignedFoo val1 = pArray[index];
                     TestStructs.AlignedFoo val2 = pCasted[index];
@@ -470,7 +470,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 fixed (int* pArray = array)
                 fixed (byte* pRaw = rawArray)
                 {
-                    var pCasted = (int*)pRaw;
+                    int* pCasted = (int*)pRaw;
 
                     int val1 = pArray[index];
                     int val2 = pCasted[index];

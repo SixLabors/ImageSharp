@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-
     /// <summary>
     /// Typically this type is used for registered tags that can
     /// be displayed on many development systems as a sequence of four characters.

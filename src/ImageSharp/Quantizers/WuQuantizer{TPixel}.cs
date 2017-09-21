@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers.Base;
+
 namespace SixLabors.ImageSharp.Quantizers
 {
-    using System;
-    using System.Buffers;
-    using System.Collections.Generic;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Quantizers.Base;
-
     /// <summary>
     /// An implementation of Wu's color quantizer with alpha channel.
     /// </summary>

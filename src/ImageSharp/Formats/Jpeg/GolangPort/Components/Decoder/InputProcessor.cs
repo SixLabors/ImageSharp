@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
     /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s

@@ -19,11 +19,11 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Baseline = true, Description = "System.Drawing Resize")]
         public Size ResizeSystemDrawing()
         {
-            using (var source = new Bitmap(2000, 2000))
+            using (Bitmap source = new Bitmap(2000, 2000))
             {
-                using (var destination = new Bitmap(400, 400))
+                using (Bitmap destination = new Bitmap(400, 400))
                 {
-                    using (var graphics = Graphics.FromImage(destination))
+                    using (Graphics graphics = Graphics.FromImage(destination))
                     {
                         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp Resize")]
         public CoreSize ResizeCore()
         {
-            using (var image = new Image<Rgba32>(2000, 2000))
+            using (Image<Rgba32> image = new Image<Rgba32>(2000, 2000))
             {
                 image.Mutate(x => x.Resize(400, 400));
                 return new CoreSize(image.Width, image.Height);

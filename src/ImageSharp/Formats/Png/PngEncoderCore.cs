@@ -1,21 +1,21 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Png.Filters;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers;
+using static SixLabors.ImageSharp.ComparableExtensions;
+
 namespace SixLabors.ImageSharp.Formats.Png
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Linq;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Formats.Png.Filters;
-    using SixLabors.ImageSharp.Formats.Png.Zlib;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Quantizers;
-    using static SixLabors.ImageSharp.ComparableExtensions;
-
     /// <summary>
     /// Performs the png encoding operation.
     /// </summary>

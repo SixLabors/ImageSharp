@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 {
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         /// <returns>The intialized <see cref="RgbToYCbCrTables"/></returns>
         public static RgbToYCbCrTables Create()
         {
-            var tables = default(RgbToYCbCrTables);
+            RgbToYCbCrTables tables = default(RgbToYCbCrTables);
 
             for (int i = 0; i <= 255; i++)
             {

@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// The Sub filter transmits the difference between each byte and the value of the corresponding byte
     /// of the prior pixel.

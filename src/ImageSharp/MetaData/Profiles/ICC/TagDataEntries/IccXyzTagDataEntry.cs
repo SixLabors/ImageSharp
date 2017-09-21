@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Linq;
+using System.Numerics;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Linq;
-    using System.Numerics;
-
     /// <summary>
     /// The XYZType contains an array of XYZ values.
     /// </summary>

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         {
             IccWriter writer = CreateWriter();
 
-            var profile = new IccProfile()
+            IccProfile profile = new IccProfile()
             {
                 Header = IccTestDataProfiles.Header_Random_Write
             };

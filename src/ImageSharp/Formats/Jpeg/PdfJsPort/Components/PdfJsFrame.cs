@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
-    using System;
-
     /// <summary>
     /// Represent a single jpeg frame
     /// </summary>

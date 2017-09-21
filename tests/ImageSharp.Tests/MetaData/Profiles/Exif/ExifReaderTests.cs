@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Read_DataIsEmpty_ReturnsEmptyCollection()
         {
-            var reader = new ExifReader();
+            ExifReader reader = new ExifReader();
             byte[] data = new byte[] { };
 
             Collection<ExifValue> result = reader.Read(data);
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Read_DataIsMinimal_ReturnsEmptyCollection()
         {
-            var reader = new ExifReader();
+            ExifReader reader = new ExifReader();
             byte[] data = new byte[] { 69, 120, 105, 102, 0, 0 };
 
             Collection<ExifValue> result = reader.Read(data);

@@ -1,21 +1,21 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <content>
     /// Adds static methods allowing the creation of new image from raw pixel data.
     /// </content>
-    public static partial class ImageFrame
+    internal static partial class ImageFrame
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array in <typeparamref name="TPixel"/> format.

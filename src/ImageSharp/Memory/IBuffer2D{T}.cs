@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Memory
 {
-    using System;
-
     /// <summary>
     /// An interface that represents a pinned buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.

@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 int[] data = Create8x8RandomIntData(-range, range, seed);
 
-                var source = default(Block8x8);
+                Block8x8 source = default(Block8x8);
                 source.LoadFrom(data);
 
                 Block8x8 expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 int[] data = Create8x8RandomIntData(-1000, 1000, seed);
 
-                var source = default(Block8x8F);
+                Block8x8F source = default(Block8x8F);
                 source.LoadFrom(data);
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);

@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp
 {
-    using System;
-    using SixLabors.ImageSharp.Dithering;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing.Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>

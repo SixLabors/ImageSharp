@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// LMS is a color space represented by the response of the three types of cones of the human eye,
     /// named after their responsivity (sensitivity) at long, medium and short wavelengths.

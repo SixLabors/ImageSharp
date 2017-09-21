@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
         private static string StringifyReports(IEnumerable<ImageSimilarityReport> reports)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.Append(Environment.NewLine);
 
             int i = 0;

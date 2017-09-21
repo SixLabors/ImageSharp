@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public MemoryStream CreateStream(byte[] marker = null)
         {
-            var ms = new MemoryStream();
+            MemoryStream ms = new MemoryStream();
             byte[] data = this.header;
             ms.Write(data, 0, data.Length);
             if (marker != null)

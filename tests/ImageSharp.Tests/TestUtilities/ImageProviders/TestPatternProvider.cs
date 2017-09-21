@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     if (!testImages.ContainsKey(this.SourceFileOrDescription))
                     {
-                        var image = new Image<TPixel>(this.Width, this.Height);
+                        Image<TPixel> image = new Image<TPixel>(this.Width, this.Height);
                         DrawTestPattern(image);
                         testImages.Add(this.SourceFileOrDescription, image);
                     }
@@ -77,6 +77,11 @@ namespace SixLabors.ImageSharp.Tests
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 12;
+                if (stride < 1)
+                {
+                    stride = 1;
+                }
+
                 TPixel[] c = {
                                      NamedColors<TPixel>.HotPink,
                                      NamedColors<TPixel>.Blue
@@ -148,11 +153,11 @@ namespace SixLabors.ImageSharp.Tests
                 int bottom = pixels.Height;
                 int height = (int)Math.Ceiling(pixels.Height / 6f);
 
-                var red = Rgba32.Red.ToVector4(); // use real color so we can see har it translates in the test pattern
-                var green = Rgba32.Green.ToVector4(); // use real color so we can see har it translates in the test pattern
-                var blue = Rgba32.Blue.ToVector4(); // use real color so we can see har it translates in the test pattern
+                Vector4 red = Rgba32.Red.ToVector4(); // use real color so we can see har it translates in the test pattern
+                Vector4 green = Rgba32.Green.ToVector4(); // use real color so we can see har it translates in the test pattern
+                Vector4 blue = Rgba32.Blue.ToVector4(); // use real color so we can see har it translates in the test pattern
 
-                var c = default(TPixel);
+                TPixel c = default(TPixel);
 
                 for (int x = left; x < right; x++)
                 {
@@ -193,18 +198,18 @@ namespace SixLabors.ImageSharp.Tests
 
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
-                var c = default(TPixel);
-                var t = new Rgba32(0);
+                TPixel c = default(TPixel);
+                Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
-                for (int y = top; y < bottom; y++)
-                {
-                    t.PackedValue += stepsPerPixel;
-                    var v = t.ToVector4();
-                    //v.W = (x - left) / (float)left;
-                    c.PackFromVector4(v);
-                    pixels[x, y] = c;
-                }
+                    for (int y = top; y < bottom; y++)
+                    {
+                        t.PackedValue += stepsPerPixel;
+                        Vector4 v = t.ToVector4();
+                        //v.W = (x - left) / (float)left;
+                        c.PackFromVector4(v);
+                        pixels[x, y] = c;
+                    }
             }
         }
     }

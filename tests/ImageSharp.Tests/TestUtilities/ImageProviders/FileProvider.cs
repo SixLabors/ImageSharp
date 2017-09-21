@@ -133,13 +133,13 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Guard.NotNull(decoder, nameof(decoder));
 
-                var key = new Key(this.PixelType, this.FilePath, decoder);
+                Key key = new Key(this.PixelType, this.FilePath, decoder);
 
                 Image<TPixel> cachedImage = cache.GetOrAdd(
                     key,
                     fn =>
                         {
-                            var testFile = TestFile.Create(this.FilePath);
+                            TestFile testFile = TestFile.Create(this.FilePath);
                             return Image.Load<TPixel>(testFile.Bytes, decoder);
                         });
 

@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
     /// </summary>

@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(parent, nameof(parent));
 
             this.parent = parent;
+
+            // Frames are already cloned within the caller
             this.frames.Add(new ImageFrame<TPixel>(width, height));
         }
 
@@ -33,9 +35,11 @@ namespace SixLabors.ImageSharp
             Guard.NotNullOrEmpty(frames, nameof(frames));
 
             this.parent = parent;
+
+            // Frames are already cloned by the caller
             foreach (ImageFrame<TPixel> f in frames)
             {
-                this.AddFrame(f);
+                this.frames.Add(f);
             }
         }
 

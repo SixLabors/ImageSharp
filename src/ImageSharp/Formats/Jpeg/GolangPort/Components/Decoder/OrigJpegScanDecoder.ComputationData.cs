@@ -3,7 +3,6 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <returns>The <see cref="ComputationData"/></returns>
             public static ComputationData Create()
             {
-                ComputationData data = default(ComputationData);
+                var data = default(ComputationData);
                 data.Unzig = ZigZag.CreateUnzigTable();
                 return data;
             }

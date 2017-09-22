@@ -39,6 +39,7 @@ namespace SixLabors.ImageSharp
             // Frames are already cloned by the caller
             foreach (ImageFrame<TPixel> f in frames)
             {
+                this.ValidateFrame(f);
                 this.frames.Add(f);
             }
         }

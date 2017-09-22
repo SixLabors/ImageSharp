@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(parent, nameof(parent));
 
             this.parent = parent;
-            this.AddFrame(new ImageFrame<TPixel>(width, height));
+            this.frames.Add(new ImageFrame<TPixel>(width, height));
         }
 
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)

@@ -21,9 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
         /// <summary>
         /// A fixed size buffer holding the values.
-        /// See: <see>
-        ///         <cref>https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/unsafe-code-pointers/fixed-size-buffers</cref>
-        ///     </see>
+        /// See: <seealso href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/unsafe-code-pointers/fixed-size-buffers"/>
         /// </summary>
         private fixed short data[Size];
 

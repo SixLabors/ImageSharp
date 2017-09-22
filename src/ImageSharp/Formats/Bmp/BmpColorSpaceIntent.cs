@@ -5,8 +5,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// The rendering intent used on the Microsoft Windows BMP v5 (and later versions) image DIB or file.
+    /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this MSDN link</a> for more information.
     internal enum BmpColorSpaceIntent
     {
         // Microsoft Windows BMP v5

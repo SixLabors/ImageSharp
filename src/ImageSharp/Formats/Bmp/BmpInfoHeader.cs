@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// This block of bytes tells the application detailed information
     /// about the image, which will be used to display the image on
     /// the screen.
-    /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format">this Wikipedia link</a> for more information.
+    /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
     /// </summary>
     internal sealed class BmpInfoHeader
     {

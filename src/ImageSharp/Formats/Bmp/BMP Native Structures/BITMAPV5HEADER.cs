@@ -1,22 +1,22 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// This is the Windows 2000 and Windows 98 BMP v5 DIB (Device Independent Bitmap) information header.
     /// <para>Supported since Windows 2000 and Windows 98.</para>
     /// <para>Implemented on Microsoft Windows BMP v5 format.</para>
+    /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(BITMAPV5HEADER)</c> returns the size of 124 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
-    /// <para>The colors (<seealso cref="RGBQUAD"></seealso>) in the palette table should appear in order of importance and must follow this structure.</para>
+    /// <para>The colors (<see cref="RGBQUAD"/>) in the palette table should appear in order of importance and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 124)]
     internal struct BITMAPV5HEADER
     {
@@ -59,12 +59,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>If <c>BITMAPV5HEADER.BitsPerPixel</c> is 0, <c>BITMAPV5HEADER.Compression</c> must be either <c>BmpCompression.JPEG</c> or
         /// <c>BmpCompression.PNG</c>.</para>
         /// <para>If <c>BITMAPV5HEADER.BitsPerPixel</c> is 2, the bitmap is Windows CE 1.0 and above specific.</para>
+        /// <see cref="Compression"/>
         /// </summary>
         /// <remarks>
         /// The color table (if present) must follow the <c>BITMAPV5HEADER</c> structure, and consist of
-        /// <seealso cref="RGBQUAD"></seealso> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
+        /// <see cref="RGBQUAD"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </remarks>
-        /// <seealso cref="Compression"></seealso>
         public ushort BitsPerPixel;
 
         // ** Fields added for Microsoft Windows BMP v3 DIB header
@@ -79,43 +79,43 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <description>Compression Scheme</description>
         /// </listheader>
         /// <item>
-        /// <term>0 - <seealso cref="BmpCompression.RGB"></seealso></term>
+        /// <term>0 - <see cref="BmpCompression.RGB"/></term>
         /// <description>Uncompressed, uses RGB or RGBA</description>
         /// </item>
         /// <item>
-        /// <term>1 - <seealso cref="BmpCompression.RLE8"></seealso></term>
+        /// <term>1 - <see cref="BmpCompression.RLE8"/></term>
         /// <description>8-bit RLE (only valid for 8 bpp)</description>
         /// </item>
         /// <item>
-        /// <term>2 - <seealso cref="BmpCompression.RLE4"></seealso></term>
+        /// <term>2 - <see cref="BmpCompression.RLE4"/></term>
         /// <description>4-bit RLE (only valid for 4 bpp)</description>
         /// </item>
         /// <item>
-        /// <term>3 - <seealso cref="BmpCompression.BitFields"></seealso></term>
+        /// <term>3 - <see cref="BmpCompression.BitFields"/></term>
         /// <description>RGB (and optionaly RGBA) components size are given on bitfields mask (only valid for 16 and 32 bpp)</description>
         /// </item>
         /// <item>
-        /// <term>4 - <seealso cref="BmpCompression.JPEG"></seealso></term>
+        /// <term>4 - <see cref="BmpCompression.JPEG"/></term>
         /// <description>Contains a JPEG file</description>
         /// </item>
         /// <item>
-        /// <term>5 - <seealso cref="BmpCompression.PNG"></seealso></term>
+        /// <term>5 - <see cref="BmpCompression.PNG"/></term>
         /// <description>Contains a PNG file</description>
         /// </item>
         /// <item>
-        /// <term>6 - <seealso cref="BmpCompression.AlphaBitFields"></seealso></term>
+        /// <term>6 - <see cref="BmpCompression.AlphaBitFields"/></term>
         /// <description>RGBA components size are given on bitfields mask (only valid for 16 and 32 bpp on Windows CE .NET 4.0 and later)</description>
         /// </item>
         /// <item>
-        /// <term>11 - <seealso cref="BmpCompression.CMYK"></seealso></term>
+        /// <term>11 - <see cref="BmpCompression.CMYK"/></term>
         /// <description>Uncompressed, uses CMYK (only valid on Windows Metafile)</description>
         /// </item>
         /// <item>
-        /// <term>12 - <seealso cref="BmpCompression.CMYK_RLE8"></seealso></term>
+        /// <term>12 - <see cref="BmpCompression.CMYK_RLE8"/></term>
         /// <description>8-bit RLE (only valid for 8 bpp on Windows Metafile)</description>
         /// </item>
         /// <item>
-        /// <term>13 - <seealso cref="BmpCompression.CMYK_RLE4"></seealso></term>
+        /// <term>13 - <see cref="BmpCompression.CMYK_RLE4"/></term>
         /// <description>4-bit RLE (only valid for 4 bpp on Windows Metafile)</description>
         /// </item>
         /// </list>
@@ -125,11 +125,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// For Windows CE Mobile 5.0 and later, this value can be <c>OR</c> with <c>BI_SRCPREROTATE</c> (8000h in hexadecimal)
         /// to specify that the source DIB section has the same rotation angle as the destination.
         /// </remarks>
-        /// <seealso cref="BitsPerPixel"></seealso>
+        /// <seealso cref="BitsPerPixel"/>
         public uint Compression;
 
         /// <summary>
-        /// Specifies the size, in bytes, of the image. This may be set to 0 for <seealso cref="BmpCompression.RGB"></seealso> bitmaps.
+        /// Specifies the size, in bytes, of the image. This may be set to 0 for <seealso cref="BmpCompression.RGB"/> bitmaps.
         /// </summary>
         public uint ImageSize;
 
@@ -168,14 +168,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Packed bitmaps are referenced by a single pointer.
         /// Packed bitmaps require that the <c>BITMAPV5HEADER.PaletteSize</c> member must be either 0 or the actual size of the color table.
         /// </para>
-        /// <see>PaletteImportant</see>
+        /// <see cref="PaletteImportant"/>
         /// </summary>
         public uint PaletteSize;
 
         /// <summary>
         /// Specifies the number of important color indexes from the color palette for displaying the bitmap.
         /// <para>If this value is 0, all colors are required to display the bitmap correctly.</para>
-        /// <see>PaletteSize</see>
+        /// <see cref="PaletteSize"/>
         /// </summary>
         public uint PaletteImportant;
 
@@ -183,38 +183,38 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Color mask that specifies the red component of each pixel, valid only if <c>BITMAPV5HEADER.Compression</c> is set to
-        /// <seealso cref="BmpCompression.BitFields"></seealso> or  <seealso cref="BmpCompression.AlphaBitFields"></seealso>.
+        /// <see cref="BmpCompression.BitFields"/> or  <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint RedMask;
 
         /// <summary>
         /// Color mask that specifies the green component of each pixel, valid only if <c>BITMAPV5HEADER.Compression</c> is set to
-        /// <seealso cref="BmpCompression.BitFields"></seealso> or <seealso cref="BmpCompression.AlphaBitFields"></seealso>.
+        /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint GreenMask;
 
         /// <summary>
         /// Color mask that specifies the blue component of each pixel, valid only if <c>BITMAPV5HEADER.Compression</c> is set to
-        /// <seealso cref="BmpCompression.BitFields"></seealso> or <seealso cref="BmpCompression.AlphaBitFields"></seealso>.
+        /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint BlueMask;
 
         /// <summary>
         /// Color mask that specifies the alpha (transparency) component of each pixel, valid only if <c>BITMAPV5HEADER.Compression</c> is set to
-        /// <seealso cref="BmpCompression.BitFields"></seealso> or <seealso cref="BmpCompression.AlphaBitFields"></seealso>.
+        /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint AlphaMask;
 
         /// <summary>
         /// Specifies the color space of the DIB.
-        /// <see>BmpColorSpace</see>
+        /// <see cref="BmpColorSpace"/>
         /// </summary>
         public uint ColorSpaceType;
 
         /// <summary>
         /// A structure that specifies the x, y and z coordinates of the three colors that correspond to the
-        /// red, green and blue endpoints for the logical color space associated with the bitmap. <see>CIEXYZTRIPLE</see>.
-        /// This member is ignored unless the <c>BITMAPV5HEADER.ColorSpaceType</c> member specifies <seealso cref="BmpColorSpace.Calibrated_RGB"></seealso>.
+        /// red, green and blue endpoints for the logical color space associated with the bitmap. <see cref="CIEXYZTRIPLE"/>.
+        /// This member is ignored unless the <c>BITMAPV5HEADER.ColorSpaceType</c> member specifies <seealso cref="BmpColorSpace.Calibrated_RGB"/>.
         /// <para>
         /// <b>Note:</b> A color space is a model for representing color numerically in terms of three or more coordinates.
         /// For example, the RGB color space represents colors in terms of the red, green and blue coordinates.
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Toned response curve for red.
         /// This member is ignored unless color values are calibrated RGB values and <c>BITMAPV5HEADER.ColorSpaceType</c> is set to
-        /// <seealso cref="BmpColorSpace.Calibrated_RGB"></seealso>.
+        /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
         /// Specified in 16^16 format.
         /// </summary>
         public uint GammaRed;
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Toned response curve for green.
         /// This member is ignored unless color values are calibrated RGB values and <c>BITMAPV5HEADER.ColorSpaceType</c> is set to
-        /// <seealso cref="BmpColorSpace.Calibrated_RGB"></seealso>.
+        /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
         /// Specified in 16^16 format.
         /// </summary>
         public uint GammaGreen;
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Toned response curve for blue.
         /// This member is ignored unless color values are calibrated RGB values and <c>BITMAPV5HEADER.ColorSpaceType</c> is set to
-        /// <seealso cref="BmpColorSpace.Calibrated_RGB"></seealso>.
+        /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
         /// Specified in 16^16 format.
         /// </summary>
         public uint GammaBlue;
@@ -250,7 +250,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Rendering intent for bitmap.
-        /// <see>BmpColorSpaceIntent</see>
+        /// <see cref="BmpColorSpaceIntent"/>
         /// <para>The Independent Color Management interface (ICM) 2.0 allows International Color Consortium (ICC) color profiles
         /// to be linked or embedded in DIBs.</para>
         /// </summary>
@@ -258,8 +258,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The offset, in bytes, from the beginning of the <c>BITMAPV5HEADER</c> structure to the start of the profile data.
-        /// This member is ignored unless <c>BITMAPV5HEADER.ColorSpaceType</c> is set to <seealso cref="BmpColorSpace.ProfileLinked"></seealso> or
-        /// <seealso cref="BmpColorSpace.ProfileEmbedded"></seealso>.
+        /// This member is ignored unless <c>BITMAPV5HEADER.ColorSpaceType</c> is set to <see cref="BmpColorSpace.ProfileLinked"/> or
+        /// <see cref="BmpColorSpace.ProfileEmbedded"/>.
         /// <para>If the profile is embedded, profile data is the actual ICM 2.0 profile.</para>
         /// <para>If the profile is linked,  profile data is the null-terminated file name of the ICM 2.0 profile or
         /// the fully qualified path (including a network path) of the profile used by the DIB.
@@ -269,8 +269,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Size, in bytes, of embedded profile data.
-        /// This member is ignored unless <c>BITMAPV5HEADER.ColorSpaceType</c> is set to <seealso cref="BmpColorSpace.ProfileLinked"></seealso> or
-        /// <seealso cref="BmpColorSpace.ProfileEmbedded"></seealso>.
+        /// This member is ignored unless <c>BITMAPV5HEADER.ColorSpaceType</c> is set to <see cref="BmpColorSpace.ProfileLinked"/> or
+        /// <see cref="BmpColorSpace.ProfileEmbedded"/>.
         /// <para>The profile data (if present) should follow the color table.</para>
         /// <para>For packed DIBs, the profile data should follow the bitmap bits similar to the file format.</para>
         /// </summary>

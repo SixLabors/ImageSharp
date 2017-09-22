@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since OS/2 1.0 (same format as Windows 2.0).
         /// </para>
-        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// <seealso cref="BmpNativeStructuresSizes.RGBTRIPLE"/>
         /// </summary>
         OS21XpaletteELEMENT = 3,
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since OS/2 2.0 (same format as Windows 3.1x).
         /// </para>
-        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// <seealso cref="BmpNativeStructuresSizes.RGBQUAD"/>
         /// </summary>
         OS22XpaletteELEMENT = 4,
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since OS/2 1.0 (same format as Windows 2.0).
         /// </para>
-        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// <seealso cref="BmpNativeStructuresSizes.BITMAPCOREHEADER"/>
         /// </summary>
         OS21XBITMAPHEADER = 12,
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since OS/2 2.0.
         /// </para>
-        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// </summary>
         OS22XBITMAPHEADER_MIN = 16,
 
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since OS/2 2.0.
         /// </para>
-        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// </summary>
         OS22XBITMAPHEADER = 64,
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since OS/2 2.0.
         /// </para>
-        /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this link</a> for more information.
+        /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// </summary>
         OS22XBITMAPHEADER_MAX = OS22XBITMAPHEADER,
 
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Windows 2.0 (same format as OS/2 1.0).
         /// </para>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">this link</a> for more information.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         RGBTRIPLE = 3,
 
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Windows 3.0 (same format as OS/2 2.0).
         /// </para>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         RGBQUAD = 4,
 
@@ -96,8 +96,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Windows 2.0 and OS/2 1.0.
         /// </para>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">this link</a> for more information.
         BITMAPFILEHEADER = 14,
 
         // Microsoft Windows BMP DIB header
@@ -107,8 +107,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Window 2.0x (same format as OS/2 1.0).
         /// </para>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183372(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183372(v=vs.85).aspx">this link</a> for more information.
         BITMAPCOREHEADER = 12,
 
         /// <summary>
@@ -116,8 +116,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Window 3.0x, Windows NT 3.1.
         /// </para>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183376(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183376(v=vs.85).aspx">this link</a> for more information.
         BITMAPINFOHEADER = 40,
 
         /// <summary>
@@ -125,8 +125,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Windows NT 3.1.
         /// </para>
+        /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format"/>
         BITMAPINFOHEADER_NT = 52,
 
         /// <summary>
@@ -134,8 +134,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Windows CE 5.0 with .NET 4.0.
         /// </para>
+        /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://en.wikipedia.org/wiki/BMP_file_format"/>
         BITMAPINFOHEADER_CE = 56,
 
         /// <summary>
@@ -143,8 +143,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Window 95, Windows NT 4.
         /// </para>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183380(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183380(v=vs.85).aspx">this link</a> for more information.
         BITMAPV4HEADER = 108,
 
         /// <summary>
@@ -152,8 +152,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// Supported since Window 98, Windows 2000.
         /// </para>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">See this MSDN link for more information.</seealso>
         /// </summary>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">this link</a> for more information.
         BITMAPV5HEADER = 124
     }
 }

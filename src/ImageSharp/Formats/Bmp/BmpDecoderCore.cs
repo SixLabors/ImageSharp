@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.ReadFileHeader();
                 this.ReadInfoHeader();
 
-                // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
+                // See http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
                 // If the height is negative, then this is a Windows bitmap whose origin
                 // is the upper-left corner and not the lower-left.The inverted flag
                 // indicates a lower-left origin.Our code will be outputting an
@@ -415,10 +415,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">this MSDN link</a> for more information.
         private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
         {
             return new BmpInfoHeader
@@ -440,11 +440,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPINFOHEADER format.
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the <c>BITMAPINFOHEADER</c> format.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// See <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">this MSDN link</a> for more information.
         private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
         {
             return new BmpInfoHeader

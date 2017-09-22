@@ -5,7 +5,7 @@
     <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
     <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
     <Authors>Six Labor and contributors</Authors>
-    <TargetFramework>netstandard1.1</TargetFramework>
+    <TargetFrameworks>netstandard1.1;netstandard1.3;netstandard2.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>

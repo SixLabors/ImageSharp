@@ -5,7 +5,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// The compression method used on the IBM OS/2 BMP v2 (and later versions) image DIB or file.
-    /// <para>See: https://en.wikipedia.org/wiki/BMP_file_format </para>
+    /// <para>Supported since IBM OS/2 2.0.</para>
+    /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
+    /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
     /// </summary>
     internal enum BmpOS2Compression
     {

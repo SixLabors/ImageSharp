@@ -1,25 +1,25 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// This is the Microsoft Windows BMP v2 and IBM OS/2 BMP v1 (and later) file header that
     /// contains information about the type, size, and layout of the contained DIB (Device Independent Bitmap).
     /// <para>Supported since Windows 2.0, Windows CE 2.0 and OS/2 1.0.</para>
     /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
+    /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183374(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(BITMAPFILEHEADER)</c> returns the size of 12 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
     /// <para>
     /// The DIB information header must follow the <c>BITMAPFILEHEADER</c> structure, and consist of one of
-    /// <seealso cref="OS22XBITMAPHEADER"></seealso>, <seealso cref="BITMAPCOREHEADER"></seealso>, <seealso cref="BITMAPV5HEADER"></seealso>, etc. structures.
+    /// <see cref="OS22XBITMAPHEADER"/>, <see cref="BITMAPCOREHEADER"/>, <see cref="BITMAPV5HEADER"/>, etc. structures.
     /// </para>
     /// </remarks>
-    /// See <a href="https://msdn.microsoft.com/en-us/library/dd183374(v=vs.85).aspx">this MSDN link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 14)]
     internal struct BITMAPFILEHEADER
     {

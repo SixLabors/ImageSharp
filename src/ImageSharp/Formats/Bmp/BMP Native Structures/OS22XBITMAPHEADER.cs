@@ -1,23 +1,23 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// This is the OS/2 2.x BMP v2 DIB (Device Independent Bitmap) information header.
     /// <para>Supported since OS/2 2.0.</para>
     /// <para>Implemented on IBM OS/2 BMP v2 format.</para>
+    /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
     /// </summary>
     /// <remarks>
     /// Make shore that <c>sizeof(OS22XBITMAPHEADER)</c> returns the size of 64 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
-    /// <para>The colors (<seealso cref="RGBQUAD"></seealso>) in the palette table should appear in order
+    /// <para>The colors (<seealso cref="RGBQUAD"/>) in the palette table should appear in order
     /// of importance and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
-    /// See <a href="http://www.fileformat.info/format/os2bmp/egff.htm">this FileFormat link</a> for more information.
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 64)]
     internal struct OS22XBITMAPHEADER
     {
@@ -49,12 +49,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The number of bits-per-pixel (bpp). This value must be one of: 1, 4, 8, or 24.
+        /// <see cref="Compression"/>
         /// </summary>
         /// <remarks>
         /// The color table (if present) must follow the <c>OS22XBITMAPHEADER</c> structure, and consist of
-        /// <seealso cref="RGBQUAD"></seealso> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
+        /// <see cref="RGBQUAD"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </remarks>
-        /// <seealso cref="Compression"></seealso>
         public ushort BitsPerPixel;
 
         // ** Fields added for IBM OS/2 BMP v2 DIB header
@@ -69,33 +69,33 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <description>Compression Scheme</description>
         /// </listheader>
         /// <item>
-        /// <term>0 - <seealso cref="BmpOS2Compression.RGB"></seealso></term>
+        /// <term>0 - <see cref="BmpOS2Compression.RGB"/></term>
         /// <description>Uncompressed</description>
         /// </item>
         /// <item>
-        /// <term>1 - <seealso cref="BmpOS2Compression.RLE8"></seealso></term>
+        /// <term>1 - <see cref="BmpOS2Compression.RLE8"/></term>
         /// <description>8-bit RLE (only valid for 8 bpp)</description>
         /// </item>
         /// <item>
-        /// <term>2 - <seealso cref="BmpOS2Compression.RLE4"></seealso></term>
+        /// <term>2 - <see cref="BmpOS2Compression.RLE4"/></term>
         /// <description>4-bit RLE (only valid for 4 bpp)</description>
         /// </item>
         /// <item>
-        /// <term>3 - <seealso cref="BmpOS2Compression.Huffman1D"></seealso></term>
+        /// <term>3 - <see cref="BmpOS2Compression.Huffman1D"/></term>
         /// <description>1-bit Huffman 1D (only valid for 1 bpp)</description>
         /// </item>
         /// <item>
-        /// <term>4 - <seealso cref="BmpOS2Compression.RLE24"></seealso></term>
+        /// <term>4 - <see cref="BmpOS2Compression.RLE24"/></term>
         /// <description>24-bit RLE (only valid for 24 bpp)</description>
         /// </item>
         /// </list>
         /// </para>
+        /// <see cref="BitsPerPixel"/>
         /// </summary>
-        /// <seealso cref="BitsPerPixel"></seealso>
         public uint Compression;
 
         /// <summary>
-        /// Specifies the size, in bytes, of the image. This may be set to 0 for <seealso cref="BmpOS2Compression.RGB"></seealso> bitmaps.
+        /// Specifies the size, in bytes, of the image. This may be set to 0 for <see cref="BmpOS2Compression.RGB"/> bitmaps.
         /// </summary>
         public uint ImageSize;
 
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// An application can use this value to select a bitmap from a resource group that best matches the characteristics of the current device.
         /// </para>
-        /// <see>Units</see>
+        /// <see cref="Units"/>
         /// </summary>
         public uint PixelsPerUnitX;
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para>
         /// An application can use this value to select a bitmap from a resource group that best matches the characteristics of the current device.
         /// </para>
-        /// <see>Units</see>
+        /// <see cref="Units"/>
         /// </summary>
         public uint PixelsPerUnitY;
 
@@ -136,14 +136,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Packed bitmaps are referenced by a single pointer.
         /// Packed bitmaps require that the <c>OS22XBITMAPHEADER.PaletteSize</c> member must be either 0 or the actual size of the color table.
         /// </para>
-        /// <see>PaletteImportant</see>
+        /// <see cref="PaletteImportant"/>
         /// </summary>
         public uint PaletteSize;
 
         /// <summary>
         /// Specifies the number of important color indexes from the color palette for displaying the bitmap.
         /// <para>If this value is 0, all colors are required.</para>
-        /// <see>PaletteSize</see>
+        /// <see cref="PaletteSize"/>
         /// </summary>
         public uint PaletteImportant;
 
@@ -151,8 +151,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Indicates the type of units used to interpret the values of the <c>OS22XBITMAPHEADER.PixelsPerUnitX</c> and
         /// <c>OS22XBITMAPHEADER.PixelsPerUnitY</c> fields.
         /// <para>The only valid value is 0, indicating pixels-per-meter.</para>
-        /// <see>PixelsPerUnitX</see>
-        /// <see>PixelsPerUnitY</see>
+        /// <see cref="PixelsPerUnitX"/>
+        /// <see cref="PixelsPerUnitY"/>
         /// </summary>
         public ushort Units;
 
@@ -180,19 +180,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <description>Halftoning Algorithm</description>
         /// </listheader>
         /// <item>
-        /// <term>0 - <seealso cref="BmpOS2CompressionHalftoning.NoHalftoning"></seealso></term>
+        /// <term>0 - <see cref="BmpOS2CompressionHalftoning.NoHalftoning"/></term>
         /// <description>No halftoning algorithm was used</description>
         /// </item>
         /// <item>
-        /// <term>1 - <seealso cref="BmpOS2CompressionHalftoning.ErrorDiffusion"></seealso></term>
+        /// <term>1 - <see cref="BmpOS2CompressionHalftoning.ErrorDiffusion"/></term>
         /// <description>Error Diffusion</description>
         /// </item>
         /// <item>
-        /// <term>2 - <seealso cref="BmpOS2CompressionHalftoning.Panda"></seealso></term>
+        /// <term>2 - <see cref="BmpOS2CompressionHalftoning.Panda"/></term>
         /// <description>Processing Algorithm for Noncoded Document Acquisition (PANDA)</description>
         /// </item>
         /// <item>
-        /// <term>3 - <seealso cref="BmpOS2CompressionHalftoning.SuperCircle"></seealso></term>
+        /// <term>3 - <see cref="BmpOS2CompressionHalftoning.SuperCircle"/></term>
         /// <description>Super-Circle</description>
         /// </item>
         /// </list>

@@ -41,9 +41,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Rounds all values in 'v' to the nearest integer following <see cref="MidpointRounding.ToEven"/> semantics.
         /// Source:
-        /// <see>
-        ///     <cref>https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L110</cref>
-        /// </see>
+        /// <seealso href="https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L110"/>
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector<float> FastRound(this Vector<float> x)
@@ -61,9 +59,7 @@ namespace SixLabors.ImageSharp
         /// Convert 'source.Length' <see cref="float"/> values normalized into [0..1] from 'source' into 'dest' buffer of <see cref="byte"/> values.
         /// The values gonna be scaled up into [0-255] and rounded.
         /// Based on:
-        /// <see>
-        ///     <cref>http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions</cref>
-        /// </see>
+        /// <seealso href="http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions"/>
         /// </summary>
         internal static void BulkConvertNormalizedFloatToByte(ReadOnlySpan<float> source, Span<byte> dest)
         {

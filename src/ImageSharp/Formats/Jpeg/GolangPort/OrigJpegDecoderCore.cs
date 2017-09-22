@@ -396,6 +396,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
+        /// Returns a value indicating whether the passed bytes are a match to the profile identifer
+        /// </summary>
+        /// <param name="bytesToCheck">The bytes to check</param>
+        /// <param name="profileIdentifier">The profile identifier</param>
+        /// <returns>The <see cref="bool"/></returns>
+        private static bool IsProfile(Span<byte> bytesToCheck, Span<byte> profileIdentifier)
+        {
+            return bytesToCheck.Slice(0, profileIdentifier.Length).SequenceEqual(profileIdentifier);
+        }
+
+        /// <summary>
         /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
         private void InitDerivedMetaDataProperties()
@@ -435,14 +446,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
-            this.isJFif = this.Temp[0] == OrigJpegConstants.JFif.J &&
-                          this.Temp[1] == OrigJpegConstants.JFif.F &&
-                          this.Temp[2] == OrigJpegConstants.JFif.I &&
-                          this.Temp[3] == OrigJpegConstants.JFif.F &&
-                          this.Temp[4] == OrigJpegConstants.JFif.Null;
-
-            if (this.isJFif)
+            if (IsProfile(this.Temp, OrigJpegConstants.ProfileIdentifiers.JFifMarker))
             {
+                this.isJFif = true;
                 this.jFifHorizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
                 this.jFifVerticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
             }
@@ -468,12 +474,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             byte[] profile = new byte[remaining];
             this.InputProcessor.ReadFull(profile, 0, remaining);
 
-            if (profile[0] == OrigJpegConstants.Exif.E &&
-                profile[1] == OrigJpegConstants.Exif.X &&
-                profile[2] == OrigJpegConstants.Exif.I &&
-                profile[3] == OrigJpegConstants.Exif.F &&
-                profile[4] == OrigJpegConstants.Exif.Null &&
-                profile[5] == OrigJpegConstants.Exif.Null)
+            if (IsProfile(profile, OrigJpegConstants.ProfileIdentifiers.ExifMarker))
             {
                 this.isExif = true;
                 this.MetaData.ExifProfile = new ExifProfile(profile);
@@ -498,18 +499,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
-            if (identifier[0] == OrigJpegConstants.ICC.I &&
-                identifier[1] == OrigJpegConstants.ICC.C &&
-                identifier[2] == OrigJpegConstants.ICC.C &&
-                identifier[3] == OrigJpegConstants.ICC.UnderScore &&
-                identifier[4] == OrigJpegConstants.ICC.P &&
-                identifier[5] == OrigJpegConstants.ICC.R &&
-                identifier[6] == OrigJpegConstants.ICC.O &&
-                identifier[7] == OrigJpegConstants.ICC.F &&
-                identifier[8] == OrigJpegConstants.ICC.I &&
-                identifier[9] == OrigJpegConstants.ICC.L &&
-                identifier[10] == OrigJpegConstants.ICC.E &&
-                identifier[11] == OrigJpegConstants.ICC.Null)
+            if (IsProfile(identifier, OrigJpegConstants.ProfileIdentifiers.IccMarker))
             {
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
@@ -547,14 +537,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 12);
             remaining -= 12;
 
-            this.isAdobe = this.Temp[0] == OrigJpegConstants.Adobe.A &&
-                           this.Temp[1] == OrigJpegConstants.Adobe.D &&
-                           this.Temp[2] == OrigJpegConstants.Adobe.O &&
-                           this.Temp[3] == OrigJpegConstants.Adobe.B &&
-                           this.Temp[4] == OrigJpegConstants.Adobe.E;
-
-            if (this.isAdobe)
+            if (IsProfile(this.Temp, OrigJpegConstants.ProfileIdentifiers.AdobeMarker))
             {
+                this.isAdobe = true;
                 this.adobeColorTransform = this.Temp[11];
             }
 

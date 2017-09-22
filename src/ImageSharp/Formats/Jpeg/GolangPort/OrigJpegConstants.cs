@@ -26,6 +26,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
 
         /// <summary>
+        /// Descibes the various header identifers for metadata profiles
+        /// </summary>
+        /// <remarks>
+        /// Encoding ASCII isn't available for NetStandard 1.1
+        /// </remarks>
+        internal static class ProfileIdentifiers
+        {
+            /// <summary>
+            /// Describes the EXIF specific markers
+            /// </summary>
+            public static readonly byte[] JFifMarker = { JFif.J, JFif.F, JFif.I, JFif.F, JFif.Null };
+
+            /// <summary>
+            /// Describes the EXIF specific markers
+            /// </summary>
+            public static readonly byte[] IccMarker = { ICC.I, ICC.C, ICC.C, ICC.UnderScore, ICC.P, ICC.R, ICC.O, ICC.F, ICC.I, ICC.L, ICC.E, ICC.Null };
+
+            /// <summary>
+            /// Describes the ICC specific markers
+            /// </summary>
+            public static readonly byte[] ExifMarker = { Exif.E, Exif.X, Exif.I, Exif.F, Exif.Null, Exif.Null };
+
+            /// <summary>
+            /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
+            /// </summary>
+            public static readonly byte[] AdobeMarker = { Adobe.A, Adobe.D, Adobe.O, Adobe.B, Adobe.E };
+        }
+
+        /// <summary>
         /// Describes common Jpeg markers
         /// </summary>
         internal static class Markers

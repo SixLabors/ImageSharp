@@ -25,7 +25,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 
         /// <summary>
         /// Gets the divisors needed to apply when calculating colors.
-        /// <seealso href="https://en.wikipedia.org/wiki/Chroma_subsampling"/>
+        /// <see>
+        ///     <cref>https://en.wikipedia.org/wiki/Chroma_subsampling</cref>
+        /// </see>
         /// In case of 4:2:0 subsampling the values are: Luma.SubSamplingDivisors = (1,1) Chroma.SubSamplingDivisors = (2,2)
         /// </summary>
         Size SubSamplingDivisors { get; }

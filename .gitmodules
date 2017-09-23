@@ -1,0 +1,4 @@
+[submodule "tests/Images/External"]
+	path = tests/Images/External
+	url = https://github.com/SixLabors/Imagesharp.Tests.Images.git
+	branch = master

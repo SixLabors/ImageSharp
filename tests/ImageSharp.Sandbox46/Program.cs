@@ -58,20 +58,20 @@ namespace SixLabors.ImageSharp.Sandbox46
 
         private static void RunResizeProfilingTest()
         {
-            var test = new ResizeProfilingBenchmarks(new ConsoleOutput());
+            ResizeProfilingBenchmarks test = new ResizeProfilingBenchmarks(new ConsoleOutput());
             test.ResizeBicubic(2000, 2000);
         }
 
         private static void RunToVector4ProfilingTest()
         {
-            var tests = new PixelOperationsTests.Rgba32(new ConsoleOutput());
+            PixelOperationsTests.Rgba32 tests = new PixelOperationsTests.Rgba32(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 
         private static void RunDecodeJpegProfilingTests()
         {
             Console.WriteLine("RunDecodeJpegProfilingTests...");
-            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
+            JpegProfilingBenchmarks benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
             foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];

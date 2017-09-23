@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         RGB24 = 24,
 
-        // Microsoft Windows BMP v3
+        // Microsoft Windows BMP v3 (Windows NT and Windows 98)
 
         /// <summary>
         /// The number of bits-per-pixel is specified or is implied by the JPEG or PNG format.

@@ -15,17 +15,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// The mask for the red part of the color for 16 bit rgb bitmaps.
+        /// The mask for the red part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16RMask = 0x00007C00;
 
         /// <summary>
-        /// The mask for the green part of the color for 16 bit rgb bitmaps.
+        /// The mask for the green part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16GMask = 0x000003E0;
 
         /// <summary>
-        /// The mask for the blue part of the color for 16 bit rgb bitmaps.
+        /// The mask for the blue part of the color for 16 bit RGB bitmaps.
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.ReadFileHeader();
                 this.ReadInfoHeader();
 
-                // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
+                // See http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
                 // If the height is negative, then this is a Windows bitmap whose origin
                 // is the upper-left corner and not the lower-left.The inverted flag
                 // indicates a lower-left origin.Our code will be outputting an
@@ -94,9 +94,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 if (this.infoHeader.ClrUsed == 0)
                 {
-                    if (this.infoHeader.BitsPerPixel == 1 ||
-                        this.infoHeader.BitsPerPixel == 4 ||
-                        this.infoHeader.BitsPerPixel == 8)
+                    if (this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.MonoChrome) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette4) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette16) ||
+                        this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.Palette256))
                     {
                         colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
                     }
@@ -128,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
                 }
 
-                Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)
@@ -237,9 +238,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             byte[] row = new byte[arrayWidth + padding];
-            TPixel color = default(TPixel);
+            var color = default(TPixel);
 
-            Rgba32 rgba = default(Rgba32);
+            var rgba = default(Rgba32);
 
             for (int y = 0; y < height; y++)
             {
@@ -285,10 +286,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             const int ScaleG = 4; // 256/64
             const int ComponentCount = 2;
 
-            TPixel color = default(TPixel);
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var color = default(TPixel);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -327,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -351,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -414,10 +415,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
         private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
         {
             return new BmpInfoHeader
@@ -439,11 +440,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPINFOHEADER format.
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the <c>BITMAPINFOHEADER</c> format.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
         /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
         private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
         {
             return new BmpInfoHeader
@@ -473,10 +474,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             this.fileHeader = new BmpFileHeader
             {
-                Type = BitConverter.ToInt16(data, 0),
-                FileSize = BitConverter.ToInt32(data, 2),
-                Reserved = BitConverter.ToInt32(data, 6),
-                Offset = BitConverter.ToInt32(data, 10)
+                Type = BitConverter.ToUInt16(data, 0),
+                FileSize = BitConverter.ToUInt32(data, 2),
+                Reserved1 = BitConverter.ToUInt16(data, 6),
+                Reserved2 = BitConverter.ToUInt16(data, 8),
+                Offset = BitConverter.ToUInt32(data, 10)
             };
         }
     }

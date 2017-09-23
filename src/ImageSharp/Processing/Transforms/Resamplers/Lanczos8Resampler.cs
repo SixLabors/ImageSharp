@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the Lanczos kernel algorithm as described on
-    /// <seealso href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</seealso>
+    /// <see href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</see>
     /// with a radius of 8 pixels.
     /// </summary>
     public class Lanczos8Resampler : IResampler

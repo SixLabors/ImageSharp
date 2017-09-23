@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the mitchell algorithm as described on
-    /// <seealso href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</seealso>
+    /// <see href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</see>
     /// </summary>
     public class MitchellNetravaliResampler : IResampler
     {

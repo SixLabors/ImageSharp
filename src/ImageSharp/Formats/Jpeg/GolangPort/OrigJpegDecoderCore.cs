@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -396,18 +395,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Returns a value indicating whether the passed bytes are a match to the profile identifer
-        /// </summary>
-        /// <param name="bytesToCheck">The bytes to check</param>
-        /// <param name="profileIdentifier">The profile identifier</param>
-        /// <returns>The <see cref="bool"/></returns>
-        private static bool IsProfile(Span<byte> bytesToCheck, Span<byte> profileIdentifier)
-        {
-            return bytesToCheck.Length >= profileIdentifier.Length
-                && bytesToCheck.Slice(0, profileIdentifier.Length).SequenceEqual(profileIdentifier);
-        }
-
-        /// <summary>
         /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
         private void InitDerivedMetaDataProperties()
@@ -447,7 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 13);
             remaining -= 13;
 
-            if (IsProfile(this.Temp, OrigJpegConstants.ProfileIdentifiers.JFifMarker))
+            if (ProfileResolver.IsProfile(this.Temp, ProfileResolver.JFifMarker))
             {
                 this.isJFif = true;
                 this.jFifHorizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
@@ -475,7 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             byte[] profile = new byte[remaining];
             this.InputProcessor.ReadFull(profile, 0, remaining);
 
-            if (IsProfile(profile, OrigJpegConstants.ProfileIdentifiers.ExifMarker))
+            if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
                 this.MetaData.ExifProfile = new ExifProfile(profile);
@@ -500,7 +487,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
-            if (IsProfile(identifier, OrigJpegConstants.ProfileIdentifiers.IccMarker))
+            if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 byte[] profile = new byte[remaining];
                 this.InputProcessor.ReadFull(profile, 0, remaining);
@@ -538,7 +525,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, 12);
             remaining -= 12;
 
-            if (IsProfile(this.Temp, OrigJpegConstants.ProfileIdentifiers.AdobeMarker))
+            if (ProfileResolver.IsProfile(this.Temp, ProfileResolver.AdobeMarker))
             {
                 this.isAdobe = true;
                 this.adobeColorTransform = this.Temp[11];

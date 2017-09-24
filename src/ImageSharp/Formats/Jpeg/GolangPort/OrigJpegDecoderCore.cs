@@ -403,7 +403,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <returns>The <see cref="bool"/></returns>
         private static bool IsProfile(Span<byte> bytesToCheck, Span<byte> profileIdentifier)
         {
-            return bytesToCheck.Slice(0, profileIdentifier.Length).SequenceEqual(profileIdentifier);
+            return bytesToCheck.Length >= profileIdentifier.Length
+                && bytesToCheck.Slice(0, profileIdentifier.Length).SequenceEqual(profileIdentifier);
         }
 
         /// <summary>

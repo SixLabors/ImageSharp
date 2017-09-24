@@ -26,49 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
 
         /// <summary>
-        /// Descibes the various header identifers for metadata profiles
-        /// </summary>
-        /// <remarks>
-        /// Encoding ASCII isn't available for NetStandard 1.1
-        /// </remarks>
-        internal static class ProfileIdentifiers
-        {
-            /// <summary>
-            /// Describes the EXIF specific markers
-            /// </summary>
-            public static readonly byte[] JFifMarker = ToAsciiBytes("JFIF\0");
-
-            /// <summary>
-            /// Describes the EXIF specific markers
-            /// </summary>
-            public static readonly byte[] IccMarker = ToAsciiBytes("ICC_PROFILE\0");
-
-            /// <summary>
-            /// Describes the ICC specific markers
-            /// </summary>
-            public static readonly byte[] ExifMarker = ToAsciiBytes("Exif\0\0");
-
-            /// <summary>
-            /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
-            /// </summary>
-            public static readonly byte[] AdobeMarker = ToAsciiBytes("Adobe");
-
-            // No Linq Select on NetStandard 1.1
-            private static byte[] ToAsciiBytes(string str)
-            {
-                int length = str.Length;
-                byte[] bytes = new byte[length];
-                char[] chars = str.ToCharArray();
-                for (int i = 0; i < length; i++)
-                {
-                    bytes[i] = (byte)chars[i];
-                }
-
-                return bytes;
-            }
-        }
-
-        /// <summary>
         /// Describes common Jpeg markers
         /// </summary>
         internal static class Markers
@@ -206,32 +163,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             /// Application specific marker used by GraphicConverter to store JPEG quality.
             /// </summary>
             public const byte APP15 = 0xef;
-        }
-
-        /// <summary>
-        /// Contains JFIF specific markers
-        /// </summary>
-        public static class JFif
-        {
-            /// <summary>
-            /// Represents J in ASCII
-            /// </summary>
-            public const byte J = 0x4A;
-
-            /// <summary>
-            /// Represents F in ASCII
-            /// </summary>
-            public const byte F = 0x46;
-
-            /// <summary>
-            /// Represents I in ASCII
-            /// </summary>
-            public const byte I = 0x49;
-
-            /// <summary>
-            /// Represents the null "0" marker
-            /// </summary>
-            public const byte Null = 0x0;
         }
 
         /// <summary>

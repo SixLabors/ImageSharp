@@ -36,22 +36,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             /// <summary>
             /// Describes the EXIF specific markers
             /// </summary>
-            public static readonly byte[] JFifMarker = { JFif.J, JFif.F, JFif.I, JFif.F, JFif.Null };
+            public static readonly byte[] JFifMarker = ToAsciiBytes("JFIF\0");
 
             /// <summary>
             /// Describes the EXIF specific markers
             /// </summary>
-            public static readonly byte[] IccMarker = { ICC.I, ICC.C, ICC.C, ICC.UnderScore, ICC.P, ICC.R, ICC.O, ICC.F, ICC.I, ICC.L, ICC.E, ICC.Null };
+            public static readonly byte[] IccMarker = ToAsciiBytes("ICC_PROFILE\0");
 
             /// <summary>
             /// Describes the ICC specific markers
             /// </summary>
-            public static readonly byte[] ExifMarker = { Exif.E, Exif.X, Exif.I, Exif.F, Exif.Null, Exif.Null };
+            public static readonly byte[] ExifMarker = ToAsciiBytes("Exif\0\0");
 
             /// <summary>
             /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
             /// </summary>
-            public static readonly byte[] AdobeMarker = { Adobe.A, Adobe.D, Adobe.O, Adobe.B, Adobe.E };
+            public static readonly byte[] AdobeMarker = ToAsciiBytes("Adobe");
+
+            // No Linq Select on NetStandard 1.1
+            private static byte[] ToAsciiBytes(string str)
+            {
+                int length = str.Length;
+                byte[] bytes = new byte[length];
+                char[] chars = str.ToCharArray();
+                for (int i = 0; i < length; i++)
+                {
+                    bytes[i] = (byte)chars[i];
+                }
+
+                return bytes;
+            }
         }
 
         /// <summary>
@@ -226,31 +240,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         internal static class Adobe
         {
             /// <summary>
-            /// Represents A in ASCII
-            /// </summary>
-            public const byte A = 0x41;
-
-            /// <summary>
-            /// Represents d in ASCII
-            /// </summary>
-            public const byte D = 0x64;
-
-            /// <summary>
-            /// Represents b in ASCII
-            /// </summary>
-            public const byte O = 0x6F;
-
-            /// <summary>
-            /// Represents b in ASCII
-            /// </summary>
-            public const byte B = 0x62;
-
-            /// <summary>
-            /// Represents e in ASCII
-            /// </summary>
-            public const byte E = 0x65;
-
-            /// <summary>
             /// The color transform is unknown.(RGB or CMYK)
             /// </summary>
             public const int ColorTransformUnknown = 0;
@@ -264,93 +253,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
             /// </summary>
             public const int ColorTransformYcck = 2;
-        }
-
-        /// <summary>
-        /// Contains EXIF specific markers
-        /// </summary>
-        internal static class Exif
-        {
-            /// <summary>
-            /// Represents E in ASCII
-            /// </summary>
-            public const byte E = 0x45;
-
-            /// <summary>
-            /// Represents x in ASCII
-            /// </summary>
-            public const byte X = 0x78;
-
-            /// <summary>
-            /// Represents i in ASCII
-            /// </summary>
-            public const byte I = 0x69;
-
-            /// <summary>
-            /// Represents f in ASCII
-            /// </summary>
-            public const byte F = 0x66;
-
-            /// <summary>
-            /// Represents the null "0" marker
-            /// </summary>
-            public const byte Null = 0x0;
-        }
-
-        /// <summary>
-        /// Contains ICC specific markers
-        /// </summary>
-        internal static class ICC
-        {
-            /// <summary>
-            /// Represents I in ASCII
-            /// </summary>
-            public const byte I = 0x49;
-
-            /// <summary>
-            /// Represents C in ASCII
-            /// </summary>
-            public const byte C = 0x43;
-
-            /// <summary>
-            /// Represents _ in ASCII
-            /// </summary>
-            public const byte UnderScore = 0x5F;
-
-            /// <summary>
-            /// Represents P in ASCII
-            /// </summary>
-            public const byte P = 0x50;
-
-            /// <summary>
-            /// Represents R in ASCII
-            /// </summary>
-            public const byte R = 0x52;
-
-            /// <summary>
-            /// Represents O in ASCII
-            /// </summary>
-            public const byte O = 0x4F;
-
-            /// <summary>
-            /// Represents F in ASCII
-            /// </summary>
-            public const byte F = 0x46;
-
-            /// <summary>
-            /// Represents L in ASCII
-            /// </summary>
-            public const byte L = 0x4C;
-
-            /// <summary>
-            /// Represents E in ASCII
-            /// </summary>
-            public const byte E = 0x45;
-
-            /// <summary>
-            /// Represents the null "0" marker
-            /// </summary>
-            public const byte Null = 0x0;
         }
     }
 }

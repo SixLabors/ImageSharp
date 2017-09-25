@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.IO
 
             long p1 = (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
             long p2 = (value[startIndex + 4] << 24) | (value[startIndex + 5] << 16) | (value[startIndex + 6] << 8) | value[startIndex + 7];
-            return p2 | (p1 << 32);
+            return (p2 & 0xFFFFFFFF) | (p1 << 32);
         }
     }
 }

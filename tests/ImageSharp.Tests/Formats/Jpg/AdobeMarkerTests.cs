@@ -13,6 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         // Taken from actual test image
         private readonly byte[] bytes = { 0x41, 0x64, 0x6F, 0x62, 0x65, 0x0, 0x64, 0x0, 0x0, 0x0, 0x0, 0x2 };
 
+        /// Altered components
+        private readonly byte[] bytes2 = { 0x41, 0x64, 0x6F, 0x62, 0x65, 0x0, 0x64, 0x0, 0x0, 0x1, 0x1, 0x1 };
+
         [Fact]
         public void MarkerLengthIsCorrect()
         {
@@ -38,6 +41,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             Assert.False(isAdobe);
             Assert.Equal(default(AdobeMarker), marker);
+        }
+
+        [Fact]
+        public void MarkerEqualityIsCorrect()
+        {
+            AdobeMarker.TryParse(this.bytes, out var marker);
+            AdobeMarker.TryParse(this.bytes, out var marker2);
+
+            Assert.True(marker.Equals(marker2));
+        }
+
+        [Fact]
+        public void MarkerInEqualityIsCorrect()
+        {
+            AdobeMarker.TryParse(this.bytes, out var marker);
+            AdobeMarker.TryParse(this.bytes2, out var marker2);
+
+            Assert.False(marker.Equals(marker2));
+        }
+
+        [Fact]
+        public void MarkerHashCodeIsReplicable()
+        {
+            AdobeMarker.TryParse(this.bytes, out var marker);
+            AdobeMarker.TryParse(this.bytes, out var marker2);
+
+            Assert.True(marker.GetHashCode().Equals(marker2.GetHashCode()));
+        }
+
+        [Fact]
+        public void MarkerHashCodeIsUnique()
+        {
+            AdobeMarker.TryParse(this.bytes, out var marker);
+            AdobeMarker.TryParse(this.bytes2, out var marker2);
+
+            Assert.False(marker.GetHashCode().Equals(marker2.GetHashCode()));
         }
     }
 }

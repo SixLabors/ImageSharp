@@ -48,18 +48,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
         /// <summary>
         /// Whether the image has a JFIF header
+        /// It's faster to check this than to use the equality operator on the struct
         /// </summary>
         private bool isJFif;
 
         /// <summary>
-        /// The horizontal resolution gleaned from a JFIF marker if present
+        /// Contains information about the JFIF marker
         /// </summary>
-        private short jFifHorizontalResolution;
-
-        /// <summary>
-        /// The vertical resolution gleaned from a JFIF marker if present
-        /// </summary>
-        private short jFifVerticalResolution;
+        private JFifMarker jFif;
 
         /// <summary>
         /// Whether the image has a EXIF header
@@ -76,11 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Contains information about the Adobe marker
         /// </summary>
         private AdobeMarker adobe;
-
-        /// <summary>
-        /// Contains information about the JFIF marker
-        /// </summary>
-        private JFifMarker jFif;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
@@ -418,10 +409,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.VerticalResolution = verticalValue;
                 }
             }
-            else if (this.jFifHorizontalResolution > 0 && this.jFifVerticalResolution > 0)
+            else if (this.isJFif)
             {
-                this.MetaData.HorizontalResolution = this.jFifHorizontalResolution;
-                this.MetaData.VerticalResolution = this.jFifVerticalResolution;
+                this.MetaData.HorizontalResolution = this.jFif.XDensity;
+                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -437,15 +428,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 return;
             }
 
-            this.InputProcessor.ReadFull(this.Temp, 0, 13);
-            remaining -= 13;
+            const int MarkerLength = JFifMarker.Length;
+            this.InputProcessor.ReadFull(this.Temp, 0, MarkerLength);
+            remaining -= MarkerLength;
 
-            if (ProfileResolver.IsProfile(this.Temp, ProfileResolver.JFifMarker))
-            {
-                this.isJFif = true;
-                this.jFifHorizontalResolution = (short)((this.Temp[8] << 8) | this.Temp[9]);
-                this.jFifVerticalResolution = (short)((this.Temp[10] << 8) | this.Temp[11]);
-            }
+            this.isJFif = JFifMarker.TryParse(this.Temp, out this.jFif);
 
             if (remaining > 0)
             {

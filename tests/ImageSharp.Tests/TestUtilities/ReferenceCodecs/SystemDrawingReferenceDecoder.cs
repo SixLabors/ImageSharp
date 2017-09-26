@@ -45,5 +45,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 }
             }
         }
+
+        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
+        {
+            using (var sourceBitmap = new System.Drawing.Bitmap(stream))
+            {
+                return new PixelTypeInfo(System.Drawing.Image.GetPixelFormatSize(sourceBitmap.PixelFormat));
+            }
+        }
     }
 }

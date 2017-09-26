@@ -4,7 +4,6 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -36,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             Guard.NotNull(stream, "stream");
 
-            using (JpegDecoderCore decoder = new JpegDecoderCore(configuration, this))
+            using (var decoder = new OrigJpegDecoderCore(configuration, this))
             {
                 return new PixelTypeInfo(decoder.DetectPixelSize(stream));
             }

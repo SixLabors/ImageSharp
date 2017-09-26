@@ -51,7 +51,7 @@
             // DialogOpenFile
             //
             this.DialogOpenFile.AutoUpgradeEnabled = false; 
-            this.DialogOpenFile.Filter = "BMP files (*.bmp)|*.bmp|GIF files (*.gif)|*.gif|JPEG files (*.jpg;*.jpg)|*.jpg;*.jpg|PNG files (*.png)|*.png|All files (*.*)|*.*";
+            this.DialogOpenFile.Filter = "BMP files (*.bmp)|*.bmp|GIF files (*.gif)|*.gif|JPEG files (*.jpeg;*.jpg)|*.jpeg;*.jpg|PNG files (*.png)|*.png|All files (*.*)|*.*";
             // 
             // FormMain
             // 

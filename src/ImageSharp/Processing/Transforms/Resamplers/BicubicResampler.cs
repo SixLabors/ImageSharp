@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// The function implements the bicubic kernel algorithm W(x) as described on
-    /// <seealso href="https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm">Wikipedia</seealso>
+    /// <see href="https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm">Wikipedia</see>
     /// A commonly used algorithm within imageprocessing that preserves sharpness better than triangle interpolation.
     /// </summary>
     public class BicubicResampler : IResampler

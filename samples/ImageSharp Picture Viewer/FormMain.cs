@@ -5,6 +5,7 @@ using SixLabors.ImageSharp;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System;
+using System.IO;
 
 namespace ImageSharp_Picture_Viewer
 {
@@ -24,7 +25,12 @@ namespace ImageSharp_Picture_Viewer
                 if((imageFile != null) && (imageFile.Trim().Length > 0))
                 {
                     /* Using SixLabors.ImageSharp classes */
-                    using (var imageIS = SixLabors.ImageSharp.Image.Load(imageFile))
+                    // .NET Standard 1.3+ 
+                    //using (var imageIS = SixLabors.ImageSharp.Image.Load(imageFile))
+                    // .NET Standard 1.1 - 1.2
+                    using (System.IO.FileStream stream = File.OpenRead(imageFile))
+                    using (var imageIS = SixLabors.ImageSharp.Image.Load<Rgba32>(stream))
+                    // Common code
                     {
                         int w = imageIS.Width;
                         int h = imageIS.Height;

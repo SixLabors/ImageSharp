@@ -3,20 +3,22 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
 
     using BenchmarkDotNet.Attributes;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing.Processors;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing.Processors;
     using CoreSize = SixLabors.Primitives.Size;
-    using ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing;
     using System.Numerics;
     using System;
     using System.Threading.Tasks;
 
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Memory;
     using SixLabors.Primitives;
+    using SixLabors.ImageSharp.Helpers;
+    using SixLabors.ImageSharp.Advanced;
 
     public class Glow : BenchmarkBase
     {
@@ -26,7 +28,7 @@ namespace ImageSharp.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, GraphicsOptions.Default) { Radius = 800 * .5f, };
+            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
             this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
 
         }
@@ -35,7 +37,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.ApplyProcessor(bulk, image.Bounds);
+                this.bulk.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
             }
         }
@@ -45,7 +47,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.ApplyProcessor(parallel, image.Bounds);
+                this.parallel.Apply(image, image.Bounds());
                 return new CoreSize(image.Width, image.Height);
             }
         }
@@ -73,7 +75,7 @@ namespace ImageSharp.Benchmarks
             public float Radius { get; set; }
 
             /// <inheritdoc/>
-            protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+            protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
             {
                 int startY = sourceRectangle.Y;
                 int endY = sourceRectangle.Bottom;
@@ -112,7 +114,7 @@ namespace ImageSharp.Benchmarks
                     Parallel.For(
                         minY,
                         maxY,
-                        this.ParallelOptions,
+                        configuration.ParallelOptions,
                         y =>
                         {
                             int offsetY = y - startY;

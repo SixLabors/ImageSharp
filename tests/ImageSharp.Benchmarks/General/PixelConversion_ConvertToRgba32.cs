@@ -1,5 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
@@ -111,7 +111,7 @@ namespace ImageSharp.Benchmarks.General
         [Params(128)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.compatibleMemoryLayoutRunner = new ConversionRunner<TestRgba>(this.Count);

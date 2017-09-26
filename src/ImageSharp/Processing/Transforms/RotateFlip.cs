@@ -1,16 +1,12 @@
-﻿// <copyright file="RotateFlip.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using ImageSharp.Processing;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -24,7 +20,7 @@ namespace ImageSharp
         /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
         /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static Image<TPixel> RotateFlip<TPixel>(this Image<TPixel> source, RotateType rotateType, FlipType flipType)
+        public static IImageProcessingContext<TPixel> RotateFlip<TPixel>(this IImageProcessingContext<TPixel> source, RotateType rotateType, FlipType flipType)
             where TPixel : struct, IPixel<TPixel>
         {
             return source.Rotate(rotateType).Flip(flipType);

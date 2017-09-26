@@ -1,8 +1,11 @@
-﻿namespace ImageSharp.PixelFormats
-{
-    using System;
-    using System.Runtime.CompilerServices;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.PixelFormats
+{
     /// <summary>
     /// Extension methods for copying single pixel data into byte Spans.
     /// TODO: This utility class exists for legacy reasons. Need to do a lot of chore work to remove it (mostly in test classes).

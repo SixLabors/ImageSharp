@@ -1,19 +1,18 @@
-﻿// <copyright file="GifDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Buffers;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using System.Text;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
@@ -370,16 +369,16 @@ namespace ImageSharp.Formats
 
             ImageFrame<TPixel> currentFrame = null;
 
-            ImageBase<TPixel> image;
+            ImageFrame<TPixel> image;
 
             if (this.previousFrame == null)
             {
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 this.image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
 
-                this.SetFrameMetaData(this.metaData);
+                this.SetFrameMetaData(this.image.Frames.RootFrame.MetaData);
 
-                image = this.image;
+                image = this.image.Frames.RootFrame;
             }
             else
             {
@@ -389,15 +388,13 @@ namespace ImageSharp.Formats
                     previousFrame = this.previousFrame;
                 }
 
-                currentFrame = this.previousFrame.Clone();
+                currentFrame = this.image.Frames.AddFrame(this.previousFrame); // this clones the frame and adds it the collection
 
                 this.SetFrameMetaData(currentFrame.MetaData);
 
                 image = currentFrame;
 
                 this.RestoreToBackground(image);
-
-                this.image.Frames.Add(currentFrame);
             }
 
             int i = 0;
@@ -442,7 +439,7 @@ namespace ImageSharp.Formats
                     writeY = y;
                 }
 
-                Span<TPixel> rowSpan = image.GetRowSpan(writeY);
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(writeY);
 
                 Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
@@ -472,7 +469,7 @@ namespace ImageSharp.Formats
                 return;
             }
 
-            this.previousFrame = currentFrame == null ? this.image.ToFrame() : currentFrame;
+            this.previousFrame = currentFrame == null ? this.image.Frames.RootFrame : currentFrame;
 
             if (this.graphicsControlExtension != null &&
                 this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
@@ -485,7 +482,7 @@ namespace ImageSharp.Formats
         /// Restores the current frame area to the background.
         /// </summary>
         /// <param name="frame">The frame.</param>
-        private void RestoreToBackground(ImageBase<TPixel> frame)
+        private void RestoreToBackground(ImageFrame<TPixel> frame)
         {
             if (this.restoreArea == null)
             {
@@ -523,7 +520,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetaData(IMetaData metaData)
+        private void SetFrameMetaData(ImageFrameMetaData metaData)
         {
             if (this.graphicsControlExtension != null)
             {

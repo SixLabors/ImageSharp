@@ -1,12 +1,10 @@
-﻿// <copyright file="RgbPrimariesChromaticityCoordinates.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.Rgb
+using System;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
-    using System;
-
     /// <summary>
     /// Represents the chromaticity coordinates of RGB primaries.
     /// One of the specifiers of <see cref="IRgbWorkingSpace"/>.

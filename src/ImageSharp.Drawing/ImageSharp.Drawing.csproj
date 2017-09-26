@@ -1,20 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>An extension to ImageSharp that allows the drawing of images, paths, and text.</Description>
-    <AssemblyTitle>ImageSharp.Drawing</AssemblyTitle>
-    <VersionPrefix>1.0.0-alpha9</VersionPrefix>
-    <Authors>James Jackson-South and contributors</Authors>
+    <AssemblyTitle>SixLabors.ImageSharp.Drawing</AssemblyTitle>
+    <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
+    <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
+    <Authors>Six Labor and contributors</Authors>
     <TargetFramework>netstandard1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>ImageSharp.Drawing</AssemblyName>
-    <PackageId>ImageSharp.Drawing</PackageId>
+    <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>
+    <PackageId>SixLabors.ImageSharp.Drawing</PackageId>
     <PackageTags>Image Draw Shape Path Font</PackageTags>
-    <PackageIconUrl>https://raw.githubusercontent.com/JimBobSquarePants/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/JimBobSquarePants/ImageSharp</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/SixLabors/ImageSharp</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/JimBobSquarePants/ImageSharp</RepositoryUrl>
+    <RepositoryUrl>https://github.com/SixLabors/ImageSharp</RepositoryUrl>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
@@ -30,19 +31,22 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
-    <AdditionalFiles Include="..\Shared\stylecop.json" />
+    <AdditionalFiles Include="..\..\stylecop.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SixLabors.Shapes.Text" Version="0.1.0-alpha0018" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta001">
+    <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0003" />
+    <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0002" />
+    <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0002" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
+    <RootNamespace>SixLabors.ImageSharp.Drawing</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

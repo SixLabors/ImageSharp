@@ -1,16 +1,13 @@
-﻿// <copyright file="GeneralFormatTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]
@@ -22,14 +19,14 @@ namespace ImageSharp.Tests
             {
                 image.MetaData.VerticalResolution = 150;
                 image.MetaData.HorizontalResolution = 150;
-                image.DebugSave(provider, null, Extensions.Bmp);
+                image.DebugSave(provider);
             }
         }
 
         [Fact]
         public void ImageCanEncodeToString()
         {
-            string path = this.CreateOutputDirectory("ToString");
+            string path = TestEnvironment.CreateOutputDirectory("ToString");
 
             foreach (TestFile file in Files)
             {
@@ -44,13 +41,13 @@ namespace ImageSharp.Tests
         [Fact]
         public void DecodeThenEncodeImageFromStreamShouldSucceed()
         {
-            string path = this.CreateOutputDirectory("Encode");
+            string path = TestEnvironment.CreateOutputDirectory("Encode");
 
             foreach (TestFile file in Files)
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                        image.Save($"{path}/{file.FileName}");
+                    image.Save($"{path}/{file.FileName}");
                 }
             }
         }
@@ -58,37 +55,37 @@ namespace ImageSharp.Tests
         [Fact]
         public void QuantizeImageShouldPreserveMaximumColorPrecision()
         {
-            string path = this.CreateOutputDirectory("Quantize");
+            string path = TestEnvironment.CreateOutputDirectory("Quantize");
 
             foreach (TestFile file in Files)
             {
                 using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out var mimeType))
                 {
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                         {
-                            image.Quantize(Quantization.Octree)
-                                .Save(output, mimeType);
+                            image.Mutate(x => x.Quantize(Quantization.Octree));
+                            image.Save(output, mimeType);
 
                         }
                     }
 
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
                         {
-                            image.Quantize(Quantization.Wu)
-                                .Save(output, mimeType);
+                            image.Mutate(x => x.Quantize(Quantization.Wu));
+                            image.Save(output, mimeType);
                         }
                     }
 
-                    using (Image<Rgba32> image = new Image<Rgba32>(srcImage))
+                    using (Image<Rgba32> image = srcImage.Clone())
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {
-                            image.Quantize(Quantization.Palette)
-                                .Save(output, mimeType);
+                            image.Mutate(x => x.Quantize(Quantization.Palette));
+                            image.Save(output, mimeType);
                         }
                     }
                 }
@@ -98,7 +95,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageCanConvertFormat()
         {
-            string path = this.CreateOutputDirectory("Format");
+            string path = TestEnvironment.CreateOutputDirectory("Format");
 
             foreach (TestFile file in Files)
             {
@@ -130,7 +127,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void ImageShouldPreservePixelByteOrderWhenSerialized()
         {
-            string path = this.CreateOutputDirectory("Serialized");
+            string path = TestEnvironment.CreateOutputDirectory("Serialized");
 
             foreach (TestFile file in Files)
             {

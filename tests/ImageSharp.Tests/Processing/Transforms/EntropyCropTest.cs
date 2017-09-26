@@ -1,33 +1,25 @@
-﻿// <copyright file="EntropyCropTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Transforms
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
-    public class EntropyCropTest : FileTestBase
+    public class EntropyCropTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<float> EntropyCropValues
-        = new TheoryData<float>
-        {
-            .25F,
-            .75F
-        };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(EntropyCropValues), DefaultPixelType)]
-        public void ImageShouldEntropyCrop<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+        [InlineData(0.5f)]
+        [InlineData(.2f)]
+        public void EntropyCrop_threasholdFloat_EntropyCropProcessorWithThreshold(float threashold)
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.EntropyCrop(value)
-                    .DebugSave(provider, value, Extensions.Bmp);
-            }
+            this.operations.EntropyCrop(threashold);
+            var processor = this.Verify<EntropyCropProcessor<Rgba32>>();
+
+            Assert.Equal(threashold, processor.Threshold);
         }
     }
 }

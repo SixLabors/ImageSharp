@@ -1,22 +1,15 @@
-﻿// <copyright file="PngSmokeTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Formats.Png
+using System.IO;
+using Xunit;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Formats.Png;
+
+namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.IO;
-    using Xunit;
-    using ImageSharp.Formats;
-    using System.Linq;
-    using ImageSharp.IO;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
     public class PngSmokeTests
     {
         [Theory]
@@ -34,8 +27,8 @@ namespace ImageSharp.Tests.Formats.Png
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
+                    ImageComparer.Tolerant().VerifySimilarity(image, img2);
                     // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-                    ImageComparer.CheckSimilarity(image, img2);
                 }
             }
         }
@@ -56,8 +49,7 @@ namespace ImageSharp.Tests.Formats.Png
         //        ms.Position = 0;
         //        using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
         //        {
-        //            // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
-        //            ImageComparer.CheckSimilarity(image, img2, 0.03f);
+        //            ImageComparer.VerifySimilarity(image, img2, 0.03f);
         //        }
         //    }
         //}
@@ -115,14 +107,14 @@ namespace ImageSharp.Tests.Formats.Png
             using (MemoryStream ms = new MemoryStream())
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("png"));
-                image.Resize(100, 100);
+                image.Mutate(x => x.Resize(100, 100));
                 // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
 
                 image.Save(ms, new PngEncoder());
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
-                    ImageComparer.CheckSimilarity(image, img2);
+                    ImageComparer.Tolerant().VerifySimilarity(image, img2);
                 }
             }
         }

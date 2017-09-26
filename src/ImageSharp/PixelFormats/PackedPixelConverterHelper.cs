@@ -1,13 +1,11 @@
-﻿// <copyright file="PackedPixelConverterHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Numerics;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-
     /// <summary>
     /// Assists with the conversion of known packed pixel formats from one to another.
     /// </summary>
@@ -21,18 +19,11 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Returns the correct scaling function for the given types The compute scale function.
         /// </summary>
-        /// <param name="scaleFunc">The scale function.</param>
         /// <typeparam name="TPixel">The source pixel format.</typeparam>
         /// <typeparam name="TPixel2">The target pixel format.</typeparam>
         /// <returns>The <see cref="Func{Vector4,Vector4}"/></returns>
-        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>(Func<Vector4, Vector4> scaleFunc)
+        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>()
         {
-            // Custom type with a custom function.
-            if (scaleFunc != null)
-            {
-                return scaleFunc;
-            }
-
             Type source = typeof(TPixel);
             Type target = typeof(TPixel2);
 

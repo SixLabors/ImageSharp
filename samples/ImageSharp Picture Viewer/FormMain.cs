@@ -26,10 +26,10 @@ namespace ImageSharp_Picture_Viewer
                 {
                     /* Using SixLabors.ImageSharp classes */
                     // .NET Standard 1.3+ 
-                    //using (var imageIS = SixLabors.ImageSharp.Image.Load(imageFile))
+                    using (var imageIS = SixLabors.ImageSharp.Image.Load(imageFile))
                     // .NET Standard 1.1 - 1.2
-                    using (System.IO.FileStream stream = File.OpenRead(imageFile))
-                    using (var imageIS = SixLabors.ImageSharp.Image.Load<Rgba32>(stream))
+                    //using (System.IO.FileStream stream = File.OpenRead(imageFile))
+                    //using (var imageIS = SixLabors.ImageSharp.Image.Load<Rgba32>(stream))
                     // Common code
                     {
                         int w = imageIS.Width;

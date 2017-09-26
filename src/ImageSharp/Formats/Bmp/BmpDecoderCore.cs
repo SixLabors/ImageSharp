@@ -15,6 +15,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpDecoderCore
     {
         /// <summary>
+        /// For Windows Mobile version 5.0 and later, you can OR any of the values BI_RGB, BI_BITFIELDS and BI_ALPHABITFIELDS with
+        /// BI_SRCPREROTATE to specify that the source DIB section has the same rotation angle as the destination.
+        /// Otherwise, the image can be rotated 90 degrees anti-clockwise (Landscape/Portrait).
+        /// https://msdn.microsoft.com/en-us/library/aa452495.aspx
+        /// </summary>
+        private const int SourcePreRotateMask = 0x8000;
+
+        /// <summary>
         /// The mask for the red part of the color for 16-bit RGB bitmaps.
         /// </summary>
         private const int Rgb16RMask = 0x00007C00;
@@ -414,7 +422,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BitmapCoreHeader format.
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>

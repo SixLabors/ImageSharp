@@ -6,17 +6,19 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// This represents one Microsoft Windows BMP v2 and IBM OS/2 BMP v1 color table/palette element.
-    /// <para>Supported since Windows 2.0, Windows CE 2.0 and OS/2 1.0.</para>
+    /// This represents one Microsoft Windows BMP v3 and IBM OS/2 BMP v2 color table/palette element: RGBQUAD.
+    /// <para>Supported since Windows 3.0, Windows CE 1.0 and OS/2 2.0.</para>
     /// <para>Implemented on Microsoft Windows BMP v2 and IBM OS/2 BMP v1 format.</para>
-    /// <seealso href="https://msdn.microsoft.com/en-us/library/dd162939(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
     /// <remarks>
-    /// Make shore that <c>sizeof(RGBTRIPLE)</c> returns the size of 3 bytes and is byte aligned.
+    /// Make shore that <c>sizeof(WinRgbQuadruple)</c> returns the size of 4 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
+    /// <para>
+    /// <seealso href="https://msdn.microsoft.com/en-us/library/dd162938(v=vs.85).aspx">See this MSDN link for more information.</seealso>
+    /// </para>
     /// </remarks>
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
-    internal struct RGBTRIPLE
+    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 4)]
+    internal struct WinRgbQuadruple
     {
         /// <summary>
         /// Specifies the intensity of blue in the color in the range 0 to 255.
@@ -32,5 +34,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Specifies the intensity of red in the color in the range 0 to 255.
         /// </summary>
         public byte Red;
+
+        /// <summary>
+        /// Not used on Microsoft Windows BMP v3 and IBM OS/2 BMP v2 DIB (reserved and must be 0).
+        /// </summary>
+        /// <remarks>Optional Alpha color channel on Microsoft Windows BMP v4. Default is set to 0.</remarks>
+        public byte Alpha;
     }
 }

@@ -12,14 +12,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
     /// </summary>
     /// <remarks>
-    /// Make shore that <c>sizeof(BitmapInfoHeaderOS2V2)</c> returns the size of 64 bytes and is byte aligned.
+    /// Make shore that <c>sizeof(OS2InfoHeaderV2)</c> returns the size of 64 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
-    /// <para>The colors (<seealso cref="RGBQUAD"/>) in the palette table should appear in order
+    /// <para>The colors (<seealso cref="WinRgbQuadruple"/>) in the palette table should appear in order
     /// of importance and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 64)]
-    internal struct BitmapInfoHeaderOS2V2
+    internal struct OS2InfoHeaderV2
     {
         // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 DIB header
 
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <see cref="Compression"/>
         /// </summary>
         /// <remarks>
-        /// The color table (if present) must follow the <c>BitmapInfoHeaderOS2V2</c> structure, and consist of
+        /// The color table (if present) must follow the <c>OS2InfoHeaderV2</c> structure, and consist of
         /// <see cref="RGBQUAD"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </remarks>
         public ushort BitsPerPixel;
@@ -120,21 +120,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Specifies the number of color indexes in the color palette used by the bitmap. Most important colors first.
         /// <para>
-        /// If this value is 0, the bitmap uses the maximum number of colors corresponding to the value of the <c>BitmapInfoHeaderOS2V2.BitsPerPixel</c>
-        /// member for the compression mode specified by <c>BitmapInfoHeaderOS2V2.Compression</c>.
+        /// If this value is 0, the bitmap uses the maximum number of colors corresponding to the value of the <c>OS2InfoHeaderV2.BitsPerPixel</c>
+        /// member for the compression mode specified by <c>OS2InfoHeaderV2.Compression</c>.
         /// </para>
         /// <para>
-        /// If is nonzero and the <c>BitmapInfoHeaderOS2V2.BitsPerPixel</c> member is less than 16, the <c>BitmapInfoHeaderOS2V2.PaletteSize</c> member
+        /// If is nonzero and the <c>OS2InfoHeaderV2.BitsPerPixel</c> member is less than 16, the <c>OS2InfoHeaderV2.PaletteSize</c> member
         /// specifies the actual number of colors the graphics engine or device driver accesses.
         /// </para>
         /// <para>
-        /// If <c>BitmapInfoHeaderOS2V2.BitsPerPixel</c> is 16 or greater, the <c>BitmapInfoHeaderOS2V2.PaletteSize</c> member specifies the size of the
+        /// If <c>OS2InfoHeaderV2.BitsPerPixel</c> is 16 or greater, the <c>OS2InfoHeaderV2.PaletteSize</c> member specifies the size of the
         /// color table used to optimize performance of the system color palettes.
         /// </para>
         /// <para>
-        /// When the bitmap array immediately follows the <c>BitmapInfoHeaderOS2V2</c> structure, it is a packed bitmap.
+        /// When the bitmap array immediately follows the <c>OS2InfoHeaderV2</c> structure, it is a packed bitmap.
         /// Packed bitmaps are referenced by a single pointer.
-        /// Packed bitmaps require that the <c>BitmapInfoHeaderOS2V2.PaletteSize</c> member must be either 0 or the actual size of the color table.
+        /// Packed bitmaps require that the <c>OS2InfoHeaderV2.PaletteSize</c> member must be either 0 or the actual size of the color table.
         /// </para>
         /// <see cref="PaletteImportant"/>
         /// </summary>
@@ -148,8 +148,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public uint PaletteImportant;
 
         /// <summary>
-        /// Indicates the type of units used to interpret the values of the <c>BitmapInfoHeaderOS2V2.PixelsPerUnitX</c> and
-        /// <c>BitmapInfoHeaderOS2V2.PixelsPerUnitY</c> fields.
+        /// Indicates the type of units used to interpret the values of the <c>OS2InfoHeaderV2.PixelsPerUnitX</c> and
+        /// <c>OS2InfoHeaderV2.PixelsPerUnitY</c> fields.
         /// <para>The only valid value is 0, indicating pixels-per-meter.</para>
         /// <see cref="PixelsPerUnitX"/>
         /// <see cref="PixelsPerUnitY"/>

@@ -422,7 +422,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BitmapCoreHeader format.
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the WinCoreHeader format.
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>

@@ -14,15 +14,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183374(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
     /// <remarks>
-    /// Make shore that <c>sizeof(BitmapFileHeader)</c> returns the size of 12 bytes and is byte aligned.
+    /// Make shore that <c>sizeof(WinFileHeader)</c> returns the size of 12 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
     /// <para>
-    /// The DIB information header must follow the <c>BitmapFileHeader</c> structure, and consist of one of
+    /// The DIB information header must follow the <c>WinFileHeader</c> structure, and consist of one of
     /// <see cref="BitmapInfoHeaderOS2V2"/>, <see cref="BitmapCoreHeader"/>, <see cref="BitmapInfoHeaderV5"/>, etc. structures.
     /// </para>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 14)]
-    internal struct BitmapFileHeader
+    internal struct WinFileHeader
     {
         // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 file header
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <para><c>    ImageDataSize = RowSize * modulus(ImageHeight)</c></para>
         /// <para><c>    RowSize = floor(((BitsPerPixel * ImageWidth) + 31) / 32) * 4</c></para>
         /// <para><c>    PaletteNumberOfEntries_Maximum = 1 &lt;&lt; BitsPerPixel</c></para>
-        /// <para><c>    PaletteNumberOfEntries_Present = (BitmapFileHeader.PixelsOffset - FileHeaderSize - InfoHeaderSize) / PaletteElementSize</c></para>
+        /// <para><c>    PaletteNumberOfEntries_Present = (WinFileHeader.PixelsOffset - FileHeaderSize - InfoHeaderSize) / PaletteElementSize</c></para>
         /// </para>
         /// </summary>
         public uint FileSize;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public ushort Reserved2;
 
         /// <summary>
-        /// Specifies the offset, in bytes, from the beginning of the <c>BitmapFileHeader</c> structure to the bitmap pixels color bits/image data.
+        /// Specifies the offset, in bytes, from the beginning of the <c>WinFileHeader</c> structure to the bitmap pixels color bits/image data.
         /// <para>
         /// This value is obtained by this formula: <c>FileHeaderSize + InfoHeaderSize + PaletteDataSize + GapOptional1</c>
         /// </para>

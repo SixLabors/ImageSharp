@@ -12,13 +12,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183381(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
     /// <remarks>
-    /// Make shore that <c>sizeof(BitmapInfoHeaderV5)</c> returns the size of 124 bytes and is byte aligned.
+    /// Make shore that <c>sizeof(WinInfoHeaderV5)</c> returns the size of 124 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
-    /// <para>The colors (<see cref="RGBQUAD"/>) in the palette table should appear in order of importance and must follow this structure.</para>
+    /// <para>The colors (<see cref="WinRgbQuadruple"/>) in the palette table should appear in order of importance and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 124)]
-    internal struct BitmapInfoHeaderV5
+    internal struct WinInfoHeaderV5
     {
         // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 DIB header
 
@@ -30,21 +30,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Specifies the width of the bitmap in pixels.
         /// <remarks>
-        /// On Windows 98, Windows 2000 and above: If <c>BitmapInfoHeaderV5.Compression</c> is <c>BmpCompression.JPEG</c> or <c>BmpCompression.PNG</c>,
-        /// the <c>BitmapInfoHeaderV5.Width</c> member specifies the width of the decompressed JPEG or PNG image file, respectively.
+        /// On Windows 98, Windows 2000 and above: If <c>WinInfoHeaderV5.Compression</c> is <c>BmpCompression.JPEG</c> or <c>BmpCompression.PNG</c>,
+        /// the <c>WinInfoHeaderV5.Width</c> member specifies the width of the decompressed JPEG or PNG image file, respectively.
         /// </remarks>
         /// </summary>
         public int Width;
 
         /// <summary>
         /// Specifies the height of the bitmap in pixels.
-        /// <para>If <c>BitmapInfoHeaderV5.Height</c> is positive, the bitmap is a bottom-up DIB and its origin is the lower-left corner.</para>
-        /// <para>If <c>BitmapInfoHeaderV5.Height</c> is negative, the bitmap is a top-down DIB and its origin is the upper-left corner.</para>
-        /// <para>Top-down DIBs cannot be compressed: <c>BitmapInfoHeaderV5.Compression</c> must be either <c>BmpCompression.RGB</c>,
+        /// <para>If <c>WinInfoHeaderV5.Height</c> is positive, the bitmap is a bottom-up DIB and its origin is the lower-left corner.</para>
+        /// <para>If <c>WinInfoHeaderV5.Height</c> is negative, the bitmap is a top-down DIB and its origin is the upper-left corner.</para>
+        /// <para>Top-down DIBs cannot be compressed: <c>WinInfoHeaderV5.Compression</c> must be either <c>BmpCompression.RGB</c>,
         /// <c>BmpCompression.BitFields</c> or <c>BmpCompression.AlphaBitFields</c>.</para>
         /// <remarks>
-        /// On Windows 98, Windows 2000 and above: If <c>BitmapInfoHeaderV5.Compression</c> is <c>BmpCompression.JPEG</c> or <c>BmpCompression.PNG</c>,
-        /// the <c>BitmapInfoHeaderV5.Height</c> member specifies the height of the decompressed JPEG or PNG image file, respectively.
+        /// On Windows 98, Windows 2000 and above: If <c>WinInfoHeaderV5.Compression</c> is <c>BmpCompression.JPEG</c> or <c>BmpCompression.PNG</c>,
+        /// the <c>WinInfoHeaderV5.Height</c> member specifies the height of the decompressed JPEG or PNG image file, respectively.
         /// </remarks>
         /// </summary>
         public int Height;
@@ -56,13 +56,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The number of bits-per-pixel (bpp). This value must be one of: 1, 2, 4, 8, 24 or 32.
-        /// <para>If <c>BitmapInfoHeaderV5.BitsPerPixel</c> is 0, <c>BitmapInfoHeaderV5.Compression</c> must be either <c>BmpCompression.JPEG</c> or
+        /// <para>If <c>WinInfoHeaderV5.BitsPerPixel</c> is 0, <c>WinInfoHeaderV5.Compression</c> must be either <c>BmpCompression.JPEG</c> or
         /// <c>BmpCompression.PNG</c>.</para>
-        /// <para>If <c>BitmapInfoHeaderV5.BitsPerPixel</c> is 2, the bitmap is Windows CE 1.0 and above specific.</para>
+        /// <para>If <c>WinInfoHeaderV5.BitsPerPixel</c> is 2, the bitmap is Windows CE 1.0 and above specific.</para>
         /// <see cref="Compression"/>
         /// </summary>
         /// <remarks>
-        /// The color table (if present) must follow the <c>BitmapInfoHeaderV5</c> structure, and consist of
+        /// The color table (if present) must follow the <c>WinInfoHeaderV5</c> structure, and consist of
         /// <see cref="RGBQUAD"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </remarks>
         public ushort BitsPerPixel;
@@ -152,21 +152,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Specifies the number of color indexes in the color palette used by the bitmap. Most important colors first.
         /// <para>
-        /// If this value is 0, the bitmap uses the maximum number of colors corresponding to the value of the <c>BitmapInfoHeaderV5.BitsPerPixel</c>
-        /// member for the compression mode specified by <c>BitmapInfoHeaderV5.Compression</c>.
+        /// If this value is 0, the bitmap uses the maximum number of colors corresponding to the value of the <c>WinInfoHeaderV5.BitsPerPixel</c>
+        /// member for the compression mode specified by <c>WinInfoHeaderV5.Compression</c>.
         /// </para>
         /// <para>
-        /// If is nonzero and the <c>BitmapInfoHeaderV5.BitsPerPixel</c> member is less than 16, the <c>BitmapInfoHeaderV5.PaletteSize</c> member
+        /// If is nonzero and the <c>WinInfoHeaderV5.BitsPerPixel</c> member is less than 16, the <c>WinInfoHeaderV5.PaletteSize</c> member
         /// specifies the actual number of colors the graphics engine or device driver accesses.
         /// </para>
         /// <para>
-        /// If <c>BitmapInfoHeaderV5.BitsPerPixel</c> is 16 or greater, the <c>BitmapInfoHeaderV5.PaletteSize</c> member specifies the size of the
+        /// If <c>WinInfoHeaderV5.BitsPerPixel</c> is 16 or greater, the <c>WinInfoHeaderV5.PaletteSize</c> member specifies the size of the
         /// color table used to optimize performance of the system color palettes.
         /// </para>
         /// <para>
-        /// When the bitmap array immediately follows the <c>BitmapInfoHeaderV5</c> structure, it is a packed bitmap.
+        /// When the bitmap array immediately follows the <c>WinInfoHeaderV5</c> structure, it is a packed bitmap.
         /// Packed bitmaps are referenced by a single pointer.
-        /// Packed bitmaps require that the <c>BitmapInfoHeaderV5.PaletteSize</c> member must be either 0 or the actual size of the color table.
+        /// Packed bitmaps require that the <c>WinInfoHeaderV5.PaletteSize</c> member must be either 0 or the actual size of the color table.
         /// </para>
         /// <see cref="PaletteImportant"/>
         /// </summary>
@@ -182,25 +182,25 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         // ** Fields added for Microsoft Windows BMP v4 DIB header
 
         /// <summary>
-        /// Color mask that specifies the red component of each pixel, valid only if <c>BitmapInfoHeaderV5.Compression</c> is set to
+        /// Color mask that specifies the red component of each pixel, valid only if <c>WinInfoHeaderV5.Compression</c> is set to
         /// <see cref="BmpCompression.BitFields"/> or  <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint RedMask;
 
         /// <summary>
-        /// Color mask that specifies the green component of each pixel, valid only if <c>BitmapInfoHeaderV5.Compression</c> is set to
+        /// Color mask that specifies the green component of each pixel, valid only if <c>WinInfoHeaderV5.Compression</c> is set to
         /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint GreenMask;
 
         /// <summary>
-        /// Color mask that specifies the blue component of each pixel, valid only if <c>BitmapInfoHeaderV5.Compression</c> is set to
+        /// Color mask that specifies the blue component of each pixel, valid only if <c>WinInfoHeaderV5.Compression</c> is set to
         /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint BlueMask;
 
         /// <summary>
-        /// Color mask that specifies the alpha (transparency) component of each pixel, valid only if <c>BitmapInfoHeaderV5.Compression</c> is set to
+        /// Color mask that specifies the alpha (transparency) component of each pixel, valid only if <c>WinInfoHeaderV5.Compression</c> is set to
         /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint AlphaMask;
@@ -214,17 +214,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// A structure that specifies the x, y and z coordinates of the three colors that correspond to the
         /// red, green and blue endpoints for the logical color space associated with the bitmap. <see cref="CIEXYZTRIPLE"/>.
-        /// This member is ignored unless the <c>BitmapInfoHeaderV5.ColorSpaceType</c> member specifies <seealso cref="BmpColorSpace.Calibrated_RGB"/>.
+        /// This member is ignored unless the <c>WinInfoHeaderV5.ColorSpaceType</c> member specifies <seealso cref="BmpColorSpace.Calibrated_RGB"/>.
         /// <para>
         /// <b>Note:</b> A color space is a model for representing color numerically in terms of three or more coordinates.
         /// For example, the RGB color space represents colors in terms of the red, green and blue coordinates.
         /// </para>
         /// </summary>
-        public CIEXYZTRIPLE Endpoints;
+        public WinCieXyzTriple Endpoints;
 
         /// <summary>
         /// Toned response curve for red.
-        /// This member is ignored unless color values are calibrated RGB values and <c>BitmapInfoHeaderV5.ColorSpaceType</c> is set to
+        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to
         /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
         /// Specified in 16^16 format.
         /// </summary>
@@ -232,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Toned response curve for green.
-        /// This member is ignored unless color values are calibrated RGB values and <c>BitmapInfoHeaderV5.ColorSpaceType</c> is set to
+        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to
         /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
         /// Specified in 16^16 format.
         /// </summary>
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Toned response curve for blue.
-        /// This member is ignored unless color values are calibrated RGB values and <c>BitmapInfoHeaderV5.ColorSpaceType</c> is set to
+        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to
         /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
         /// Specified in 16^16 format.
         /// </summary>
@@ -257,8 +257,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public uint Intent;
 
         /// <summary>
-        /// The offset, in bytes, from the beginning of the <c>BitmapInfoHeaderV5</c> structure to the start of the profile data.
-        /// This member is ignored unless <c>BitmapInfoHeaderV5.ColorSpaceType</c> is set to <see cref="BmpColorSpace.ProfileLinked"/> or
+        /// The offset, in bytes, from the beginning of the <c>WinInfoHeaderV5</c> structure to the start of the profile data.
+        /// This member is ignored unless <c>WinInfoHeaderV5.ColorSpaceType</c> is set to <see cref="BmpColorSpace.ProfileLinked"/> or
         /// <see cref="BmpColorSpace.ProfileEmbedded"/>.
         /// <para>If the profile is embedded, profile data is the actual ICM 2.0 profile.</para>
         /// <para>If the profile is linked,  profile data is the null-terminated file name of the ICM 2.0 profile or
@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Size, in bytes, of embedded profile data.
-        /// This member is ignored unless <c>BitmapInfoHeaderV5.ColorSpaceType</c> is set to <see cref="BmpColorSpace.ProfileLinked"/> or
+        /// This member is ignored unless <c>WinInfoHeaderV5.ColorSpaceType</c> is set to <see cref="BmpColorSpace.ProfileLinked"/> or
         /// <see cref="BmpColorSpace.ProfileEmbedded"/>.
         /// <para>The profile data (if present) should follow the color table.</para>
         /// <para>For packed DIBs, the profile data should follow the bitmap bits similar to the file format.</para>

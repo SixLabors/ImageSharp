@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <seealso href="https://msdn.microsoft.com/en-us/library/dd183372(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </summary>
     /// <remarks>
-    /// Make shore that <c>sizeof(BitmapCoreHeader)</c> returns the size of 12 bytes and is byte aligned.
+    /// Make shore that <c>sizeof(WinCoreHeader)</c> returns the size of 12 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
-    /// <para>The colors (<seealso cref="RGBTRIPLE"/>) in the palette table should appear in order of importance
+    /// <para>The colors (<seealso cref="WinRgbTriple"/>) in the palette table should appear in order of importance
     /// and must follow this structure.</para>
     /// <para>Each scan line must be zero-padded to end on a DWORD (4 bytes) boundary.</para>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 12)]
-    internal struct BitmapCoreHeader
+    internal struct WinCoreHeader
     {
         // ** Fields for Microsoft Windows BMP v2 and IBM OS/2 BMP v1 DIB header
 
@@ -46,11 +46,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// The number of bits-per-pixel (bpp). This value must be one of: 1, 2, 4, 8, or 24.
-        /// <para>If <c>BitmapCoreHeader.BitsPerPixel</c> is 2, the bitmap is Windows CE 2.0 and above specific.</para>
+        /// <para>If <c>WinCoreHeader.BitsPerPixel</c> is 2, the bitmap is Windows CE 2.0 and above specific.</para>
         /// <see cref="RGBTRIPLE"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </summary>
         /// <remarks>
-        /// The color table (if present) must follow the <c>BitmapCoreHeader</c> structure, and consist of
+        /// The color table (if present) must follow the <c>WinCoreHeader</c> structure, and consist of
         /// </remarks>
         public ushort BitsPerPixel;
     }

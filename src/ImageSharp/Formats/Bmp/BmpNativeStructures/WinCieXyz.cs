@@ -6,8 +6,8 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// The <c>CIEXYZ</c> structure contains the X, Y, and Z coordinates of a specific color in a
-    /// specified color space (CIE XYZ 1931).
+    /// The <c>WinCieXyz</c> structure contains the X, Y, and Z coordinates of a specific color in a
+    /// specified color space (CIE XYZ 1931). This is the Microsoft CIEXYZ implementation.
     /// <para>
     /// X, Y and Z are extrapolations of RGB created mathematically to avoid negative numbers
     /// (In 1931 there weren’t any computers) and are called Tristimulus values.
@@ -19,14 +19,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <para>Implemented on Microsoft Windows BMP v4 format.</para>
     /// </summary>
     /// <remarks>
-    /// Make shore that <c>sizeof(CIEXYZ)</c> returns the size of 12 bytes and is byte aligned.
+    /// Make shore that <c>sizeof(WinCieXyz)</c> returns the size of 12 bytes and is byte aligned.
     /// All structure fields are stored little-endian on the file.
     /// <para>
     /// <seealso href="https://msdn.microsoft.com/en-us/library/dd371828(v=vs.85).aspx">See this MSDN link for more information.</seealso>
     /// </para>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 12)]
-    internal struct CIEXYZ
+    internal struct WinCieXyz
     {
         /// <summary>
         /// The X coordinate (mix (a linear combination) of cone response curves chosen to be nonnegative).

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public const int BitmapInfoHeaderSize = 40;
 
         /// <summary>
-        /// Defines the size of the BitmapCoreHeader data structure in the bitmap file.
+        /// Defines the size of the WinCoreHeader data structure in the bitmap file.
         /// </summary>
         public const int BitmapCoreHeaderSize = 12;
 

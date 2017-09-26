@@ -67,14 +67,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private bool isExif;
 
         /// <summary>
-        /// Whether the image has an Adobe marker
+        /// Whether the image has an Adobe marker.
+        /// It's faster to check this than to use the equality operator on the struct
         /// </summary>
         private bool isAdobe;
 
         /// <summary>
-        /// The Adobe color transform value for determining what color space the image uses.
+        /// Contains information about the Adobe marker
         /// </summary>
-        private byte adobeColorTransform;
+        private AdobeMarker adobe;
+
+        /// <summary>
+        /// Contains information about the JFIF marker
+        /// </summary>
+        private JFifMarker jFif;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
@@ -515,21 +521,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp14Marker(int remaining)
         {
-            if (remaining < 12)
+            const int MarkerLength = AdobeMarker.Length;
+            if (remaining < MarkerLength)
             {
                 // Skip the application header length
                 this.InputProcessor.Skip(remaining);
                 return;
             }
 
-            this.InputProcessor.ReadFull(this.Temp, 0, 12);
-            remaining -= 12;
+            this.InputProcessor.ReadFull(this.Temp, 0, MarkerLength);
+            remaining -= MarkerLength;
 
-            if (ProfileResolver.IsProfile(this.Temp, ProfileResolver.AdobeMarker))
-            {
-                this.isAdobe = true;
-                this.adobeColorTransform = this.Temp[11];
-            }
+            this.isAdobe = AdobeMarker.TryParse(this.Temp, out this.adobe);
 
             if (remaining > 0)
             {
@@ -750,19 +753,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 case 1:
                     return JpegColorSpace.GrayScale;
                 case 3:
-                    if (!this.isAdobe || this.adobeColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
+                    if (!this.isAdobe || this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
                     {
                         return JpegColorSpace.YCbCr;
                     }
 
-                    if (this.adobeColorTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
+                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
                     {
                         return JpegColorSpace.RGB;
                     }
 
                     break;
                 case 4:
-                    if (this.adobeColorTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
+                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
                     {
                         return JpegColorSpace.Ycck;
                     }

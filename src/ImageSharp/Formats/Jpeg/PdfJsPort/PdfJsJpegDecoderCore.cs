@@ -525,32 +525,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp14Marker(int remaining)
         {
-            if (remaining < 12)
+            const int MarkerLength = AdobeMarker.Length;
+            if (remaining < MarkerLength)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, 12);
-            remaining -= 12;
+            this.InputStream.Read(this.temp, 0, MarkerLength);
+            remaining -= MarkerLength;
 
-            bool isAdobe = this.temp[0] == PdfJsJpegConstants.Markers.Adobe.A &&
-                           this.temp[1] == PdfJsJpegConstants.Markers.Adobe.D &&
-                           this.temp[2] == PdfJsJpegConstants.Markers.Adobe.O &&
-                           this.temp[3] == PdfJsJpegConstants.Markers.Adobe.B &&
-                           this.temp[4] == PdfJsJpegConstants.Markers.Adobe.E;
-
-            if (isAdobe)
-            {
-                this.adobe = new AdobeMarker
-                {
-                    DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
-                    APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),
-                    APP14Flags1 = (short)((this.temp[9] << 8) | this.temp[10]),
-                    ColorTransform = this.temp[11]
-                };
-            }
+            AdobeMarker.TryParse(this.temp, out this.adobe);
 
             if (remaining > 0)
             {

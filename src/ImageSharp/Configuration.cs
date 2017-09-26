@@ -1,19 +1,20 @@
-﻿// <copyright file="Configuration.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.IO;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-
-    using Formats;
-    using ImageSharp.IO;
-
     /// <summary>
     /// Provides initialization code which allows extending the library.
     /// </summary>
@@ -77,6 +78,11 @@ namespace ImageSharp
         public ParallelOptions ParallelOptions { get; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
         /// <summary>
+        /// Gets the currently registered <see cref="IImageFormat"/>s.
+        /// </summary>
+        public IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
+
+        /// <summary>
         /// Gets the maximum header size of all the formats.
         /// </summary>
         internal int MaxHeaderSize { get; private set; }
@@ -96,17 +102,17 @@ namespace ImageSharp
         /// </summary>
         internal IEnumerable<KeyValuePair<IImageFormat, IImageEncoder>> ImageEncoders => this.mimeTypeEncoders;
 
-        /// <summary>
-        /// Gets the currently registered <see cref="IImageFormat"/>s.
-        /// </summary>
-        internal IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
-
 #if !NETSTANDARD1_1
         /// <summary>
-        /// Gets or sets the fielsystem helper for accessing the local file system.
+        /// Gets or sets the filesystem helper for accessing the local file system.
         /// </summary>
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
 #endif
+
+        /// <summary>
+        /// Gets or sets the image operations provider factory.
+        /// </summary>
+        internal IImageProcessingContextFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProviderFactory();
 
         /// <summary>
         /// Registers a new format provider.
@@ -121,7 +127,7 @@ namespace ImageSharp
         /// <summary>
         /// Registers a new format provider.
         /// </summary>
-        /// <param name="format">The format to register as a well know format.</param>
+        /// <param name="format">The format to register as a known format.</param>
         public void AddImageFormat(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
@@ -135,7 +141,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="extension">The extension to discover</param>
         /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
-        public IImageFormat FindFormatByFileExtensions(string extension)
+        public IImageFormat FindFormatByFileExtension(string extension)
         {
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
         }
@@ -144,7 +150,7 @@ namespace ImageSharp
         /// For the specified mime type find the <see cref="IImageFormat"/>.
         /// </summary>
         /// <param name="mimeType">The mime-type to discover</param>
-        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
+        /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
         public IImageFormat FindFormatByMimeType(string mimeType)
         {
             return this.imageFormats.FirstOrDefault(x => x.MimeTypes.Contains(mimeType, StringComparer.OrdinalIgnoreCase));
@@ -196,28 +202,11 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
-        /// <para><see cref="PngConfigurationModule"/></para>
-        /// <para><see cref="JpegConfigurationModule"/></para>
-        /// <para><see cref="GifConfigurationModule"/></para>
-        /// <para><see cref="BmpConfigurationModule"/></para>
-        /// </summary>
-        /// <returns>The default configuration of <see cref="Configuration"/></returns>
-        internal static Configuration CreateDefaultInstance()
-        {
-            return new Configuration(
-                new PngConfigurationModule(),
-                new JpegConfigurationModule(),
-                new GifConfigurationModule(),
-                new BmpConfigurationModule());
-        }
-
-        /// <summary>
         /// For the specified mime type find the decoder.
         /// </summary>
         /// <param name="format">The format to discover</param>
         /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-        internal IImageDecoder FindDecoder(IImageFormat format)
+        public IImageDecoder FindDecoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             if (this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder))
@@ -233,7 +222,7 @@ namespace ImageSharp
         /// </summary>
         /// <param name="format">The format to discover</param>
         /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-        internal IImageEncoder FindEncoder(IImageFormat format)
+        public IImageEncoder FindEncoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
             if (this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder))
@@ -242,6 +231,23 @@ namespace ImageSharp
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
+        /// <para><see cref="PngConfigurationModule"/></para>
+        /// <para><see cref="JpegConfigurationModule"/></para>
+        /// <para><see cref="GifConfigurationModule"/></para>
+        /// <para><see cref="BmpConfigurationModule"/></para>
+        /// </summary>
+        /// <returns>The default configuration of <see cref="Configuration"/></returns>
+        internal static Configuration CreateDefaultInstance()
+        {
+            return new Configuration(
+                new PngConfigurationModule(),
+                new JpegConfigurationModule(),
+                new GifConfigurationModule(),
+                new BmpConfigurationModule());
         }
 
         /// <summary>

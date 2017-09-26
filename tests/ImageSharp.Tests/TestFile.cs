@@ -1,19 +1,18 @@
-﻿// <copyright file="TestImage.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// A test image file.
     /// </summary>
@@ -25,19 +24,20 @@ namespace ImageSharp.Tests
         private static readonly ConcurrentDictionary<string, TestFile> Cache = new ConcurrentDictionary<string, TestFile>();
 
         /// <summary>
-        /// The formats directory, as lazy value
+        /// The "Formats" directory, as lazy value
         /// </summary>
-        private static readonly Lazy<string> formatsDirectory = new Lazy<string>(GetFormatsDirectory);
+        // ReSharper disable once InconsistentNaming
+        private static readonly Lazy<string> inputImagesDirectory = new Lazy<string>(() => TestEnvironment.InputImagesDirectoryFullPath);
         
         /// <summary>
-        /// The image.
+        /// The image (lazy initialized value)
         /// </summary>
-        private readonly Image<Rgba32> image;
+        private Image<Rgba32> image;
 
         /// <summary>
-        /// The file.
+        /// The image bytes
         /// </summary>
-        private readonly string file;
+        private byte[] bytes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TestFile"/> class.
@@ -45,39 +45,40 @@ namespace ImageSharp.Tests
         /// <param name="file">The file.</param>
         private TestFile(string file)
         {
-            this.file = file;
-
-            this.Bytes = File.ReadAllBytes(file);
-            this.image = Image.Load<Rgba32>(this.Bytes);
+            this.FullPath = file;
         }
 
         /// <summary>
-        /// Gets the bytes.
+        /// Gets the image bytes.
         /// </summary>
-        public byte[] Bytes { get; }
+        public byte[] Bytes => this.bytes ?? (this.bytes = File.ReadAllBytes(this.FullPath));
+
+        /// <summary>
+        /// The full path to file.
+        /// </summary>
+        public string FullPath { get; }
 
         /// <summary>
         /// The file name.
         /// </summary>
-        public string FilePath => this.file;
-
-        /// <summary>
-        /// The file name.
-        /// </summary>
-        public string FileName => Path.GetFileName(this.file);
+        public string FileName => Path.GetFileName(this.FullPath);
 
         /// <summary>
         /// The file name without extension.
         /// </summary>
-        public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.file);
+        public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.FullPath);
 
         /// <summary>
-        /// Gets the "Formats" test file directory.
+        /// Gets the image with lazy initialization.
         /// </summary>
-        private static string FormatsDirectory => formatsDirectory.Value;
+        private Image<Rgba32> Image => this.image ?? (this.image = ImageSharp.Image.Load<Rgba32>(this.Bytes));
+
+        /// <summary>
+        /// </summary>
+        private static string InputImagesDirectory => inputImagesDirectory.Value;
         
         /// <summary>
-        /// Gets the full qualified path to the file.
+        /// Gets the full qualified path to the input test file.
         /// </summary>
         /// <param name="file">
         /// The file path.
@@ -85,9 +86,9 @@ namespace ImageSharp.Tests
         /// <returns>
         /// The <see cref="string"/>.
         /// </returns>
-        public static string GetPath(string file)
+        public static string GetInputFileFullPath(string file)
         {
-            return Path.Combine(FormatsDirectory, file);
+            return Path.Combine(InputImagesDirectory, file).Replace('\\', Path.DirectorySeparatorChar);
         }
 
         /// <summary>
@@ -99,7 +100,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public static TestFile Create(string file)
         {
-            return Cache.GetOrAdd(file, (string fileName) => new TestFile(GetPath(file)));
+            return Cache.GetOrAdd(file, (string fileName) => new TestFile(GetInputFileFullPath(file)));
         }
 
         /// <summary>
@@ -111,7 +112,7 @@ namespace ImageSharp.Tests
         /// </returns>
         public string GetFileName(object value)
         {
-            return $"{this.FileNameWithoutExtension}-{value}{Path.GetExtension(this.file)}";
+            return $"{this.FileNameWithoutExtension}-{value}{Path.GetExtension(this.FullPath)}";
         }
 
         /// <summary>
@@ -130,74 +131,22 @@ namespace ImageSharp.Tests
         /// Creates a new image.
         /// </summary>
         /// <returns>
-        /// The <see cref="Image"/>.
+        /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
         public Image<Rgba32> CreateImage()
         {
-            return new Image<Rgba32>(this.image);
+            return this.Image.Clone();
         }
 
         /// <summary>
         /// Creates a new image.
         /// </summary>
         /// <returns>
-        /// The <see cref="Image"/>.
+        /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
         public Image<Rgba32> CreateImage(IImageDecoder decoder)
         {
-            return Image.Load(this.image.Configuration, this.Bytes, decoder);
-        }
-
-        /// <summary>
-        /// Gets the correct path to the formats directory.
-        /// </summary>
-        /// <returns>
-        /// The <see cref="string"/>.
-        /// </returns>
-        private static string GetFormatsDirectory()
-        {
-            List<string> directories = new List< string > {
-                 "TestImages/Formats/", // Here for code coverage tests.
-                  "tests/ImageSharp.Tests/TestImages/Formats/", // from travis/build script
-                  "../../../../../ImageSharp.Tests/TestImages/Formats/", // from Sandbox46
-                  "../../../../TestImages/Formats/",
-                  "../../../TestImages/Formats/"
-            };
-
-            directories = directories.SelectMany(x => new[]
-                                     {
-                                         Path.GetFullPath(x)
-                                     }).ToList();
-
-            AddFormatsDirectoryFromTestAssebmlyPath(directories);
-
-            string directory = directories.FirstOrDefault(x => Directory.Exists(x));
-
-            if(directory  != null)
-            {
-                return directory;
-            }
-
-            throw new System.Exception($"Unable to find Formats directory at any of these locations [{string.Join(", ", directories)}]");
-        }
-
-        /// <summary>
-        /// The path returned by Path.GetFullPath(x) can be relative to dotnet framework directory
-        /// in certain scenarios like dotTrace test profiling.
-        /// This method calculates and adds the format directory based on the ImageSharp.Tests assembly location.
-        /// </summary>
-        /// <param name="directories">The directories list</param>
-        private static void AddFormatsDirectoryFromTestAssebmlyPath(List<string> directories)
-        {
-            string assemblyLocation = typeof(TestFile).GetTypeInfo().Assembly.Location;
-            assemblyLocation = Path.GetDirectoryName(assemblyLocation);
-
-            if (assemblyLocation != null)
-            {
-                string dirFromAssemblyLocation = Path.Combine(assemblyLocation, "../../../TestImages/Formats/");
-                dirFromAssemblyLocation = Path.GetFullPath(dirFromAssemblyLocation);
-                directories.Add(dirFromAssemblyLocation);
-            }
+            return ImageSharp.Image.Load(this.Image.GetConfiguration(), this.Bytes, decoder);
         }
     }
 }

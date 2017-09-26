@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
@@ -13,7 +13,7 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public class FillPolygon : BenchmarkBase
     {
@@ -55,13 +55,13 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.FillPolygon(
+                image.Mutate(x => x.FillPolygon(
                     Rgba32.HotPink,
                     new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 10),
                         new Vector2(550, 50),
                         new Vector2(200, 400)
-                    });
+                    }));
 
                 using (MemoryStream ms = new MemoryStream())
                 {
@@ -75,9 +75,9 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.Fill(
+                image.Mutate(x => x.Fill(
                     Rgba32.HotPink,
-                    this.shape);
+                    this.shape));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

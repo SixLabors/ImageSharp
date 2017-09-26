@@ -1,9 +1,7 @@
-﻿// <copyright file="BmpConfigurationModule.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the bmp format.
@@ -13,8 +11,8 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Configure(Configuration config)
         {
-            config.SetEncoder(ImageFormats.Bitmap, new BmpEncoder());
-            config.SetDecoder(ImageFormats.Bitmap, new BmpDecoder());
+            config.SetEncoder(ImageFormats.Bmp, new BmpEncoder());
+            config.SetDecoder(ImageFormats.Bmp, new BmpDecoder());
             config.AddImageFormatDetector(new BmpImageFormatDetector());
         }
     }

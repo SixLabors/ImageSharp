@@ -1,21 +1,17 @@
-﻿// <copyright file="FlagsHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Numerics;
-    using System.Reflection;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class TestUtilityExtensionsTests
     {
         public TestUtilityExtensionsTests(ITestOutputHelper output)
@@ -25,10 +21,10 @@ namespace ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
-        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+        public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> image = factory.CreateImage(10, 10);
+            var image = new Image<TPixel>(10, 10);
 
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
@@ -36,10 +32,10 @@ namespace ImageSharp.Tests
                 {
                     for (int j = 0; j < 10; j++)
                     {
-                        Vector4 v = new Vector4(i, j, 0, 1);
+                        var v = new Vector4(i, j, 0, 1);
                         v /= 10;
 
-                        TPixel color = default(TPixel);
+                        var color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -50,16 +46,6 @@ namespace ImageSharp.Tests
             return image;
         }
 
-        [Fact]
-        public void Baz()
-        {
-            Type type = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.Rgba32");
-            this.Output.WriteLine(type.ToString());
-
-            Type fake = typeof(Rgba32).GetTypeInfo().Assembly.GetType("ImageSharp.dsaada_DASqewrr");
-            Assert.Null(fake);
-        }
-
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
@@ -67,8 +53,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
-            Image<TPixel> b = provider.GetImage();
-            b = b.OilPaint(3, 2);
+            Image<TPixel> b = provider.GetImage(x=>x.OilPaint(3, 2));
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
         }
@@ -89,10 +74,9 @@ namespace ImageSharp.Tests
         [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         [InlineData(PixelTypes.Argb32, typeof(Argb32))]
         [InlineData(PixelTypes.HalfVector4, typeof(HalfVector4))]
-        [InlineData(PixelTypes.Rgba32, typeof(Rgba32))]
         public void ToType(PixelTypes pt, Type expectedType)
         {
-            Assert.Equal(pt.ToType(), expectedType);
+            Assert.Equal(pt.GetClrType(), expectedType);
         }
 
         [Theory]
@@ -112,7 +96,7 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void ToTypes()
+        public void ExpandAllTypes_1()
         {
             PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
 
@@ -127,11 +111,25 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
+        public void ExpandAllTypes_2()
+        {
+            PixelTypes pixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+
+            IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
+
+            Assert.Equal(3, expanded.Count());
+
+            AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
+            AssertContainsPixelType<Bgra32>(PixelTypes.Bgra32, expanded);
+            AssertContainsPixelType<RgbaVector>(PixelTypes.RgbaVector, expanded);
+        }
+
+        [Fact]
         public void ToTypes_All()
         {
             KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();
 
-            Assert.True(expanded.Length >= TestUtilityExtensions.GetAllPixelTypes().Length - 2);
+            Assert.True(expanded.Length >= TestUtils.GetAllPixelTypes().Length - 2);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);
         }

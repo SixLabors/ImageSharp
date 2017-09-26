@@ -1,14 +1,12 @@
-﻿// <copyright file="LambdaProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
@@ -18,14 +16,14 @@ namespace ImageSharp.Tests
     {
         private class LambdaProvider : TestImageProvider<TPixel>
         {
-            private readonly Func<GenericFactory<TPixel>, Image<TPixel>> creator;
+            private readonly Func<Image<TPixel>> factoryFunc;
 
-            public LambdaProvider(Func<GenericFactory<TPixel>, Image<TPixel>> creator)
+            public LambdaProvider(Func<Image<TPixel>> factoryFunc)
             {
-                this.creator = creator;
+                this.factoryFunc = factoryFunc;
             }
 
-            public override Image<TPixel> GetImage() => this.creator(this.Factory);
+            public override Image<TPixel> GetImage() => this.factoryFunc();
         }
     }
 }

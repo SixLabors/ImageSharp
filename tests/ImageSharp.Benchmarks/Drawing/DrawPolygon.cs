@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
@@ -13,7 +13,7 @@ namespace ImageSharp.Benchmarks
     using System.IO;
     using System.Numerics;
 
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public class DrawPolygon : BenchmarkBase
     {
@@ -47,14 +47,14 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.DrawPolygon(
+                image.Mutate(x => x.DrawPolygon(
                     Rgba32.HotPink,
                     10,
                     new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 10),
                         new Vector2(550, 50),
                         new Vector2(200, 400)
-                    });
+                    }));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

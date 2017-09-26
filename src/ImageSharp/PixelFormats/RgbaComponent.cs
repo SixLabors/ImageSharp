@@ -1,14 +1,12 @@
-﻿// <copyright file="RgbaComponent.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Enumerates the RGBA (red, green, blue, alpha) color components.
     /// </summary>
-    public enum RgbaComponent
+    internal enum RgbaComponent
     {
         /// <summary>
         /// The red component.

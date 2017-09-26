@@ -8,6 +8,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System.IO;
+
     using SixLabors.ImageSharp.Formats.Bmp;
 
     public class BmpDecoderTests : FileTestBase

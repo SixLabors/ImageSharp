@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Formats
+﻿namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
     /// Stores information about pixel

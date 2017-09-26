@@ -27,5 +27,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 return decoder.Decode<TPixel>(stream);
             }
         }
+
+        /// <inheritdoc/>
+        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            using (var decoder = new OrigJpegDecoderCore(configuration, this))
+            {
+                return new PixelTypeInfo(decoder.DetectPixelSize(stream));
+            }
+        }
     }
 }

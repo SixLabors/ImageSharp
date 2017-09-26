@@ -1,19 +1,17 @@
-﻿// <copyright file="TestFileSystem.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using SixLabors.ImageSharp.Formats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using ImageSharp.Formats;
-    using Xunit;
-
     /// <summary>
     /// A test image file.
     /// </summary>

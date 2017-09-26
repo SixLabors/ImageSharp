@@ -1,15 +1,13 @@
-﻿// <copyright file="YCbCr.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.ColorSpaces
 {
-    using System;
-    using System.ComponentModel;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Represents an YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification for the JFIF use with Jpeg.
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>

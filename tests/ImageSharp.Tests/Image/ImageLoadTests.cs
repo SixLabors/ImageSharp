@@ -1,18 +1,16 @@
-﻿// <copyright file="ImageLoadTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
+using Moq;
+using Xunit;
+using SixLabors.ImageSharp.Advanced;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Formats;
-    using ImageSharp.IO;
-    using Moq;
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
@@ -320,6 +318,7 @@ namespace ImageSharp.Tests
             }
         }
 
+
         [Fact]
         public void LoadsImageWithoutThrowingCrcException()
         {
@@ -327,7 +326,7 @@ namespace ImageSharp.Tests
 
             using (Image<Rgba32> img = image1Provider.GetImage())
             {
-                Assert.Equal(166036, img.Pixels.Length);
+                Assert.Equal(166036, img.Frames.RootFrame.GetPixelSpan().Length);
             }
         }
 

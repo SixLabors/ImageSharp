@@ -1,9 +1,12 @@
-namespace ImageSharp.Tests
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Numerics;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+
+namespace SixLabors.ImageSharp.Tests
+{
     internal struct ApproximateFloatComparer : IEqualityComparer<float>, IEqualityComparer<Vector4>
     {
         private readonly float Eps;
@@ -17,7 +20,7 @@ namespace ImageSharp.Tests
         {
             float d = x - y;
 
-            return d > -this.Eps && d < this.Eps;
+            return d >= -this.Eps && d <= this.Eps;
         }
 
         public int GetHashCode(float obj)

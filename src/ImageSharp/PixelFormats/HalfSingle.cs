@@ -1,14 +1,12 @@
-﻿// <copyright file="HalfSingle.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Packed pixel type containing a single 16 bit floating point value.
     /// <para>
@@ -180,7 +178,7 @@ namespace ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToScaledVector4()
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);

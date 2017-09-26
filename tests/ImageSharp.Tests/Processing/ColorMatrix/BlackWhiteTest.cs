@@ -1,43 +1,27 @@
-﻿// <copyright file="BlackWhiteTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.ColorMatrix
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.ColorMatrix
 {
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
-    public class BlackWhiteTest : FileTestBase
+    public class BlackWhiteTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyBlackWhiteFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void BlackWhite_CorrectProcessor()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.BlackWhite()
-                    .DebugSave(provider, null, Extensions.Bmp);
-            }
+            this.operations.BlackWhite();
+            var p = this.Verify<BlackWhiteProcessor<Rgba32>>();
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyBlackWhiteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void BlackWhite_rect_CorrectProcessor()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
-
-                image.BlackWhite(bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
-
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+            this.operations.BlackWhite( this.rect);
+            var p = this.Verify<BlackWhiteProcessor<Rgba32>>(this.rect);
         }
     }
 }

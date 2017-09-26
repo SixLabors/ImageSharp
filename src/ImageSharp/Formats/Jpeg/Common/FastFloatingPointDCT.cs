@@ -183,7 +183,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
         /// <summary>
         /// Original:
-        /// <seealso href="https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L15"/>
+        /// <see>
+        ///     <cref>https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L15</cref>
+        /// </see>
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>
@@ -246,7 +248,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
         /// <summary>
         /// Original:
-        /// <see href="https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L15"/>
+        /// <see>
+        ///     <cref>https://github.com/norishigefukushima/dct_simd/blob/master/dct/dct8x8_simd.cpp#L15</cref>
+        /// </see>
         /// </summary>
         /// <param name="s">Source</param>
         /// <param name="d">Destination</param>

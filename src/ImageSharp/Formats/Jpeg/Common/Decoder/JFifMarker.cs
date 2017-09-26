@@ -5,6 +5,8 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
+    using Guard = SixLabors.Guard;
+
     /// <summary>
     /// Provides information about the JFIF marker segment
     /// TODO: Thumbnail?
@@ -12,32 +14,84 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
     internal struct JFifMarker : IEquatable<JFifMarker>
     {
         /// <summary>
-        /// The major version
+        /// Gets the length of an JFIF marker segment.
         /// </summary>
-        public byte MajorVersion;
+        public const int Length = 13;
 
         /// <summary>
-        /// The minor version
+        /// Initializes a new instance of the <see cref="JFifMarker"/> struct.
         /// </summary>
-        public byte MinorVersion;
+        /// <param name="majorVersion">The major version</param>
+        /// <param name="minorVersion">The minor version</param>
+        /// <param name="densityUnits">The units for the density values</param>
+        /// <param name="xDensity">The horizontal pixel density</param>
+        /// <param name="yDensity">The veritcal pixel density</param>
+        private JFifMarker(byte majorVersion, byte minorVersion, byte densityUnits, short xDensity, short yDensity)
+        {
+            Guard.MustBeGreaterThan(xDensity, 0, nameof(xDensity));
+            Guard.MustBeGreaterThan(yDensity, 0, nameof(yDensity));
+
+            this.MajorVersion = majorVersion;
+            this.MinorVersion = minorVersion;
+            this.DensityUnits = densityUnits;
+            this.XDensity = xDensity;
+            this.YDensity = yDensity;
+        }
 
         /// <summary>
-        /// Units for the following pixel density fields
+        /// Gets the major version
+        /// </summary>
+        public byte MajorVersion { get; }
+
+        /// <summary>
+        /// Gets the minor version
+        /// </summary>
+        public byte MinorVersion { get; }
+
+        /// <summary>
+        /// Gets the units for the following pixel density fields
         ///  00 : No units; width:height pixel aspect ratio = Ydensity:Xdensity
         ///  01 : Pixels per inch (2.54 cm)
         ///  02 : Pixels per centimeter
         /// </summary>
-        public byte DensityUnits;
+        public byte DensityUnits { get; }
 
         /// <summary>
-        /// Horizontal pixel density. Must not be zero.
+        /// Gets the horizontal pixel density. Must not be zero.
         /// </summary>
-        public short XDensity;
+        public short XDensity { get; }
 
         /// <summary>
-        /// Vertical pixel density. Must not be zero.
+        /// Gets the vertical pixel density. Must not be zero.
         /// </summary>
-        public short YDensity;
+        public short YDensity { get; }
+
+        /// <summary>
+        /// Converts the specified byte array representation of an JFIF marker to its <see cref="JFifMarker"/> equivalent and
+        /// returns a value that indicates whether the conversion succeeded.
+        /// </summary>
+        /// <param name="bytes">The byte array containing metadata to parse</param>
+        /// <param name="marker">The marker to return.</param>
+        public static bool TryParse(byte[] bytes, out JFifMarker marker)
+        {
+            if (ProfileResolver.IsProfile(bytes, ProfileResolver.JFifMarker))
+            {
+                byte majorVersion = bytes[5];
+                byte minorVersion = bytes[6];
+                byte densityUnits = bytes[7];
+                short xDensity = (short)((bytes[8] << 8) | bytes[9]);
+                short yDensity = (short)((bytes[10] << 8) | bytes[11]);
+
+                if (xDensity > 0 && yDensity > 0)
+                {
+                    marker = new JFifMarker(majorVersion, minorVersion, densityUnits, xDensity, yDensity);
+                    return true;
+                }
+            }
+
+            marker = default(JFifMarker);
+            return false;
+        }
 
         /// <inheritdoc/>
         public bool Equals(JFifMarker other)
@@ -63,18 +117,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return GetHashCode(this);
-        }
-
-        private static int GetHashCode(JFifMarker marker)
-        {
             return HashHelpers.Combine(
-                marker.MajorVersion.GetHashCode(),
+                this.MajorVersion.GetHashCode(),
                 HashHelpers.Combine(
-                    marker.MinorVersion.GetHashCode(),
+                    this.MinorVersion.GetHashCode(),
                     HashHelpers.Combine(
-                        marker.DensityUnits.GetHashCode(),
-                        HashHelpers.Combine(marker.XDensity, marker.YDensity))));
+                        this.DensityUnits.GetHashCode(),
+                        HashHelpers.Combine(this.XDensity, this.YDensity))));
         }
     }
 }

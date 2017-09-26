@@ -410,26 +410,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, 13);
-            remaining -= 13;
+            this.InputStream.Read(this.temp, 0, JFifMarker.Length);
+            remaining -= JFifMarker.Length;
 
-            bool isJfif = this.temp[0] == PdfJsJpegConstants.Markers.JFif.J &&
-                          this.temp[1] == PdfJsJpegConstants.Markers.JFif.F &&
-                          this.temp[2] == PdfJsJpegConstants.Markers.JFif.I &&
-                          this.temp[3] == PdfJsJpegConstants.Markers.JFif.F &&
-                          this.temp[4] == PdfJsJpegConstants.Markers.JFif.Null;
-
-            if (isJfif)
-            {
-                this.jFif = new JFifMarker
-                {
-                    MajorVersion = this.temp[5],
-                    MinorVersion = this.temp[6],
-                    DensityUnits = this.temp[7],
-                    XDensity = (short)((this.temp[8] << 8) | this.temp[9]),
-                    YDensity = (short)((this.temp[10] << 8) | this.temp[11])
-                };
-            }
+            JFifMarker.TryParse(this.temp, out this.jFif);
 
             // TODO: thumbnail
             if (remaining > 0)

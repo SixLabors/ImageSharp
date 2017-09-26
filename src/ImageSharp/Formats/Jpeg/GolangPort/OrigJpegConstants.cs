@@ -26,67 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
 
         /// <summary>
-        /// Represents high detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourFourFourHorizontal = { 0x11, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents high detail chroma vertical subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourFourFourVertical = { 0x11, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents medium detail chroma vertical subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoVertical = { 0x11, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents low detail chroma vertical subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroVertical = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents medium detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoTwoHorizontal = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
-        /// Represents low detail chroma horizontal subsampling.
-        /// </summary>
-        public static readonly byte[] ChromaFourTwoZeroHorizontal = { 0x22, 0x11, 0x11 };
-
-        /// <summary>
-        /// Describes component ids for start of frame components.
-        /// </summary>
-        internal static class Components
-        {
-            /// <summary>
-            /// The YCbCr luminance component id.
-            /// </summary>
-            public const byte Y = 1;
-
-            /// <summary>
-            /// The YCbCr chroma component id.
-            /// </summary>
-            public const byte Cb = 2;
-
-            /// <summary>
-            /// The YCbCr chroma component id.
-            /// </summary>
-            public const byte Cr = 3;
-
-            /// <summary>
-            /// The YIQ x coordinate component id.
-            /// </summary>
-            public const byte I = 4;
-
-            /// <summary>
-            /// The YIQ y coordinate component id.
-            /// </summary>
-            public const byte Q = 5;
-        }
-
-        /// <summary>
         /// Describes common Jpeg markers
         /// </summary>
         internal static class Markers

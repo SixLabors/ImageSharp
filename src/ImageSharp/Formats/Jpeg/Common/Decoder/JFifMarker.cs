@@ -5,8 +5,6 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
-    using Guard = SixLabors.Guard;
-
     /// <summary>
     /// Provides information about the JFIF marker segment
     /// TODO: Thumbnail?

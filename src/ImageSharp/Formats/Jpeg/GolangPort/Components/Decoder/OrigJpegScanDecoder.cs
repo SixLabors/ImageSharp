@@ -326,11 +326,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     zig++;
 
                     // Decode the DC coefficient, as specified in section F.2.2.1.
-                    int value;
                     int huffmanIndex = (OrigHuffmanTree.DcTableIndex * OrigHuffmanTree.ThRowSize) + this.pointers.ComponentScan[scanIndex].DcTableSelector;
                     decoder.InputProcessor.DecodeHuffmanUnsafe(
                             ref decoder.HuffmanTrees[huffmanIndex],
-                            out value);
+                            out int value);
                     if (!decoder.InputProcessor.CheckEOF())
                     {
                         return;
@@ -341,8 +340,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         throw new ImageFormatException("Excessive DC component");
                     }
 
-                    int deltaDC;
-                    decoder.InputProcessor.ReceiveExtendUnsafe(value, out deltaDC);
+                    decoder.InputProcessor.ReceiveExtendUnsafe(value, out int deltaDC);
                     if (!decoder.InputProcessor.CheckEOFEnsureNoError())
                     {
                         return;
@@ -364,8 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     // Decode the AC coefficients, as specified in section F.2.2.2.
                     for (; zig <= this.zigEnd; zig++)
                     {
-                        int value;
-                        decoder.InputProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out value);
+                        decoder.InputProcessor.DecodeHuffmanUnsafe(ref decoder.HuffmanTrees[huffmannIdx], out int value);
                         if (decoder.InputProcessor.HasError)
                         {
                             return;
@@ -381,8 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                 break;
                             }
 
-                            int ac;
-                            decoder.InputProcessor.ReceiveExtendUnsafe(val1, out ac);
+                            decoder.InputProcessor.ReceiveExtendUnsafe(val1, out int ac);
                             if (decoder.InputProcessor.HasError)
                             {
                                 return;
@@ -419,24 +415,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         private void DecodeEobRun(int count, ref InputProcessor processor)
         {
-            int bitsResult;
-            processor.DecodeBitsUnsafe(count, out bitsResult);
+            processor.DecodeBitsUnsafe(count, out int bitsResult);
             if (processor.LastErrorCode != OrigDecoderErrorCode.NoError)
             {
                 return;
             }
 
             this.eobRun |= bitsResult;
-        }
-
-        /// <summary>
-        /// Gets the block index used to retieve blocks from in <see cref="OrigComponent.SpectralBlocks"/>
-        /// </summary>
-        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        /// <returns>The index</returns>
-        private int GetBlockIndex(OrigJpegDecoderCore decoder)
-        {
-            return ((this.by * decoder.MCUCountX) * this.hi) + this.bx;
         }
 
         private void InitComponentScan(OrigJpegDecoderCore decoder, int i, ref OrigComponentScan currentComponentScan, ref int totalHv)
@@ -516,8 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     throw new ImageFormatException("Invalid state for zig DC component");
                 }
 
-                bool bit;
-                bp.DecodeBitUnsafe(out bit);
+                bp.DecodeBitUnsafe(out bool bit);
                 if (!bp.CheckEOFEnsureNoError())
                 {
                     return;
@@ -546,8 +530,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     bool done = false;
                     int z = 0;
 
-                    int val;
-                    bp.DecodeHuffmanUnsafe(ref h, out val);
+                    bp.DecodeHuffmanUnsafe(ref h, out int val);
                     if (!bp.CheckEOF())
                     {
                         return;
@@ -578,8 +561,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                         case 1:
                             z = delta;
 
-                            bool bit;
-                            bp.DecodeBitUnsafe(out bit);
+                            bp.DecodeBitUnsafe(out bool bit);
                             if (!bp.CheckEOFEnsureNoError())
                             {
                                 return;
@@ -650,8 +632,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     continue;
                 }
 
-                bool bit;
-                bp.DecodeBitUnsafe(out bit);
+                bp.DecodeBitUnsafe(out bool bit);
                 if (bp.HasError)
                 {
                     return int.MinValue;

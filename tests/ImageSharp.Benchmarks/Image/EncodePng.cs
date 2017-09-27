@@ -55,14 +55,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
             this.bmpDrawing.Dispose();
         }
 
-        //[Benchmark(Baseline = true, Description = "System.Drawing Png")]
-        //public void PngSystemDrawing()
-        //{
-        //    using (var memoryStream = new MemoryStream())
-        //    {
-        //        this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
-        //    }
-        //}
+        [Benchmark(Baseline = true, Description = "System.Drawing Png")]
+        public void PngSystemDrawing()
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
+            }
+        }
 
         [Benchmark(Description = "ImageSharp Png")]
         public void PngCore()

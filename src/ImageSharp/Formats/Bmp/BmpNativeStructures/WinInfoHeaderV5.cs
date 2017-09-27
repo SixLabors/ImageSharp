@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <remarks>
         /// The color table (if present) must follow the <c>WinInfoHeaderV5</c> structure, and consist of
-        /// <see cref="RGBQUAD"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
+        /// <see cref="WinRgbQuadruple"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </remarks>
         public ushort BitsPerPixel;
 
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// A structure that specifies the x, y and z coordinates of the three colors that correspond to the
-        /// red, green and blue endpoints for the logical color space associated with the bitmap. <see cref="CIEXYZTRIPLE"/>.
+        /// red, green and blue endpoints for the logical color space associated with the bitmap. <see cref="WinCieXyzTriple"/>.
         /// This member is ignored unless the <c>WinInfoHeaderV5.ColorSpaceType</c> member specifies <seealso cref="BmpColorSpace.Calibrated_RGB"/>.
         /// <para>
         /// <b>Note:</b> A color space is a model for representing color numerically in terms of three or more coordinates.

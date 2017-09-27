@@ -15,12 +15,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpDecoderCore
     {
         /// <summary>
-        /// For Windows Mobile version 5.0 and later, you can OR any of the values BI_RGB, BI_BITFIELDS and BI_ALPHABITFIELDS with
-        /// BI_SRCPREROTATE to specify that the source DIB section has the same rotation angle as the destination.
+        /// For Windows Mobile version 5.0 and later, you can OR any of the values BI_RGB,
+        /// BI_BITFIELDS and BI_ALPHABITFIELDS with <c>SourcePreRotateMask</c> to specify that the source
+        /// DIB section has the same rotation angle as the destination.
         /// Otherwise, the image can be rotated 90 degrees anti-clockwise (Landscape/Portrait).
         /// https://msdn.microsoft.com/en-us/library/aa452495.aspx
         /// </summary>
-        private const int SourcePreRotateMask = 0x8000;
+        private const uint SourcePreRotateMask = 0x8000;
 
         /// <summary>
         /// The mask for the red part of the color for 16-bit RGB bitmaps.
@@ -86,20 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.ReadFileHeader();
                 this.ReadInfoHeader();
 
-                // See http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
-                // If the height is negative, then this is a Windows bitmap whose origin
-                // is the upper-left corner and not the lower-left.The inverted flag
-                // indicates a lower-left origin.Our code will be outputting an
-                // upper-left origin pixel array.
-                bool inverted = false;
-                if (this.infoHeader.Height < 0)
-                {
-                    inverted = true;
-                    this.infoHeader.Height = -this.infoHeader.Height;
-                }
-
                 int colorMapSize = -1;
-
                 if (this.infoHeader.ClrUsed == 0)
                 {
                     if (this.infoHeader.BitsPerPixel == ((int)BmpBitsPerPixel.MonoChrome) ||
@@ -145,19 +133,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         case BmpCompression.RGB:
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
-                                this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                                this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.IsTopDown);
                             }
                             else if (this.infoHeader.BitsPerPixel == 24)
                             {
-                                this.ReadRgb24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                                this.ReadRgb24(pixels, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.IsTopDown);
                             }
                             else if (this.infoHeader.BitsPerPixel == 16)
                             {
-                                this.ReadRgb16(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                                this.ReadRgb16(pixels, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.IsTopDown);
                             }
                             else if (this.infoHeader.BitsPerPixel <= 8)
                             {
-                                this.ReadRgbPalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
+                                this.ReadRgbPalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, this.infoHeader.IsTopDown);
                             }
 
                             break;
@@ -377,44 +365,86 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] data = new byte[BmpInfoHeader.MaxHeaderSize];
+            byte[] data = new byte[(int)BmpNativeStructuresSizes.BITMAPV5HEADER];
 
             // read header size
-            this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
+            this.currentStream.Read(data, 0, sizeof(uint));
             int headerSize = BitConverter.ToInt32(data, 0);
-            if (headerSize < BmpInfoHeader.BitmapCoreHeaderSize)
-            {
-                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
-            }
-
-            int skipAmmount = 0;
-            if (headerSize > BmpInfoHeader.MaxHeaderSize)
-            {
-                skipAmmount = headerSize - BmpInfoHeader.MaxHeaderSize;
-                headerSize = BmpInfoHeader.MaxHeaderSize;
-            }
 
             // read the rest of the header
-            this.currentStream.Read(data, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
+            int skipAmmount = 0;
+            if (headerSize > (int)BmpNativeStructuresSizes.BITMAPV5HEADER)
+            {
+                // FIXME: If the header size is bigger than BITMAPV5HEADER structure, this is a bug
+                skipAmmount = headerSize - (int)BmpNativeStructuresSizes.BITMAPV5HEADER;
+                headerSize = (int)BmpNativeStructuresSizes.BITMAPV5HEADER;
+            }
+
+            this.currentStream.Read(data, sizeof(uint), headerSize - sizeof(uint));
 
             switch (headerSize)
             {
-                case BmpInfoHeader.BitmapCoreHeaderSize:
+                // Windows DIB Info Header v2 and OS/2 DIB Info Header v1
+                case (int)BmpNativeStructuresSizes.BITMAPCOREHEADER:
                     this.infoHeader = this.ParseBitmapCoreHeader(data);
                     break;
-                case BmpInfoHeader.BitmapInfoHeaderSize:
+
+                // OS/2 DIB Info Header v2 minimum size
+                case (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN:
+                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    break;
+
+                // OS/2 DIB Info Header v2 maximum size
+                case (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER:
+                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    break;
+
+                // Windows DIB Info Header v4
+                case (int)BmpNativeStructuresSizes.BITMAPV4HEADER:
                     this.infoHeader = this.ParseBitmapInfoHeader(data);
                     break;
+
+                // Windows DIB Info Header v5
+                case (int)BmpNativeStructuresSizes.BITMAPV5HEADER:
+                    this.infoHeader = this.ParseBitmapInfoHeader(data);
+                    break;
+
                 default:
-                    if (headerSize > BmpInfoHeader.BitmapInfoHeaderSize)
+                    if ((headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER) ||
+                        (headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_NT) ||
+                        (headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_CE))
                     {
+                        // Windows DIB Info Header v3
                         this.infoHeader = this.ParseBitmapInfoHeader(data);
+                        break;
+                    }
+                    else if ((headerSize > (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN) &&
+                        (headerSize < (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MAX))
+                    {
+                        // OS/2 DIB Info Header v2 variable size
+                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
                         break;
                     }
                     else
                     {
+                        // UPS! Unknow DIB header
                         throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
                     }
+            }
+
+            // Check if the DIB is top-down (negative height => origin is the upper-left corner)
+            // or bottom-up (positeve height => origin is the lower-left corner)
+            if (this.infoHeader.Height < 0)
+            {
+                this.infoHeader.IsTopDown = true;
+                this.infoHeader.Height = -this.infoHeader.Height;
+            }
+
+            // Check if the DIB is pre-rotated
+            if ((SourcePreRotateMask & (uint)this.infoHeader.Compression) == SourcePreRotateMask)
+            {
+                this.infoHeader.IsSourcePreRotate = true;
+                this.infoHeader.Compression = (BmpCompression)((uint)this.infoHeader.Compression & (~SourcePreRotateMask));
             }
 
             // skip the remaining header because we can't read those parts

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// All structure fields are stored little-endian on the file.
     /// <para>
     /// The DIB information header must follow the <c>WinFileHeader</c> structure, and consist of one of
-    /// <see cref="BitmapInfoHeaderOS2V2"/>, <see cref="BitmapCoreHeader"/>, <see cref="BitmapInfoHeaderV5"/>, etc. structures.
+    /// <see cref="OS2InfoHeaderV2"/>, <see cref="WinCoreHeader"/>, <see cref="WinInfoHeaderV5"/>, etc. structures.
     /// </para>
     /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 14)]

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <remarks>
         /// The color table (if present) must follow the <c>OS2InfoHeaderV2</c> structure, and consist of
-        /// <see cref="RGBQUAD"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
+        /// <see cref="WinRgbQuadruple"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </remarks>
         public ushort BitsPerPixel;
 

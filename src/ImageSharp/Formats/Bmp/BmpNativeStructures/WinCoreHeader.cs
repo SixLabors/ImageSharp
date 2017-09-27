@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// The number of bits-per-pixel (bpp). This value must be one of: 1, 2, 4, 8, or 24.
         /// <para>If <c>WinCoreHeader.BitsPerPixel</c> is 2, the bitmap is Windows CE 2.0 and above specific.</para>
-        /// <see cref="RGBTRIPLE"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
+        /// <see cref="WinRgbTriple"/> structure vector (most important colors at top), up to the maximum palette size dictated by the bpp.
         /// </summary>
         /// <remarks>
         /// The color table (if present) must follow the <c>WinCoreHeader</c> structure, and consist of

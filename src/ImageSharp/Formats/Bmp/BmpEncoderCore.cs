@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             var infoHeader = new BmpInfoHeader
             {
-                HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
+                HeaderSize = sizeof(uint),
                 Height = image.Height,
                 Width = image.Width,
                 BitsPerPixel = bpp,

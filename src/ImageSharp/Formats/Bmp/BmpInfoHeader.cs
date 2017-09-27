@@ -11,24 +11,20 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpInfoHeader
     {
         /// <summary>
-        /// Defines the size of the BITMAPINFOHEADER data structure in the bitmap file.
+        /// Gets or sets a value indicating whether this DIB header is stored in top-down (<c>true</c>)
+        /// or bottom-down (<c>false</c>).
+        /// <see cref="Height"/>
         /// </summary>
-        public const int BitmapInfoHeaderSize = 40;
+        public bool IsTopDown { get; set; } = false;
 
         /// <summary>
-        /// Defines the size of the WinCoreHeader data structure in the bitmap file.
+        /// Gets or sets a value indicating whether this DIB header stored is pre-rotated 90º referent to the
+        /// GUI (<c>true</c>). If the picture has taken with the GUI and the camera having the same orientantion
+        /// (Landscape/Portrait), this value is <c>false</c>;
+        /// or bottom-down (<c>false</c>).
+        /// <see cref="BmpDecoderCore.SourcePreRotateMask"/>
         /// </summary>
-        public const int BitmapCoreHeaderSize = 12;
-
-        /// <summary>
-        /// Defines the size of the biggest supported header data structure in the bitmap file.
-        /// </summary>
-        public const int MaxHeaderSize = BitmapInfoHeaderSize;
-
-        /// <summary>
-        /// Defines the size of the <see cref="HeaderSize"/> field.
-        /// </summary>
-        public const int HeaderSizeSize = 4;
+        public bool IsSourcePreRotate { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the size of this header

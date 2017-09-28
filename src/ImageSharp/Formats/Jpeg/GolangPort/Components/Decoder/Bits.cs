@@ -92,8 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReceiveExtend(int t, ref InputProcessor inputProcessor)
         {
-            int x;
-            OrigDecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, ref inputProcessor, out x);
+            OrigDecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, ref inputProcessor, out int x);
             errorCode.EnsureNoError();
             return x;
         }
@@ -120,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             this.UnreadBits -= t;
             this.Mask >>= t;
             int s = 1 << t;
-            x = (int)((this.Accumulator >> this.UnreadBits) & (s - 1));
+            x = (this.Accumulator >> this.UnreadBits) & (s - 1);
 
             if (x < (s >> 1))
             {
@@ -132,8 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         private OrigDecoderErrorCode EnsureBitsStepImpl(ref InputProcessor inputProcessor)
         {
-            int c;
-            OrigDecoderErrorCode errorCode = inputProcessor.Bytes.ReadByteStuffedByteUnsafe(inputProcessor.InputStream, out c);
+            OrigDecoderErrorCode errorCode = inputProcessor.Bytes.ReadByteStuffedByteUnsafe(inputProcessor.InputStream, out int c);
 
             if (errorCode != OrigDecoderErrorCode.NoError)
             {

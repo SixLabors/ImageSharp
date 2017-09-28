@@ -11,6 +11,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpInfoHeader
     {
         /// <summary>
+        /// If this field is diferent of <see cref="BmpOS2Compression.RGB"/>, an IBM OS/2 <c>OS2InfoHeaderV2</c> DIB header
+        /// is being used insted of the Microsoft Windows <see cref="WinInfoHeaderV5"/> DIB header.
+        /// See <see cref="OS2InfoHeaderV2.Compression"/>.
+        /// </summary>
+        public BmpOS2Compression OS2Compression = BmpOS2Compression.RGB;
+
+        /// <summary>
+        /// Store the private fields as a Microsoft Windows <see cref="WinInfoHeaderV5"/> DIB header.
+        /// </summary>
+        private WinInfoHeaderV5 infoHeader;
+
+        /// <summary>
         /// Gets or sets a value indicating whether this DIB header is stored in top-down (<c>true</c>)
         /// or bottom-down (<c>false</c>).
         /// <see cref="Height"/>
@@ -29,63 +41,117 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets or sets the size of this header
         /// </summary>
-        public int HeaderSize { get; set; }
+        public uint HeaderSize {
+            get { return this.infoHeader.Size; }
+
+            set { this.infoHeader.Size = value; }
+        }
 
         /// <summary>
         /// Gets or sets the bitmap width in pixels (signed integer).
         /// </summary>
-        public int Width { get; set; }
+        public int Width
+        {
+            get { return this.infoHeader.Width; }
+
+            set { this.infoHeader.Width = value; }
+        }
 
         /// <summary>
         /// Gets or sets the bitmap height in pixels (signed integer).
         /// </summary>
-        public int Height { get; set; }
+        public int Height
+        {
+            get { return this.infoHeader.Height; }
+
+            set { this.infoHeader.Height = value; }
+        }
 
         /// <summary>
         /// Gets or sets the number of color planes being used. Must be set to 1.
         /// </summary>
-        public short Planes { get; set; }
+        public ushort Planes
+        {
+            get { return this.infoHeader.Planes; }
+
+            set { this.infoHeader.Planes = value; }
+        }
 
         /// <summary>
         /// Gets or sets the number of bits per pixel, which is the color depth of the image.
         /// Typical values are 1, 4, 8, 16, 24 and 32.
         /// </summary>
-        public short BitsPerPixel { get; set; }
+        public ushort BitsPerPixel
+        {
+            get { return this.infoHeader.BitsPerPixel; }
+
+            set { this.infoHeader.BitsPerPixel = value; }
+        }
 
         /// <summary>
         /// Gets or sets the compression method being used.
         /// See the next table for a list of possible values.
         /// </summary>
-        public BmpCompression Compression { get; set; }
+        public BmpCompression Compression
+        {
+            get { return (BmpCompression)this.infoHeader.Compression; }
+
+            set { this.infoHeader.Compression = (uint)value; }
+        }
 
         /// <summary>
         /// Gets or sets the image size. This is the size of the raw bitmap data (see below),
         /// and should not be confused with the file size.
         /// </summary>
-        public int ImageSize { get; set; }
+        public uint ImageSize
+        {
+            get { return this.infoHeader.ImageSize; }
+
+            set { this.infoHeader.ImageSize = value; }
+        }
 
         /// <summary>
         /// Gets or sets the horizontal resolution of the image.
         /// (pixel per meter, signed integer)
         /// </summary>
-        public int XPelsPerMeter { get; set; }
+        public int XPelsPerMeter
+        {
+            get { return this.infoHeader.PixelsPerMeterX; }
+
+            set { this.infoHeader.PixelsPerMeterX = value; }
+        }
 
         /// <summary>
         /// Gets or sets the vertical resolution of the image.
         /// (pixel per meter, signed integer)
         /// </summary>
-        public int YPelsPerMeter { get; set; }
+        public int YPelsPerMeter
+        {
+            get { return this.infoHeader.PixelsPerMeterY; }
+
+            set { this.infoHeader.PixelsPerMeterY = value; }
+        }
 
         /// <summary>
         /// Gets or sets the number of colors in the color palette,
         /// or 0 to default to 2^n.
         /// </summary>
-        public int ClrUsed { get; set; }
+        public uint ClrUsed
+        {
+            get { return this.infoHeader.PaletteSize; }
+
+            set { this.infoHeader.PaletteSize = value; }
+        }
 
         /// <summary>
         /// Gets or sets the number of important colors used,
         /// or 0 when every color is important{ get; set; } generally ignored.
         /// </summary>
-        public int ClrImportant { get; set; }
+        public uint ClrImportant
+        {
+            get { return this.infoHeader.PaletteImportant; }
+
+            set { this.infoHeader.PaletteImportant = value; }
+        }
     }
 }

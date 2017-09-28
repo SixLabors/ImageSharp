@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// </para>
     /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
     /// </summary>
-    internal enum BmpCompression
+    internal enum BmpCompression : uint
     {
         // Microsoft Windows BMP v3 and IBM OS/2 BMP v2
 

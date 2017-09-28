@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// <seealso cref="BmpNativeStructuresSizes.RGBTRIPLE"/>
         /// </summary>
-        OS21XpaletteELEMENT = 3,
+        OS21XPALETTEELEMENT = 3,
 
         /// <summary>
         /// The size in bytes of a color palette element for Microsoft Windows BMP v3 and IBM OS/2 BMP v2 file format.
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
         /// <seealso cref="BmpNativeStructuresSizes.RGBQUAD"/>
         /// </summary>
-        OS22XpaletteELEMENT = 4,
+        OS22XPALETTEELEMENT = 4,
 
         // IBM OS/2 BMP DIB header
 

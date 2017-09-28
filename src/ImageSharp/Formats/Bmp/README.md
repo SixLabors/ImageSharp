@@ -3,6 +3,14 @@
 https://github.com/yufeih/Nine.Imaging/
 https://imagetools.codeplex.com/
 
+
+Test images at:
+
+- BMP Suite v1.0: http://www.hassconsult.co.ke/dompdf/www/test/image_bmp.html
+- BMP Suite v2.5: http://entropymine.com/jason/bmpsuite/bmpsuite/html/bmpsuite.html
+- Microsoft Windows Bitmap Sample Files: http://www.fileformat.info/format/bmp/sample/index.htm
+
+
 # Supported BMP File Formats
 
 ## Loading/Decoding
@@ -34,7 +42,7 @@ https://imagetools.codeplex.com/
 
 **24-bit RGB** (8-bit per pixel color)
 
-- [ ] Uncompressed - BGR888
+- [X] Uncompressed - BGR888
 - [ ] RLE-24 Compressed
 
 ### Microsoft Windows v1

@@ -57,9 +57,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 HeaderSize = sizeof(uint),
                 Height = image.Height,
                 Width = image.Width,
-                BitsPerPixel = bpp,
+                BitsPerPixel = (ushort)bpp,
                 Planes = 1,
-                ImageSize = image.Height * bytesPerLine,
+                ImageSize = (uint)(image.Height * bytesPerLine),
                 ClrUsed = 0,
                 ClrImportant = 0
             };

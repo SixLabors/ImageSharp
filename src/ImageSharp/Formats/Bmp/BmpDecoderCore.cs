@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 }
                 else
                 {
-                    colorMapSize = this.infoHeader.ClrUsed * 4;
+                    colorMapSize = (int)(this.infoHeader.ClrUsed * (uint)BmpNativeStructuresSizes.RGBQUAD);
                 }
 
                 byte[] palette = null;
@@ -391,22 +391,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 // OS/2 DIB Info Header v2 minimum size
                 case (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN:
-                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
-                    break;
-
                 // OS/2 DIB Info Header v2 maximum size
                 case (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER:
-                    throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    this.infoHeader = this.ParseBitmapOS2V2Header(data, headerSize);
                     break;
 
                 // Windows DIB Info Header v4
                 case (int)BmpNativeStructuresSizes.BITMAPV4HEADER:
-                    this.infoHeader = this.ParseBitmapInfoHeader(data);
+                    this.infoHeader = this.ParseBitmapInfoHeader(data, headerSize);
                     break;
 
                 // Windows DIB Info Header v5
                 case (int)BmpNativeStructuresSizes.BITMAPV5HEADER:
-                    this.infoHeader = this.ParseBitmapInfoHeader(data);
+                    this.infoHeader = this.ParseBitmapInfoHeader(data, headerSize);
                     break;
 
                 default:
@@ -415,14 +412,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         (headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_CE))
                     {
                         // Windows DIB Info Header v3
-                        this.infoHeader = this.ParseBitmapInfoHeader(data);
+                        this.infoHeader = this.ParseBitmapInfoHeader(data, headerSize);
                         break;
                     }
                     else if ((headerSize > (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN) &&
                         (headerSize < (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MAX))
                     {
                         // OS/2 DIB Info Header v2 variable size
-                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                        this.infoHeader = this.ParseBitmapOS2V2Header(data, headerSize);
                         break;
                     }
                     else
@@ -452,7 +449,69 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the WinCoreHeader format.
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the <see cref="OS2InfoHeaderV2"/> format.
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">See this MSDN link for more information.</seealso>
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <param name="headerSize">Header maximum bytes to read from <c>data</c></param>
+        /// <returns>Parsed header</returns>
+        private BmpInfoHeader ParseBitmapOS2V2Header(byte[] data, int headerSize)
+        {
+            var bmpInfo = new BmpInfoHeader
+            {
+                // Minimum fields
+                HeaderSize = BitConverter.ToUInt32(data, 0),
+                Width = BitConverter.ToInt32(data, 4),
+                Height = BitConverter.ToInt32(data, 8),
+                Planes = BitConverter.ToUInt16(data, 12),
+                BitsPerPixel = BitConverter.ToUInt16(data, 14),
+
+                // Reset the fields that mai not be defined
+                Compression = BmpCompression.RGB,
+                ImageSize = 0,
+                XPelsPerMeter = 0,
+                YPelsPerMeter = 0,
+                ClrUsed = 0,
+                ClrImportant = 0
+            };
+
+            // Extra fields
+            if (headerSize > (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN)
+            {
+                bmpInfo.OS2Compression = (BmpOS2Compression)BitConverter.ToUInt32(data, 16);
+                if (headerSize > 20)
+                {
+                    bmpInfo.ImageSize = BitConverter.ToUInt32(data, 20);
+                    if (headerSize > 24)
+                    {
+                        bmpInfo.XPelsPerMeter = BitConverter.ToInt32(data, 24);
+                        if (headerSize > 28)
+                        {
+                            bmpInfo.YPelsPerMeter = BitConverter.ToInt32(data, 28);
+                            if (headerSize > 32)
+                            {
+                                bmpInfo.ClrUsed = BitConverter.ToUInt32(data, 32);
+                                if (headerSize > 36)
+                                {
+                                    bmpInfo.ClrImportant = BitConverter.ToUInt32(data, 36);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Invalid header size
+            if (headerSize > (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MAX)
+            {
+                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
+
+            return bmpInfo;
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the <see cref="WinCoreHeader"/> format.
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
@@ -461,48 +520,49 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             return new BmpInfoHeader
             {
-                HeaderSize = BitConverter.ToInt32(data, 0),
-                Width = BitConverter.ToUInt16(data, 4),
-                Height = BitConverter.ToUInt16(data, 6),
-                Planes = BitConverter.ToInt16(data, 8),
-                BitsPerPixel = BitConverter.ToInt16(data, 10),
+                HeaderSize = BitConverter.ToUInt32(data, 0),
+                Width = (int)BitConverter.ToUInt16(data, 4),
+                Height = (int)BitConverter.ToUInt16(data, 6),
+                Planes = BitConverter.ToUInt16(data, 8),
+                BitsPerPixel = BitConverter.ToUInt16(data, 10),
 
-                // the rest is not present in the core header
+                // The rest is not present in the core header
+                Compression = BmpCompression.RGB,
                 ImageSize = 0,
                 XPelsPerMeter = 0,
                 YPelsPerMeter = 0,
                 ClrUsed = 0,
-                ClrImportant = 0,
-                Compression = BmpCompression.RGB
+                ClrImportant = 0
             };
         }
 
         /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the <c>BITMAPINFOHEADER</c> format.
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the <c>WinInfoHeaderV3</c>, <c>WinInfoHeaderV4</c> or <see cref="WinInfoHeaderV5"/> format.
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx">See this MSDN link for more information.</seealso>
         /// </summary>
         /// <param name="data">Header bytes read from the stream</param>
+        /// <param name="headerSize">Header maximum bytes to read from <c>data</c></param>
         /// <returns>Parsed header</returns>
-        private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
+        private BmpInfoHeader ParseBitmapInfoHeader(byte[] data, int headerSize = (int)BmpNativeStructuresSizes.BITMAPINFOHEADER)
         {
             return new BmpInfoHeader
             {
-                HeaderSize = BitConverter.ToInt32(data, 0),
+                HeaderSize = BitConverter.ToUInt32(data, 0),
                 Width = BitConverter.ToInt32(data, 4),
                 Height = BitConverter.ToInt32(data, 8),
-                Planes = BitConverter.ToInt16(data, 12),
-                BitsPerPixel = BitConverter.ToInt16(data, 14),
-                ImageSize = BitConverter.ToInt32(data, 20),
+                Planes = BitConverter.ToUInt16(data, 12),
+                BitsPerPixel = BitConverter.ToUInt16(data, 14),
+                Compression = (BmpCompression)BitConverter.ToUInt32(data, 16),
+                ImageSize = BitConverter.ToUInt32(data, 20),
                 XPelsPerMeter = BitConverter.ToInt32(data, 24),
                 YPelsPerMeter = BitConverter.ToInt32(data, 28),
-                ClrUsed = BitConverter.ToInt32(data, 32),
-                ClrImportant = BitConverter.ToInt32(data, 36),
-                Compression = (BmpCompression)BitConverter.ToInt32(data, 16)
+                ClrUsed = BitConverter.ToUInt32(data, 32),
+                ClrImportant = BitConverter.ToUInt32(data, 36)
             };
         }
 
         /// <summary>
-        /// Reads the <see cref="BmpFileHeader"/> from the stream.
+        /// Reads the <see cref="BmpFileHeader"/> from the stream, assuming it uses the <c>BITMAPINFOHEADER</c> format..
         /// </summary>
         private void ReadFileHeader()
         {

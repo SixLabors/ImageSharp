@@ -98,9 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.hasFrames = image.Frames.Count > 1;
 
-            // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
             var ditheredQuantizer = (IQuantizer<TPixel>)this.quantizer;
-            ditheredQuantizer.Dither = !this.hasFrames;
 
             // Quantize the image returning a palette.
             QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image.Frames.RootFrame, size);

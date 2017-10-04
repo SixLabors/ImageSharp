@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -233,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Collect the indexed pixel data
             if (this.pngColorType == PngColorType.Palette)
             {
-                this.CollectIndexedBytes<TPixel>(image.Frames.RootFrame, stream, header);
+                this.CollectIndexedBytes(image.Frames.RootFrame, stream, header);
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -243,9 +242,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Flush();
         }
 
-        /// <summary>
-        /// Disposes PngEncoderCore instance, disposing it's internal buffers.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
             this.previousScanline?.Dispose();
@@ -411,14 +408,12 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
-            UpFilter.Encode(scanSpan, prevSpan, this.up);
+            UpFilter.Encode(scanSpan, prevSpan, this.up, out int currentSum);
 
-            int currentSum = this.CalculateTotalVariation(this.up, int.MaxValue);
             int lowestSum = currentSum;
             Buffer<byte> actualResult = this.up;
 
-            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
+            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -426,8 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 actualResult = this.paeth;
             }
 
-            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
+            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -435,8 +429,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 actualResult = this.sub;
             }
 
-            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.average, currentSum);
+            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -444,34 +437,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             return actualResult;
-        }
-
-        /// <summary>
-        /// Calculates the total variation of given byte array. Total variation is the sum of the absolute values of
-        /// neighbor differences.
-        /// </summary>
-        /// <param name="scanline">The scanline bytes</param>
-        /// <param name="lastSum">The last variation sum</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int CalculateTotalVariation(Span<byte> scanline, int lastSum)
-        {
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
-            int sum = 0;
-
-            for (int i = 1; i < this.bytesPerScanline; i++)
-            {
-                byte v = Unsafe.Add(ref scanBaseRef, i);
-                sum += v < 128 ? v : 256 - v;
-
-                // No point continuing if we are larger.
-                if (sum >= lastSum)
-                {
-                    break;
-                }
-            }
-
-            return sum;
         }
 
         /// <summary>

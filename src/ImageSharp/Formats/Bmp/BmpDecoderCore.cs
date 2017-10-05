@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Otherwise, the image can be rotated 90 degrees anti-clockwise (Landscape/Portrait).
         /// https://msdn.microsoft.com/en-us/library/aa452495.aspx
         /// </summary>
-        private const uint SourcePreRotateMask = 0x8000;
+        public const uint SourcePreRotateMask = 0x8000;
 
         /// <summary>
         /// The mask for the red part of the color for 16-bit RGB bitmaps.
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 // OS/2 DIB Info Header v2 minimum size
                 case (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN:
-                // OS/2 DIB Info Header v2 maximum size
+                // OS/2 DIB Info Header v2 full size
                 case (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER:
                     this.infoHeader = this.ParseBitmapOS2V2Header(data, headerSize);
                     break;
@@ -459,6 +459,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             var bmpInfo = new BmpInfoHeader
             {
+                // Mark the header as an IBM OS/2 v2 informatiom header for the DIB
+                IsOS2InfoHeaderV2 = true,
+
                 // Minimum fields
                 HeaderSize = BitConverter.ToUInt32(data, 0),
                 Width = BitConverter.ToInt32(data, 4),
@@ -466,19 +469,36 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 Planes = BitConverter.ToUInt16(data, 12),
                 BitsPerPixel = BitConverter.ToUInt16(data, 14),
 
-                // Reset the fields that mai not be defined
+                // Reset the fields that may not be defined
                 Compression = BmpCompression.RGB,
                 ImageSize = 0,
                 XPelsPerMeter = 0,
                 YPelsPerMeter = 0,
                 ClrUsed = 0,
-                ClrImportant = 0
+                ClrImportant = 0,
+                Os2Units = 0,
+                Os2Reserved = 0,
+                Os2Recording = 0,
+                Os2Rendering = BmpOS2CompressionHalftoning.NoHalftoning,
+                Os2Size1 = 0,
+                Os2Size2 = 0,
+                Os2ColorEncoding = 0,
+                Os2Identifier = 0
             };
 
             // Extra fields
             if (headerSize > (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MIN)
             {
-                bmpInfo.OS2Compression = (BmpOS2Compression)BitConverter.ToUInt32(data, 16);
+                // IBM OS/2 v2 pixel data compression method used
+                bmpInfo.Os2Compression = (BmpOS2Compression)BitConverter.ToUInt32(data, 16);
+                if ((bmpInfo.Os2Compression == BmpOS2Compression.RGB) ||
+                    (bmpInfo.Os2Compression == BmpOS2Compression.RLE8) ||
+                    (bmpInfo.Os2Compression == BmpOS2Compression.RLE4))
+                {
+                    // It's the same as the Microsoft Windows compression, so update it
+                    bmpInfo.Compression = (BmpCompression)((int)bmpInfo.Os2Compression);
+                }
+
                 if (headerSize > 20)
                 {
                     bmpInfo.ImageSize = BitConverter.ToUInt32(data, 20);
@@ -494,6 +514,38 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                                 if (headerSize > 36)
                                 {
                                     bmpInfo.ClrImportant = BitConverter.ToUInt32(data, 36);
+                                    if (headerSize > 40)
+                                    {
+                                        bmpInfo.Os2Units = BitConverter.ToUInt16(data, 40);
+                                        if (headerSize > 42)
+                                        {
+                                            bmpInfo.Os2Reserved = BitConverter.ToUInt16(data, 42);
+                                            if (headerSize > 44)
+                                            {
+                                                bmpInfo.Os2Recording = BitConverter.ToUInt16(data, 44);
+                                                if (headerSize > 46)
+                                                {
+                                                    bmpInfo.Os2Rendering = (BmpOS2CompressionHalftoning)BitConverter.ToUInt16(data, 46);
+                                                    if (headerSize > 48)
+                                                    {
+                                                        bmpInfo.Os2Size1 = BitConverter.ToUInt32(data, 48);
+                                                        if (headerSize > 52)
+                                                        {
+                                                            bmpInfo.Os2Size2 = BitConverter.ToUInt32(data, 52);
+                                                            if (headerSize > 56)
+                                                            {
+                                                                bmpInfo.Os2ColorEncoding = BitConverter.ToUInt32(data, 56);
+                                                                if (headerSize > 60)
+                                                                {
+                                                                    bmpInfo.Os2Identifier = BitConverter.ToUInt32(data, 60);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -504,7 +556,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             // Invalid header size
             if (headerSize > (int)BmpNativeStructuresSizes.OS22XBITMAPHEADER_MAX)
             {
-                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                throw new NotSupportedException($"This kind of OS/2 bitmap files (header size $headerSize) is not supported.");
             }
 
             return bmpInfo;
@@ -520,6 +572,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             return new BmpInfoHeader
             {
+                // Mark the header as a Microsoft Windows v2 informatiom header for the DIB
+                IsOS2InfoHeaderV2 = false,
+
                 HeaderSize = BitConverter.ToUInt32(data, 0),
                 Width = (int)BitConverter.ToUInt16(data, 4),
                 Height = (int)BitConverter.ToUInt16(data, 6),
@@ -545,8 +600,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <returns>Parsed header</returns>
         private BmpInfoHeader ParseBitmapInfoHeader(byte[] data, int headerSize = (int)BmpNativeStructuresSizes.BITMAPINFOHEADER)
         {
-            return new BmpInfoHeader
+            var bmpInfo = new BmpInfoHeader
             {
+                // Mark the header as a Microsoft Windows v3 or above informatiom header for the DIB
+                IsOS2InfoHeaderV2 = false,
+
                 HeaderSize = BitConverter.ToUInt32(data, 0),
                 Width = BitConverter.ToInt32(data, 4),
                 Height = BitConverter.ToInt32(data, 8),
@@ -559,10 +617,72 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 ClrUsed = BitConverter.ToUInt32(data, 32),
                 ClrImportant = BitConverter.ToUInt32(data, 36)
             };
+
+            // Read the bitmask fields if necessary for BITMAPINFOHEADER
+            if (headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER)
+            {
+                if (bmpInfo.Compression == BmpCompression.BitFields)
+                {
+                    // Windows NT 4 and Windows 98 RGB bitmask extention to BITMAPINFOHEADER
+                    if ((bmpInfo.ComputePaletteStorageSize((long)this.fileHeader.Offset) - 3) >= bmpInfo.ClrUsed)
+                    {
+                        this.currentStream.Read(data, 40, 3 * sizeof(uint));
+                        headerSize = (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_NT;
+                    }
+                }
+                else if (bmpInfo.Compression == BmpCompression.AlphaBitFields)
+                {
+                    // Windows CE 5 RGBA bitmask extention to BITMAPINFOHEADER
+                    if ((bmpInfo.ComputePaletteStorageSize((long)this.fileHeader.Offset) - 4) >= bmpInfo.ClrUsed)
+                    {
+                        this.currentStream.Read(data, 40, 4 * sizeof(uint));
+                        headerSize = (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_CE;
+                    }
+                }
+            }
+
+            if (headerSize >= (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_NT)
+            {
+                // RBG bitmasks
+                bmpInfo.RedMask = BitConverter.ToUInt32(data, 40);
+                bmpInfo.GreenMask = BitConverter.ToUInt32(data, 44);
+                bmpInfo.BlueMask = BitConverter.ToUInt32(data, 48);
+            }
+            else
+            {
+                switch ((int)bmpInfo.BitsPerPixel)
+                {
+                    case (int)BmpBitsPerPixel.RGB16:
+                        bmpInfo.RedMask = BitConverter.ToUInt32(data, 40);
+                        bmpInfo.GreenMask = BitConverter.ToUInt32(data, 44);
+                        bmpInfo.BlueMask = BitConverter.ToUInt32(data, 48);
+                        break;
+
+                    case (int)BmpBitsPerPixel.RGB24:
+                        bmpInfo.RedMask = BitConverter.ToUInt32(data, 40);
+                        bmpInfo.GreenMask = BitConverter.ToUInt32(data, 44);
+                        bmpInfo.BlueMask = BitConverter.ToUInt32(data, 48);
+                        break;
+
+                    case (int)BmpBitsPerPixel.RGB32:
+                        bmpInfo.RedMask = BitConverter.ToUInt32(data, 40);
+                        bmpInfo.GreenMask = BitConverter.ToUInt32(data, 44);
+                        bmpInfo.BlueMask = BitConverter.ToUInt32(data, 48);
+                        break;
+                }
+            }
+
+            // Invalid header size
+            if (headerSize > (int)BmpNativeStructuresSizes.BITMAPV5HEADER)
+            {
+                throw new NotSupportedException($"This kind of Windows bitmap files (header size $headerSize) is not supported.");
+            }
+
+            return bmpInfo;
         }
 
         /// <summary>
-        /// Reads the <see cref="BmpFileHeader"/> from the stream, assuming it uses the <c>BITMAPINFOHEADER</c> format..
+        /// Reads the <see cref="BmpFileHeader"/> from the stream, assuming it uses the <c>BITMAPINFOHEADER</c> format.
         /// </summary>
         private void ReadFileHeader()
         {

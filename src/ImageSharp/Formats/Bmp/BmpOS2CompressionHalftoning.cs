@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <seealso href="http://www.fileformat.info/format/os2bmp/egff.htm">See this FileFormat link for more information.</seealso>
     /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
     /// </summary>
-    internal enum BmpOS2CompressionHalftoning
+    internal enum BmpOS2CompressionHalftoning : ushort
     {
         /// <summary>
         /// No halftoning.

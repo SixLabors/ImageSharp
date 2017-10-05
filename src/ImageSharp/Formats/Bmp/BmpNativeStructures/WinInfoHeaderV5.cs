@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Specifies the size, in bytes, of the image. This may be set to 0 for <seealso cref="BmpCompression.RGB"/> bitmaps.
         /// </summary>
-        public uint ImageSize;
+        public uint ImageDataSize;
 
         /// <summary>
         /// Specifies the horizontal resolution, in pixels-per-meter, of the target device for the bitmap.
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Color mask that specifies the red component of each pixel, valid only if <c>WinInfoHeaderV5.Compression</c> is set to
-        /// <see cref="BmpCompression.BitFields"/> or  <see cref="BmpCompression.AlphaBitFields"/>.
+        /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.
         /// </summary>
         public uint RedMask;
 
@@ -223,26 +223,26 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public WinCieXyzTriple Endpoints;
 
         /// <summary>
-        /// Toned response curve for red.
-        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to
+        /// Tone response curve for red.
+        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to <c>WinInfoHeaderV5.ColorSpaceType</c>.
+        /// Specify in unsigned fixed 16.16 format. The upper 16 bits are the unsigned integer value. The lower 16 bits are the fractional part.
         /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
-        /// Specified in 16^16 format.
         /// </summary>
         public uint GammaRed;
 
         /// <summary>
-        /// Toned response curve for green.
-        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to
+        /// Tone response curve for green.
+        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to <c>WinInfoHeaderV5.ColorSpaceType</c>.
+        /// Specify in unsigned fixed 16.16 format. The upper 16 bits are the unsigned integer value. The lower 16 bits are the fractional part.
         /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
-        /// Specified in 16^16 format.
         /// </summary>
         public uint GammaGreen;
 
         /// <summary>
-        /// Toned response curve for blue.
-        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to
+        /// Tone response curve for blue.
+        /// This member is ignored unless color values are calibrated RGB values and <c>WinInfoHeaderV5.ColorSpaceType</c> is set to <c>WinInfoHeaderV5.ColorSpaceType</c>.
+        /// Specify in unsigned fixed 16.16 format. The upper 16 bits are the unsigned integer value. The lower 16 bits are the fractional part.
         /// <see cref="BmpColorSpace.Calibrated_RGB"/>.
-        /// Specified in 16^16 format.
         /// </summary>
         public uint GammaBlue;
 

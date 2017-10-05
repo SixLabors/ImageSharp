@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Specifies the size, in bytes, of the image. This may be set to 0 for <see cref="BmpOS2Compression.RGB"/> bitmaps.
         /// </summary>
-        public uint ImageSize;
+        public uint ImageDataSize;
 
         /// <summary>
         /// Specifies the horizontal resolution, in pixels-per-meter, of the target device for the bitmap.
@@ -124,11 +124,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// member for the compression mode specified by <c>OS2InfoHeaderV2.Compression</c>.
         /// </para>
         /// <para>
-        /// If is nonzero and the <c>OS2InfoHeaderV2.BitsPerPixel</c> member is less than 16, the <c>OS2InfoHeaderV2.PaletteSize</c> member
+        /// If is nonzero and the <c>OS2InfoHeaderV2.BitsPerPixel</c> member is less or equal to 8, the <c>OS2InfoHeaderV2.PaletteSize</c> member
         /// specifies the actual number of colors the graphics engine or device driver accesses.
         /// </para>
         /// <para>
-        /// If <c>OS2InfoHeaderV2.BitsPerPixel</c> is 16 or greater, the <c>OS2InfoHeaderV2.PaletteSize</c> member specifies the size of the
+        /// If <c>OS2InfoHeaderV2.BitsPerPixel</c> is 24, the <c>OS2InfoHeaderV2.PaletteSize</c> member specifies the size of the
         /// color table used to optimize performance of the system color palettes.
         /// </para>
         /// <para>
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Reserved field used only by the halftoning algorithm.
         /// <para>If Error Diffusion halftoning is used, this is the error damping as a percentage in the range 0 through 100.
-        /// A value of 100 percent indicates no damping, and a value of 0 percent indicates that any errors are not diffused.</para>
+        /// A value of 100% indicates no damping, and a value of 0% indicates that any errors are not diffused.</para>
         /// <para>If PANDA or Super-Circle halftoning is specified, this is the X dimension of the pattern used in pixels.</para>
         /// </summary>
         public uint Size1;

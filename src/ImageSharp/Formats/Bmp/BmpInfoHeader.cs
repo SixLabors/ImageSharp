@@ -388,7 +388,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
-
         /// <summary>
         /// Gets or sets the red color mask that specifies the red component of each pixel, valid only if <c>WinInfoHeaderV5.Compression</c> is set to
         /// <see cref="BmpCompression.BitFields"/> or <see cref="BmpCompression.AlphaBitFields"/>.

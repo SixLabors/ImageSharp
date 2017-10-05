@@ -43,7 +43,7 @@ namespace ImageSharp_Picture_Viewer
                         if (BitConverter.IsLittleEndian)
                         {
                             byte temp;
-                            for (int i = 0; i < imageData.Length; i = i + 4)
+                            for (int i = 0; i < imageData.Length; i = i + ch)
                             {
                                 temp = imageData[i];
                                 imageData[i] = imageData[i + 2];
@@ -54,7 +54,7 @@ namespace ImageSharp_Picture_Viewer
                         }
 
                         // Create the image on .NET Framework format (DIB)
-                        var bitmap = new Bitmap(w, h, w * ch, PixelFormat.Format32bppArgb, Marshal.UnsafeAddrOfPinnedArrayElement(imageData, 0));
+                        var bitmap = new Bitmap(w, h, w * ch, format: PixelFormat.Format32bppArgb, scan0: Marshal.UnsafeAddrOfPinnedArrayElement(imageData, 0));
 
                         // Set the DPIs as in the SixLabors.ImageSharp image loaded
                         bitmap.SetResolution((float)imageIS.MetaData.HorizontalResolution, (float)imageIS.MetaData.VerticalResolution);

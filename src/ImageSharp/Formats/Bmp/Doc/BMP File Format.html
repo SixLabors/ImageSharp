@@ -1,0 +1,437 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<!-- HTML Head -->
+<head>
+    <!-- Metadata -->
+    <meta charset="utf-8" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="keywords" content="BMP, Bitmap, DIB, DDB, Windows, OS/2" />
+    <meta name="description" content="BMP file formt" />
+    <meta name="author" content="&copy; 1995-2016 Jos&eacute; Caetano Silva" />
+    <!-- Copyright Link -->
+    <link rel="copyright" href="http://creativecommons.org/licenses/by-sa/3.0/" />
+    <!-- Title -->
+    <title>BMP File Format</title>
+</head>
+<!-- HTML Body -->
+<body>
+    <h1>BMP File Format</h1>
+    <p>
+        The <b>BMP</b> file format, sometimes called <b>bitmap</b> or <b>DIB</b> file format (for <i>device-independent bitmap</i>),
+        is an image file format used to store bitmap digital images, usually named with the
+        file extension of <i>.BMP</i> or <i>.DIB</i>, especially on Microsoft Windows and IBM OS/2 operating systems.
+    </p>
+    <p>
+        The original bitmap format created for Windows 1.0 was very simple.
+        It had a fixed color palette, did not support bitmap data compression, and was designed to support the most
+        popular IBM PC graphics cards in use at the time (CGA, EGA, Hercules, and others).
+        This defunct format is now often referred to as the original Windows device-dependent bitmap (DDB).
+    </p>
+    <p>
+        As Windows 2.0 was being developed, support for a programmable color palette was added to both Windows and BMP
+        file format,
+        allowing user-definable color data to be stored along with the bitmap data that used it.
+        When stored in memory, this collection of information is known as a Microsoft Device Independent Bitmap, or DIB.
+        When this information is written out to a file, it is known as the Microsoft Bitmap Format, or BMP.
+        When you hear references to the DIB file format, it is BMP that is actually being referred to.
+    </p>
+    <p>
+        During the development of BMP, Microsoft shared responsibility with IBM for the development of early
+        versions of IBM's OS/2 operating system. When Presentation Manager, the OS/2 graphical user interface,
+        required a bitmap format, the Windows BMP format was used.
+        Thus, the Windows 2.x and OS/2 1.x BMP formats are identical.
+    </p>
+    <p>
+        The BMP format modified for Windows 3.0 differs only slightly from the OS/2
+        Presentation Manager bitmap format that preceded it. Note that later revisions
+        designed to support IBM OS/2 Presentation Manager 2.x have resulted in further
+        divergence between the Microsoft Windows and IBM OS/2 BMP file formats.
+    </p>
+    <p>
+        The structure of BMP format files is closely tied to the API of both Windows and OS/2.
+        In this regard, BMP was never meant to be a portable format or used for bitmap data interchange between different operating systems.
+        As each of these operating system APIs has changed, the BMP format has changed along with it.
+    </p>
+    <p>There are currently four versions of BMP under Windows (2.x, 3.x, 4.x and 5.x), two versions under OS/2 (1.x and 2.x, with six possible variations).</p>
+    <p>
+        All of the BMP versions originated on Intel-based machines and thus share a common little-endian heritage.
+        The current BMP format is otherwise hardware-independent and can accommodate images with up to 32-bit color.
+        Its basic design makes it a good general purpose format that can be used for color or black-and-white image storage if file size is not a factor.
+        Its main virtues are its simplicity and widespread support in the PC marketplace.
+    </p>
+    <table border="1" cellspacing="2" bordercolor="#111111" cellpadding="2" align="center">
+        <tbody>
+            <tr>
+                <th colspan="5">Microsoft Windows</th>
+                <th colspan="2">IBM OS/2</th>
+            </tr>
+            <tr>
+                <th>v1</th>
+                <th>v2</th>
+                <th>v3</th>
+                <th>v4</th>
+                <th>v5</th>
+                <th>v1</th>
+                <th>v2</th>
+            </tr>
+            <tr>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Olive" valign="middle" align="center">
+                                <p>File Header v1 + <br />DIB Header v1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Yellow" valign="middle" align="center">
+                                <p>File Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Lime" valign="middle" align="center">
+                                <p>DIB Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Blue" valign="middle" align="center">
+                                <p>Color Table<br />/Palette v1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Yellow" valign="middle" align="center">
+                                <p>File Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Lime" valign="middle" align="center">
+                                <p>DIB Header v3</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Blue" valign="middle" align="center">
+                                <p>Color Table<br />/Palette v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Yellow" valign="middle" align="center">
+                                <p>File Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Lime" valign="middle" align="center">
+                                <p>DIB Header v4</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Blue" valign="middle" align="center">
+                                <p>Color Table<br />/Palette v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Yellow" valign="middle" align="center">
+                                <p>File Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Lime" valign="middle" align="center">
+                                <p>DIB Header v5</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Blue" valign="middle" align="center">
+                                <p>Color Table<br />/Palette v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Magenta" valign="middle" align="center">
+                                <p>ICC Color Profile v1</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Yellow" valign="middle" align="center">
+                                <p>File Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Lime" valign="middle" align="center">
+                                <p>DIB Header v1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Blue" valign="middle" align="center">
+                                <p>Color Table<br />/Palette v1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td valign="top" align="center">
+                    <table border="1">
+                        <tr>
+                            <td bgcolor="Yellow" valign="middle" align="center">
+                                <p>File Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Lime" valign="middle" align="center">
+                                <p>DIB Header v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Blue" valign="middle" align="center">
+                                <p>Color Table<br />/Palette v2</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Gray" valign="middle" align="center">
+                                <p>Optional Gap 1</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="Red" valign="middle" align="center">
+                                <p>Bitmap Data<br />/Pixels</p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <p> <br /> </p>
+    <h2>BMP File Header v1 (10 Bytes)</h2>
+    <p>
+        This block of bytes is at the start of the file and is used to identify the file.
+        A typical application reads this block first to ensure that the file is actually a BMP file.
+        This block of bytes is at the start of the file and is used to identify the file.
+        A typical application reads this block first to ensure that the file is actually
+        a BMP file and that it is not damaged. All of the integer values are stored in little-endian format (i.e. least-significant byte first).
+    </p>
+    <p>DDB files contain only a 10-byte file header followed by uncompressed bitmap data.</p>
+    <p>
+        The bitmap data immediately follows the header and is stored in an uncompressed
+        format. Each pixel stores an index value into the fixed system color talble used by
+        Windows 1.0. The presence of scan line padding may be determined by comparing
+        the calculated width of a line in bytes with the actual width of the line in
+        bytes stored as the value of the <b>Byte Width</b> field.
+    </p>
+    <table border="1" cellspacing="2" bordercolor="#111111" cellpadding="2" align="center">
+        <tbody>
+            <tr>
+                <th>Offset #</th>
+                <th># Bytes</th>
+                <th>Sign</th>
+                <th>Field Name</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>0000h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>FileType</td>
+                <td>The magic number used to identify the BMP file (always 0).</td>
+            </tr>
+            <tr>
+                <td>0002h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>Width</td>
+                <td>The width of the bitmap in pixels.</td>
+            </tr>
+            <tr>
+                <td>0004h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>Height</td>
+                <td>The height of the bitmap scan lines.</td>
+            </tr>
+            <tr>
+                <td>0006h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>ByteWidth</td>
+                <td>
+                    The width of the bitmap in bytes, per scan line. It is assumed that this value will include the
+                    size of any scan line padding that is present.
+                </td>
+            </tr>
+            <tr>
+                <td>0008h</td>
+                <td>1</td>
+                <td>unsigned</td>
+                <td>Planes</td>
+                <td>The number of color planes used to store the bitmap. This value is always 1.</td>
+            </tr>
+            <tr>
+                <td>000Ah</td>
+                <td>1</td>
+                <td>unsigned</td>
+                <td>Bits Per Pixel</td>
+                <td>
+                    The umber of bits per pixel. The following entries are
+                    possible:
+                    <ul>
+                        <li><code><b>1</b></code> - 2 colors Bitmap (Hercules/Monochrome)</li>
+                        <li><code><b>4</b></code> - 16 colors Bitmap (CGA/EGA)</li>
+                        <li><code><b>8</b></code> - 256 colors Bitmap (VGA)</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <p> <br /> </p>
+    <h2>BMP File Header v2 (14 Bytes)</h2>
+    <p>
+        This block of bytes is at the start of the file and is used to identify the file.
+        A typical application reads this block first to ensure that the file is actually a BMP file.
+        This block of bytes is at the start of the file and is used to identify the file.
+        A typical application reads this block first to ensure that the file is actually
+        a BMP file and that it is not damaged. The first two bytes of the BMP file
+        format are normaly the character &#39;B&#39; and then the character &#39;M&#39; in 1-byte ASCII encoding.
+        All the integer values are stored in little-endian format (i.e. least-significant byte first).
+    </p>
+    <table border="1" cellspacing="2" bordercolor="#111111" cellpadding="2" align="center">
+        <tbody>
+            <tr>
+                <th>Offset #</th>
+                <th># Bytes</th>
+                <th>Sign</th>
+                <th>Field Name</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>0000h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>FileType</td>
+                <td>
+                    the magic number used to identify the BMP file. The following entries are possible:
+                    <ul>
+                        <li><code>&#39;<b>BM</b>&#39; (4D42h)</code> - Windows or OS/2 Bitmap</li>
+                        <li><code>&#39;<b>BA</b>&#39; (4142h)</code> - OS/2 Bitmap Array</li>
+                        <li><code>&#39;<b>CI</b>&#39; (4943h)</code> - OS/2 Color Icon</li>
+                        <li><code>&#39;<b>CP</b>&#39; (5043h)</code> - OS/2 Color Pointer</li>
+                        <li><code>&#39;<b>IC</b>&#39; (4349h)</code> - OS/2 Icon</li>
+                        <li><code>&#39;<b>PT</b>&#39; (5450h)</code> - OS/2 Pointer</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>0002h</td>
+                <td>4</td>
+                <td>unsigned</td>
+                <td>FileSize</td>
+                <td>the size of the BMP file in bytes</td>
+            </tr>
+            <tr>
+                <td>0006h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>Reserved 1 <br /> X Hot Spot</td>
+                <td>
+                    <b>Windows:</b>&nbsp; reserved (muste be 0)<br />
+                    <b>OS/2:</b>&nbsp; X coordinate of hotspot
+                </td>
+            </tr>
+            <tr>
+                <td>0008h</td>
+                <td>2</td>
+                <td>unsigned</td>
+                <td>Reserved 2 <br /> X Hot Spot</td>
+                <td>
+                    <b>Windows:</b>&nbsp; reserved (muste be 0)<br />
+                    <b>OS/2:</b>&nbsp; Y coordinate of hotspot
+                </td>
+            </tr>
+            <tr>
+                <td>000Ah</td>
+                <td>4</td>
+                <td>unsigned</td>
+                <td>Bitmap Offset</td>
+                <td>
+                    the offset, i.e. starting address, of the byte where the bitmap data can
+                    be found
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

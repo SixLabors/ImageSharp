@@ -9,5 +9,23 @@ branches:
     increment: Minor
     prevent-increment-of-merged-branch-version: false
     track-merge-target: true
+  pull-request:
+    regex: (pull|pull\-requests|pr)[/-]
+    mode: ContinuousDelivery
+    tag: PullRequest
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: false
+    tag-number-pattern: '[/-](?<number>\d+)[-/]'
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false
+  otherbranches:
+    regex: '.*'
+    mode: ContinuousDeployment
+    tag: ci
+    increment: Patch
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: true
+    is-release-branch: false
 ignore:
   sha: []

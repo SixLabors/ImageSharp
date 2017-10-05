@@ -26,11 +26,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         private Matrix3x2 processMatrix;
 
         /// <summary>
-        /// The final rotated angle.
-        /// </summary>
-        private int optimizedRotatedAngle;
-
-        /// <summary>
         /// Gets or sets the angle of processMatrix in degrees.
         /// </summary>
         public float Angle { get; set; }

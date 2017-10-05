@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -23,6 +24,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// The transform matrix to apply.
         /// </summary>
         private Matrix3x2 processMatrix;
+
+        /// <summary>
+        /// The final rotated angle.
+        /// </summary>
+        private int optimizedRotatedAngle;
 
         /// <summary>
         /// Gets or sets the angle of processMatrix in degrees.
@@ -84,6 +90,30 @@ namespace SixLabors.ImageSharp.Processing.Processors
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        {
+            ExifProfile profile = source.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            if (MathF.Abs(this.Angle) < Constants.Epsilon)
+            {
+                // No need to do anything so return.
+                return;
+            }
+
+            profile.RemoveValue(ExifTag.Orientation);
+
+            if (this.Expand && profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelXDimension, source.Width);
+                profile.SetValue(ExifTag.PixelYDimension, source.Height);
             }
         }
 

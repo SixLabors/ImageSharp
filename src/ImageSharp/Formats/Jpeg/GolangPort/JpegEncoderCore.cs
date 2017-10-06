@@ -126,6 +126,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private readonly byte[] huffmanBuffer = new byte[179];
 
         /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private readonly bool ignoreMetadata;
+
+        /// <summary>
+        /// The quality, that will be used to encode the image.
+        /// </summary>
+        private readonly int quality;
+
+        /// <summary>
+        /// Gets or sets the subsampling method to use.
+        /// </summary>
+        private readonly JpegSubsample? subsample;
+
+        /// <summary>
         /// The accumulated bits to write to the stream.
         /// </summary>
         private uint accumulatedBits;
@@ -151,36 +166,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private Stream outputStream;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        private bool ignoreMetadata = false;
-
-        /// <summary>
-        /// Gets or sets the quality, that will be used to encode the image. Quality
-        /// index must be between 0 and 100 (compression from max to min).
-        /// </summary>
-        /// <value>The quality of the jpg image from 0 to 100.</value>
-        private int quality = 0;
-
-        /// <summary>
-        /// Gets or sets the subsampling method to use.
-        /// </summary>
-        private JpegSubsample? subsample;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="JpegEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options</param>
         public JpegEncoderCore(IJpegEncoderOptions options)
         {
-            int quality = options.Quality;
-            if (quality == 0)
-            {
-                quality = 75;
-            }
-
-            this.quality = quality;
-            this.subsample = options.Subsample ?? (quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+            // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
+            this.quality = options.Quality.Clamp(1, 100);
+            this.subsample = options.Subsample ?? (this.quality >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
 
             this.ignoreMetadata = options.IgnoreMetadata;
         }
@@ -205,17 +198,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             this.outputStream = stream;
 
-            int quality = this.quality.Clamp(1, 100);
-
             // Convert from a quality rating to a scaling factor.
             int scale;
             if (this.quality < 50)
             {
-                scale = 5000 / quality;
+                scale = 5000 / this.quality;
             }
             else
             {
-                scale = 200 - (quality * 2);
+                scale = 200 - (this.quality * 2);
             }
 
             // Initialize the quantization tables.

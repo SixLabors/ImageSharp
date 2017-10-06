@@ -1124,12 +1124,23 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             var chunk = new PngChunk();
             this.ReadChunkLength(chunk);
-            if (chunk.Length < 0)
+
+            if (chunk.Length == -1)
             {
+                // IEND
                 return null;
             }
 
+            if (chunk.Length < 0 || chunk.Length > this.currentStream.Length - this.currentStream.Position)
+            {
+                // Not a valid chunk so we skip back all but one of the four bytes we have just read.
+                // That lets us read one byte at a time until we reach a known chunk.
+                this.currentStream.Position -= 3;
+                return chunk;
+            }
+
             this.ReadChunkType(chunk);
+
             if (chunk.Type == PngChunkTypes.Data)
             {
                 return chunk;

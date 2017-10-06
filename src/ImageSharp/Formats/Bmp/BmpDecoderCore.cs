@@ -455,7 +455,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 throw new NotSupportedException($"This kind of IBM OS/2 bitmap files (header size $headerSize) is not supported.");
             }
 
-            if ((headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER) || 
+            if ((headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER) ||
                 (headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_NT) ||
                 (headerSize == (int)BmpNativeStructuresSizes.BITMAPINFOHEADER_CE))
             {

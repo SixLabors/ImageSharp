@@ -58,6 +58,7 @@ namespace SixLabors.ImageSharp.Quantizers
         public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
+            this.colorMap.Clear();
             return base.Quantize(image, maxColors);
         }
 

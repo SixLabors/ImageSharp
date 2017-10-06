@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
         /// </summary>
-        public int Quality { get; set; }
+        public int Quality { get; set; } = 75;
 
         /// <summary>
         /// Gets or sets the subsample ration, that will be used to encode the image.

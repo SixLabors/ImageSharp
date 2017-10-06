@@ -1,4 +1,9 @@
-﻿namespace ImageSharp_Picture_Viewer
+﻿
+
+using System.Drawing;
+using System.Resources;
+
+namespace ImageSharp_Picture_Viewer
 {
     partial class FormMain
     {
@@ -28,6 +33,10 @@
         /// </summary>
         private void InitializeComponent()
         {
+            // Application icon
+            ResourceManager resourceManager = new ResourceManager("ImageSharp_Picture_Viewer.Properties.Resources", typeof(Program).Assembly);
+            this.Icon = (Icon)resourceManager.GetObject("IconApp");
+            // Main window
             this.PictureBoxMain = new System.Windows.Forms.PictureBox();
             this.DialogOpenFile = new System.Windows.Forms.OpenFileDialog();
             this.DialogColorChooser = new System.Windows.Forms.ColorDialog();

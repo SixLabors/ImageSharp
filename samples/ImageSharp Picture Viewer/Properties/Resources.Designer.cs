@@ -59,5 +59,15 @@ namespace ImageSharp_Picture_Viewer.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        internal static System.Drawing.Icon IconApp {
+            get {
+                object obj = ResourceManager.GetObject("IconApp", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
     }
 }

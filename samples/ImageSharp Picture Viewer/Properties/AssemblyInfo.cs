@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ImageSharp Picture Viewer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("An image/picture viewer that uses the ImageSharp library")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("CaetanoSoft")]
 [assembly: AssemblyProduct("ImageSharp Picture Viewer")]

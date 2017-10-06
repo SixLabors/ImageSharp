@@ -56,6 +56,7 @@ namespace SixLabors.ImageSharp.Tests
                 // Odd chunk lengths
                 public const string ChunkLength1 = "Png/chunklength1.png";
                 public const string ChunkLength2 = "Png/chunklength2.png";
+                public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
             }
 
             public static readonly string[] All =

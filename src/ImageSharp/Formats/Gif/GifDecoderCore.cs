@@ -84,6 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.IgnoreMetadata = options.IgnoreMetadata;
+            this.DecodingMode = options.DecodingMode;
             this.configuration = configuration ?? Configuration.Default;
         }
 
@@ -96,6 +97,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the text encoding
         /// </summary>
         public Encoding TextEncoding { get; }
+
+        /// <summary>
+        /// Gets the decoding mode for multi-frame images
+        /// </summary>
+        public FrameDecodingMode DecodingMode { get; }
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -129,6 +135,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     if (nextFlag == GifConstants.ImageLabel)
                     {
+                        if (this.previousFrame != null && this.DecodingMode == FrameDecodingMode.First)
+                        {
+                            break;
+                        }
+
                         this.ReadFrame();
                     }
                     else if (nextFlag == GifConstants.ExtensionIntroducer)
@@ -238,14 +249,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 throw new ImageFormatException($"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
             }
-
-            /* // No point doing this as the max width/height is always int.Max and that always bigger than the max size of a gif which is stored in a short.
-            if (this.logicalScreenDescriptor.Width > Image<TPixel>.MaxWidth || this.logicalScreenDescriptor.Height > Image<TPixel>.MaxHeight)
-            {
-                throw new ArgumentOutOfRangeException(
-                    $"The input gif '{this.logicalScreenDescriptor.Width}x{this.logicalScreenDescriptor.Height}' is bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
-            }
-            */
         }
 
         /// <summary>

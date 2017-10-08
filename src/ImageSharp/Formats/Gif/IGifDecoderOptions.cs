@@ -19,5 +19,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the encoding that should be used when reading comments.
         /// </summary>
         Encoding TextEncoding { get; }
+
+        /// <summary>
+        /// Gets the decoding mode for multi-frame images
+        /// </summary>
+        FrameDecodingMode DecodingMode { get; }
     }
 }

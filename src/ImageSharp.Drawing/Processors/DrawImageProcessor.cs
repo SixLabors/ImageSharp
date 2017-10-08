@@ -72,10 +72,11 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                 }
 
                 // Align start/end positions.
-                Rectangle bounds = this.Image.Bounds();
+                Rectangle bounds = targetImage.Bounds();
                 int minX = Math.Max(this.Location.X, sourceRectangle.X);
                 int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
                 maxX = Math.Min(this.Location.X + this.Size.Width, maxX);
+                int targetX = minX - this.Location.X;
 
                 int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
                 int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                         y =>
                             {
                                 Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                                Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - this.Location.Y).Slice(0, width);
+                                Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - this.Location.Y).Slice(targetX, width);
                                 this.blender.Blend(background, background, foreground, amount);
                             });
                 }

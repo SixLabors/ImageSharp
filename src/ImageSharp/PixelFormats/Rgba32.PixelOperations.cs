@@ -29,13 +29,9 @@ namespace SixLabors.ImageSharp
             /// <param name="count">The number of pixels to convert.</param>
             /// <remarks>
             /// Implementation adapted from:
-            /// <see>
-            ///     <cref>http://stackoverflow.com/a/5362789</cref>
-            /// </see>
+            /// <seealso href="http://stackoverflow.com/a/5362789"/>
             /// TODO: We can replace this implementation in the future using new Vector API-s:
-            /// <see>
-            ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
-            /// </see>
+            /// <seealso href="https://github.com/dotnet/corefx/issues/15957"/>
             /// </remarks>
             internal static void ToVector4SimdAligned(Span<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
             {

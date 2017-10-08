@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         UInt8,
 
         /// <summary>
-        /// A set of three fixed signed 4-byte (32-bit) quantities used to encode CIEXYZ, nCIEXYZ, and PCSXYZ tristimulus values
+        /// A set of three fixed signed 4-byte (32-bit) quantities used to encode WinCieXyz, nCIEXYZ, and PCSXYZ tristimulus values
         /// </summary>
         Xyz,
 

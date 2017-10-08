@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// Stores general information about the Bitmap file.
-    /// <see href="https://en.wikipedia.org/wiki/BMP_file_format" />
+    /// <seealso href="https://en.wikipedia.org/wiki/BMP_file_format">See this Wikipedia link for more information.</seealso>
     /// </summary>
     /// <remarks>
     /// The first two bytes of the Bitmap file format
@@ -25,23 +25,29 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// The field used to identify the bitmap file: 0x42 0x4D
         /// (Hex code points for B and M)
         /// </summary>
-        public short Type { get; set; }
+        public ushort Type { get; set; }
 
         /// <summary>
         /// Gets or sets the size of the bitmap file in bytes.
         /// </summary>
-        public int FileSize { get; set; }
+        public uint FileSize { get; set; }
 
         /// <summary>
         /// Gets or sets any reserved data; actual value depends on the application
         /// that creates the image.
         /// </summary>
-        public int Reserved { get; set; }
+        public ushort Reserved1 { get; set; }
+
+        /// <summary>
+        /// Gets or sets any reserved data; actual value depends on the application
+        /// that creates the image.
+        /// </summary>
+        public ushort Reserved2 { get; set; }
 
         /// <summary>
         /// Gets or sets the offset, i.e. starting address, of the byte where
         /// the bitmap data can be found.
         /// </summary>
-        public int Offset { get; set; }
+        public uint Offset { get; set; }
     }
 }

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -45,12 +44,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {
-            GifDecoder options = new GifDecoder()
+            var options = new GifDecoder
             {
                 IgnoreMetadata = false
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
+            var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
@@ -63,12 +62,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
         {
-            GifDecoder options = new GifDecoder()
+            var options = new GifDecoder
             {
                 IgnoreMetadata = true
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
+            var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
@@ -79,17 +78,39 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
         {
-            GifDecoder options = new GifDecoder()
+            var options = new GifDecoder
             {
                 TextEncoding = Encoding.Unicode
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
+            var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> image = testFile.CreateImage(options))
             {
                 Assert.Equal(1, image.MetaData.Properties.Count);
                 Assert.Equal("浉条卥慨灲", image.MetaData.Properties[0].Value);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new GifDecoder { DecodingMode = FrameDecodingMode.First }))
+            {
+                Assert.Equal(1, image.Frames.Count);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        public void CanDecodeAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new GifDecoder { DecodingMode = FrameDecodingMode.All }))
+            {
+                Assert.True(image.Frames.Count > 1);
             }
         }
     }

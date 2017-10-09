@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
+        private const int RleCommand = 0x00;
+        private const int RleEndOfLine = 0x00;
+        private const int RleEndOfBitmap = 0x01;
+        private const int RleDelta = 0x02;
+
         /// <summary>
         /// The stream to decode from.
         /// </summary>
@@ -152,6 +157,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             }
 
                             break;
+                        case BmpCompression.RLE8:
+                            this.ReadRle8(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                            break;
                         default:
                             throw new NotSupportedException("Does not support this kind of bitmap files.");
                     }
@@ -206,6 +215,114 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             return padding;
+        }
+
+        /// <summary>
+        /// Looks up color values and builds the image from de-compressed RLE8 data.
+        /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, int)"/>
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
+        /// <param name="width">The width of the bitmap.</param>
+        /// <param name="height">The height of the bitmap.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        private void ReadRle8<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var color = default(TPixel);
+            var rgba = default(Rgba32);
+            byte[] data = this.UncompressRle8(width, height);
+
+            for (int y = 0; y < height; y++)
+            {
+                int newY = Invert(y, height, inverted);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                for (int x = 0; x < width; x++)
+                {
+                    rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[data[(y * width) + x] * 4]);
+                    color.PackFromRgba32(rgba);
+                    pixelRow[x] = color;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Produce uncompressed bitmap data from RLE8 stream
+        /// </summary>
+        /// <remarks>
+        /// RLE8 is a 2-byte run-length encoding
+        /// <br/>If first byte is 0, the second byte may have special meaning
+        /// <br/>Otherwise, first byte is the length of the run and second byte is the color for the run
+        /// </remarks>
+        /// <param name="w">The width of the bitmap.</param>
+        /// <param name="h">The height of the bitmap.</param>
+        /// <returns>The uncompressed data.</returns>
+        private byte[] UncompressRle8(int w, int h)
+        {
+            byte[] cmd = new byte[2];
+            byte[] data = new byte[w * h];
+            int count = 0;
+
+            while (count < w * h)
+            {
+                if (this.currentStream.Read(cmd, 0, cmd.Length) != 2)
+                {
+                    throw new Exception("Failed to read 2 bytes from stream");
+                }
+
+                if (cmd[0] == RleCommand)
+                {
+                    switch (cmd[1])
+                    {
+                        case RleEndOfBitmap:
+                            return data;
+
+                        case RleEndOfLine:
+                            int extra = count % w;
+                            if (extra > 0)
+                            {
+                                count += w - extra;
+                            }
+
+                            break;
+
+                        case RleDelta:
+                            int dx = this.currentStream.ReadByte();
+                            int dy = this.currentStream.ReadByte();
+                            count += (w * dy) + dx;
+
+                            break;
+
+                        default:
+                            // If the second byte > 2, signals 'absolute mode'
+                            // Take this number of bytes from the stream as uncompressed data
+                            int length = cmd[1];
+                            int copyLength = length;
+
+                            // Absolute mode data is aligned to two-byte word-boundary
+                            length += length & 1;
+
+                            byte[] run = new byte[length];
+                            this.currentStream.Read(run, 0, run.Length);
+                            for (int i = 0; i < copyLength; i++)
+                            {
+                                data[count++] = run[i];
+                            }
+
+                            break;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < cmd[0]; i++)
+                    {
+                        data[count++] = cmd[1];
+                    }
+                }
+            }
+
+            return data;
         }
 
         /// <summary>

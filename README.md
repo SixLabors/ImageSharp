@@ -117,11 +117,7 @@ git clone https://github.com/SixLabors/ImageSharp
 
 ### How can you help?
 
-Please... Spread the word, contribute algorithms, submit performance improvements, unit tests. 
-
-Performance is a biggie, if you know anything about the `System.Numerics.Vectors` types and can apply some fancy new stuff with that it would be awesome. 
-
-There's a lot of developers out there who could write this stuff a lot better and faster than I and I would love to see what we collectively can come up with so please, if you can help in any way it would be most welcome and benificial for all.
+Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. 
 
 ### The ImageSharp Team
 

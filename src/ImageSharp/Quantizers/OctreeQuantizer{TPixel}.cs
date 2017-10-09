@@ -61,6 +61,7 @@ namespace SixLabors.ImageSharp.Quantizers
             this.colors = (byte)maxColors.Clamp(1, 255);
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
             this.palette = null;
+            this.colorMap.Clear();
 
             return base.Quantize(image, this.colors);
         }

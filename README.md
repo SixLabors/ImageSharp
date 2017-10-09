@@ -1,13 +1,21 @@
+<h1 align="center">
+    <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="220"/>
+    <br>
+    <br>
+    ImageSharp    
+</h1>
+<p align="center">
+    <a href="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt"><img src="https://camo.githubusercontent.com/8f54547853cfad57acfc8e06e6008cc296cda34d/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f6c6963656e73652d417061636865253230322d626c75652e737667" alt="GitHub license" data-canonical-src="https://img.shields.io/badge/license-Apache%202-blue.svg" style="max-width:100%;"></a>
+    <a href="https://gitter.im/ImageSharp/General?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://camo.githubusercontent.com/da2edb525cde1455a622c58c0effc3a90b9a181c/68747470733a2f2f6261646765732e6769747465722e696d2f4a6f696e253230436861742e737667" alt="Gitter" data-canonical-src="https://badges.gitter.im/Join%20Chat.svg" style="max-width:100%;"></a>
+    <a href="https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&amp;text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&amp;url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&amp;via=sixlabors"><img src="https://camo.githubusercontent.com/aed174887b7d1f0a0877dd0a68c3872bc54d2fff/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f75726c2f68747470732f6769746875622e636f6d2f5369784c61626f72732f496d61676553686172702e7376673f7374796c653d736f6369616c" alt="Twitter" data-canonical-src="https://img.shields.io/twitter/url/https/github.com/SixLabors/ImageSharp.svg?style=social" style="max-width:100%;"></a>
+    <a href="#backers"><img src="https://camo.githubusercontent.com/c9af371c98b22cb92323a385a267a1215c454663/68747470733a2f2f6f70656e636f6c6c6563746976652e636f6d2f696d61676573686172702f6261636b6572732f62616467652e737667" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/backers/badge.svg" style="max-width:100%;"></a>
+    <a href="#sponsors"><img src="https://camo.githubusercontent.com/5a9ae612f8e7fb5207f51a605f025770bfa9a80e/68747470733a2f2f6f70656e636f6c6c6563746976652e636f6d2f696d61676573686172702f73706f6e736f72732f62616467652e737667" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/sponsors/badge.svg" style="max-width:100%;"></a>
+</p>
+<hr>
 
-[![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ImageSharp/General?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Twitter](https://img.shields.io/twitter/url/https/github.com/SixLabors/ImageSharp.svg?style=social)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
-[![OpenCollective](https://opencollective.com/imagesharp/backers/badge.svg)](#backers) 
-[![OpenCollective](https://opencollective.com/imagesharp/sponsors/badge.svg)](#sponsors)
+**ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images. 
 
-# <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
-
-**ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. We have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
+Without the use of `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
 Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 

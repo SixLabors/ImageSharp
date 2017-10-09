@@ -1,7 +1,6 @@
 <h1 align="center">
     <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="175"/>
     <br>
-    <br>
     ImageSharp
     <br>
     <br>
@@ -12,7 +11,7 @@
     <a href="#sponsors"><img src="https://camo.githubusercontent.com/5a9ae612f8e7fb5207f51a605f025770bfa9a80e/68747470733a2f2f6f70656e636f6c6c6563746976652e636f6d2f696d61676573686172702f73706f6e736f72732f62616467652e737667" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/sponsors/badge.svg" style="max-width:100%;"></a>
 </h1>
 
-**ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images. 
+### **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API. 
 
 Without the use of `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 

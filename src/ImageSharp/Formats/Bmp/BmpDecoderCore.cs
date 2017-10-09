@@ -29,9 +29,24 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private const int Rgb16BMask = 0x0000001F;
 
+        /// <summary>
+        /// RLE8 flag value that indicates following byte has special meaning
+        /// </summary>
         private const int RleCommand = 0x00;
+
+        /// <summary>
+        /// RLE8 flag value marking end of a scan line
+        /// </summary>
         private const int RleEndOfLine = 0x00;
+
+        /// <summary>
+        /// RLE8 flag value marking end of bitmap data
+        /// </summary>
         private const int RleEndOfBitmap = 0x01;
+
+        /// <summary>
+        /// RLE8 flag value marking the start of [x,y] offset instruction
+        /// </summary>
         private const int RleDelta = 0x02;
 
         /// <summary>

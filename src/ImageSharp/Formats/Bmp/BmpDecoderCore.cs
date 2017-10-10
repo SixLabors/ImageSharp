@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Looks up color values and builds the image from de-compressed RLE8 data.
-        /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, int)"/>
+        /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Buffer{byte})"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
@@ -247,17 +247,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             var color = default(TPixel);
             var rgba = default(Rgba32);
-            byte[] data = this.UncompressRle8(width, height);
 
-            for (int y = 0; y < height; y++)
+            using (var buffer = Buffer<byte>.CreateClean(width * height))
             {
-                int newY = Invert(y, height, inverted);
-                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
-                for (int x = 0; x < width; x++)
+                this.UncompressRle8(width, buffer);
+
+                for (int y = 0; y < height; y++)
                 {
-                    rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[data[(y * width) + x] * 4]);
-                    color.PackFromRgba32(rgba);
-                    pixelRow[x] = color;
+                    int newY = Invert(y, height, inverted);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    for (int x = 0; x < width; x++)
+                    {
+                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[buffer[(y * width) + x] * 4]);
+                        color.PackFromRgba32(rgba);
+                        pixelRow[x] = color;
+                    }
                 }
             }
         }
@@ -271,15 +275,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <br/>Otherwise, first byte is the length of the run and second byte is the color for the run
         /// </remarks>
         /// <param name="w">The width of the bitmap.</param>
-        /// <param name="h">The height of the bitmap.</param>
-        /// <returns>The uncompressed data.</returns>
-        private byte[] UncompressRle8(int w, int h)
+        /// <param name="buffer">Buffer for uncompressed data.</param>
+        private void UncompressRle8(int w, Buffer<byte> buffer)
         {
             byte[] cmd = new byte[2];
-            byte[] data = new byte[w * h];
             int count = 0;
 
-            while (count < w * h)
+            while (count < buffer.Length)
             {
                 if (this.currentStream.Read(cmd, 0, cmd.Length) != 2)
                 {
@@ -291,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     switch (cmd[1])
                     {
                         case RleEndOfBitmap:
-                            return data;
+                            return;
 
                         case RleEndOfLine:
                             int extra = count % w;
@@ -322,7 +324,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             this.currentStream.Read(run, 0, run.Length);
                             for (int i = 0; i < copyLength; i++)
                             {
-                                data[count++] = run[i];
+                                buffer[count++] = run[i];
                             }
 
                             break;
@@ -332,12 +334,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 {
                     for (int i = 0; i < cmd[0]; i++)
                     {
-                        data[count++] = cmd[1];
+                        buffer[count++] = cmd[1];
                     }
                 }
             }
-
-            return data;
         }
 
         /// <summary>

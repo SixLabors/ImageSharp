@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         }
 
         /// <inheritdoc />
-        public bool Dither { get; set; } = true;
+        public bool Dither { get; set; } = false;
 
         /// <inheritdoc />
         public IErrorDiffuser DitherType { get; set; } = new FloydSteinbergDiffuser();

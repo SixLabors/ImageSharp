@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
                 }
 
-                Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)
@@ -196,6 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         /// <returns>The <see cref="int"/> representing the inverted value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Invert(int y, int height, bool inverted)
         {
             int row;
@@ -369,16 +370,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             byte[] row = new byte[arrayWidth + padding];
-            TPixel color = default(TPixel);
+            var color = default(TPixel);
 
-            Rgba32 rgba = default(Rgba32);
+            var rgba = default(Rgba32);
 
             for (int y = 0; y < height; y++)
             {
                 int newY = Invert(y, height, inverted);
                 this.currentStream.Read(row, 0, row.Length);
                 int offset = 0;
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
                 // TODO: Could use PixelOperations here!
                 for (int x = 0; x < arrayWidth; x++)
@@ -417,10 +418,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             const int ScaleG = 4; // 256/64
             const int ComponentCount = 2;
 
-            TPixel color = default(TPixel);
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var color = default(TPixel);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -459,7 +460,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -483,7 +484,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
             {
                 for (int y = 0; y < height; y++)
                 {

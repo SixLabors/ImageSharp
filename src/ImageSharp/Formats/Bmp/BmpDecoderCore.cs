@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Looks up color values and builds the image from de-compressed RLE8 data.
-        /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Buffer{byte})"/>
+        /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Span{byte})"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
@@ -249,17 +249,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = default(Rgba32);
 
-            using (var buffer = Buffer<byte>.CreateClean(width * height))
+            using (var buffer = Buffer2D<byte>.CreateClean(width, height))
             {
                 this.UncompressRle8(width, buffer);
 
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
+                    Span<byte> bufferRow = buffer.GetRowSpan(y);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
                     for (int x = 0; x < width; x++)
                     {
-                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[buffer[(y * width) + x] * 4]);
+                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]);
                         color.PackFromRgba32(rgba);
                         pixelRow[x] = color;
                     }
@@ -277,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </remarks>
         /// <param name="w">The width of the bitmap.</param>
         /// <param name="buffer">Buffer for uncompressed data.</param>
-        private void UncompressRle8(int w, Buffer<byte> buffer)
+        private void UncompressRle8(int w, Span<byte> buffer)
         {
             byte[] cmd = new byte[2];
             int count = 0;

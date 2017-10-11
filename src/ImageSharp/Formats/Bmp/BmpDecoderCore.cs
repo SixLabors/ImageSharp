@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
-            var rgba = default(Rgba32);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
             using (var buffer = Buffer2D<byte>.CreateClean(width, height))
             {

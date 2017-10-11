@@ -154,18 +154,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
+            var trans = default(Rgba32);
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToXyzwBytes(this.buffer, 0);
+                quantized.Palette[i].ToRgba32(ref trans);
 
-                if (this.buffer[3] > 0)
-                {
-                    continue;
-                }
-                else
+                if (trans.Equals(default(Rgba32)))
                 {
                     index = i;
-                    break;
                 }
             }
 

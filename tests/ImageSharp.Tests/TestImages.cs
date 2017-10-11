@@ -135,8 +135,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string CoreHeader = "Bmp/BitmapCoreHeaderQR.bmp";
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
             public const string RLE = "Bmp/RunLengthEncoded.bmp";
+            public const string Bit8 = "Bmp/test8.bmp";
+            public const string Bit8Inverted = "Bmp/test8-inverted.bmp";
 
-            public static readonly string[] All = { Car, F, NegHeight, CoreHeader, V5Header, RLE };
+            public static readonly string[] All = { Car, F, NegHeight, CoreHeader, V5Header, RLE, Bit8, Bit8Inverted };
         }
 
         public static class Gif

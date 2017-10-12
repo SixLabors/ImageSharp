@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests
     public class BmpDecoderTests : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgb24)]
+        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32)]
         public void DecodeBmp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

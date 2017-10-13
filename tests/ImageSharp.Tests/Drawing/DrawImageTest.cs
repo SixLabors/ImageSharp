@@ -9,6 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System;
+
     public class DrawImageTest : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
@@ -40,6 +42,50 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.Mutate(x => x.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4)));
                 image.DebugSave(provider, new { mode });
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
+        public void ImageShouldHandleNegativeLocation(TestImageProvider<Rgba32> provider)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(x => x.Fill(Rgba32.Black));
+
+                int xy = -25;
+                Rgba32 backgroundPixel = background[0, 0];
+                Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
+
+                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Size(overlay.Width, overlay.Height), new Point(xy, xy)));
+
+                Assert.Equal(Rgba32.White, backgroundPixel);
+                Assert.Equal(overlayPixel, background[0, 0]);
+
+                background.DebugSave(provider, new[] { "Negative" });
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
+        public void ImageShouldHandlePositiveLocation(TestImageProvider<Rgba32> provider)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(x => x.Fill(Rgba32.Black));
+
+                int xy = 25;
+                Rgba32 backgroundPixel = background[xy - 1, xy - 1];
+                Rgba32 overlayPixel = overlay[0, 0];
+
+                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Size(overlay.Width, overlay.Height), new Point(xy, xy)));
+
+                Assert.Equal(Rgba32.White, backgroundPixel);
+                Assert.Equal(overlayPixel, background[xy, xy]);
+
+                background.DebugSave(provider, new[] { "Positive" });
             }
         }
     }

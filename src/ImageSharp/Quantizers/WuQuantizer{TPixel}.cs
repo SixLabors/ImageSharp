@@ -139,6 +139,7 @@ namespace SixLabors.ImageSharp.Quantizers
 
             this.colors = maxColors.Clamp(1, 255);
             this.palette = null;
+            this.colorMap.Clear();
 
             try
             {

@@ -140,8 +140,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string RLEInverted = "Bmp/RunLengthEncoded-inverted.bmp";
             public const string Bit8 = "Bmp/test8.bmp";
             public const string Bit8Inverted = "Bmp/test8-inverted.bmp";
+            public const string Bit16 = "Bmp/test16.bmp";
+            public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
 
-            public static readonly string[] All = { Car, F, NegHeight, CoreHeader, V5Header, RLE, RLEInverted, Bit8, Bit8Inverted };
+            public static readonly string[] All = { Car, F, NegHeight, CoreHeader, V5Header, RLE, RLEInverted, Bit8, Bit8Inverted, Bit16, Bit16Inverted };
         }
 
         public static class Gif

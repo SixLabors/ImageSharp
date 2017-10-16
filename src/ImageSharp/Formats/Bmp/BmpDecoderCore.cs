@@ -12,22 +12,25 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>
+    /// <remarks>
+    /// A useful decoding source example can be found at <see href="https://dxr.mozilla.org/mozilla-central/source/image/decoders/nsBMPDecoder.cpp"/>
+    /// </remarks>
     internal sealed class BmpDecoderCore
     {
         /// <summary>
         /// The mask for the red part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16RMask = 0x00007C00;
+        private const int Rgb16RMask = 0x7C00;
 
         /// <summary>
         /// The mask for the green part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16GMask = 0x000003E0;
+        private const int Rgb16GMask = 0x3E0;
 
         /// <summary>
         /// The mask for the blue part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16BMask = 0x0000001F;
+        private const int Rgb16BMask = 0x1F;
 
         /// <summary>
         /// RLE8 flag value that indicates following byte has special meaning
@@ -234,6 +237,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
+        /// Performs final shifting from a 5bit value to an 8bit one.
+        /// </summary>
+        /// <param name="value">The masked and shifted value</param>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte GetBytesFrom5BitValue(int value)
+        {
+            return (byte)((value << 3) | (value >> 2));
+        }
+
+        /// <summary>
         /// Looks up color values and builds the image from de-compressed RLE8 data.
         /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Span{byte})"/>
         /// </summary>
@@ -416,36 +430,31 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadRgb16<TPixel>(PixelAccessor<TPixel> pixels, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
-            // We divide here as we will store the colors in our floating point format.
-            const int ScaleR = 8; // 256/32
-            const int ScaleG = 4; // 256/64
-            const int ComponentCount = 2;
-
+            int padding = CalculatePadding(width, 2);
+            int stride = (width * 2) + padding;
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
+            using (var buffer = new Buffer<byte>(stride))
             {
                 for (int y = 0; y < height; y++)
                 {
-                    row.Read(this.currentStream);
-
+                    this.currentStream.Read(buffer.Array, 0, stride);
                     int newY = Invert(y, height, inverted);
-
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
                     int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
-                        short temp = BitConverter.ToInt16(row.Bytes, offset);
+                        short temp = BitConverter.ToInt16(buffer.Array, offset);
 
-                        rgba.R = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                        rgba.G = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                        rgba.B = (byte)((temp & Rgb16BMask) * ScaleR);
+                        rgba.R = GetBytesFrom5BitValue((temp & Rgb16RMask) >> 10);
+                        rgba.G = GetBytesFrom5BitValue((temp & Rgb16GMask) >> 5);
+                        rgba.B = GetBytesFrom5BitValue(temp & Rgb16BMask);
 
                         color.PackFromRgba32(rgba);
                         pixelRow[x] = color;
-                        offset += ComponentCount;
+                        offset += 2;
                     }
                 }
             }

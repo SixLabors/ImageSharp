@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// The transform matrix to apply.
+        /// Gets or sets the transform matrix to apply.
         /// </summary>
-        private Matrix3x2 processMatrix;
+        protected Matrix3x2 ProcessMatrix { get; set; }
 
         /// <summary>
         /// Gets or sets the angle of processMatrix in degrees.
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
-            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
+            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.ProcessMatrix);
             Rectangle sourceBounds = source.Bounds();
 
             using (var targetPixels = new PixelAccessor<TPixel>(width, height))
@@ -81,10 +81,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            this.processMatrix = Matrix3x2Extensions.CreateRotationDegrees(-this.Angle, new Point(0, 0));
+            this.ProcessMatrix = Matrix3x2Extensions.CreateRotationDegrees(-this.Angle, new Point(0, 0));
             if (this.Expand)
             {
-                this.CreateNewCanvas(sourceRectangle, this.processMatrix);
+                this.CreateNewCanvas(sourceRectangle, this.ProcessMatrix);
             }
         }
 
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <returns>
         /// The <see cref="bool" />
         /// </returns>
-        private bool OptimizedApply(ImageFrame<TPixel> source, Configuration configuration)
+        protected bool OptimizedApply(ImageFrame<TPixel> source, Configuration configuration)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon)
             {

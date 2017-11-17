@@ -236,11 +236,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         float cr = values.Component2[i] - 128F;
                         float k = values.Component3[i] / 255F;
 
-                        v.X = (255F - MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
-                        v.Y = (255F - MathF.Round(
+                        v.X = (255F - (float)Math.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
+                        v.Y = (255F - (float)Math.Round(
                                    y - (0.344136F * cb) - (0.714136F * cr),
                                    MidpointRounding.AwayFromZero)) * k;
-                        v.Z = (255F - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
+                        v.Z = (255F - (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
                         v.W = 1F;
 
                         v *= scale;

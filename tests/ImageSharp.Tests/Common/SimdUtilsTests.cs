@@ -22,9 +22,9 @@ namespace SixLabors.ImageSharp.Tests.Common
             this.Output = output;
         }
 
-        private static int R(float f) => (int)MathF.Round(f, MidpointRounding.AwayFromZero);
+        private static int R(float f) => (int)Math.Round(f, MidpointRounding.AwayFromZero);
 
-        private static int Re(float f) => (int)MathF.Round(f, MidpointRounding.ToEven);
+        private static int Re(float f) => (int)Math.Round(f, MidpointRounding.ToEven);
 
         // TODO: Move this to a proper test class!
         [Theory]
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, dest);
         }
 
-        private static float Clamp255(float x) => MathF.Min(255f, MathF.Max(0f, x));
+        private static float Clamp255(float x) => Math.Min(255f, Math.Max(0f, x));
 
         [Theory]
         [InlineData(1, 0)]

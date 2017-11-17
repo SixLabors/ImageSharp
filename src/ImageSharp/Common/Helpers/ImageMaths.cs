@@ -65,6 +65,27 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Returns the result of a normalized sine cardinal function for the given value.
+        /// SinC(x) = sin(pi*x)/(pi*x).
+        /// </summary>
+        /// <param name="f">A single-precision floating-point number to calculate the result for.</param>
+        /// <returns>
+        /// The sine cardinal of <paramref name="f" />.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SinC(float f)
+        {
+            if (MathF.Abs(f) > Constants.Epsilon)
+            {
+                f *= MathF.PI;
+                float result = MathF.Sin(f) / f;
+                return MathF.Abs(result) < Constants.Epsilon ? 0F : result;
+            }
+
+            return 1F;
+        }
+
+        /// <summary>
         /// Returns the result of a B-C filter against the given value.
         /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
         /// </summary>

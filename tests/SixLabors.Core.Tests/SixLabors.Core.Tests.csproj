@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <VersionPrefix>0.0.0</VersionPrefix>
-    <TargetFrameworks>netcoreapp1.1</TargetFrameworks>
+    <TargetFrameworks>netcoreapp1.1;netcoreapp2.0;</TargetFrameworks>
     <AssemblyName>SixLabors.Core.Tests</AssemblyName>
     <PackageId>SixLabors.Shapes.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>

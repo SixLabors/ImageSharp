@@ -14,7 +14,7 @@ if not "%GitVersion_NuGetVersion%" == "" (
 )
 if not "%errorlevel%"=="0" goto failure
 
-dotnet test ./tests/SixLabors.Core.Tests/SixLabors.Primitives.Tests.csproj
+dotnet test ./tests/SixLabors.Core.Tests/SixLabors.Core.Tests.csproj
 
 
 if not "%GitVersion_NuGetVersion%" == "" (

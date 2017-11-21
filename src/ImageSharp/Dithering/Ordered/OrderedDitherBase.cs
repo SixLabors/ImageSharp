@@ -26,14 +26,11 @@ namespace SixLabors.ImageSharp.Dithering.Base
         }
 
         /// <inheritdoc />
-        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y)
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, ref Rgba32 rgba, int index, int x, int y)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: This doesn't really cut it for me.
-            // I'd rather be using float but we need to add some sort of normalization vector methods to all IPixel implementations
-            // before we can do that as the vectors all cover different ranges.
-            source.ToXyzwBytes(bytes, 0);
-            image[x, y] = this.matrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
+            source.ToRgba32(ref rgba);
+            image[x, y] = this.matrix[y % 3, x % 3] >= rgba[index] ? lower : upper;
         }
     }
 }

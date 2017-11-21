@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
 
 namespace SixLabors.ImageSharp
@@ -37,6 +37,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY, bool expand)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new SkewProcessor<TPixel> { AngleX = degreesX, AngleY = degreesY, Expand = expand });
+        => source.ApplyProcessor(new SkewProcessor<TPixel>(new BicubicResampler()) { AngleX = degreesX, AngleY = degreesY, Expand = expand });
     }
 }

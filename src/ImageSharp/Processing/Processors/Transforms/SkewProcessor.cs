@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -16,13 +15,19 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Provides methods that allow the skewing of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SkewProcessor<TPixel> : Matrix3x2Processor<TPixel>
+    internal class SkewProcessor<TPixel> : AffineProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private Matrix3x2 transformMatrix;
+
         /// <summary>
-        /// The transform matrix to apply.
+        /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
         /// </summary>
-        private Matrix3x2 processMatrix;
+        /// <param name="sampler">The sampler to perform the skew operation.</param>
+        public SkewProcessor(IResampler sampler)
+            : base(sampler)
+        {
+        }
 
         /// <summary>
         /// Gets or sets the angle of rotation along the x-axis in degrees.
@@ -34,52 +39,44 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         public float AngleY { get; set; }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether to expand the canvas to fit the skewed image.
-        /// </summary>
-        public bool Expand { get; set; } = true;
-
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override Matrix3x2 CreateProcessingMatrix()
         {
-            int height = this.CanvasRectangle.Height;
-            int width = this.CanvasRectangle.Width;
-            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
-            Rectangle sourceBounds = source.Bounds();
-
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            if (this.transformMatrix == default(Matrix3x2))
             {
-                Parallel.For(
-                    0,
-                    height,
-                    configuration.ParallelOptions,
-                    y =>
-                        {
-                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                            for (int x = 0; x < width; x++)
-                            {
-                                var transformedPoint = Point.Skew(new Point(x, y), matrix);
-
-                                if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
-                                {
-                                    targetRow[x] = source[transformedPoint.X, transformedPoint.Y];
-                                }
-                            }
-                        });
-
-                source.SwapPixelsBuffers(targetPixels);
+                this.transformMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, new Point(0, 0));
             }
+
+            return this.transformMatrix;
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
-            this.processMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, new Point(0, 0));
-            if (this.Expand)
-            {
-                this.CreateNewCanvas(sourceRectangle, this.processMatrix);
-            }
+            int height = this.ResizeRectangle.Height;
+            int width = this.ResizeRectangle.Width;
+            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.CreateProcessingMatrix());
+            Rectangle sourceBounds = source.Bounds();
+
+            // TODO: Use our new weights functionality to resample on transform
+            Parallel.For(
+                0,
+                height,
+                configuration.ParallelOptions,
+                y =>
+                    {
+                        Span<TPixel> destRow = destination.GetPixelRowSpan(y);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            var transformedPoint = Point.Skew(new Point(x, y), matrix);
+
+                            if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
+                            {
+                                destRow[x] = source[transformedPoint.X, transformedPoint.Y];
+                            }
+                        }
+                    });
         }
     }
 }

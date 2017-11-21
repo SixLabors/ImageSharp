@@ -316,6 +316,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int i4 = i * 4;
                 source[i].ToBgra32(ref bgra);
                 expected[i4] = bgra.B;
+                expected[i4 + 1] = bgra.G;
+                expected[i4 + 2] = bgra.R;
+                expected[i4 + 3] = bgra.A;
             }
 
             TestOperation(

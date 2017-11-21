@@ -54,8 +54,8 @@ namespace SixLabors.ImageSharp.Tests
                 return false;
             }
 
-            byte[] bytesA = new byte[3];
-            byte[] bytesB = new byte[3];
+            var rgb1 = default(Rgb24);
+            var rgb2 = default(Rgb24);
 
             using (PixelAccessor<TPixel> pixA = a.Lock())
             {
@@ -77,12 +77,12 @@ namespace SixLabors.ImageSharp.Tests
                             }
                             else
                             {
-                                ca.ToXyzBytes(bytesA, 0);
-                                cb.ToXyzBytes(bytesB, 0);
+                                ca.ToRgb24(ref rgb1);
+                                cb.ToRgb24(ref rgb2);
 
-                                if (bytesA[0] != bytesB[0] ||
-                                    bytesA[1] != bytesB[1] ||
-                                    bytesA[2] != bytesB[2])
+                                if (rgb1.R != rgb2.R ||
+                                    rgb1.G != rgb2.G ||
+                                    rgb1.B != rgb2.B)
                                 {
                                     return false;
                                 }
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
-        
+
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
         {

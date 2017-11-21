@@ -351,16 +351,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
-
+            var rgb = default(Rgb24);
             try
             {
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    image.Palette[i].ToXyzBytes(this.buffer, 0);
-                    colorTable[offset] = this.buffer[0];
-                    colorTable[offset + 1] = this.buffer[1];
-                    colorTable[offset + 2] = this.buffer[2];
+                    image.Palette[i].ToRgb24(ref rgb);
+                    colorTable[offset] = rgb.R;
+                    colorTable[offset + 1] = rgb.G;
+                    colorTable[offset + 2] = rgb.B;
                 }
 
                 writer.Write(colorTable, 0, colorTableLength);

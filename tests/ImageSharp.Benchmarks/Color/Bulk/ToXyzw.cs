@@ -40,11 +40,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         {
             TPixel[] s = this.source.Array;
             byte[] d = this.destination.Array;
+            var rgba = default(Rgba32);
 
             for (int i = 0; i < this.Count; i++)
             {
                 TPixel c = s[i];
-                c.ToXyzwBytes(d, i * 4);
+                int i4 = i * 4;
+                c.ToRgba32(ref rgba);
+                d[i4] = rgba.R;
+                d[i4 + 1] = rgba.G;
+                d[i4 + 2] = rgba.B;
+                d[i4 + 3] = rgba.A;
             }
         }
 

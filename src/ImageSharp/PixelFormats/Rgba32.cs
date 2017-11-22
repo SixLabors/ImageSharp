@@ -221,32 +221,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the component value at the given index
-        /// </summary>
-        /// <param name="index">The component index</param>
-        /// <returns>The <see cref="byte"/></returns>
-        public byte this[int index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                DebugGuard.MustBeGreaterThanOrEqualTo(index, 0, nameof(index));
-                DebugGuard.MustBeLessThanOrEqualTo(index, 3, nameof(index));
-                switch (index)
-                {
-                    case 0:
-                        return this.R;
-                    case 1:
-                        return this.G;
-                    case 2:
-                        return this.B;
-                    default:
-                        return this.A;
-                }
-            }
-        }
-
-        /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
         /// </summary>
         /// <param name="left">

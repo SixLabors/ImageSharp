@@ -61,11 +61,6 @@ namespace SixLabors.ImageSharp.Quantizers
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
         /// <summary>
-        /// A buffer for storing pixels
-        /// </summary>
-        private readonly byte[] rgbaBuffer = new byte[4];
-
-        /// <summary>
         /// A lookup table for colors
         /// </summary>
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
@@ -199,19 +194,15 @@ namespace SixLabors.ImageSharp.Quantizers
         {
             // Add the color to a 3-D color histogram.
             // Colors are expected in r->g->b->a format
-            pixel.ToXyzwBytes(this.rgbaBuffer, 0);
+            var rgba = default(Rgba32);
+            pixel.ToRgba32(ref rgba);
 
-            byte r = this.rgbaBuffer[0];
-            byte g = this.rgbaBuffer[1];
-            byte b = this.rgbaBuffer[2];
-            byte a = this.rgbaBuffer[3];
+            int r = rgba.R >> 2; // 8 - IndexBits
+            int g = rgba.G >> 2;
+            int b = rgba.B >> 2;
+            int a = rgba.A >> 5; // 8 - IndexAlphaBits
 
-            int inr = r >> (8 - IndexBits);
-            int ing = g >> (8 - IndexBits);
-            int inb = b >> (8 - IndexBits);
-            int ina = a >> (8 - IndexAlphaBits);
-
-            int ind = GetPaletteIndex(inr + 1, ing + 1, inb + 1, ina + 1);
+            int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
 
             this.vwt[ind]++;
             this.vmr[ind] += r;
@@ -840,12 +831,13 @@ namespace SixLabors.ImageSharp.Quantizers
             }
 
             // Expected order r->g->b->a
-            pixel.ToXyzwBytes(this.rgbaBuffer, 0);
+            var rgba = default(Rgba32);
+            pixel.ToRgba32(ref rgba);
 
-            int r = this.rgbaBuffer[0] >> (8 - IndexBits);
-            int g = this.rgbaBuffer[1] >> (8 - IndexBits);
-            int b = this.rgbaBuffer[2] >> (8 - IndexBits);
-            int a = this.rgbaBuffer[3] >> (8 - IndexAlphaBits);
+            int r = rgba.R >> (8 - IndexBits);
+            int g = rgba.G >> (8 - IndexBits);
+            int b = rgba.B >> (8 - IndexBits);
+            int a = rgba.A >> (8 - IndexAlphaBits);
 
             return this.tag[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }

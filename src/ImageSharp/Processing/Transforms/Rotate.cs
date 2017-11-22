@@ -47,6 +47,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, bool expand)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new RotateProcessor<TPixel> { Angle = degrees, Expand = expand });
+        => source.ApplyProcessor(new RotateInterpolationProcessor<TPixel> { Angle = degrees, Expand = expand });
     }
 }

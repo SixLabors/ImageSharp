@@ -110,8 +110,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            int maxX = source.Height - 1;
-            int maxY = source.Width - 1;
+            int maxX = source.Width - 1;
+            int maxY = source.Height - 1;
 
             Parallel.For(
                 0,

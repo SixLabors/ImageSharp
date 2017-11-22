@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -90,6 +91,49 @@ namespace SixLabors.ImageSharp.Processing.Processors
             var translationToTargetCenter = Matrix3x2.CreateTranslation(-this.ResizeRectangle.Width * .5F, -this.ResizeRectangle.Height * .5F);
             var translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);
             return (translationToTargetCenter * matrix) * translateToSourceCenter;
+        }
+
+        /// <summary>
+        /// Computes the weighted sum at the given XY position
+        /// </summary>
+        /// <param name="source">The source image</param>
+        /// <param name="maxX">The maximum x value</param>
+        /// <param name="maxY">The maximum y value</param>
+        /// <param name="windowX">The horizontal weights</param>
+        /// <param name="windowY">The vertical weights</param>
+        /// <param name="point">The transformed position</param>
+        /// <returns>The <see cref="Vector4"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected Vector4 ComputeWeightedSumAtPosition(ImageFrame<TPixel> source, int maxX, int maxY, ref WeightsWindow windowX, ref WeightsWindow windowY, ref Point point)
+        {
+            ref float horizontalValues = ref windowX.GetStartReference();
+            ref float verticalValues = ref windowY.GetStartReference();
+            int xLeft = windowX.Left;
+            int yLeft = windowY.Left;
+            int xLength = windowX.Length;
+            int yLength = windowY.Length;
+            Vector4 result = Vector4.Zero;
+
+            // TODO: Fix this.
+            // Currently the output image is the separable values duplicated with half the transform applied
+            // and not the combined values as it should be. I must be sampling the wrong values.
+            for (int i = 0; i < xLength; i++)
+            {
+                int offsetX = xLeft + i + point.X;
+                offsetX = offsetX.Clamp(0, maxX);
+                float weight = Unsafe.Add(ref horizontalValues, i);
+                result += source[offsetX, point.Y].ToVector4() * weight;
+            }
+
+            for (int i = 0; i < yLength; i++)
+            {
+                int offsetY = yLeft + i + point.Y;
+                offsetY = offsetY.Clamp(0, maxY);
+                float weight = Unsafe.Add(ref verticalValues, i);
+                result += source[point.X, offsetY].ToVector4() * weight;
+            }
+
+            return result;
         }
     }
 }

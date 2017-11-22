@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone()));
+                source.Frames.Select(x => new ImageFrame<TPixel>(this.ResizeRectangle.Width, this.ResizeRectangle.Height, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
@@ -115,22 +115,23 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Vector4 result = Vector4.Zero;
 
             // TODO: Fix this.
-            // Currently the output image is the separable values duplicated with half the transform applied
-            // and not the combined values as it should be. I must be sampling the wrong values.
-            for (int i = 0; i < xLength; i++)
+            // The output for skew is shrunken, offset, with right/bottom banding.
+            // For rotate values are offset
+            for (int y = 0; y < yLength; y++)
             {
-                int offsetX = xLeft + i + point.X;
-                offsetX = offsetX.Clamp(0, maxX);
-                float weight = Unsafe.Add(ref horizontalValues, i);
-                result += source[offsetX, point.Y].ToVector4() * weight;
-            }
-
-            for (int i = 0; i < yLength; i++)
-            {
-                int offsetY = yLeft + i + point.Y;
+                float yweight = Unsafe.Add(ref verticalValues, y);
+                int offsetY = yLeft + y + point.Y;
                 offsetY = offsetY.Clamp(0, maxY);
-                float weight = Unsafe.Add(ref verticalValues, i);
-                result += source[point.X, offsetY].ToVector4() * weight;
+
+                for (int x = 0; x < xLength; x++)
+                {
+                    float xweight = Unsafe.Add(ref horizontalValues, x);
+                    int offsetX = xLeft + x + point.X;
+                    offsetX = offsetX.Clamp(0, maxX);
+                    float weight = yweight * xweight;
+
+                    result += source[offsetX, offsetY].ToVector4() * weight;
+                }
             }
 
             return result;

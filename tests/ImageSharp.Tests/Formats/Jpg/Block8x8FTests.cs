@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             for (int i = 0; i < 64; i++)
             {
-                float expected = MathF.Round(s[i]);
+                float expected = (float)Math.Round(s[i]);
                 float actual = d[i];
 
                 Assert.Equal(expected, actual);

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -30,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             this.Angle = angle;
 
-            float radians = MathF.DegreeToRadian(angle);
+            float radians = MathFExtensions.DegreeToRadian(angle);
             float cosradians = MathF.Cos(radians);
             float sinradians = MathF.Sin(radians);
 

@@ -6,6 +6,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using SixLabors.ImageSharp.Processing;
+
     public class SkewTest : FileTestBase
     {
         public static readonly TheoryData<float, float> SkewValues
@@ -24,6 +26,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 image.Mutate(i => i.Skew(x, y));
                 image.DebugSave(provider, string.Join("_", x, y));
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(DefaultFiles), nameof(SkewValues), DefaultPixelType)]
+        public void ImageShouldSkewWithSampler<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(i => i.Skew(x, y, KnownResamplers.Triangle));
+                image.DebugSave(provider, string.Join("_", x, y, "triangle"));
             }
         }
     }

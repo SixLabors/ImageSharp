@@ -53,16 +53,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            Configuration config = source.GetConfiguration();
+            // We will always be creating the clone even for mutate because we may need to resize the canvas
+            IEnumerable<ImageFrame<TPixel>> frames =
+                source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone()));
 
-            // We will always be creating the clone even for mutate because thats the way this base processor works
-            // ------------
-            // For resize we know we are going to populate every pixel with fresh data and we want a different target size so
-            // let's manually clone an empty set of images at the correct target and then have the base class processs them in turn.
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
-            var image = new Image<TPixel>(config, source.MetaData.Clone(), frames); // base the place holder images in to prevet a extra frame being added
-
-            return image;
+            // Use the overload to prevent an extra frame being added
+            return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>

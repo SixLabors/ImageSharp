@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             if (this.transformMatrix == default(Matrix3x2))
             {
-                this.transformMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, new Point(0, 0));
+                this.transformMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, PointF.Empty);
             }
 
             return this.transformMatrix;
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             int height = this.ResizeRectangle.Height;
             int width = this.ResizeRectangle.Width;
-            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.CreateProcessingMatrix());
+            Matrix3x2 matrix = this.GetCenteredMatrix(source);
             Rectangle sourceBounds = source.Bounds();
 
             if (this.Sampler is NearestNeighborResampler)
@@ -71,7 +71,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             for (int x = 0; x < width; x++)
                             {
                                 var transformedPoint = Point.Skew(new Point(x, y), matrix);
-
                                 if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
                                 {
                                     destRow[x] = source[transformedPoint.X, transformedPoint.Y];

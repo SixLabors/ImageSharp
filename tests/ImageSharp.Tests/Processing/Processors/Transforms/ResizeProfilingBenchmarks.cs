@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         // [Fact]
         public void PrintWeightsData()
         {
-            var proc = new ResizeProcessor<Rgba32>(new BicubicResampler(), 200, 200);
+            var proc = new ResizeProcessor<Rgba32>(KnownResamplers.Bicubic, 200, 200);
 
             ResamplingWeightedProcessor<Rgba32>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
 

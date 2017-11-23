@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -18,15 +19,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal abstract class AffineProcessor<TPixel> : ResamplingWeightedProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        // TODO: Move to constants somewhere else to prevent generic type duplication.
-        private static readonly Rectangle DefaultRectangle = new Rectangle(0, 0, 1, 1);
-
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         protected AffineProcessor(IResampler sampler)
-            : base(sampler, 1, 1, DefaultRectangle) // Hack to prevent Guard throwing in base, we always set the canvas
+            : base(sampler, 1, 1, Rectangles.DefaultRectangle) // Hack to prevent Guard throwing in base, we always set the canvas
         {
         }
 
@@ -47,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="sourceRectangle">The source rectangle.</param>
         protected virtual void CreateNewCanvas(Rectangle sourceRectangle)
         {
-            if (this.ResizeRectangle == DefaultRectangle)
+            if (this.ResizeRectangle == Rectangles.DefaultRectangle)
             {
                 if (this.Expand)
                 {
@@ -82,15 +80,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Gets a transform matrix adjusted to center upon the target image bounds.
         /// </summary>
         /// <param name="source">The source image.</param>
-        /// <param name="matrix">The transform matrix.</param>
         /// <returns>
         /// The <see cref="Matrix3x2"/>.
         /// </returns>
-        protected Matrix3x2 GetCenteredMatrix(ImageFrame<TPixel> source, Matrix3x2 matrix)
+        protected Matrix3x2 GetCenteredMatrix(ImageFrame<TPixel> source)
         {
             var translationToTargetCenter = Matrix3x2.CreateTranslation(-this.ResizeRectangle.Width * .5F, -this.ResizeRectangle.Height * .5F);
             var translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);
-            return (translationToTargetCenter * matrix) * translateToSourceCenter;
+            return (translationToTargetCenter * this.CreateProcessingMatrix()) * translateToSourceCenter;
         }
 
         /// <summary>
@@ -108,25 +105,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             ref float horizontalValues = ref windowX.GetStartReference();
             ref float verticalValues = ref windowY.GetStartReference();
-            int xLeft = windowX.Left;
-            int yLeft = windowY.Left;
             int xLength = windowX.Length;
             int yLength = windowY.Length;
             Vector4 result = Vector4.Zero;
 
-            // TODO: Fix this.
-            // The output for skew is shrunken, offset, with right/bottom banding.
-            // For rotate values are offset
             for (int y = 0; y < yLength; y++)
             {
                 float yweight = Unsafe.Add(ref verticalValues, y);
-                int offsetY = yLeft + y + point.Y;
+                int offsetY = y + point.Y;
                 offsetY = offsetY.Clamp(0, maxY);
 
                 for (int x = 0; x < xLength; x++)
                 {
                     float xweight = Unsafe.Add(ref horizontalValues, x);
-                    int offsetX = xLeft + x + point.X;
+                    int offsetX = x + point.X;
                     offsetX = offsetX.Clamp(0, maxX);
                     float weight = yweight * xweight;
 
@@ -136,5 +128,15 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             return result;
         }
+    }
+
+    /// <summary>
+    /// Contains a static rectangle used for comparison when creating a new canvas.
+    /// We do this so we can inherit from the resampling weights class and pass the guard in the constructor and also avoid creating a new rectangle each time.
+    /// </summary>
+    [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1402:FileMayOnlyContainASingleType", Justification = "I'm using this only here to prevent duplication in generic types.")]
+    internal static class Rectangles
+    {
+        public static Rectangle DefaultRectangle { get; } = new Rectangle(0, 0, 1, 1);
     }
 }

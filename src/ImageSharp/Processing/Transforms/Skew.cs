@@ -22,9 +22,20 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Skew(source, degreesX, degreesY, true);
-        }
+        => Skew(source, degreesX, degreesY, true);
+
+        /// <summary>
+        /// Skews an image by the given angles in degrees using the given sampler, expanding the image to fit the skewed result.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to skew.</param>
+        /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY, IResampler sampler)
+            where TPixel : struct, IPixel<TPixel>
+        => Skew(source, degreesX, degreesY, sampler, true);
 
         /// <summary>
         /// Skews an image by the given angles in degrees.
@@ -37,6 +48,20 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY, bool expand)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new SkewProcessor<TPixel>(new BicubicResampler()) { AngleX = degreesX, AngleY = degreesY, Expand = expand });
+        => Skew(source, degreesX, degreesY, KnownResamplers.NearestNeighbor, expand);
+
+        /// <summary>
+        /// Skews an image by the given angles in degrees using the specified sampling algorithm.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to skew.</param>
+        /// <param name="degreesX">The angle in degrees to perform the rotation along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the rotation along the y-axis.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="expand">Whether to expand the image to fit the skewed result.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY, IResampler sampler, bool expand)
+            where TPixel : struct, IPixel<TPixel>
+            => source.ApplyProcessor(new SkewProcessor<TPixel>(sampler) { AngleX = degreesX, AngleY = degreesY, Expand = expand });
     }
 }

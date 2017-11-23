@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int startX = interest.X;
             int endX = interest.Right;
 
-            byte[] bytes = new byte[4];
+            var rgba = default(Rgba32);
             for (int y = startY; y < endY; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 for (int x = startX; x < endX; x++)
                 {
                     TPixel sourceColor = row[x];
-                    this.Dither.Dither(source, sourceColor, this.UpperColor, this.LowerColor, bytes, this.Index, x, y);
+                    this.Dither.Dither(source, sourceColor, this.UpperColor, this.LowerColor, ref rgba, this.Index, x, y);
                 }
             }
         }

@@ -40,6 +40,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [WithTestPatternImages(nameof(RotateFloatValues), 100, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateFloatValues), 50, 100, DefaultPixelType)]
+        public void RotateWithSampler<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.Rotate(value, KnownResamplers.Triangle));
+                image.DebugSave(provider, string.Join("_", value, "triangle"));
+            }
+        }
+
+        [Theory]
         [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]
         public void Rotate_WithRotateTypeEnum<TPixel>(TestImageProvider<TPixel> provider, RotateType value)

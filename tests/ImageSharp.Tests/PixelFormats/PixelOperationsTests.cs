@@ -173,11 +173,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 3];
+            var rgb = default(Rgb24);
 
             for (int i = 0; i < count; i++)
             {
                 int i3 = i * 3;
-                source[i].ToXyzBytes(expected, i3);
+                source[i].ToRgb24(ref rgb);
+                expected[i3] = rgb.R;
+                expected[i3 + 1] = rgb.G;
+                expected[i3 + 2] = rgb.B;
             }
 
             TestOperation(
@@ -214,11 +218,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 4];
+            var rgba = default(Rgba32);
 
             for (int i = 0; i < count; i++)
             {
                 int i4 = i * 4;
-                source[i].ToXyzwBytes(expected, i4);
+                source[i].ToRgba32(ref rgba);
+                expected[i4] = rgba.R;
+                expected[i4 + 1] = rgba.G;
+                expected[i4 + 2] = rgba.B;
+                expected[i4 + 3] = rgba.A;
             }
 
             TestOperation(
@@ -255,11 +264,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 3];
+            var bgr = default(Bgr24);
 
             for (int i = 0; i < count; i++)
             {
                 int i3 = i * 3;
-                source[i].ToZyxBytes(expected, i3);
+                source[i].ToBgr24(ref bgr);
+                expected[i3] = bgr.B;
+                expected[i3 + 1] = bgr.G;
+                expected[i3 + 2] = bgr.R;
             }
 
             TestOperation(
@@ -296,11 +309,16 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 4];
+            var bgra = default(Bgra32);
 
             for (int i = 0; i < count; i++)
             {
                 int i4 = i * 4;
-                source[i].ToZyxwBytes(expected, i4);
+                source[i].ToBgra32(ref bgra);
+                expected[i4] = bgra.B;
+                expected[i4 + 1] = bgra.G;
+                expected[i4 + 2] = bgra.R;
+                expected[i4 + 3] = bgra.A;
             }
 
             TestOperation(

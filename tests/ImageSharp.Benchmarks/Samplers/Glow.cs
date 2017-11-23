@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 int endX = sourceRectangle.Right;
                 TPixel glowColor = this.GlowColor;
                 Vector2 centre = Rectangle.Center(sourceRectangle);
-                float maxDistance = this.Radius > 0 ? MathF.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+                float maxDistance = this.Radius > 0 ? Math.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
                 // Align start/end positions.
                 int minX = Math.Max(0, startX);
@@ -136,13 +136,13 @@ namespace SixLabors.ImageSharp.Benchmarks
                 amount = amount.Clamp(0, 1);
 
                 // Santize on zero alpha
-                if (MathF.Abs(backdrop.W) < Constants.Epsilon)
+                if (Math.Abs(backdrop.W) < Constants.Epsilon)
                 {
                     source.W *= amount;
                     return source;
                 }
 
-                if (MathF.Abs(source.W) < Constants.Epsilon)
+                if (Math.Abs(source.W) < Constants.Epsilon)
                 {
                     return backdrop;
                 }

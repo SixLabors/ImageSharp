@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets the Robidoux Sharp sampler. A sharpend form of the <see cref="Robidoux"/> sampler
         /// </summary>
-        public static IResampler RobidouxSharp { get; } = new RobidouxResampler();
+        public static IResampler RobidouxSharp { get; } = new RobidouxSharpResampler();
 
         /// <summary>
         /// Gets the Spline sampler. A seperable cubic algorithm similar to <see cref="MitchellNetravali"/> but yielding smoother results.

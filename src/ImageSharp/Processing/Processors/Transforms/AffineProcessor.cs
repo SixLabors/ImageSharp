@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to expand the canvas to fit the skewed image.
+        /// Gets or sets a value indicating whether to expand the canvas to fit the transformed image.
         /// </summary>
         public bool Expand { get; set; } = true;
 
@@ -96,33 +96,58 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="source">The source image</param>
         /// <param name="maxX">The maximum x value</param>
         /// <param name="maxY">The maximum y value</param>
+        /// <param name="radius">The radius of the current sampling window</param>
         /// <param name="windowX">The horizontal weights</param>
         /// <param name="windowY">The vertical weights</param>
         /// <param name="point">The transformed position</param>
         /// <returns>The <see cref="Vector4"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Vector4 ComputeWeightedSumAtPosition(ImageFrame<TPixel> source, int maxX, int maxY, ref WeightsWindow windowX, ref WeightsWindow windowY, ref Point point)
+        protected Vector4 ComputeWeightedSumAtPosition(ImageFrame<TPixel> source, int maxX, int maxY, int radius, ref WeightsWindow windowX, ref WeightsWindow windowY, ref Point point)
         {
             ref float horizontalValues = ref windowX.GetStartReference();
             ref float verticalValues = ref windowY.GetStartReference();
-            int xLength = windowX.Length;
-            int yLength = windowY.Length;
+
+            int left = point.X - radius;
+            int right = point.X + radius;
+            int top = point.Y - radius;
+            int bottom = point.Y + radius;
+
+            // Faster than clamping + we know we are only looking in one direction
+            if (left < 0)
+            {
+                left = 0;
+            }
+
+            if (top < 0)
+            {
+                top = 0;
+            }
+
+            if (right > maxX)
+            {
+                right = maxX;
+            }
+
+            if (bottom > maxY)
+            {
+                bottom = maxY;
+            }
+
             Vector4 result = Vector4.Zero;
 
-            for (int y = 0; y < yLength; y++)
+            // We calculate our sample by iterating up-down/left-right from our transformed point.
+            // Ignoring the weight of outlying pixels is better for shape preservation on transforms such as skew with samplers that use larger radii.
+            // We don't offset our window index so that the weight compensates for the missing values
+            for (int y = top, yl = 0; y <= bottom; y++, yl++)
             {
-                float yweight = Unsafe.Add(ref verticalValues, y);
-                int offsetY = y + point.Y;
-                offsetY = offsetY.Clamp(0, maxY);
+                float yweight = Unsafe.Add(ref verticalValues, yl);
 
-                for (int x = 0; x < xLength; x++)
+                for (int x = left, xl = 0; x <= right; x++, xl++)
                 {
-                    float xweight = Unsafe.Add(ref horizontalValues, x);
-                    int offsetX = x + point.X;
-                    offsetX = offsetX.Clamp(0, maxX);
+                    float xweight = Unsafe.Add(ref horizontalValues, xl);
                     float weight = yweight * xweight;
 
-                    result += source[offsetX, offsetY].ToVector4() * weight;
+                    result += source[x, y].ToVector4() * weight;
                 }
             }
 

@@ -233,16 +233,7 @@ namespace SixLabors.Primitives
         /// <param name="matrix">The transformation matrix used</param>
         /// <returns>The transformed <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Transform(Point point, Matrix3x2 matrix) => Transform(new Vector2(point.X, point.Y), matrix);
-
-        /// <summary>
-        /// Transforms a vector by a specified 3x2 matrix.
-        /// </summary>
-        /// <param name="position">The vector to transform</param>
-        /// <param name="matrix">The transformation matrix used</param>
-        /// <returns>The transformed <see cref="PointF"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Transform(Vector2 position, Matrix3x2 matrix) => Round(Vector2.Transform(position, matrix));
+        public static Point Transform(Point point, Matrix3x2 matrix) => Round(Vector2.Transform(new Vector2(point.X, point.Y), matrix));
 
         /// <summary>
         /// Translates this <see cref="Point"/> by the specified amount.

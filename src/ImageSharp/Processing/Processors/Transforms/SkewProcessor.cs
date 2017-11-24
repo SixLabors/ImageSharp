@@ -83,6 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int maxX = source.Width - 1;
             int maxY = source.Height - 1;
+            int radius = Math.Max((int)this.Sampler.Radius, 1);
 
             Parallel.For(
                 0,
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 WeightsWindow windowX = this.HorizontalWeights.Weights[transformedPoint.X];
                                 WeightsWindow windowY = this.VerticalWeights.Weights[transformedPoint.Y];
 
-                                Vector4 dXY = this.ComputeWeightedSumAtPosition(source, maxX, maxY, ref windowX, ref windowY, ref transformedPoint);
+                                Vector4 dXY = this.ComputeWeightedSumAtPosition(source, maxX, maxY, radius, ref windowX, ref windowY, ref transformedPoint);
                                 ref TPixel dest = ref destRow[x];
                                 dest.PackFromVector4(dXY);
                             }

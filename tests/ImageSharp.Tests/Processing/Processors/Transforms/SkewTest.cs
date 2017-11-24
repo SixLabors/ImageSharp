@@ -6,15 +6,39 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
+
     using SixLabors.ImageSharp.Processing;
 
     public class SkewTest : FileTestBase
     {
         public static readonly TheoryData<float, float> SkewValues
-        = new TheoryData<float, float>
+            = new TheoryData<float, float>
         {
             { 20, 10 },
             { -20, -10 }
+        };
+
+        public static readonly List<string> ResamplerNames
+            = new List<string>
+        {
+            nameof(KnownResamplers.Bicubic),
+            nameof(KnownResamplers.Box),
+            nameof(KnownResamplers.CatmullRom),
+            nameof(KnownResamplers.Hermite),
+            nameof(KnownResamplers.Lanczos2),
+            nameof(KnownResamplers.Lanczos3),
+            nameof(KnownResamplers.Lanczos5),
+            nameof(KnownResamplers.Lanczos8),
+            nameof(KnownResamplers.MitchellNetravali),
+            nameof(KnownResamplers.NearestNeighbor),
+            nameof(KnownResamplers.Robidoux),
+            nameof(KnownResamplers.RobidouxSharp),
+            nameof(KnownResamplers.Spline),
+            nameof(KnownResamplers.Triangle),
+            nameof(KnownResamplers.Welch),
         };
 
         [Theory]
@@ -34,11 +58,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void ImageShouldSkewWithSampler<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            foreach (string resamplerName in ResamplerNames)
             {
-                image.Mutate(i => i.Skew(x, y, KnownResamplers.Triangle));
-                image.DebugSave(provider, string.Join("_", x, y, "triangle"));
+                IResampler sampler = GetResampler(resamplerName);
+                using (Image<TPixel> image = provider.GetImage())
+                {
+                    image.Mutate(i => i.Skew(x, y, sampler));
+                    image.DebugSave(provider, string.Join("_", x, y, resamplerName));
+                }
             }
+        }
+
+        private static IResampler GetResampler(string name)
+        {
+            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
+
+            if (property == null)
+            {
+                throw new Exception("Invalid property name!");
+            }
+
+            return (IResampler)property.GetValue(null);
         }
     }
 }

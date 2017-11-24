@@ -29,24 +29,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             RotateType.Rotate270
         };
 
-        public static readonly TheoryData<string> ResmplerNames = new TheoryData<string>
-                                                                      {
-                                                                          nameof(KnownResamplers.Bicubic),
-                                                                          nameof(KnownResamplers.Box),
-                                                                          nameof(KnownResamplers.CatmullRom),
-                                                                          nameof(KnownResamplers.Hermite),
-                                                                          nameof(KnownResamplers.Lanczos2),
-                                                                          nameof(KnownResamplers.Lanczos3),
-                                                                          nameof(KnownResamplers.Lanczos5),
-                                                                          nameof(KnownResamplers.Lanczos8),
-                                                                          nameof(KnownResamplers.MitchellNetravali),
-                                                                          nameof(KnownResamplers.NearestNeighbor),
-                                                                          nameof(KnownResamplers.Robidoux),
-                                                                          nameof(KnownResamplers.RobidouxSharp),
-                                                                          nameof(KnownResamplers.Spline),
-                                                                          nameof(KnownResamplers.Triangle),
-                                                                          nameof(KnownResamplers.Welch),
-                                                                      };
+        public static readonly TheoryData<string> ResamplerNames
+            = new TheoryData<string>
+        {
+            nameof(KnownResamplers.Bicubic),
+            nameof(KnownResamplers.Box),
+            nameof(KnownResamplers.CatmullRom),
+            nameof(KnownResamplers.Hermite),
+            nameof(KnownResamplers.Lanczos2),
+            nameof(KnownResamplers.Lanczos3),
+            nameof(KnownResamplers.Lanczos5),
+            nameof(KnownResamplers.Lanczos8),
+            nameof(KnownResamplers.MitchellNetravali),
+            nameof(KnownResamplers.NearestNeighbor),
+            nameof(KnownResamplers.Robidoux),
+            nameof(KnownResamplers.RobidouxSharp),
+            nameof(KnownResamplers.Spline),
+            nameof(KnownResamplers.Triangle),
+            nameof(KnownResamplers.Welch),
+        };
 
         [Theory]
         [WithTestPatternImages(nameof(RotateFloatValues), 100, 50, DefaultPixelType)]
@@ -62,8 +63,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(ResmplerNames), 100, 50, DefaultPixelType)]
-        [WithTestPatternImages(nameof(ResmplerNames), 50, 100, DefaultPixelType)]
+        [WithTestPatternImages(nameof(ResamplerNames), 100, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(ResamplerNames), 50, 100, DefaultPixelType)]
         public void RotateWithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -98,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 throw new Exception("Invalid property name!");
             }
 
-            return (IResampler) property.GetValue(null);
+            return (IResampler)property.GetValue(null);
         }
     }
 }

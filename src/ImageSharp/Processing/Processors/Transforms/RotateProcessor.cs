@@ -81,59 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            int height = this.ResizeRectangle.Height;
-            int width = this.ResizeRectangle.Width;
-            Matrix3x2 matrix = this.GetCenteredMatrix(source);
-            Rectangle sourceBounds = source.Bounds();
-
-            if (this.Sampler is NearestNeighborResampler)
-            {
-                Parallel.For(
-                    0,
-                    height,
-                    configuration.ParallelOptions,
-                    y =>
-                        {
-                            Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-
-                            for (int x = 0; x < width; x++)
-                            {
-                                var transformedPoint = Point.Rotate(new Point(x, y), matrix);
-                                if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
-                                {
-                                    destRow[x] = source[transformedPoint.X, transformedPoint.Y];
-                                }
-                            }
-                        });
-
-                return;
-            }
-
-            int maxX = source.Width - 1;
-            int maxY = source.Height - 1;
-            int radius = Math.Max((int)this.Sampler.Radius, 1);
-
-            Parallel.For(
-                0,
-                height,
-                configuration.ParallelOptions,
-                y =>
-                    {
-                        Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-                        for (int x = 0; x < width; x++)
-                        {
-                            var transformedPoint = Point.Rotate(new Point(x, y), matrix);
-                            if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
-                            {
-                                WeightsWindow windowX = this.HorizontalWeights.Weights[transformedPoint.X];
-                                WeightsWindow windowY = this.VerticalWeights.Weights[transformedPoint.Y];
-
-                                Vector4 dXY = this.ComputeWeightedSumAtPosition(source, maxX, maxY, radius, ref windowX, ref windowY, ref transformedPoint);
-                                ref TPixel dest = ref destRow[x];
-                                dest.PackFromVector4(dXY);
-                            }
-                        }
-                    });
+            base.OnApply(source, destination, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>

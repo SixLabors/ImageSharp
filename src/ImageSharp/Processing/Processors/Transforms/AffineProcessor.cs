@@ -1,12 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -74,6 +77,64 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        {
+            int height = this.ResizeRectangle.Height;
+            int width = this.ResizeRectangle.Width;
+            Matrix3x2 matrix = this.GetCenteredMatrix(source);
+            Rectangle sourceBounds = source.Bounds();
+
+            if (this.Sampler is NearestNeighborResampler)
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    configuration.ParallelOptions,
+                    y =>
+                    {
+                        Span<TPixel> destRow = destination.GetPixelRowSpan(y);
+
+                        for (int x = 0; x < width; x++)
+                        {
+                            var transformedPoint = Point.Transform(new Point(x, y), matrix);
+                            if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
+                            {
+                                destRow[x] = source[transformedPoint.X, transformedPoint.Y];
+                            }
+                        }
+                    });
+
+                return;
+            }
+
+            int maxX = source.Width - 1;
+            int maxY = source.Height - 1;
+            int radius = Math.Max((int)this.Sampler.Radius, 1);
+
+            Parallel.For(
+                0,
+                height,
+                configuration.ParallelOptions,
+                y =>
+                {
+                    Span<TPixel> destRow = destination.GetPixelRowSpan(y);
+                    for (int x = 0; x < width; x++)
+                    {
+                        var transformedPoint = Point.Transform(new Point(x, y), matrix);
+                        if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
+                        {
+                            WeightsWindow windowX = this.HorizontalWeights.Weights[transformedPoint.X];
+                            WeightsWindow windowY = this.VerticalWeights.Weights[transformedPoint.Y];
+
+                            Vector4 dXY = this.ComputeWeightedSumAtPosition(source, maxX, maxY, radius, ref windowX, ref windowY, ref transformedPoint);
+                            ref TPixel dest = ref destRow[x];
+                            dest.PackFromVector4(dXY);
+                        }
+                    }
+                });
         }
 
         /// <summary>

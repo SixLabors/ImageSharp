@@ -238,34 +238,14 @@ namespace SixLabors.Primitives
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static PointF Multiply(PointF point, float right) => new PointF(point.X * right, point.Y * right);
 
-        /// <summary>PointF
-        /// Rotates a point around the given rotation matrix.
-        /// </summary>
-        /// <param name="point">The point to rotate</param>
-        /// <param name="rotation">Rotation matrix used</param>
-        /// <returns>The rotated <see cref="PointF"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Rotate(PointF point, Matrix3x2 rotation) => Vector2.Transform(new Vector2(point.X, point.Y), rotation);
-
         /// <summary>
-        /// Skews a point using the given skew matrix.
+        /// Transforms a point by a specified 3x2 matrix.
         /// </summary>
-        /// <param name="point">The point to rotate</param>
-        /// <param name="skew">Rotation matrix used</param>
-        /// <returns>The rotated <see cref="PointF"/></returns>
+        /// <param name="point">The point to transform</param>
+        /// <param name="matrix">The transformation matrix used</param>
+        /// <returns>The transformed <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static PointF Skew(PointF point, Matrix3x2 skew) => Vector2.Transform(new Vector2(point.X, point.Y), skew);
-
-        /// <summary>
-        /// Transforms a point by the given matrix.
-        /// </summary>
-        /// <param name="position">The source point.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns>A transformed point.</returns>
-        public static PointF Transform(PointF position, Matrix3x2 matrix)
-        {
-            return Vector2.Transform(position, matrix);
-        }
+        public static PointF Transform(PointF point, Matrix3x2 matrix) => Vector2.Transform(point, matrix);
 
         /// <summary>
         /// Translates this <see cref="PointF"/> by the specified amount.

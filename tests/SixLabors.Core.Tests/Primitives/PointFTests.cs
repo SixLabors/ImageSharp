@@ -106,7 +106,7 @@ namespace SixLabors.Primitives.Tests
             var p = new PointF(13, 17);
             Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(45, PointF.Empty);
 
-            var pout = PointF.Rotate(p, matrix);
+            var pout = PointF.Transform(p, matrix);
 
             Assert.Equal(new PointF(-2.82842732F, 21.2132034F), pout);
         }
@@ -117,7 +117,7 @@ namespace SixLabors.Primitives.Tests
             var p = new PointF(13, 17);
             Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, PointF.Empty);
 
-            var pout = PointF.Skew(p, matrix);
+            var pout = PointF.Transform(p, matrix);
             Assert.Equal(new PointF(30, 30), pout);
         }
 

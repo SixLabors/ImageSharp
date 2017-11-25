@@ -211,15 +211,12 @@ namespace SixLabors.Primitives
         public static Point Round(PointF point) => new Point(unchecked((int)MathF.Round(point.X)), unchecked((int)MathF.Round(point.Y)));
 
         /// <summary>
-        /// Transforms a point by the given matrix.
+        /// Converts a <see cref="Vector2"/> to a <see cref="Point"/> by performing a round operation on all the coordinates.
         /// </summary>
-        /// <param name="position">The source point.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns>A transformed point.</returns>
-        public static PointF Transform(Point position, Matrix3x2 matrix)
-        {
-            return Vector2.Transform(position, matrix);
-        }
+        /// <param name="vector">The vector</param>
+        /// <returns>The <see cref="Point"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Point Round(Vector2 vector) => new Point(unchecked((int)MathF.Round(vector.X)), unchecked((int)MathF.Round(vector.Y)));
 
         /// <summary>
         /// Converts a <see cref="PointF"/> to a <see cref="Point"/> by performing a truncate operation on all the coordinates.
@@ -230,30 +227,13 @@ namespace SixLabors.Primitives
         public static Point Truncate(PointF point) => new Point(unchecked((int)point.X), unchecked((int)point.Y));
 
         /// <summary>
-        /// Converts a <see cref="Vector2"/> to a <see cref="Point"/> by performing a round operation on all the coordinates.
+        /// Transforms a point by a specified 3x2 matrix.
         /// </summary>
-        /// <param name="vector">The vector</param>
-        /// <returns>The <see cref="Point"/></returns>
+        /// <param name="point">The point to transform</param>
+        /// <param name="matrix">The transformation matrix used</param>
+        /// <returns>The transformed <see cref="PointF"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Round(Vector2 vector) => new Point(unchecked((int)MathF.Round(vector.X)), unchecked((int)MathF.Round(vector.Y)));
-
-        /// <summary>
-        /// Rotates a point around the given rotation matrix.
-        /// </summary>
-        /// <param name="point">The point to rotate</param>
-        /// <param name="rotation">Rotation matrix used</param>
-        /// <returns>The rotated <see cref="Point"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Rotate(Point point, Matrix3x2 rotation) => Round(Vector2.Transform(new Vector2(point.X, point.Y), rotation));
-
-        /// <summary>
-        /// Skews a point using the given skew matrix.
-        /// </summary>
-        /// <param name="point">The point to rotate</param>
-        /// <param name="skew">Rotation matrix used</param>
-        /// <returns>The rotated <see cref="Point"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Point Skew(Point point, Matrix3x2 skew) => Round(Vector2.Transform(new Vector2(point.X, point.Y), skew));
+        public static Point Transform(Point point, Matrix3x2 matrix) => Round(Vector2.Transform(new Vector2(point.X, point.Y), matrix));
 
         /// <summary>
         /// Translates this <see cref="Point"/> by the specified amount.

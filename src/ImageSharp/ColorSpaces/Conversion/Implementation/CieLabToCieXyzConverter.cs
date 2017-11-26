@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
@@ -30,18 +31,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? MathF.Pow((l + 16F) / 116F, 3F) : l / CieConstants.Kappa;
             float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
 
-            float wx = input.WhitePoint.X, wy = input.WhitePoint.Y, wz = input.WhitePoint.Z;
+            var wxyz = new Vector3(input.WhitePoint.X, input.WhitePoint.Y, input.WhitePoint.Z);
 
             // Avoids XYZ coordinates out range (restricted by 0 and XYZ reference white)
-            xr = xr.Clamp(0, 1F);
-            yr = yr.Clamp(0, 1F);
-            zr = zr.Clamp(0, 1F);
+            var xyzr = Vector3.Clamp(new Vector3(xr, yr, zr), Vector3.Zero, Vector3.One);
 
-            float x = xr * wx;
-            float y = yr * wy;
-            float z = zr * wz;
-
-            return new CieXyz(x, y, z);
+            Vector3 xyz = xyzr * wxyz;
+            return new CieXyz(xyz);
         }
     }
 }

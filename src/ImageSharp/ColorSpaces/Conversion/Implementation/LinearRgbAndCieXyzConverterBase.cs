@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             const float Yb = 1;
             float mZb = (1 - xb - yb) / yb;
 
-            Matrix4x4 xyzMatrix = new Matrix4x4
+            var xyzMatrix = new Matrix4x4
             {
                 M11 = mXr, M21 = mXg, M31 = mXb,
                 M12 = Yr,  M22 = Yg,  M32 = Yb,
@@ -48,10 +48,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
                 M44 = 1F
             };
 
-            Matrix4x4 inverseXyzMatrix;
-            Matrix4x4.Invert(xyzMatrix, out inverseXyzMatrix);
+            Matrix4x4.Invert(xyzMatrix, out var inverseXyzMatrix);
 
-            Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
+            var vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 
             // Use transposed Rows/Coloumns
             // TODO: Is there a built in method for this multiplication?

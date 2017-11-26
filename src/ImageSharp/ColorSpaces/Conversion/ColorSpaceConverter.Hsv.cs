@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HsvColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {

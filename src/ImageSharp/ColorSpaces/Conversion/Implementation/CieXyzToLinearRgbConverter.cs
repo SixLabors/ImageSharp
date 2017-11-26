@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             DebugGuard.NotNull(input, nameof(input));
 
             Matrix4x4.Invert(this.conversionMatrix, out Matrix4x4 inverted);
-            Vector3 vector = Vector3.Transform(input.Vector, inverted);
+            var vector = Vector3.Transform(input.Vector, inverted);
             return new LinearRgb(vector, this.TargetWorkingSpace);
         }
     }

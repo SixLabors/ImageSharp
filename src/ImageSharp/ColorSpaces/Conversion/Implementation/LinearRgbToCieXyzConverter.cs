@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             DebugGuard.NotNull(input, nameof(input));
             Guard.IsTrue(input.WorkingSpace.Equals(this.SourceWorkingSpace), nameof(input.WorkingSpace), "Input and source working spaces must be equal.");
 
-            Vector3 vector = Vector3.Transform(input.Vector, this.conversionMatrix);
+            var vector = Vector3.Transform(input.Vector, this.conversionMatrix);
             return new CieXyz(vector);
         }
     }

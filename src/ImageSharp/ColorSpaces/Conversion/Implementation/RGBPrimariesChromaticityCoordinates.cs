@@ -40,13 +40,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         public CieXyChromaticityCoordinates B { get; }
 
         /// <summary>
-        /// Compares two <see cref="CieLab"/> objects for equality.
+        /// Compares two <see cref="RgbPrimariesChromaticityCoordinates"/> objects for equality.
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieLab"/> on the left side of the operand.
+        /// The <see cref="RgbPrimariesChromaticityCoordinates"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieLab"/> on the right side of the operand.
+        /// The <see cref="RgbPrimariesChromaticityCoordinates"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
@@ -57,13 +57,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         }
 
         /// <summary>
-        /// Compares two <see cref="CieLab"/> objects for inequality
+        /// Compares two <see cref="RgbPrimariesChromaticityCoordinates"/> objects for inequality
         /// </summary>
         /// <param name="left">
-        /// The <see cref="CieLab"/> on the left side of the operand.
+        /// The <see cref="RgbPrimariesChromaticityCoordinates"/> on the left side of the operand.
         /// </param>
         /// <param name="right">
-        /// The <see cref="CieLab"/> on the right side of the operand.
+        /// The <see cref="RgbPrimariesChromaticityCoordinates"/> on the right side of the operand.
         /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
@@ -76,9 +76,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is RgbPrimariesChromaticityCoordinates)
+            if (obj is RgbPrimariesChromaticityCoordinates coordinates)
             {
-                return this.Equals((RgbPrimariesChromaticityCoordinates)obj);
+                return this.Equals(coordinates);
             }
 
             return false;

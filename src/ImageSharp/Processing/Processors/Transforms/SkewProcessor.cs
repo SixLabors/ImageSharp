@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public float AngleY { get; set; }
 
         /// <inheritdoc/>
-        protected override Matrix3x2 CreateProcessingMatrix()
+        protected override Matrix3x2 CreateProcessingMatrix(Rectangle rectangle)
         {
             if (this.transformMatrix == default(Matrix3x2))
             {

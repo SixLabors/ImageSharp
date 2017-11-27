@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp
             Vector2[] allCorners = { leftTop, rightTop, leftBottom, rightBottom };
             float extentX = allCorners.Select(v => v.X).Max() - allCorners.Select(v => v.X).Min();
             float extentY = allCorners.Select(v => v.Y).Max() - allCorners.Select(v => v.Y).Min();
-            return new Rectangle(0, 0, (int)extentX, (int)extentY);
+            return new Rectangle(0, 0, (int)MathF.Ceiling(extentX), (int)MathF.Ceiling(extentY));
         }
 
         /// <summary>

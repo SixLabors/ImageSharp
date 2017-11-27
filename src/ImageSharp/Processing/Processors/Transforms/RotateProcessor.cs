@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public float Angle { get; set; }
 
         /// <inheritdoc/>
-        protected override Matrix3x2 CreateProcessingMatrix()
+        protected override Matrix3x2 CreateProcessingMatrix(Rectangle rectangle)
         {
             if (this.transformMatrix == default(Matrix3x2))
             {
@@ -52,25 +52,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             return this.transformMatrix;
-        }
-
-        /// <inheritdoc/>
-        protected override void CreateNewCanvas(Rectangle sourceRectangle)
-        {
-            if (MathF.Abs(this.Angle) < Constants.Epsilon ||
-                MathF.Abs(this.Angle - 180) < Constants.Epsilon)
-            {
-                this.ResizeRectangle = sourceRectangle;
-            }
-
-            if (MathF.Abs(this.Angle - 90) < Constants.Epsilon ||
-                MathF.Abs(this.Angle - 270) < Constants.Epsilon)
-            {
-                // We always expand enumerated rectangle values
-                this.ResizeRectangle = new Rectangle(0, 0, sourceRectangle.Height, sourceRectangle.Width);
-            }
-
-            base.CreateNewCanvas(sourceRectangle);
         }
 
         /// <inheritdoc/>
@@ -157,6 +138,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             int width = source.Width;
             int height = source.Height;
+            Rectangle destinationBounds = destination.Bounds();
 
             Parallel.For(
                 0,
@@ -171,7 +153,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         newX = height - newX - 1;
                         int newY = width - x - 1;
 
-                        destination[newX, newY] = sourceRow[x];
+                        if (destinationBounds.Contains(newX, newY))
+                        {
+                            destination[newX, newY] = sourceRow[x];
+                        }
                     }
                 });
         }
@@ -213,6 +198,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             int width = source.Width;
             int height = source.Height;
+            Rectangle destinationBounds = destination.Bounds();
 
             Parallel.For(
                 0,
@@ -224,7 +210,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     int newX = height - y - 1;
                     for (int x = 0; x < width; x++)
                     {
-                        destination[newX, x] = sourceRow[x];
+                        if (destinationBounds.Contains(newX, x))
+                        {
+                            destination[newX, x] = sourceRow[x];
+                        }
                     }
                 });
         }

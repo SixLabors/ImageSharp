@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
@@ -109,6 +108,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
             float yScale = yRadiusScale.scale;
             float xRadius = xRadiusScale.radius;
             float yRadius = yRadiusScale.radius;
+            IResampler sampler = this.Sampler;
+            var maxSource = new Vector4(maxSourceX, maxSourceY, maxSourceX, maxSourceY);
 
             Parallel.For(
                 0,
@@ -121,36 +122,41 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     {
                         // Use the single precision position to calculate correct bounding pixels
                         // otherwise we get rogue pixels outside of the bounds.
-                        var point = PointF.Transform(new PointF(x, y), matrix);
-                        int maxX = (int)MathF.Ceiling(point.X + xRadius);
-                        int maxY = (int)MathF.Ceiling(point.Y + yRadius);
-                        int minX = (int)MathF.Floor(point.X - xRadius);
-                        int minY = (int)MathF.Floor(point.Y - yRadius);
+                        var point = Vector2.Transform(new Vector2(x, y), matrix);
 
-                        // Clamp sampling pixels to the source image edge
-                        maxX = maxX.Clamp(0, maxSourceX);
-                        minX = minX.Clamp(0, maxSourceX);
-                        maxY = maxY.Clamp(0, maxSourceY);
-                        minY = minY.Clamp(0, maxSourceY);
+                        // Clamp sampling pixel radial extents to the source image edges
+                        var extents = new Vector4(
+                            MathF.Ceiling(point.X + xRadius),
+                            MathF.Ceiling(point.Y + yRadius),
+                            MathF.Floor(point.X - xRadius),
+                            MathF.Floor(point.Y - yRadius));
+
+                        extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
+
+                        int maxX = (int)extents.X;
+                        int maxY = (int)extents.Y;
+                        int minX = (int)extents.Z;
+                        int minY = (int)extents.W;
 
                         if (minX == maxX || minY == maxY)
                         {
                             continue;
                         }
 
-                        // It appears these have to be calculated manually.
+                        // It appears these have to be calculated on-the-fly.
                         // Using the precalculated weights give the wrong values.
-                        // TODO: Find a way to speed this up.
+                        // TODO: Find a way to speed this up if we can.
                         Vector4 sum = Vector4.Zero;
                         for (int i = minX; i <= maxX; i++)
                         {
-                            float weightX = this.Sampler.GetValue((i - point.X) / xScale);
+                            float weightX = sampler.GetValue((i - point.X) / xScale);
                             for (int j = minY; j <= maxY; j++)
                             {
-                                float weightY = this.Sampler.GetValue((j - point.Y) / yScale);
+                                float weightY = sampler.GetValue((j - point.Y) / yScale);
                                 sum += source[i, j].ToVector4() * weightX * weightY;
                             }
                         }
+
                         ref TPixel dest = ref destRow[x];
                         dest.PackFromVector4(sum);
                     }

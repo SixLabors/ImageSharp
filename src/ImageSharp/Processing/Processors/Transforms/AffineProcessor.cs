@@ -90,10 +90,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                         for (int x = 0; x < width; x++)
                         {
-                            var transformedPoint = Point.Transform(new Point(x, y), matrix);
-                            if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
+                            var point = Point.Transform(new Point(x, y), matrix);
+                            if (sourceBounds.Contains(point.X, point.Y))
                             {
-                                destRow[x] = source[transformedPoint.X, transformedPoint.Y];
+                                destRow[x] = source[point.X, point.Y];
                             }
                         }
                     });
@@ -101,29 +101,58 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            int maxX = source.Width - 1;
-            int maxY = source.Height - 1;
+            int maxSourceX = source.Width - 1;
+            int maxSourceY = source.Height - 1;
+            (float radius, float scale) xRadiusScale = this.GetSamplingRadius(source.Width, destination.Width);
+            (float radius, float scale) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
+            float xScale = xRadiusScale.scale;
+            float yScale = yRadiusScale.scale;
+            float xRadius = xRadiusScale.radius;
+            float yRadius = yRadiusScale.radius;
 
             Parallel.For(
                 0,
                 height,
-                new ParallelOptions { MaxDegreeOfParallelism = 1 },
+                configuration.ParallelOptions,
                 y =>
                 {
                     Span<TPixel> destRow = destination.GetPixelRowSpan(y);
                     for (int x = 0; x < width; x++)
                     {
-                        var transformedPoint = Point.Transform(new Point(x, y), matrix);
+                        // Use the single precision position to calculate correct bounding pixels
+                        // otherwise we get rogue pixels outside of the bounds.
+                        var point = PointF.Transform(new PointF(x, y), matrix);
+                        int maxX = (int)MathF.Ceiling(point.X + xRadius);
+                        int maxY = (int)MathF.Ceiling(point.Y + yRadius);
+                        int minX = (int)MathF.Floor(point.X - xRadius);
+                        int minY = (int)MathF.Floor(point.Y - yRadius);
 
-                        if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
+                        // Clamp sampling pixels to the source image edge
+                        maxX = maxX.Clamp(0, maxSourceX);
+                        minX = minX.Clamp(0, maxSourceX);
+                        maxY = maxY.Clamp(0, maxSourceY);
+                        minY = minY.Clamp(0, maxSourceY);
+
+                        if (minX == maxX || minY == maxY)
                         {
-                            WeightsWindow windowX = this.HorizontalWeights.Weights[transformedPoint.X];
-                            WeightsWindow windowY = this.VerticalWeights.Weights[transformedPoint.Y];
-
-                            Vector4 dXY = this.ComputeWeightedSumAtPosition(source, maxX, maxY, ref windowX, ref windowY, ref transformedPoint);
-                            ref TPixel dest = ref destRow[x];
-                            dest.PackFromVector4(dXY);
+                            continue;
                         }
+
+                        // It appears these have to be calculated manually.
+                        // Using the precalculated weights give the wrong values.
+                        // TODO: Find a way to speed this up.
+                        Vector4 sum = Vector4.Zero;
+                        for (int i = minX; i <= maxX; i++)
+                        {
+                            float weightX = this.Sampler.GetValue((i - point.X) / xScale);
+                            for (int j = minY; j <= maxY; j++)
+                            {
+                                float weightY = this.Sampler.GetValue((j - point.Y) / yScale);
+                                sum += source[i, j].ToVector4() * weightX * weightY;
+                            }
+                        }
+                        ref TPixel dest = ref destRow[x];
+                        dest.PackFromVector4(sum);
                     }
                 });
         }
@@ -143,99 +172,22 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Computes the weighted sum at the given XY position
+        /// Calculates the sampling radius for the current sampler
         /// </summary>
-        /// <param name="source">The source image</param>
-        /// <param name="maxX">The maximum x value</param>
-        /// <param name="maxY">The maximum y value</param>
-        /// <param name="windowX">The horizontal weights</param>
-        /// <param name="windowY">The vertical weights</param>
-        /// <param name="point">The transformed position</param>
-        /// <returns>The <see cref="Vector4"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Vector4 ComputeWeightedSumAtPosition(
-            ImageFrame<TPixel> source,
-            int maxX,
-            int maxY,
-            ref WeightsWindow windowX,
-            ref WeightsWindow windowY,
-            ref Point point)
+        /// <param name="sourceSize">The source dimension size</param>
+        /// <param name="destinationSize">The destination dimension size</param>
+        /// <returns>The radius, and scaling factor</returns>
+        private (float radius, float scale) GetSamplingRadius(int sourceSize, int destinationSize)
         {
-            // What, in theory, is supposed to happen here is the following...
-            //
-            // We identify the maximum possible pixel offsets allowable by the current sampler
-            // clamping values to ensure that we do not go outwith the bounds of our image.
-            //
-            // Then we get the weights of that offset value from our pre-calculated vaues.
-            // First we grab the weight on the y-axis, then the x-axis and then we multiply
-            // them together to get the final weight.
-            //
-            // Unfortunately this simply does not seem to work!
-            // The output is rubbish and I cannot see why :(
-            ref float horizontalValues = ref windowX.GetStartReference();
-            ref float verticalValues = ref windowY.GetStartReference();
+            float ratio = (float)sourceSize / destinationSize;
+            float scale = ratio;
 
-            int yLength = windowY.Length;
-            int xLength = windowX.Length;
-            int yRadius = (int)MathF.Ceiling((yLength - 1) * .5F);
-            int xRadius = (int)MathF.Ceiling((xLength - 1) * .5F);
-
-            int left = point.X - xRadius;
-            int right = point.X + xRadius;
-            int top = point.Y - yRadius;
-            int bottom = point.Y + yRadius;
-
-            int yIndex = 0;
-            int xIndex = 0;
-
-            // Faster than clamping + we know we are only looking in one direction
-            if (left < 0)
+            if (scale < 1F)
             {
-                // Trim the length of our weights iterator across the x-axis.
-                // Offset our start index across the x-axis.
-                xIndex = ImageMaths.FastAbs(left);
-                xLength -= xIndex;
-                left = 0;
+                scale = 1F;
             }
 
-            if (top < 0)
-            {
-                // Trim the length of our weights iterator across the y-axis.
-                // Offset our start index across the y-axis.
-                yIndex = ImageMaths.FastAbs(top);
-                yLength -= yIndex;
-                top = 0;
-            }
-
-            if (right >= maxX)
-            {
-                // Trim the length of our weights iterator across the x-axis.
-                xLength -= right - maxX;
-            }
-
-            if (bottom >= maxY)
-            {
-                // Trim the length of our weights iterator across the y-axis.
-                yLength -= bottom - maxY;
-            }
-
-            Vector4 result = Vector4.Zero;
-
-            // We calculate our sample by iterating up-down/left-right from our transformed point.
-            for (int y = top, yi = yIndex; yi < yLength; y++, yi++)
-            {
-                float yweight = Unsafe.Add(ref verticalValues, yi);
-
-                for (int x = left, xi = xIndex; xi < xLength; x++, xi++)
-                {
-                    float xweight = Unsafe.Add(ref horizontalValues, xi);
-                    float weight = yweight * xweight;
-
-                    result += source[x, y].ToVector4() * weight;
-                }
-            }
-
-            return result;
+            return (MathF.Ceiling(scale * this.Sampler.Radius), scale);
         }
     }
 

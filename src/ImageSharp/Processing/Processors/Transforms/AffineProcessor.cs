@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="sampler">The sampler to perform the resize operation.</param>
+        /// <param name="sampler">The sampler to perform the transform operation.</param>
         protected AffineProcessor(IResampler sampler)
         {
             this.Sampler = sampler;
@@ -91,13 +92,15 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int maxSourceX = source.Width - 1;
             int maxSourceY = source.Height - 1;
-            (float radius, float scale) xRadiusScale = this.GetSamplingRadius(source.Width, destination.Width);
-            (float radius, float scale) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
+            (float radius, float scale, float ratio) xRadiusScale = this.GetSamplingRadius(source.Width, destination.Width);
+            (float radius, float scale, float ratio) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
             float xScale = xRadiusScale.scale;
             float yScale = yRadiusScale.scale;
             var radius = new Vector2(xRadiusScale.radius, yRadiusScale.radius);
             IResampler sampler = this.Sampler;
             var maxSource = new Vector4(maxSourceX, maxSourceY, maxSourceX, maxSourceY);
+            int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
+            int yLength = (int)MathF.Ceiling((radius.Y * 2) + 2);
 
             Parallel.For(
                 0,
@@ -106,50 +109,90 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 y =>
                 {
                     Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-                    for (int x = 0; x < width; x++)
+                    using (var yBuffer = new Buffer<float>(yLength))
+                    using (var xBuffer = new Buffer<float>(xLength))
                     {
-                        // Use the single precision position to calculate correct bounding pixels
-                        // otherwise we get rogue pixels outside of the bounds.
-                        var point = Vector2.Transform(new Vector2(x, y), matrix);
-
-                        // Clamp sampling pixel radial extents to the source image edges
-                        Vector2 maxXY = point + radius;
-                        Vector2 minXY = point - radius;
-
-                        var extents = new Vector4(
-                            MathF.Ceiling(maxXY.X),
-                            MathF.Ceiling(maxXY.Y),
-                            MathF.Floor(minXY.X),
-                            MathF.Floor(minXY.Y));
-
-                        extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
-
-                        int maxX = (int)extents.X;
-                        int maxY = (int)extents.Y;
-                        int minX = (int)extents.Z;
-                        int minY = (int)extents.W;
-
-                        if (minX == maxX || minY == maxY)
+                        for (int x = 0; x < width; x++)
                         {
-                            continue;
-                        }
+                            // Use the single precision position to calculate correct bounding pixels
+                            // otherwise we get rogue pixels outside of the bounds.
+                            var point = Vector2.Transform(new Vector2(x, y), matrix);
 
-                        // It appears these have to be calculated on-the-fly.
-                        // Using the precalculated weights give the wrong values.
-                        // TODO: Find a way to speed this up if we can.
-                        Vector4 sum = Vector4.Zero;
-                        for (int i = minX; i <= maxX; i++)
-                        {
-                            float weightX = sampler.GetValue((i - point.X) / xScale);
-                            for (int j = minY; j <= maxY; j++)
+                            // Clamp sampling pixel radial extents to the source image edges
+                            Vector2 maxXY = point + radius;
+                            Vector2 minXY = point - radius;
+
+                            var extents = new Vector4(
+                                MathF.Ceiling(maxXY.X),
+                                MathF.Ceiling(maxXY.Y),
+                                MathF.Floor(minXY.X),
+                                MathF.Floor(minXY.Y));
+
+                            extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
+
+                            int maxX = (int)extents.X;
+                            int maxY = (int)extents.Y;
+                            int minX = (int)extents.Z;
+                            int minY = (int)extents.W;
+
+                            // TODO: Find a way to speed this up if we can we precalculated weights!!!
+                            // It appears these have to be calculated on-the-fly.
+                            // Check with Anton to figure out why indexing from the precalculated weights was wrong.
+                            //
+                            // Create and normalize the y-weights
+                            float ySum = 0;
+                            for (int yy = 0, i = minY; i <= maxY; i++, yy++)
                             {
-                                float weightY = sampler.GetValue((j - point.Y) / yScale);
-                                sum += source[i, j].ToVector4() * weightX * weightY;
+                                float weight = sampler.GetValue((i - point.Y) / yScale);
+                                ySum += weight;
+                                yBuffer[yy] = weight;
                             }
-                        }
 
-                        ref TPixel dest = ref destRow[x];
-                        dest.PackFromVector4(sum);
+                            // TODO:
+                            // Normalizing the weights fixes scaled transfrom where we scale down but breaks edge pixel belnding
+                            // We end up with too much weight on pixels that should be blended.
+                            // We could, maybe, move the division into the loop and not divide when we hit 0 or maxN but that seems clunky.
+                            if (ySum > 0)
+                            {
+                                for (int i = 0; i < yBuffer.Length; i++)
+                                {
+                                    yBuffer[i] = yBuffer[i] / ySum;
+                                }
+                            }
+
+                            // Create and normalize the x-weights
+                            float xSum = 0;
+                            for (int xx = 0, i = minX; i <= maxX; i++, xx++)
+                            {
+                                float weight = sampler.GetValue((i - point.X) / xScale);
+                                xSum += weight;
+                                xBuffer[xx] = weight;
+                            }
+
+                            if (xSum > 0)
+                            {
+                                for (int i = 0; i < xBuffer.Length; i++)
+                                {
+                                    xBuffer[i] = xBuffer[i] / xSum;
+                                }
+                            }
+
+                            // Now multiply the normalized results against the offsets
+                            Vector4 sum = Vector4.Zero;
+                            for (int yy = 0, j = minY; j <= maxY; j++, yy++)
+                            {
+                                float yWeight = yBuffer[yy];
+
+                                for (int xx = 0, i = minX; i <= maxX; i++, xx++)
+                                {
+                                    float xWeight = xBuffer[xx];
+                                    sum += source[i, j].ToVector4() * xWeight * yWeight;
+                                }
+                            }
+
+                            ref TPixel dest = ref destRow[x];
+                            dest.PackFromVector4(sum);
+                        }
                     }
                 });
         }
@@ -186,7 +229,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="sourceSize">The source dimension size</param>
         /// <param name="destinationSize">The destination dimension size</param>
         /// <returns>The radius, and scaling factor</returns>
-        private (float radius, float scale) GetSamplingRadius(int sourceSize, int destinationSize)
+        private (float radius, float scale, float ratio) GetSamplingRadius(int sourceSize, int destinationSize)
         {
             float ratio = (float)sourceSize / destinationSize;
             float scale = ratio;
@@ -196,7 +239,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 scale = 1F;
             }
 
-            return (MathF.Ceiling(scale * this.Sampler.Radius), scale);
+            return (MathF.Ceiling(scale * this.Sampler.Radius), scale, ratio);
         }
     }
 }

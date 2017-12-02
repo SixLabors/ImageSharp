@@ -14,36 +14,43 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class SkewProcessor<TPixel> : AffineProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Matrix3x2 transformMatrix;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="sampler">The sampler to perform the skew operation.</param>
-        public SkewProcessor(IResampler sampler)
-            : base(sampler)
+        /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
+        public SkewProcessor(float degreesX, float degreesY)
+            : this(degreesX, degreesY, KnownResamplers.NearestNeighbor)
         {
         }
 
         /// <summary>
-        /// Gets or sets the angle of rotation along the x-axis in degrees.
+        /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
         /// </summary>
-        public float AngleX { get; set; }
+        /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
+        /// <param name="sampler">The sampler to perform the skew operation.</param>
+        public SkewProcessor(float degreesX, float degreesY, IResampler sampler)
+            : base(sampler)
+        {
+            this.DegreesX = degreesX;
+            this.DegreesY = degreesY;
+        }
 
         /// <summary>
-        /// Gets or sets the angle of rotation along the y-axis in degrees.
+        /// Gets the angle of rotation along the x-axis in degrees.
         /// </summary>
-        public float AngleY { get; set; }
+        public float DegreesX { get; }
+
+        /// <summary>
+        /// Gets the angle of rotation along the y-axis in degrees.
+        /// </summary>
+        public float DegreesY { get; }
 
         /// <inheritdoc/>
-        protected override Matrix3x2 CreateProcessingMatrix(Rectangle rectangle)
+        protected override Matrix3x2 GetTransformMatrix()
         {
-            if (this.transformMatrix == default(Matrix3x2))
-            {
-                this.transformMatrix = Matrix3x2Extensions.CreateSkewDegrees(-this.AngleX, -this.AngleY, PointF.Empty);
-            }
-
-            return this.transformMatrix;
+            return Matrix3x2Extensions.CreateSkewDegrees(-this.DegreesX, -this.DegreesY, PointF.Empty);
         }
     }
 }

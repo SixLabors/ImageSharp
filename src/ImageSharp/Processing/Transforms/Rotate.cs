@@ -13,29 +13,6 @@ namespace SixLabors.ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Rotates an image by the given angle in degrees, expanding the image to fit the rotated result.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate.</param>
-        /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
-            where TPixel : struct, IPixel<TPixel>
-        => Rotate(source, degrees, true);
-
-        /// <summary>
-        /// Rotates an image by the given angle in degrees, expanding the image to fit the rotated result.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to rotate.</param>
-        /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, IResampler sampler)
-            where TPixel : struct, IPixel<TPixel>
-            => Rotate(source, degrees, sampler, true);
-
-        /// <summary>
         /// Rotates and flips an image by the given instructions.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -44,7 +21,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, RotateType rotateType)
             where TPixel : struct, IPixel<TPixel>
-        => Rotate(source, (float)rotateType, false);
+        => Rotate(source, (float)rotateType);
 
         /// <summary>
         /// Rotates an image by the given angle in degrees.
@@ -52,11 +29,10 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
-        /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, bool expand)
+        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
             where TPixel : struct, IPixel<TPixel>
-        => Rotate(source, degrees, KnownResamplers.NearestNeighbor, expand);
+        => Rotate(source, degrees, KnownResamplers.NearestNeighbor);
 
         /// <summary>
         /// Rotates an image by the given angle in degrees using the specified sampling algorithm.
@@ -65,10 +41,9 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image to rotate.</param>
         /// <param name="degrees">The angle in degrees to perform the rotation.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="expand">Whether to expand the image to fit the rotated result.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, IResampler sampler, bool expand)
+        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new RotateProcessor<TPixel>(sampler) { Angle = degrees, Expand = expand });
+            => source.ApplyProcessor(new RotateProcessor<TPixel>(degrees, sampler));
     }
 }

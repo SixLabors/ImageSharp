@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
@@ -15,7 +13,6 @@ namespace SixLabors.ImageSharp.Processing
         public float Radius => 2;
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float GetValue(float x)
         {
             const float B = 0.2620145123990142F;

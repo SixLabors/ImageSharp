@@ -19,39 +19,35 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class RotateProcessor<TPixel> : AffineProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Matrix3x2 transformMatrix;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
         /// </summary>
-        public RotateProcessor()
-            : base(KnownResamplers.NearestNeighbor)
+        /// <param name="angle">The angle of rotation in degrees.</param>
+        public RotateProcessor(float angle)
+            : this(angle, KnownResamplers.NearestNeighbor)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="degrees">The angle of rotation in degrees.</param>
         /// <param name="sampler">The sampler to perform the rotating operation.</param>
-        public RotateProcessor(IResampler sampler)
+        public RotateProcessor(float degrees, IResampler sampler)
             : base(sampler)
         {
+            this.Degrees = degrees;
         }
 
         /// <summary>
-        /// Gets or sets the angle of processMatrix in degrees.
+        /// Gets the angle of rotation in degrees.
         /// </summary>
-        public float Angle { get; set; }
+        public float Degrees { get; }
 
         /// <inheritdoc/>
-        protected override Matrix3x2 CreateProcessingMatrix(Rectangle rectangle)
+        protected override Matrix3x2 GetTransformMatrix()
         {
-            if (this.transformMatrix == default(Matrix3x2))
-            {
-                this.transformMatrix = Matrix3x2Extensions.CreateRotationDegrees(-this.Angle, PointF.Empty);
-            }
-
-            return this.transformMatrix;
+            return Matrix3x2Extensions.CreateRotationDegrees(-this.Degrees, PointF.Empty);
         }
 
         /// <inheritdoc/>
@@ -74,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            if (MathF.Abs(this.Angle) < Constants.Epsilon)
+            if (MathF.Abs(this.Degrees) < Constants.Epsilon)
             {
                 // No need to do anything so return.
                 return;
@@ -82,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             profile.RemoveValue(ExifTag.Orientation);
 
-            if (this.Expand && profile.GetValue(ExifTag.PixelXDimension) != null)
+            if (profile.GetValue(ExifTag.PixelXDimension) != null)
             {
                 profile.SetValue(ExifTag.PixelXDimension, source.Width);
                 profile.SetValue(ExifTag.PixelYDimension, source.Height);
@@ -100,26 +96,26 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </returns>
         private bool OptimizedApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            if (MathF.Abs(this.Angle) < Constants.Epsilon)
+            if (MathF.Abs(this.Degrees) < Constants.Epsilon)
             {
                 // The destination will be blank here so copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return true;
             }
 
-            if (MathF.Abs(this.Angle - 90) < Constants.Epsilon)
+            if (MathF.Abs(this.Degrees - 90) < Constants.Epsilon)
             {
                 this.Rotate90(source, destination, configuration);
                 return true;
             }
 
-            if (MathF.Abs(this.Angle - 180) < Constants.Epsilon)
+            if (MathF.Abs(this.Degrees - 180) < Constants.Epsilon)
             {
                 this.Rotate180(source, destination, configuration);
                 return true;
             }
 
-            if (MathF.Abs(this.Angle - 270) < Constants.Epsilon)
+            if (MathF.Abs(this.Degrees - 270) < Constants.Epsilon)
             {
                 this.Rotate270(source, destination, configuration);
                 return true;

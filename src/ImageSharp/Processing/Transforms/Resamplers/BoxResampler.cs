@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
@@ -15,7 +13,6 @@ namespace SixLabors.ImageSharp.Processing
         public float Radius => 0.5F;
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float GetValue(float x)
         {
             if (x > -0.5F && x <= 0.5F)

@@ -10,6 +10,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using System;
+    using System.Numerics;
 
     public class DrawImageTest : FileTestBase
     {
@@ -42,6 +43,25 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.Mutate(x => x.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4)));
                 image.DebugSave(provider, new { mode });
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Normal)]
+        public void ImageShouldDrawTransformedImage<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
+            {
+                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(45F);
+                Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.25F, .25F));
+
+                blend.Mutate(x => x.Transform(rotate * scale));
+
+                var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
+                image.Mutate(x => x.DrawImage(blend, mode, .75F, new Size(blend.Width, blend.Height), position));
+                image.DebugSave(provider, new[] { "Transformed" });
             }
         }
 

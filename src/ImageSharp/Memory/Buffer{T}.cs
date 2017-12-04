@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Buffer<T> CreateClean(int count)
         {
-            Buffer<T> buffer = new Buffer<T>(count);
+            var buffer = new Buffer<T>(count);
             buffer.Clear();
             return buffer;
         }

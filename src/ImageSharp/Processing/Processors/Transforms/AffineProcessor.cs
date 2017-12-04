@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
@@ -128,6 +129,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 MathF.Floor(minXY.X),
                                 MathF.Floor(minXY.Y));
 
+                            int right = (int)extents.X;
+                            int bottom = (int)extents.Y;
+                            int left = (int)extents.Z;
+                            int top = (int)extents.W;
+
                             extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
 
                             int maxX = (int)extents.X;
@@ -135,46 +141,34 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             int minX = (int)extents.Z;
                             int minY = (int)extents.W;
 
+                            if (minX == maxX || minY == maxY)
+                            {
+                                continue;
+                            }
+
                             // TODO: Find a way to speed this up if we can we precalculated weights!!!
                             // It appears these have to be calculated on-the-fly.
                             // Check with Anton to figure out why indexing from the precalculated weights was wrong.
+                            // It might not be possible to do so with the resizer weights but perhaps we can fashion something similar for here.
                             //
                             // Create and normalize the y-weights
-                            float ySum = 0;
-                            for (int yy = 0, i = minY; i <= maxY; i++, yy++)
+                            if (yScale > 1)
                             {
-                                float weight = sampler.GetValue((i - point.Y) / yScale);
-                                ySum += weight;
-                                yBuffer[yy] = weight;
+                                CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, yBuffer);
                             }
-
-                            // TODO:
-                            // Normalizing the weights fixes scaled transfrom where we scale down but breaks edge pixel belnding
-                            // We end up with too much weight on pixels that should be blended.
-                            // We could, maybe, move the division into the loop and not divide when we hit 0 or maxN but that seems clunky.
-                            if (ySum > 0)
+                            else
                             {
-                                for (int i = 0; i < yBuffer.Length; i++)
-                                {
-                                    yBuffer[i] = yBuffer[i] / ySum;
-                                }
+                                CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, yBuffer);
                             }
 
                             // Create and normalize the x-weights
-                            float xSum = 0;
-                            for (int xx = 0, i = minX; i <= maxX; i++, xx++)
+                            if (xScale > 1)
                             {
-                                float weight = sampler.GetValue((i - point.X) / xScale);
-                                xSum += weight;
-                                xBuffer[xx] = weight;
+                                CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, xBuffer);
                             }
-
-                            if (xSum > 0)
+                            else
                             {
-                                for (int i = 0; i < xBuffer.Length; i++)
-                                {
-                                    xBuffer[i] = xBuffer[i] / xSum;
-                                }
+                                CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xBuffer);
                             }
 
                             // Now multiply the normalized results against the offsets
@@ -211,6 +205,52 @@ namespace SixLabors.ImageSharp.Processing.Processors
             return translationToTargetCenter * this.transformMatrix * translateToSourceCenter;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CalculateWeightsDown(int top, int bottom, int min, int max, float point, IResampler sampler, float scale, Buffer<float> weights)
+        {
+            float sum = 0;
+            ref float weightsBaseRef = ref weights[0];
+
+            // Downsampling weights requires more edge sampling plus normalization of the weights
+            for (int x = 0, i = top; i <= bottom; i++, x++)
+            {
+                int index = i;
+                if (index < min)
+                {
+                    index = min;
+                }
+
+                if (index > max)
+                {
+                    index = max;
+                }
+
+                float weight = sampler.GetValue((index - point) / scale);
+                sum += weight;
+                Unsafe.Add(ref weightsBaseRef, x) = weight;
+            }
+
+            if (sum > 0)
+            {
+                for (int i = 0; i < weights.Length; i++)
+                {
+                    ref float wRef = ref Unsafe.Add(ref weightsBaseRef, i);
+                    wRef = wRef / sum;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void CalculateWeightsScaleUp(int min, int max, float point, IResampler sampler, Buffer<float> weights)
+        {
+            ref float weightsBaseRef = ref weights[0];
+            for (int x = 0, i = min; i <= max; i++, x++)
+            {
+                float weight = sampler.GetValue(i - point);
+                Unsafe.Add(ref weightsBaseRef, x) = weight;
+            }
+        }
+
         /// <summary>
         /// Creates a new target canvas to contain the results of the matrix transform.
         /// </summary>
@@ -218,9 +258,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
         private void ResizeCanvas(Rectangle sourceRectangle)
         {
             this.transformMatrix = this.GetTransformMatrix();
+
+            // this.targetRectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, this.transformMatrix);
             this.targetRectangle = Matrix3x2.Invert(this.transformMatrix, out Matrix3x2 sizeMatrix)
-                                       ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
-                                       : sourceRectangle;
+                                      ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
+                                      : sourceRectangle;
         }
 
         /// <summary>

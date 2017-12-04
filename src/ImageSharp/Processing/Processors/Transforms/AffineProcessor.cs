@@ -103,92 +103,95 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
             int yLength = (int)MathF.Ceiling((radius.Y * 2) + 2);
 
-            Parallel.For(
-                0,
-                height,
-                configuration.ParallelOptions,
-                y =>
-                {
-                    Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-                    using (var yBuffer = new Buffer<float>(yLength))
-                    using (var xBuffer = new Buffer<float>(xLength))
-                    {
-                        for (int x = 0; x < width; x++)
+            using (var yBuffer = new Buffer2D<float>(yLength, height))
+            using (var xBuffer = new Buffer2D<float>(xLength, height))
+            {
+                Parallel.For(
+                    0,
+                    height,
+                    configuration.ParallelOptions,
+                    y =>
                         {
-                            // Use the single precision position to calculate correct bounding pixels
-                            // otherwise we get rogue pixels outside of the bounds.
-                            var point = Vector2.Transform(new Vector2(x, y), matrix);
+                            Span<TPixel> destRow = destination.GetPixelRowSpan(y);
+                            Span<float> ySpan = yBuffer.GetRowSpan(y);
+                            Span<float> xSpan = xBuffer.GetRowSpan(y);
 
-                            // Clamp sampling pixel radial extents to the source image edges
-                            Vector2 maxXY = point + radius;
-                            Vector2 minXY = point - radius;
-
-                            var extents = new Vector4(
-                                MathF.Ceiling(maxXY.X),
-                                MathF.Ceiling(maxXY.Y),
-                                MathF.Floor(minXY.X),
-                                MathF.Floor(minXY.Y));
-
-                            int right = (int)extents.X;
-                            int bottom = (int)extents.Y;
-                            int left = (int)extents.Z;
-                            int top = (int)extents.W;
-
-                            extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
-
-                            int maxX = (int)extents.X;
-                            int maxY = (int)extents.Y;
-                            int minX = (int)extents.Z;
-                            int minY = (int)extents.W;
-
-                            if (minX == maxX || minY == maxY)
+                            for (int x = 0; x < width; x++)
                             {
-                                continue;
-                            }
+                                // Use the single precision position to calculate correct bounding pixels
+                                // otherwise we get rogue pixels outside of the bounds.
+                                var point = Vector2.Transform(new Vector2(x, y), matrix);
 
-                            // It appears these have to be calculated on-the-fly.
-                            // Precalulating transformed weights would require prior knowledge of every transformed pixel location
-                            // since they can be at sub-pixel positions.
-                            // I've optimized where I can but am always open to suggestions.
-                            //
-                            // Create and normalize the y-weights
-                            if (yScale > 1)
-                            {
-                                CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, yBuffer);
-                            }
-                            else
-                            {
-                                CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, yBuffer);
-                            }
+                                // Clamp sampling pixel radial extents to the source image edges
+                                Vector2 maxXY = point + radius;
+                                Vector2 minXY = point - radius;
 
-                            // Create and normalize the x-weights
-                            if (xScale > 1)
-                            {
-                                CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, xBuffer);
-                            }
-                            else
-                            {
-                                CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xBuffer);
-                            }
+                                var extents = new Vector4(
+                                    MathF.Ceiling(maxXY.X),
+                                    MathF.Ceiling(maxXY.Y),
+                                    MathF.Floor(minXY.X),
+                                    MathF.Floor(minXY.Y));
 
-                            // Now multiply the results against the offsets
-                            Vector4 sum = Vector4.Zero;
-                            for (int yy = 0, j = minY; j <= maxY; j++, yy++)
-                            {
-                                float yWeight = yBuffer[yy];
+                                int right = (int)extents.X;
+                                int bottom = (int)extents.Y;
+                                int left = (int)extents.Z;
+                                int top = (int)extents.W;
 
-                                for (int xx = 0, i = minX; i <= maxX; i++, xx++)
+                                extents = Vector4.Clamp(extents, Vector4.Zero, maxSource);
+
+                                int maxX = (int)extents.X;
+                                int maxY = (int)extents.Y;
+                                int minX = (int)extents.Z;
+                                int minY = (int)extents.W;
+
+                                if (minX == maxX || minY == maxY)
                                 {
-                                    float xWeight = xBuffer[xx];
-                                    sum += source[i, j].ToVector4() * xWeight * yWeight;
+                                    continue;
                                 }
-                            }
 
-                            ref TPixel dest = ref destRow[x];
-                            dest.PackFromVector4(sum);
-                        }
-                    }
-                });
+                                // It appears these have to be calculated on-the-fly.
+                                // Precalulating transformed weights would require prior knowledge of every transformed pixel location
+                                // since they can be at sub-pixel positions on both axis.
+                                // I've optimized where I can but am always open to suggestions.
+                                //
+                                // Create and normalize the y-weights
+                                if (yScale > 1)
+                                {
+                                    CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ySpan);
+                                }
+                                else
+                                {
+                                    CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ySpan);
+                                }
+
+                                // Create and normalize the x-weights
+                                if (xScale > 1)
+                                {
+                                    CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, xSpan);
+                                }
+                                else
+                                {
+                                    CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xSpan);
+                                }
+
+                                // Now multiply the results against the offsets
+                                Vector4 sum = Vector4.Zero;
+                                for (int yy = 0, j = minY; j <= maxY; j++, yy++)
+                                {
+                                    float yWeight = ySpan[yy];
+
+                                    for (int xx = 0, i = minX; i <= maxX; i++, xx++)
+                                    {
+                                        float xWeight = xSpan[xx];
+                                        sum += source[i, j].ToVector4() * xWeight * yWeight;
+                                    }
+                                }
+
+                                ref TPixel dest = ref destRow[x];
+                                dest.PackFromVector4(sum);
+                            }
+                        });
+            }
         }
 
         /// <summary>
@@ -206,7 +209,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Calculated the weights for the given point. This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
+        /// Calculated the weights for the given point.
+        /// This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
         /// Additionally the weights are nomalized.
         /// </summary>
         /// <param name="min">The minimum sampling offset</param>
@@ -218,7 +222,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="scale">The transformed image scale relative to the source</param>
         /// <param name="weights">The collection of weights</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CalculateWeightsDown(int min, int max, int sourceMin, int sourceMax, float point, IResampler sampler, float scale, Buffer<float> weights)
+        private static void CalculateWeightsDown(int min, int max, int sourceMin, int sourceMax, float point, IResampler sampler, float scale, Span<float> weights)
         {
             float sum = 0;
             ref float weightsBaseRef = ref weights[0];
@@ -253,8 +257,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Calculated the weights for the given point. This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
-        /// Additionally the weights are nomalized.
+        /// Calculated the weights for the given point.
         /// </summary>
         /// <param name="sourceMin">The minimum source bounds</param>
         /// <param name="sourceMax">The maximum source bounds</param>
@@ -262,7 +265,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="sampler">The sampler</param>
         /// <param name="weights">The collection of weights</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CalculateWeightsScaleUp(int sourceMin, int sourceMax, float point, IResampler sampler, Buffer<float> weights)
+        private static void CalculateWeightsScaleUp(int sourceMin, int sourceMax, float point, IResampler sampler, Span<float> weights)
         {
             ref float weightsBaseRef = ref weights[0];
             for (int x = 0, i = sourceMin; i <= sourceMax; i++, x++)

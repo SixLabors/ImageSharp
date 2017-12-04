@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int width = this.targetRectangle.Width;
             Rectangle sourceBounds = source.Bounds();
 
-            // Since could potentially be resizing the canvas we need to recenter the matrix
+            // Since could potentially be resizing the canvas we need to re-center the matrix
             Matrix3x2 matrix = this.GetCenteredMatrix(source);
 
             if (this.Sampler is NearestNeighborResampler)
@@ -146,10 +146,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 continue;
                             }
 
-                            // TODO: Find a way to speed this up if we can we precalculated weights!!!
                             // It appears these have to be calculated on-the-fly.
-                            // Check with Anton to figure out why indexing from the precalculated weights was wrong.
-                            // It might not be possible to do so with the resizer weights but perhaps we can fashion something similar for here.
+                            // Precalulating transformed weights would require prior knowledge of every transformed pixel location
+                            // since they can be at sub-pixel positions.
+                            // I've optimized where I can but am always open to suggestions.
                             //
                             // Create and normalize the y-weights
                             if (yScale > 1)
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xBuffer);
                             }
 
-                            // Now multiply the normalized results against the offsets
+                            // Now multiply the results against the offsets
                             Vector4 sum = Vector4.Zero;
                             for (int yy = 0, j = minY; j <= maxY; j++, yy++)
                             {
@@ -205,24 +205,36 @@ namespace SixLabors.ImageSharp.Processing.Processors
             return translationToTargetCenter * this.transformMatrix * translateToSourceCenter;
         }
 
+        /// <summary>
+        /// Calculated the weights for the given point. This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
+        /// Additionally the weights are nomalized.
+        /// </summary>
+        /// <param name="min">The minimum sampling offset</param>
+        /// <param name="max">The maximum sampling offset</param>
+        /// <param name="sourceMin">The minimum source bounds</param>
+        /// <param name="sourceMax">The maximum source bounds</param>
+        /// <param name="point">The transformed point dimension</param>
+        /// <param name="sampler">The sampler</param>
+        /// <param name="scale">The transformed image scale relative to the source</param>
+        /// <param name="weights">The collection of weights</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CalculateWeightsDown(int top, int bottom, int min, int max, float point, IResampler sampler, float scale, Buffer<float> weights)
+        private static void CalculateWeightsDown(int min, int max, int sourceMin, int sourceMax, float point, IResampler sampler, float scale, Buffer<float> weights)
         {
             float sum = 0;
             ref float weightsBaseRef = ref weights[0];
 
             // Downsampling weights requires more edge sampling plus normalization of the weights
-            for (int x = 0, i = top; i <= bottom; i++, x++)
+            for (int x = 0, i = min; i <= max; i++, x++)
             {
                 int index = i;
-                if (index < min)
+                if (index < sourceMin)
                 {
-                    index = min;
+                    index = sourceMin;
                 }
 
-                if (index > max)
+                if (index > sourceMax)
                 {
-                    index = max;
+                    index = sourceMax;
                 }
 
                 float weight = sampler.GetValue((index - point) / scale);
@@ -240,11 +252,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
         }
 
+        /// <summary>
+        /// Calculated the weights for the given point. This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
+        /// Additionally the weights are nomalized.
+        /// </summary>
+        /// <param name="sourceMin">The minimum source bounds</param>
+        /// <param name="sourceMax">The maximum source bounds</param>
+        /// <param name="point">The transformed point dimension</param>
+        /// <param name="sampler">The sampler</param>
+        /// <param name="weights">The collection of weights</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CalculateWeightsScaleUp(int min, int max, float point, IResampler sampler, Buffer<float> weights)
+        private static void CalculateWeightsScaleUp(int sourceMin, int sourceMax, float point, IResampler sampler, Buffer<float> weights)
         {
             ref float weightsBaseRef = ref weights[0];
-            for (int x = 0, i = min; i <= max; i++, x++)
+            for (int x = 0, i = sourceMin; i <= sourceMax; i++, x++)
             {
                 float weight = sampler.GetValue(i - point);
                 Unsafe.Add(ref weightsBaseRef, x) = weight;
@@ -259,10 +280,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             this.transformMatrix = this.GetTransformMatrix();
 
-            // this.targetRectangle = ImageMaths.GetBoundingRectangle(sourceRectangle, this.transformMatrix);
             this.targetRectangle = Matrix3x2.Invert(this.transformMatrix, out Matrix3x2 sizeMatrix)
-                                      ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
-                                      : sourceRectangle;
+                                     ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
+                                     : sourceRectangle;
         }
 
         /// <summary>

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 using (Image<TPixel> image = provider.GetImage())
                 {
                     Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(z);
-                    Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(2F, 2F));
+                    Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.5F, .5F));
 
                     image.Mutate(i => i.Transform(rotate * scale, sampler));
                     image.DebugSave(provider, string.Join("_", x, y, resamplerName));

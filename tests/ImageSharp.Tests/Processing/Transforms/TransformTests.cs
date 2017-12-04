@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public static readonly TheoryData<float, float, float> TransformValues
             = new TheoryData<float, float, float>
                   {
-                      { 20, 10, 50 },
-                      { -20, -10, 50 }
+                      { 20, 10, 45 },
+                      { -20, -10, 45 }
                   };
 
         public static readonly List<string> ResamplerNames
@@ -52,13 +52,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 IResampler sampler = GetResampler(resamplerName);
                 using (Image<TPixel> image = provider.GetImage())
                 {
-                    Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(-z);
-
-                    // TODO, how does scale work? 2 means half just now,
+                    Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(z);
                     Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(2F, 2F));
 
-
-                    image.Mutate(i => i.Transform(scale * rotate, sampler));
+                    image.Mutate(i => i.Transform(rotate * scale, sampler));
                     image.DebugSave(provider, string.Join("_", x, y, resamplerName));
                 }
             }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -108,18 +109,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <inheritdoc/>
         public long Value
         {
-            get
-            {
-                return this.crc;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.crc;
 
-            set
-            {
-                this.crc = (uint)value;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => this.crc = (uint)value;
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Reset()
         {
             this.crc = 0;
@@ -129,6 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Updates the checksum with the given value.
         /// </summary>
         /// <param name="value">The byte is taken as the lower 8 bits of value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(int value)
         {
             this.crc ^= CrcSeed;
@@ -137,6 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(byte[] buffer)
         {
             if (buffer == null)
@@ -148,22 +148,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(byte[] buffer, int offset, int count)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
-            }
-
-            if (offset < 0 || offset + count > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset));
-            }
+            DebugGuard.NotNull(buffer, nameof(buffer));
+            DebugGuard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
+            DebugGuard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
+            DebugGuard.MustBeLessThanOrEqualTo(offset + count, buffer.Length, nameof(count));
 
             this.crc ^= CrcSeed;
 

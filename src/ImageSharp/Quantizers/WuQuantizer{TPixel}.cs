@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Quantizers
             switch (direction)
             {
                 // Red
-                case 0:
+                case 3:
                     return -moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
                            + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
                            + moment[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
@@ -345,7 +345,7 @@ namespace SixLabors.ImageSharp.Quantizers
                            + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Green
-                case 1:
+                case 2:
                     return -moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
                            + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
                            + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Quantizers
                            + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Blue
-                case 2:
+                case 1:
                     return -moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
                            + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
                            + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.Quantizers
                            + moment[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
                 // Alpha
-                case 3:
+                case 0:
                     return -moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
                            + moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
                            + moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
@@ -395,7 +395,7 @@ namespace SixLabors.ImageSharp.Quantizers
             switch (direction)
             {
                 // Red
-                case 0:
+                case 3:
                     return moment[GetPaletteIndex(position, cube.G1, cube.B1, cube.A1)]
                            - moment[GetPaletteIndex(position, cube.G1, cube.B1, cube.A0)]
                            - moment[GetPaletteIndex(position, cube.G1, cube.B0, cube.A1)]
@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.Quantizers
                            - moment[GetPaletteIndex(position, cube.G0, cube.B0, cube.A0)];
 
                 // Green
-                case 1:
+                case 2:
                     return moment[GetPaletteIndex(cube.R1, position, cube.B1, cube.A1)]
                            - moment[GetPaletteIndex(cube.R1, position, cube.B1, cube.A0)]
                            - moment[GetPaletteIndex(cube.R1, position, cube.B0, cube.A1)]
@@ -417,7 +417,7 @@ namespace SixLabors.ImageSharp.Quantizers
                            - moment[GetPaletteIndex(cube.R0, position, cube.B0, cube.A0)];
 
                 // Blue
-                case 2:
+                case 1:
                     return moment[GetPaletteIndex(cube.R1, cube.G1, position, cube.A1)]
                            - moment[GetPaletteIndex(cube.R1, cube.G1, position, cube.A0)]
                            - moment[GetPaletteIndex(cube.R1, cube.G0, position, cube.A1)]
@@ -428,7 +428,7 @@ namespace SixLabors.ImageSharp.Quantizers
                            - moment[GetPaletteIndex(cube.R0, cube.G0, position, cube.A0)];
 
                 // Alpha
-                case 3:
+                case 0:
                     return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, position)]
                            - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B0, position)]
                            - moment[GetPaletteIndex(cube.R1, cube.G0, cube.B1, position)]
@@ -668,16 +668,16 @@ namespace SixLabors.ImageSharp.Quantizers
             float wholeA = Volume(ref set1, this.vma);
             float wholeW = Volume(ref set1, this.vwt);
 
-            float maxr = this.Maximize(ref set1, 0, set1.R0 + 1, set1.R1, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
-            float maxg = this.Maximize(ref set1, 1, set1.G0 + 1, set1.G1, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
-            float maxb = this.Maximize(ref set1, 2, set1.B0 + 1, set1.B1, out int cutb, wholeR, wholeG, wholeB, wholeA, wholeW);
-            float maxa = this.Maximize(ref set1, 3, set1.A0 + 1, set1.A1, out int cuta, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxr = this.Maximize(ref set1, 3, set1.R0 + 1, set1.R1, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxg = this.Maximize(ref set1, 2, set1.G0 + 1, set1.G1, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxb = this.Maximize(ref set1, 1, set1.B0 + 1, set1.B1, out int cutb, wholeR, wholeG, wholeB, wholeA, wholeW);
+            float maxa = this.Maximize(ref set1, 0, set1.A0 + 1, set1.A1, out int cuta, wholeR, wholeG, wholeB, wholeA, wholeW);
 
             int dir;
 
             if ((maxr >= maxg) && (maxr >= maxb) && (maxr >= maxa))
             {
-                dir = 0;
+                dir = 3;
 
                 if (cutr < 0)
                 {
@@ -686,15 +686,15 @@ namespace SixLabors.ImageSharp.Quantizers
             }
             else if ((maxg >= maxr) && (maxg >= maxb) && (maxg >= maxa))
             {
-                dir = 1;
+                dir = 2;
             }
             else if ((maxb >= maxr) && (maxb >= maxg) && (maxb >= maxa))
             {
-                dir = 2;
+                dir = 1;
             }
             else
             {
-                dir = 3;
+                dir = 0;
             }
 
             set2.R1 = set1.R1;
@@ -705,7 +705,7 @@ namespace SixLabors.ImageSharp.Quantizers
             switch (dir)
             {
                 // Red
-                case 0:
+                case 3:
                     set2.R0 = set1.R1 = cutr;
                     set2.G0 = set1.G0;
                     set2.B0 = set1.B0;
@@ -713,7 +713,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     break;
 
                 // Green
-                case 1:
+                case 2:
                     set2.G0 = set1.G1 = cutg;
                     set2.R0 = set1.R0;
                     set2.B0 = set1.B0;
@@ -721,7 +721,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     break;
 
                 // Blue
-                case 2:
+                case 1:
                     set2.B0 = set1.B1 = cutb;
                     set2.R0 = set1.R0;
                     set2.G0 = set1.G0;
@@ -729,7 +729,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     break;
 
                 // Alpha
-                case 3:
+                case 0:
                     set2.A0 = set1.A1 = cuta;
                     set2.R0 = set1.R0;
                     set2.G0 = set1.G0;

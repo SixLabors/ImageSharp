@@ -579,8 +579,8 @@ namespace SixLabors.ImageSharp.Quantizers
                 - this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
                 + this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
-            // TODO: Vector.Dot
-            return xx - (((dr * dr) + (dg * dg) + (db * db) + (da * da)) / Volume(ref cube, this.vwt));
+            var vector = new Vector4(dr, dg, db, da);
+            return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt));
         }
 
         /// <summary>
@@ -625,12 +625,9 @@ namespace SixLabors.ImageSharp.Quantizers
                     continue;
                 }
 
-                float temp = ((halfR * halfR) + (halfG * halfG) + (halfB * halfB) + (halfA * halfA)) / halfW;
+                var vector = new Vector4(halfR, halfG, halfB, halfA);
+                float temp = Vector4.Dot(vector, vector) / halfW;
 
-                halfR = wholeR - halfR;
-                halfG = wholeG - halfG;
-                halfB = wholeB - halfB;
-                halfA = wholeA - halfA;
                 halfW = wholeW - halfW;
 
                 if (MathF.Abs(halfW) < Constants.Epsilon)
@@ -638,7 +635,14 @@ namespace SixLabors.ImageSharp.Quantizers
                     continue;
                 }
 
-                temp += ((halfR * halfR) + (halfG * halfG) + (halfB * halfB) + (halfA * halfA)) / halfW;
+                halfR = wholeR - halfR;
+                halfG = wholeG - halfG;
+                halfB = wholeB - halfB;
+                halfA = wholeA - halfA;
+
+                vector = new Vector4(halfR, halfG, halfB, halfA);
+
+                temp += Vector4.Dot(vector, vector) / halfW;
 
                 if (temp > max)
                 {

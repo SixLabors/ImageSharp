@@ -179,9 +179,8 @@ namespace SixLabors.ImageSharp.Quantizers
                         float b = Volume(this.colorCube[k], this.vmb) / weight;
                         float a = Volume(this.colorCube[k], this.vma) / weight;
 
-                        var color = default(TPixel);
+                        ref TPixel color = ref this.palette[k];
                         color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
-                        this.palette[k] = color;
                     }
                 }
             }

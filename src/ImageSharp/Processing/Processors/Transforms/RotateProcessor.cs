@@ -47,6 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Matrix3x2 GetTransformMatrix()
         {
+            // Tansforms are inverted else the output is the opposite of the expected.
             Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(this.Degrees, PointF.Empty);
             Matrix3x2.Invert(matrix, out matrix);
             return matrix;

@@ -196,19 +196,21 @@ namespace SixLabors.ImageSharp.Quantizers
             var rgba = default(Rgba32);
             pixel.ToRgba32(ref rgba);
 
-            int r = rgba.R >> 2; // 8 - IndexBits
-            int g = rgba.G >> 2;
-            int b = rgba.B >> 2;
-            int a = rgba.A >> 5; // 8 - IndexAlphaBits
+            int r = rgba.R >> (8 - IndexBits);
+            int g = rgba.G >> (8 - IndexBits);
+            int b = rgba.B >> (8 - IndexBits);
+            int a = rgba.A >> (8 - IndexAlphaBits);
 
-            int ind = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
+            int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
 
-            this.vwt[ind]++;
-            this.vmr[ind] += r;
-            this.vmg[ind] += g;
-            this.vmb[ind] += b;
-            this.vma[ind] += a;
-            this.m2[ind] += (r * r) + (g * g) + (b * b) + (a * a);
+            this.vwt[index]++;
+            this.vmr[index] += rgba.R;
+            this.vmg[index] += rgba.G;
+            this.vmb[index] += rgba.B;
+            this.vma[index] += rgba.A;
+
+            var vector = new Vector4(rgba.R, rgba.G, rgba.B, rgba.A);
+            this.m2[index] += Vector4.Dot(vector, vector);
         }
 
         /// <inheritdoc/>
@@ -617,14 +619,12 @@ namespace SixLabors.ImageSharp.Quantizers
                 float halfA = baseA + Top(cube, direction, i, this.vma);
                 float halfW = baseW + Top(cube, direction, i, this.vwt);
 
-                float temp;
-
                 if (MathF.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
 
-                temp = ((halfR * halfR) + (halfG * halfG) + (halfB * halfB) + (halfA * halfA)) / halfW;
+                float temp = ((halfR * halfR) + (halfG * halfG) + (halfB * halfB) + (halfA * halfA)) / halfW;
 
                 halfR = wholeR - halfR;
                 halfG = wholeG - halfG;

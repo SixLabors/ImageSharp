@@ -174,13 +174,13 @@ namespace SixLabors.ImageSharp.Quantizers
 
                     if (MathF.Abs(weight) > Constants.Epsilon)
                     {
-                        float r = Volume(this.colorCube[k], this.vmr) / weight;
-                        float g = Volume(this.colorCube[k], this.vmg) / weight;
-                        float b = Volume(this.colorCube[k], this.vmb) / weight;
-                        float a = Volume(this.colorCube[k], this.vma) / weight;
+                        float r = Volume(this.colorCube[k], this.vmr);
+                        float g = Volume(this.colorCube[k], this.vmg);
+                        float b = Volume(this.colorCube[k], this.vmb);
+                        float a = Volume(this.colorCube[k], this.vma);
 
                         ref TPixel color = ref this.palette[k];
-                        color.PackFromVector4(new Vector4(r, g, b, a) / 255F);
+                        color.PackFromVector4(new Vector4(r, g, b, a) / weight / 255F);
                     }
                 }
             }

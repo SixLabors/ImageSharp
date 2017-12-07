@@ -782,10 +782,12 @@ namespace SixLabors.ImageSharp.Quantizers
 
             for (int i = 1; i < this.colors; i++)
             {
-                if (this.Cut(ref this.colorCube[next], ref this.colorCube[i]))
+                ref var nextCube = ref this.colorCube[next];
+                ref var currentCube = ref this.colorCube[i];
+                if (this.Cut(ref nextCube, ref currentCube))
                 {
-                    vv[next] = this.colorCube[next].Volume > 1 ? this.Variance(ref this.colorCube[next]) : 0F;
-                    vv[i] = this.colorCube[i].Volume > 1 ? this.Variance(ref this.colorCube[i]) : 0F;
+                    vv[next] = nextCube.Volume > 1 ? this.Variance(ref nextCube) : 0F;
+                    vv[i] = currentCube.Volume > 1 ? this.Variance(ref currentCube) : 0F;
                 }
                 else
                 {
@@ -805,7 +807,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     }
                 }
 
-                if (temp <= 0.0)
+                if (temp <= 0F)
                 {
                     this.colors = i + 1;
                     break;

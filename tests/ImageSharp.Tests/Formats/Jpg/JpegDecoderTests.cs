@@ -50,6 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
                 TestImages.Jpeg.Issues.BadCoeffsProgressive178,
                 TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
+                TestImages.Jpeg.Issues.BadZigZagProgressive385
             };
 
         private static readonly Dictionary<string, float> CustomToleranceValues = new Dictionary<string, float>
@@ -67,6 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [TestImages.Jpeg.Progressive.Festzug] = 0.02f / 100,
             [TestImages.Jpeg.Progressive.Fb] = 0.16f / 100,
             [TestImages.Jpeg.Progressive.Progress] = 0.31f / 100,
+            [TestImages.Jpeg.Issues.BadZigZagProgressive385] = 0.23f / 100,
         };
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;

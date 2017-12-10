@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="IBuffer2D{T}"/></param>
-        /// <param name="rectangle">The rectangel subarea</param>
+        /// <param name="rectangle">The rectangle subarea</param>
         /// <returns>The <see cref="BufferArea{T}"/></returns>
         public static BufferArea<T> GetArea<T>(this IBuffer2D<T> buffer, Rectangle rectangle)
             where T : struct => new BufferArea<T>(buffer, rectangle);

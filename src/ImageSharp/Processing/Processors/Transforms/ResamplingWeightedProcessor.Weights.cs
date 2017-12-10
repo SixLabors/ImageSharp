@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Holds the <see cref="WeightsWindow"/> values in an optimized contigous memory region.
+        /// Holds the <see cref="WeightsWindow"/> values in an optimized contiguous memory region.
         /// </summary>
         internal class WeightsBuffer : IDisposable
         {

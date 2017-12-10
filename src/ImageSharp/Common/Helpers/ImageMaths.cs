@@ -162,11 +162,10 @@ namespace SixLabors.ImageSharp
             float maxX = MathF.Max(tl.X, MathF.Max(tr.X, MathF.Max(bl.X, br.X)));
             float minY = MathF.Min(tl.Y, MathF.Min(tr.Y, MathF.Min(bl.Y, br.Y)));
             float maxY = MathF.Max(tl.Y, MathF.Max(tr.Y, MathF.Max(bl.Y, br.Y)));
-            var min = new Vector2(minX, minY);
-            var max = new Vector2(maxX, maxY);
-            Vector2 size = max - min;
+            float sizeX = maxX - minX;
+            float sizeY = maxY - minY;
 
-            return new Rectangle((int)MathF.Floor(minX), (int)MathF.Floor(minY), (int)MathF.Ceiling(size.X), (int)MathF.Ceiling(size.Y));
+            return new Rectangle((int)MathF.Floor(minX), (int)MathF.Floor(minY), (int)MathF.Ceiling(sizeX), (int)MathF.Ceiling(sizeY));
         }
 
         /// <summary>

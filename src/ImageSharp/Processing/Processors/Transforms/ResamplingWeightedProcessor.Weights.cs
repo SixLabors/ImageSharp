@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal abstract partial class ResamplingWeightedProcessor<TPixel>
     {
         /// <summary>
-        /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.
+        /// Points to a collection of weights allocated in <see cref="WeightsBuffer"/>.
         /// </summary>
         internal struct WeightsWindow
         {

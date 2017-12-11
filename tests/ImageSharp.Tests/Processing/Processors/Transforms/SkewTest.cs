@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SkewValues), DefaultPixelType)]
+        [WithTestPatternImages(nameof(SkewValues), 100, 50, DefaultPixelType)]
         public void ImageShouldSkew<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SkewValues), DefaultPixelType)]
+        [WithTestPatternImages(nameof(SkewValues), 100, 50, DefaultPixelType)]
         public void ImageShouldSkewWithSampler<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
             where TPixel : struct, IPixel<TPixel>
         {

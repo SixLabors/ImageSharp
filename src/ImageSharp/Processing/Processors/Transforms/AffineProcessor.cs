@@ -127,10 +127,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 Vector2 minXY = point - radius;
 
                                 var extents = new Vector4(
-                                    MathF.Ceiling(maxXY.X),
-                                    MathF.Ceiling(maxXY.Y),
-                                    MathF.Floor(minXY.X),
-                                    MathF.Floor(minXY.Y));
+                                    MathF.Floor(maxXY.X + .5F),
+                                    MathF.Floor(maxXY.Y + .5F),
+                                    MathF.Ceiling(minXY.X - .5F),
+                                    MathF.Ceiling(minXY.Y - .5F));
 
                                 int right = (int)extents.X;
                                 int bottom = (int)extents.Y;
@@ -154,23 +154,17 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 // since they can be at sub-pixel positions on both axis.
                                 // I've optimized where I can but am always open to suggestions.
                                 //
-                                // Create and normalize the y-weights
-                                if (yScale > 1)
+                                // TODO: If we can somehow improve edge pixel handling that would be most beneficial.
+                                // Currently the interpolated edge non-alpha components are altered which causes slight darkening of edges.
+                                // Ideally the edge pixels should represent the nearest sample with altered alpha component only.
+                                if (yScale > 1 && xScale > 1)
                                 {
                                     CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ySpan);
-                                }
-                                else
-                                {
-                                    CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ySpan);
-                                }
-
-                                // Create and normalize the x-weights
-                                if (xScale > 1)
-                                {
                                     CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, xSpan);
                                 }
                                 else
                                 {
+                                    CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ySpan);
                                     CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xSpan);
                                 }
 

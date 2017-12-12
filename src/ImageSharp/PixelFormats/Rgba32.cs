@@ -364,7 +364,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A string representation of the packed vector.</returns>
         public override string ToString()
         {
-            return this.ToVector4().ToString();
+            return $"({this.R},{this.G},{this.B},{this.A})";
         }
 
         /// <inheritdoc/>

@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
@@ -28,22 +29,19 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="matrix">The transformation matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
         public TransformProcessor(Matrix3x2 matrix, IResampler sampler)
-            : base(sampler)
+            : base(matrix, sampler)
         {
-            // Tansforms are inverted else the output is the opposite of the expected.
-            Matrix3x2.Invert(matrix, out matrix);
-            this.TransformMatrix = matrix;
         }
 
         /// <summary>
-        /// Gets the transform matrix
+        /// Initializes a new instance of the <see cref="TransformProcessor{TPixel}"/> class.
         /// </summary>
-        public Matrix3x2 TransformMatrix { get; }
-
-        /// <inheritdoc />
-        protected override Matrix3x2 GetTransformMatrix()
+        /// <param name="matrix">The transform matrix</param>
+        /// <param name="sampler">The sampler to perform the transform operation.</param>
+        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
+        public TransformProcessor(Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
+            : base(matrix, sampler, rectangle)
         {
-            return this.TransformMatrix;
         }
     }
 }

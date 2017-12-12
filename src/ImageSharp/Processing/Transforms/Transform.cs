@@ -5,6 +5,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -34,6 +35,19 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new TransformProcessor<TPixel>(matrix, sampler));
+            => Transform(source, matrix, sampler, Rectangle.Empty);
+
+        /// <summary>
+        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to skew.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
+            => source.ApplyProcessor(new TransformProcessor<TPixel>(matrix, sampler, rectangle));
     }
 }

@@ -1,20 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Numerics;
+using System.Reflection;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+using Xunit;
+using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using System.Numerics;
-    using System.Reflection;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.Primitives;
-
-    using Xunit;
-
-    public class TransformTests : FileTestBase
+    public class TransformTests
     {
+        private readonly ITestOutputHelper Output;
+
         public static readonly TheoryData<float, float, float, float, float> TransformValues
             = new TheoryData<float, float, float, float, float>
                   {
@@ -45,8 +44,37 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                       nameof(KnownResamplers.Welch),
                   };
 
+        public TransformTests(ITestOutputHelper output)
+        {
+            this.Output = output;
+        }
+
+        /// <summary>
+        /// The output of an "all white" image should be "all white" or transparent, regardless of the transformation and the resampler.
+        /// </summary>
         [Theory]
-        [WithTestPatternImages(nameof(TransformValues), 100, 50, DefaultPixelType)]
+        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor))]
+        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.Triangle))]
+        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic))]
+        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.Lanczos8))]
+        public void Transform_DoesNotCreateEdgeArtifacts<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            IResampler resampler = GetResampler(resamplerName);
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                // TODO: Modify this matrix if we change our origin-concept 
+                var rotate = Matrix3x2.CreateRotation((float)Math.PI/4f);
+
+                image.Mutate(c => c.Transform(rotate, resampler));
+                image.DebugSave(provider, resamplerName);
+
+                VerifyAllPixelsAreWhiteOrTransparent(image);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
         public void Transform_RotateScaleTranslate<TPixel>(
             TestImageProvider<TPixel> provider,
             float angleDeg,
@@ -57,16 +85,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-                Matrix3x2 translate = Matrix3x2Extensions.CreateTranslation(new PointF(tx, ty));
-                Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(sx, sy));
+                var translate = Matrix3x2.CreateTranslation(tx, ty);
+                var scale = Matrix3x2.CreateScale(sx, sy);
+                Matrix3x2 m = rotate * scale * translate;
                 
-                image.Mutate(i => i.Transform(rotate * scale * translate));
+                this.Output.WriteLine(m.ToString());
+                
+                image.Mutate(i => i.Transform(m));
                 image.DebugSave(provider, $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})");
             }
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(ResamplerNames), 100, 200, DefaultPixelType)]
+        [WithTestPatternImages(nameof(ResamplerNames), 100, 200, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -91,6 +122,22 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
 
             return (IResampler)property.GetValue(null);
+        }
+
+        private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel[] data = new TPixel[image.Width * image.Height];
+            image.Frames.RootFrame.SavePixelData(data);
+            var rgba = default(Rgba32);
+            var white = new Rgb24(255, 255, 255);
+            foreach (TPixel pixel in data)
+            {
+                pixel.ToRgba32(ref rgba);
+                if (rgba.A == 0) continue;
+
+                Assert.Equal(white, rgba.Rgb);
+            }
         }
     }
 }

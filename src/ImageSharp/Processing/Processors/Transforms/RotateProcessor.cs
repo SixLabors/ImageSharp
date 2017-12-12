@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
@@ -16,15 +15,15 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Provides methods that allow the rotating of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class RotateProcessor<TPixel> : AffineProcessor<TPixel>
+    internal class RotateProcessor<TPixel> : CenteredAffineProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="angle">The angle of rotation in degrees.</param>
-        public RotateProcessor(float angle)
-            : this(angle, KnownResamplers.NearestNeighbor)
+        /// <param name="degrees">The angle of rotation in degrees.</param>
+        public RotateProcessor(float degrees)
+            : this(degrees, KnownResamplers.NearestNeighbor)
         {
         }
 
@@ -34,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="degrees">The angle of rotation in degrees.</param>
         /// <param name="sampler">The sampler to perform the rotating operation.</param>
         public RotateProcessor(float degrees, IResampler sampler)
-            : base(sampler)
+            : base(Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty), sampler)
         {
             this.Degrees = degrees;
         }
@@ -43,15 +42,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Gets the angle of rotation in degrees.
         /// </summary>
         public float Degrees { get; }
-
-        /// <inheritdoc/>
-        protected override Matrix3x2 GetTransformMatrix()
-        {
-            // Tansforms are inverted else the output is the opposite of the expected.
-            Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(this.Degrees, PointF.Empty);
-            Matrix3x2.Invert(matrix, out matrix);
-            return matrix;
-        }
 
         /// <inheritdoc/>
         protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
@@ -73,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            if (MathF.Abs(this.Degrees) < Constants.Epsilon)
+            if (MathF.Abs(WrapDegrees(this.Degrees)) < Constants.Epsilon)
             {
                 // No need to do anything so return.
                 return;
@@ -81,11 +71,24 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             profile.RemoveValue(ExifTag.Orientation);
 
-            if (profile.GetValue(ExifTag.PixelXDimension) != null)
+            base.AfterImageApply(source, destination, sourceRectangle);
+        }
+
+        /// <summary>
+        /// Wraps a given angle in degrees so that it falls withing the 0-360 degree range
+        /// </summary>
+        /// <param name="degrees">The angle of rotation in degrees.</param>
+        /// <returns>The <see cref="float"/></returns>
+        private static float WrapDegrees(float degrees)
+        {
+            degrees = degrees % 360;
+
+            if (degrees < 0)
             {
-                profile.SetValue(ExifTag.PixelXDimension, source.Width);
-                profile.SetValue(ExifTag.PixelYDimension, source.Height);
+                degrees += 360;
             }
+
+            return degrees;
         }
 
         /// <summary>
@@ -99,26 +102,29 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </returns>
         private bool OptimizedApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            if (MathF.Abs(this.Degrees) < Constants.Epsilon)
+            // Wrap the degrees to keep within 0-360 so we can apply optimizations when possible.
+            float degrees = WrapDegrees(this.Degrees);
+
+            if (MathF.Abs(degrees) < Constants.Epsilon)
             {
                 // The destination will be blank here so copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return true;
             }
 
-            if (MathF.Abs(this.Degrees - 90) < Constants.Epsilon)
+            if (MathF.Abs(degrees - 90) < Constants.Epsilon)
             {
                 this.Rotate90(source, destination, configuration);
                 return true;
             }
 
-            if (MathF.Abs(this.Degrees - 180) < Constants.Epsilon)
+            if (MathF.Abs(degrees - 180) < Constants.Epsilon)
             {
                 this.Rotate180(source, destination, configuration);
                 return true;
             }
 
-            if (MathF.Abs(this.Degrees - 270) < Constants.Epsilon)
+            if (MathF.Abs(degrees - 270) < Constants.Epsilon)
             {
                 this.Rotate270(source, destination, configuration);
                 return true;

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -23,32 +24,53 @@ namespace SixLabors.ImageSharp.Processing.Processors
         where TPixel : struct, IPixel<TPixel>
     {
         private Rectangle targetRectangle;
-        private Matrix3x2 transformMatrix;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        protected AffineProcessor(IResampler sampler)
+        protected AffineProcessor(Matrix3x2 matrix, IResampler sampler)
+           : this(matrix, sampler, Rectangle.Empty)
         {
-            this.Sampler = sampler;
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AffineProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="matrix">The transform matrix</param>
+        /// <param name="sampler">The sampler to perform the transform operation.</param>
+        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
+        protected AffineProcessor(Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
+        {
+            // Tansforms are inverted else the output is the opposite of the expected.
+            Matrix3x2.Invert(matrix, out matrix);
+            this.TransformMatrix = matrix;
+
+            this.Sampler = sampler;
+
+            this.targetRectangle = rectangle;
+        }
+
+        /// <summary>
+        /// Gets the matrix used to supply the affine transform
+        /// </summary>
+        public Matrix3x2 TransformMatrix { get; }
 
         /// <summary>
         /// Gets the sampler to perform interpolation of the transform operation.
         /// </summary>
         public IResampler Sampler { get; }
 
-        /// <summary>
-        /// Returns the processing matrix used for transforming the image.
-        /// </summary>
-        /// <returns>The <see cref="Matrix3x2"/></returns>
-        protected abstract Matrix3x2 GetTransformMatrix();
-
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            this.ResizeCanvas(sourceRectangle);
+            if (this.targetRectangle == Rectangle.Empty)
+            {
+                this.targetRectangle = Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 sizeMatrix)
+                                           ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
+                                           : sourceRectangle;
+            }
 
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames =
@@ -66,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Rectangle sourceBounds = source.Bounds();
 
             // Since could potentially be resizing the canvas we need to re-center the matrix
-            Matrix3x2 matrix = this.GetCenteredMatrix(source);
+            Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, this.targetRectangle);
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -188,18 +210,37 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
         }
 
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        {
+            ExifProfile profile = destination.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            if (profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
+            }
+
+            if (profile.GetValue(ExifTag.PixelYDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
+            }
+        }
+
         /// <summary>
-        /// Gets a transform matrix adjusted to center upon the target image bounds.
+        /// Gets a transform matrix adjusted for final processing based upon the target image bounds.
         /// </summary>
-        /// <param name="source">The source image.</param>
+        /// <param name="sourceRectangle">The source image bounds.</param>
+        /// <param name="destinationRectangle">The destination image bounds.</param>
         /// <returns>
         /// The <see cref="Matrix3x2"/>.
         /// </returns>
-        protected Matrix3x2 GetCenteredMatrix(ImageFrame<TPixel> source)
+        protected virtual Matrix3x2 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
         {
-            var translationToTargetCenter = Matrix3x2.CreateTranslation(-this.targetRectangle.Width * .5F, -this.targetRectangle.Height * .5F);
-            var translateToSourceCenter = Matrix3x2.CreateTranslation(source.Width * .5F, source.Height * .5F);
-            return translationToTargetCenter * this.transformMatrix * translateToSourceCenter;
+            return this.TransformMatrix;
         }
 
         /// <summary>
@@ -267,19 +308,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 float weight = sampler.GetValue(i - point);
                 Unsafe.Add(ref weightsBaseRef, x) = weight;
             }
-        }
-
-        /// <summary>
-        /// Creates a new target canvas to contain the results of the matrix transform.
-        /// </summary>
-        /// <param name="sourceRectangle">The source rectangle.</param>
-        private void ResizeCanvas(Rectangle sourceRectangle)
-        {
-            this.transformMatrix = this.GetTransformMatrix();
-
-            this.targetRectangle = Matrix3x2.Invert(this.transformMatrix, out Matrix3x2 sizeMatrix)
-                                     ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
-                                     : sourceRectangle;
         }
 
         /// <summary>

@@ -199,12 +199,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     for (int xx = 0, i = minX; i <= maxX; i++, xx++)
                                     {
                                         float xWeight = xSpan[xx];
-                                        sum += source[i, j].ToVector4() * xWeight * yWeight;
+                                        var vector = source[i, j].ToVector4();
+                                        var mupltiplied = new Vector4(new Vector3(vector.X, vector.Y, vector.Z) * vector.W, vector.W);
+                                        sum += mupltiplied * xWeight * yWeight;
                                     }
                                 }
 
                                 ref TPixel dest = ref destRow[x];
-                                dest.PackFromVector4(sum);
+                                dest.PackFromVector4(new Vector4(new Vector3(sum.X, sum.Y, sum.Z) / sum.W, sum.W));
                             }
                         });
             }

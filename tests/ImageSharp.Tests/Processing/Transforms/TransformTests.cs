@@ -63,10 +63,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler resampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                // TODO: Modify this matrix if we change our origin-concept 
-                var rotate = Matrix3x2.CreateRotation((float)Math.PI / 4f);
+                var rotate = Matrix3x2.CreateRotation((float)Math.PI / 4F, new Vector2(5 / 2F, 5 / 2F));
+                var translate = Matrix3x2.CreateTranslation((7 - 5) / 2F, (7 - 5) / 2F);
 
-                image.Mutate(c => c.Transform(rotate, resampler));
+                image.Mutate(c => c.Transform(rotate * translate, resampler));
                 image.DebugSave(provider, resamplerName);
 
                 VerifyAllPixelsAreWhiteOrTransparent(image);

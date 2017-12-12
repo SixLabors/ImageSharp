@@ -175,10 +175,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 // Precalulating transformed weights would require prior knowledge of every transformed pixel location
                                 // since they can be at sub-pixel positions on both axis.
                                 // I've optimized where I can but am always open to suggestions.
-                                //
-                                // TODO: If we can somehow improve edge pixel handling that would be most beneficial.
-                                // Currently the interpolated edge non-alpha components are altered which causes slight darkening of edges.
-                                // Ideally the edge pixels should represent the nearest sample with altered alpha component only.
                                 if (yScale > 1 && xScale > 1)
                                 {
                                     CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ySpan);
@@ -200,12 +196,16 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     {
                                         float xWeight = xSpan[xx];
                                         var vector = source[i, j].ToVector4();
+
+                                        // Values are first premultiplied to prevent darkening of edge pixels
                                         var mupltiplied = new Vector4(new Vector3(vector.X, vector.Y, vector.Z) * vector.W, vector.W);
                                         sum += mupltiplied * xWeight * yWeight;
                                     }
                                 }
 
                                 ref TPixel dest = ref destRow[x];
+
+                                // Reverse the premultiplication
                                 dest.PackFromVector4(new Vector4(new Vector3(sum.X, sum.Y, sum.Z) / sum.W, sum.W));
                             }
                         });

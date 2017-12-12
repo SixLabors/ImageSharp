@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -62,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override unsafe void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
@@ -188,6 +189,26 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             }
                         }
                     });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        {
+            ExifProfile profile = destination.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            if (profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
+            }
+
+            if (profile.GetValue(ExifTag.PixelYDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
             }
         }
     }

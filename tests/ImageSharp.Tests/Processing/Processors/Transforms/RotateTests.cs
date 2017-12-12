@@ -13,11 +13,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
     public class RotateTests : FileTestBase
     {
-        public static readonly TheoryData<float> RotateFloatValues
+        public static readonly TheoryData<float> RotateAngles
             = new TheoryData<float>
         {
-             170,
-            -170
+            50, -50, 170, -170
         };
 
         public static readonly TheoryData<RotateType> RotateEnumValues
@@ -28,31 +27,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             RotateType.Rotate180,
             RotateType.Rotate270
         };
-
-        public static readonly TheoryData<string> ResamplerNames
-            = new TheoryData<string>
-        {
-            nameof(KnownResamplers.Bicubic),
-            nameof(KnownResamplers.Box),
-            nameof(KnownResamplers.CatmullRom),
-            nameof(KnownResamplers.Hermite),
-            nameof(KnownResamplers.Lanczos2),
-            nameof(KnownResamplers.Lanczos3),
-            nameof(KnownResamplers.Lanczos5),
-            nameof(KnownResamplers.Lanczos8),
-            nameof(KnownResamplers.MitchellNetravali),
-            nameof(KnownResamplers.NearestNeighbor),
-            nameof(KnownResamplers.Robidoux),
-            nameof(KnownResamplers.RobidouxSharp),
-            nameof(KnownResamplers.Spline),
-            nameof(KnownResamplers.Triangle),
-            nameof(KnownResamplers.Welch),
-        };
-
+        
         [Theory]
-        [WithTestPatternImages(nameof(RotateFloatValues), 100, 50, DefaultPixelType)]
-        [WithTestPatternImages(nameof(RotateFloatValues), 50, 100, DefaultPixelType)]
-        public void Rotate<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(RotateAngles), 100, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateAngles), 50, 100, DefaultPixelType)]
+        public void Rotate_WithAngle<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -61,22 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.DebugSave(provider, value);
             }
         }
-
-        [Theory]
-        [WithTestPatternImages(nameof(ResamplerNames), 100, 50, DefaultPixelType)]
-        [WithTestPatternImages(nameof(ResamplerNames), 50, 100, DefaultPixelType)]
-        public void RotateWithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            IResampler resampler = GetResampler(resamplerName);
-
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Rotate(50, resampler));
-                image.DebugSave(provider, resamplerName);
-            }
-        }
-
+        
         [Theory]
         [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]
@@ -88,18 +52,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Rotate(value));
                 image.DebugSave(provider, value);
             }
-        }
-
-        private static IResampler GetResampler(string name)
-        {
-            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
-
-            if (property == null)
-            {
-                throw new Exception("Invalid property name!");
-            }
-
-            return (IResampler)property.GetValue(null);
         }
     }
 }

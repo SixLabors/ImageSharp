@@ -31,6 +31,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string SnakeGame = "Png/SnakeGame.png";
+            public const string Icon = "Png/icon.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -154,8 +155,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
+            public const string Kumin = "Gif/kumin.gif";
 
-            public static readonly string[] All = { Rings, Giphy, Cheers, Trans };
+            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin };
         }
     }
 }

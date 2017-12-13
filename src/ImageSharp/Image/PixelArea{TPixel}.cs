@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// The underlying buffer containing the raw pixel data.
         /// </summary>
-        private Buffer<byte> byteBuffer;
+        private readonly Buffer<byte> byteBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp
             this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
             this.Length = this.RowStride * height;
 
-            this.byteBuffer = new Buffer<byte>(this.Length);
+            this.byteBuffer = Buffer<byte>.CreateClean(this.Length);
         }
 
         /// <summary>

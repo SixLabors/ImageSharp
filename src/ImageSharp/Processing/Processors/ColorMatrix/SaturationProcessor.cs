@@ -1,15 +1,11 @@
-﻿// <copyright file="SaturationProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// An <see cref="ImageProcessor{TPixel}"/> to change the saturation of an <see cref="Image{TPixel}"/>.
     /// </summary>
@@ -26,6 +22,7 @@ namespace ImageSharp.Processing.Processors
         /// </exception>
         public SaturationProcessor(int saturation)
         {
+            this.Amount = saturation;
             Guard.MustBeBetweenOrEqualTo(saturation, -100, 100, nameof(saturation));
             float saturationFactor = saturation / 100F;
 
@@ -41,7 +38,7 @@ namespace ImageSharp.Processing.Processors
             float saturationComplementG = 0.6094f * saturationComplement;
             float saturationComplementB = 0.0820f * saturationComplement;
 
-            Matrix4x4 matrix4X4 = new Matrix4x4
+            var matrix4X4 = new Matrix4x4
             {
                 M11 = saturationComplementR + saturationFactor,
                 M12 = saturationComplementR,
@@ -57,6 +54,11 @@ namespace ImageSharp.Processing.Processors
 
             this.Matrix = matrix4X4;
         }
+
+        /// <summary>
+        /// Gets the amount to apply.
+        /// </summary>
+        public int Amount { get; }
 
         /// <inheritdoc/>
         public override Matrix4x4 Matrix { get; }

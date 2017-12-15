@@ -1,17 +1,15 @@
-﻿// <copyright file="AlphaProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to change the alpha component of an <see cref="Image{TPixel}"/>.
     /// </summary>
@@ -38,7 +36,7 @@ namespace ImageSharp.Processing.Processors
         public float Value { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
@@ -67,10 +65,10 @@ namespace ImageSharp.Processing.Processors
             Parallel.For(
                 minY,
                 maxY,
-                this.ParallelOptions,
+                configuration.ParallelOptions,
                 y =>
                 {
-                    Span<TPixel> row = source.GetRowSpan(y - startY);
+                    Span<TPixel> row = source.GetPixelRowSpan(y - startY);
 
                     for (int x = minX; x < maxX; x++)
                     {

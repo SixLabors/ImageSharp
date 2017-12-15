@@ -1,25 +1,25 @@
-﻿// <copyright file="Block8x8FTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+
 
 // Uncomment this to turn unit tests into benchmarks:
 //#define BENCHMARKING
 
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using System;
     using System.Diagnostics;
-    using System.Numerics;
 
-    using ImageSharp.Formats;
-    using ImageSharp.Formats.Jpg;
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
     using Xunit;
     using Xunit.Abstractions;
 
-    public class Block8x8FTests : JpegUtilityTestFixture
+    public partial class Block8x8FTests : JpegFixture
     {
 #if BENCHMARKING
         public const int Times = 1000000;
@@ -32,6 +32,16 @@ namespace ImageSharp.Tests
         {
         }
 
+        private bool SkipOnNonAvx2Runner()
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("AVX2 not supported, skipping!");
+                return true;
+            }
+            return false;
+        }
+
         [Fact]
         public void Indexer()
         {
@@ -40,46 +50,22 @@ namespace ImageSharp.Tests
                 Times,
                 () =>
                     {
-                        Block8x8F block = new Block8x8F();
+                        var block = new Block8x8F();
 
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             block[i] = i;
                         }
 
                         sum = 0;
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             sum += block[i];
                         }
                     });
             Assert.Equal(sum, 64f * 63f * 0.5f);
         }
-
-        [Fact]
-        public unsafe void Indexer_GetScalarAt_SetScalarAt()
-        {
-            float sum = 0;
-            this.Measure(
-                Times,
-                () =>
-                    {
-                        Block8x8F block = new Block8x8F();
-
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
-                        {
-                            Block8x8F.SetScalarAt(&block, i, i);
-                        }
-
-                        sum = 0;
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
-                        {
-                            sum += Block8x8F.GetScalarAt(&block, i);
-                        }
-                    });
-            Assert.Equal(sum, 64f * 63f * 0.5f);
-        }
-
+        
         [Fact]
         public void Indexer_ReferenceBenchmarkWithArray()
         {
@@ -91,13 +77,13 @@ namespace ImageSharp.Tests
                     {
                         // Block8x8F block = new Block8x8F();
                         float[] block = new float[64];
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             block[i] = i;
                         }
 
                         sum = 0;
-                        for (int i = 0; i < Block8x8F.ScalarCount; i++)
+                        for (int i = 0; i < Block8x8F.Size; i++)
                         {
                             sum += block[i];
                         }
@@ -108,10 +94,10 @@ namespace ImageSharp.Tests
         [Fact]
         public void Load_Store_FloatArray()
         {
-            float[] data = new float[Block8x8F.ScalarCount];
-            float[] mirror = new float[Block8x8F.ScalarCount];
+            float[] data = new float[Block8x8F.Size];
+            float[] mirror = new float[Block8x8F.Size];
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 data[i] = i;
             }
@@ -120,23 +106,23 @@ namespace ImageSharp.Tests
                 Times,
                 () =>
                     {
-                        Block8x8F b = new Block8x8F();
+                        var b = new Block8x8F();
                         b.LoadFrom(data);
                         b.CopyTo(mirror);
                     });
 
             Assert.Equal(data, mirror);
 
-            // PrintLinearData((MutableSpan<float>)mirror);
+            // PrintLinearData((Span<float>)mirror);
         }
 
         [Fact]
         public unsafe void Load_Store_FloatArray_Ptr()
         {
-            float[] data = new float[Block8x8F.ScalarCount];
-            float[] mirror = new float[Block8x8F.ScalarCount];
+            float[] data = new float[Block8x8F.Size];
+            float[] mirror = new float[Block8x8F.Size];
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 data[i] = i;
             }
@@ -145,23 +131,23 @@ namespace ImageSharp.Tests
                 Times,
                 () =>
                     {
-                        Block8x8F b = new Block8x8F();
+                        var b = new Block8x8F();
                         Block8x8F.LoadFrom(&b, data);
                         Block8x8F.CopyTo(&b, mirror);
                     });
 
             Assert.Equal(data, mirror);
 
-            // PrintLinearData((MutableSpan<float>)mirror);
+            // PrintLinearData((Span<float>)mirror);
         }
 
         [Fact]
         public void Load_Store_IntArray()
         {
-            int[] data = new int[Block8x8F.ScalarCount];
-            int[] mirror = new int[Block8x8F.ScalarCount];
+            int[] data = new int[Block8x8F.Size];
+            int[] mirror = new int[Block8x8F.Size];
 
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 data[i] = i;
             }
@@ -170,14 +156,14 @@ namespace ImageSharp.Tests
                 Times,
                 () =>
                     {
-                        Block8x8F v = new Block8x8F();
+                        var v = new Block8x8F();
                         v.LoadFrom(data);
                         v.CopyTo(mirror);
                     });
 
             Assert.Equal(data, mirror);
 
-            // PrintLinearData((MutableSpan<int>)mirror);
+            // PrintLinearData((Span<int>)mirror);
         }
 
         [Fact]
@@ -186,10 +172,10 @@ namespace ImageSharp.Tests
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);
 
-            Block8x8F source = new Block8x8F();
+            var source = new Block8x8F();
             source.LoadFrom(Create8x8FloatData());
 
-            Block8x8F dest = new Block8x8F();
+            var dest = new Block8x8F();
             source.TransposeInto(ref dest);
 
             float[] actual = new float[64];
@@ -206,12 +192,12 @@ namespace ImageSharp.Tests
         [Fact]
         public void TranposeInto_Benchmark()
         {
-            BufferHolder source = new BufferHolder();
+            var source = new BufferHolder();
             source.Buffer.LoadFrom(Create8x8FloatData());
-            BufferHolder dest = new BufferHolder();
+            var dest = new BufferHolder();
 
             this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {Times} ...");
-            Stopwatch sw = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
             for (int i = 0; i < Times; i++)
             {
@@ -221,115 +207,7 @@ namespace ImageSharp.Tests
             sw.Stop();
             this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
-
-        [Fact]
-        public void iDCT2D8x4_LeftPart()
-        {
-            float[] sourceArray = Create8x8FloatData();
-            float[] expectedDestArray = new float[64];
-
-            ReferenceImplementations.iDCT2D8x4_32f(sourceArray, expectedDestArray);
-
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(sourceArray);
-
-            Block8x8F dest = new Block8x8F();
-
-            DCT.IDCT8x4_LeftPart(ref source, ref dest);
-
-            float[] actualDestArray = new float[64];
-            dest.CopyTo(actualDestArray);
-
-            this.Print8x8Data(expectedDestArray);
-            this.Output.WriteLine("**************");
-            this.Print8x8Data(actualDestArray);
-
-            Assert.Equal(expectedDestArray, actualDestArray);
-        }
-
-        [Fact]
-        public void iDCT2D8x4_RightPart()
-        {
-            MutableSpan<float> sourceArray = Create8x8FloatData();
-            MutableSpan<float> expectedDestArray = new float[64];
-
-            ReferenceImplementations.iDCT2D8x4_32f(sourceArray.Slice(4), expectedDestArray.Slice(4));
-
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(sourceArray);
-
-            Block8x8F dest = new Block8x8F();
-
-            DCT.IDCT8x4_RightPart(ref source, ref dest);
-
-            float[] actualDestArray = new float[64];
-            dest.CopyTo(actualDestArray);
-
-            this.Print8x8Data(expectedDestArray);
-            this.Output.WriteLine("**************");
-            this.Print8x8Data(actualDestArray);
-
-            Assert.Equal(expectedDestArray.Data, actualDestArray);
-        }
-
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public void TransformIDCT(int seed)
-        {
-            MutableSpan<float> sourceArray = Create8x8RandomFloatData(-200, 200, seed);
-            float[] expectedDestArray = new float[64];
-            float[] tempArray = new float[64];
-
-            ReferenceImplementations.iDCT2D_llm(sourceArray, expectedDestArray, tempArray);
-
-            // ReferenceImplementations.iDCT8x8_llm_sse(sourceArray, expectedDestArray, tempArray);
-            Block8x8F source = new Block8x8F();
-            source.LoadFrom(sourceArray);
-
-            Block8x8F dest = new Block8x8F();
-            Block8x8F tempBuffer = new Block8x8F();
-
-            DCT.TransformIDCT(ref source, ref dest, ref tempBuffer);
-
-            float[] actualDestArray = new float[64];
-            dest.CopyTo(actualDestArray);
-
-            this.Print8x8Data(expectedDestArray);
-            this.Output.WriteLine("**************");
-            this.Print8x8Data(actualDestArray);
-            Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer(1f));
-            Assert.Equal(expectedDestArray, actualDestArray, new ApproximateFloatComparer(1f));
-        }
-
-        [Fact]
-        public unsafe void CopyColorsTo()
-        {
-            float[] data = Create8x8FloatData();
-            Block8x8F block = new Block8x8F();
-            block.LoadFrom(data);
-            block.MultiplyAllInplace(5);
-
-            int stride = 256;
-            int height = 42;
-            int offset = height * 10 + 20;
-
-            byte[] colorsExpected = new byte[stride * height];
-            byte[] colorsActual = new byte[stride * height];
-
-            Block8x8F temp = new Block8x8F();
-
-            ReferenceImplementations.CopyColorsTo(ref block, new MutableSpan<byte>(colorsExpected, offset), stride);
-
-            block.CopyColorsTo(new MutableSpan<byte>(colorsActual, offset), stride, &temp);
-
-            // Output.WriteLine("******* EXPECTED: *********");
-            // PrintLinearData(colorsExpected);
-            // Output.WriteLine("******** ACTUAL: **********");
-            Assert.Equal(colorsExpected, colorsActual);
-        }
-
+        
         private static float[] Create8x8ColorCropTestData()
         {
             float[] result = new float[64];
@@ -345,17 +223,17 @@ namespace ImageSharp.Tests
         }
 
         [Fact]
-        public void TransformByteConvetibleColorValuesInto()
+        public void NormalizeColors()
         {
-            Block8x8F block = new Block8x8F();
+            var block = default(Block8x8F);
             float[] input = Create8x8ColorCropTestData();
             block.LoadFrom(input);
             this.Output.WriteLine("Input:");
             this.PrintLinearData(input);
 
-            Block8x8F dest = new Block8x8F();
-            block.TransformByteConvetibleColorValuesInto(ref dest);
-
+            Block8x8F dest = block;
+            dest.NormalizeColorsInplace();
+            
             float[] array = new float[64];
             dest.CopyTo(array);
             this.Output.WriteLine("Result:");
@@ -369,97 +247,170 @@ namespace ImageSharp.Tests
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public void FDCT8x4_LeftPart(int seed)
+        public void NormalizeColorsAndRoundAvx2(int seed)
         {
-            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
-            Block8x8F srcBlock = new Block8x8F();
-            srcBlock.LoadFrom(src);
+            if (this.SkipOnNonAvx2Runner())
+            {
+                return;
+            }
 
-            Block8x8F destBlock = new Block8x8F();
+            Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
 
-            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
+            Block8x8F expected = source;
+            expected.NormalizeColorsInplace();
+            expected.RoundInplace();
 
-            ReferenceImplementations.fDCT2D8x4_32f(src, expectedDest);
-            DCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
+            Block8x8F actual = source;
+            actual.NormalizeColorsAndRoundInplaceAvx2();
 
-            MutableSpan<float> actualDest = new MutableSpan<float>(64);
-            destBlock.CopyTo(actualDest);
-
-            Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
+            this.Output.WriteLine(expected.ToString());
+            this.Output.WriteLine(actual.ToString());
+            this.CompareBlocks(expected, actual, 0);
         }
+
 
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
-        public void FDCT8x4_RightPart(int seed)
+        public unsafe void Quantize(int seed)
         {
-            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
-            Block8x8F srcBlock = new Block8x8F();
-            srcBlock.LoadFrom(src);
+            var block = new Block8x8F();
+            block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            Block8x8F destBlock = new Block8x8F();
+            var qt = new Block8x8F();
+            qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
+            var unzig = ZigZag.CreateUnzigTable();
 
-            ReferenceImplementations.fDCT2D8x4_32f(src.Slice(4), expectedDest.Slice(4));
-            DCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
+            int* expectedResults = stackalloc int[Block8x8F.Size];
+            ReferenceImplementations.QuantizeRational(&block, expectedResults, &qt, unzig.Data);
 
-            MutableSpan<float> actualDest = new MutableSpan<float>(64);
-            destBlock.CopyTo(actualDest);
+            var actualResults = default(Block8x8F);
 
-            Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
-        }
+            Block8x8F.Quantize(&block, &actualResults, &qt, unzig.Data);
 
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        public void TransformFDCT(int seed)
-        {
-            MutableSpan<float> src = Create8x8RandomFloatData(-200, 200, seed);
-            Block8x8F srcBlock = new Block8x8F();
-            srcBlock.LoadFrom(src);
-
-            Block8x8F destBlock = new Block8x8F();
-
-            MutableSpan<float> expectedDest = new MutableSpan<float>(64);
-            MutableSpan<float> temp1 = new MutableSpan<float>(64);
-            Block8x8F temp2 = new Block8x8F();
-
-            ReferenceImplementations.fDCT2D_llm(src, expectedDest, temp1, downscaleBy8: true);
-            DCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
-
-            MutableSpan<float> actualDest = new MutableSpan<float>(64);
-            destBlock.CopyTo(actualDest);
-
-            Assert.Equal(actualDest.Data, expectedDest.Data, new ApproximateFloatComparer(1f));
-        }
-
-        [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        public unsafe void UnzigDivRound(int seed)
-        {
-            Block8x8F block = new Block8x8F();
-            block.LoadFrom(Create8x8RandomFloatData(-2000, 2000, seed));
-
-            Block8x8F qt = new Block8x8F();
-            qt.LoadFrom(Create8x8RandomFloatData(-2000, 2000, seed));
-
-            UnzigData unzig = UnzigData.Create();
-
-            int* expectedResults = stackalloc int[Block8x8F.ScalarCount];
-            ReferenceImplementations.UnZigDivRoundRational(&block, expectedResults, &qt, unzig.Data);
-
-            Block8x8F actualResults = default(Block8x8F);
-
-            Block8x8F.UnzigDivRound(&block, &actualResults, &qt, unzig.Data);
-
-            for (int i = 0; i < Block8x8F.ScalarCount; i++)
+            for (int i = 0; i < Block8x8F.Size; i++)
             {
                 int expected = expectedResults[i];
                 int actual = (int)actualResults[i];
 
                 Assert.Equal(expected, actual);
+            }
+        }
+        
+        [Fact]
+        public void RoundInto()
+        {
+            float[] data = Create8x8RandomFloatData(-1000, 1000);
+
+            var source = default(Block8x8F);
+            source.LoadFrom(data);
+            var dest = default(Block8x8);
+
+            source.RoundInto(ref dest);
+
+            for (int i = 0; i < Block8x8.Size; i++)
+            {
+                float expectedFloat = data[i];
+                short expectedShort = (short) Math.Round(expectedFloat);
+                short actualShort = dest[i];
+
+                Assert.Equal(expectedShort, actualShort);
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void RoundInplaceSlow(int seed)
+        {
+            Block8x8F s = CreateRandomFloatBlock(-500, 500, seed);
+
+            Block8x8F d = s;
+            d.RoundInplace();
+
+            this.Output.WriteLine(s.ToString());
+            this.Output.WriteLine(d.ToString());
+
+            for (int i = 0; i < 64; i++)
+            {
+                float expected = (float)Math.Round(s[i]);
+                float actual = d[i];
+
+                Assert.Equal(expected, actual);
+            }
+        }
+
+        [Fact]
+        public void MultiplyInplace_ByOtherBlock()
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, 42);
+            Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
+
+            Block8x8F actual = original;
+            
+            actual.MultiplyInplace(ref m);
+
+            for (int i = 0; i < Block8x8F.Size; i++)
+            {
+                Assert.Equal(original[i]*m[i], actual[i]);
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public unsafe void DequantizeBlock(int seed)
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
+            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
+
+            var unzig = ZigZag.CreateUnzigTable();
+
+            Block8x8F expected = original;
+            Block8x8F actual = original;
+
+            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
+            Block8x8F.DequantizeBlock(&actual, &qt, unzig.Data);
+
+            this.CompareBlocks(expected, actual, 0);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public unsafe void ZigZag_CreateDequantizationTable_MultiplicationShouldQuantize(int seed)
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500, seed);
+            Block8x8F qt = CreateRandomFloatBlock(0, 10, seed + 42);
+
+            var unzig = ZigZag.CreateUnzigTable();
+            Block8x8F zigQt = ZigZag.CreateDequantizationTable(ref qt);
+
+            Block8x8F expected = original;
+            Block8x8F actual = original;
+
+            ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
+
+            actual.MultiplyInplace(ref zigQt);
+
+            this.CompareBlocks(expected, actual, 0);
+        }
+
+        [Fact]
+        public void MultiplyInplace_ByScalar()
+        {
+            Block8x8F original = CreateRandomFloatBlock(-500, 500);
+
+            Block8x8F actual = original;
+            actual.MultiplyInplace(42f);
+
+            for (int i = 0; i < 64; i++)
+            {
+                Assert.Equal(original[i]*42f, actual[i]);
             }
         }
     }

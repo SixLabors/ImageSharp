@@ -1,19 +1,17 @@
-﻿// <copyright file="DrawImageProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing.Processors
+using System;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Drawing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Combines two images together by blending the pixels.
     /// </summary>
@@ -43,7 +41,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the image to blend.
         /// </summary>
-        public Image<TPixel> Image { get; private set; }
+        public Image<TPixel> Image { get; }
 
         /// <summary>
         /// Gets the alpha percentage value.
@@ -61,23 +59,24 @@ namespace ImageSharp.Drawing.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Image<TPixel> disposableImage = null;
             Image<TPixel> targetImage = this.Image;
 
             try
             {
-                if (targetImage.Bounds.Size != this.Size)
+                if (targetImage.Size() != this.Size)
                 {
-                    targetImage = disposableImage = new Image<TPixel>(this.Image).Resize(this.Size.Width, this.Size.Height);
+                    targetImage = disposableImage = this.Image.Clone(x => x.Resize(this.Size.Width, this.Size.Height));
                 }
 
                 // Align start/end positions.
-                Rectangle bounds = this.Image.Bounds;
+                Rectangle bounds = targetImage.Bounds();
                 int minX = Math.Max(this.Location.X, sourceRectangle.X);
                 int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
                 maxX = Math.Min(this.Location.X + this.Size.Width, maxX);
+                int targetX = minX - this.Location.X;
 
                 int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
                 int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
@@ -85,9 +84,7 @@ namespace ImageSharp.Drawing.Processors
                 maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
 
                 int width = maxX - minX;
-                using (Buffer<float> amount = new Buffer<float>(width))
-                using (PixelAccessor<TPixel> toBlendPixels = targetImage.Lock())
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+                using (var amount = new Buffer<float>(width))
                 {
                     for (int i = 0; i < width; i++)
                     {
@@ -97,11 +94,11 @@ namespace ImageSharp.Drawing.Processors
                     Parallel.For(
                         minY,
                         maxY,
-                        this.ParallelOptions,
+                        configuration.ParallelOptions,
                         y =>
                             {
-                                Span<TPixel> background = sourcePixels.GetRowSpan(y).Slice(minX, width);
-                                Span<TPixel> foreground = toBlendPixels.GetRowSpan(y - this.Location.Y).Slice(0, width);
+                                Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
+                                Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - this.Location.Y).Slice(targetX, width);
                                 this.blender.Blend(background, background, foreground, amount);
                             });
                 }

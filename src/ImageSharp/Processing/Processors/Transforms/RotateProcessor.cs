@@ -1,17 +1,18 @@
-﻿// <copyright file="RotateProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods that allow the rotating of images.
     /// </summary>
@@ -35,9 +36,9 @@ namespace ImageSharp.Processing.Processors
         public bool Expand { get; set; } = true;
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            if (this.OptimizedApply(source))
+            if (this.OptimizedApply(source, configuration))
             {
                 return;
             }
@@ -45,13 +46,14 @@ namespace ImageSharp.Processing.Processors
             int height = this.CanvasRectangle.Height;
             int width = this.CanvasRectangle.Width;
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
+            Rectangle sourceBounds = source.Bounds();
 
             using (var targetPixels = new PixelAccessor<TPixel>(width, height))
             {
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
@@ -60,7 +62,7 @@ namespace ImageSharp.Processing.Processors
                         {
                             var transformedPoint = Point.Rotate(new Point(x, y), matrix);
 
-                            if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
+                            if (sourceBounds.Contains(transformedPoint.X, transformedPoint.Y))
                             {
                                 targetRow[x] = source[transformedPoint.X, transformedPoint.Y];
                             }
@@ -72,17 +74,41 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon || MathF.Abs(this.Angle - 90) < Constants.Epsilon || MathF.Abs(this.Angle - 180) < Constants.Epsilon || MathF.Abs(this.Angle - 270) < Constants.Epsilon)
             {
                 return;
             }
 
-            this.processMatrix = Matrix3x2Extensions.CreateRotation(-this.Angle, new Point(0, 0));
+            this.processMatrix = Matrix3x2Extensions.CreateRotationDegrees(-this.Angle, new Point(0, 0));
             if (this.Expand)
             {
                 this.CreateNewCanvas(sourceRectangle, this.processMatrix);
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+        {
+            ExifProfile profile = source.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            if (MathF.Abs(this.Angle) < Constants.Epsilon)
+            {
+                // No need to do anything so return.
+                return;
+            }
+
+            profile.RemoveValue(ExifTag.Orientation);
+
+            if (this.Expand && profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelXDimension, source.Width);
+                profile.SetValue(ExifTag.PixelYDimension, source.Height);
             }
         }
 
@@ -90,8 +116,11 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the images with an optimized method when the angle is 90, 180 or 270 degrees.
         /// </summary>
         /// <param name="source">The source image.</param>
-        /// <returns>The <see cref="bool"/></returns>
-        private bool OptimizedApply(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        /// <returns>
+        /// The <see cref="bool" />
+        /// </returns>
+        private bool OptimizedApply(ImageFrame<TPixel> source, Configuration configuration)
         {
             if (MathF.Abs(this.Angle) < Constants.Epsilon)
             {
@@ -101,19 +130,19 @@ namespace ImageSharp.Processing.Processors
 
             if (MathF.Abs(this.Angle - 90) < Constants.Epsilon)
             {
-                this.Rotate90(source);
+                this.Rotate90(source, configuration);
                 return true;
             }
 
             if (MathF.Abs(this.Angle - 180) < Constants.Epsilon)
             {
-                this.Rotate180(source);
+                this.Rotate180(source, configuration);
                 return true;
             }
 
             if (MathF.Abs(this.Angle - 270) < Constants.Epsilon)
             {
-                this.Rotate270(source);
+                this.Rotate270(source, configuration);
                 return true;
             }
 
@@ -124,7 +153,8 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the image 270 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate270(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate270(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -136,7 +166,7 @@ namespace ImageSharp.Processing.Processors
                     Parallel.For(
                         0,
                         height,
-                        this.ParallelOptions,
+                        configuration.ParallelOptions,
                         y =>
                         {
                             for (int x = 0; x < width; x++)
@@ -157,7 +187,8 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the image 180 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate180(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate180(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -167,10 +198,10 @@ namespace ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(height - y - 1);
 
                         for (int x = 0; x < width; x++)
@@ -187,7 +218,8 @@ namespace ImageSharp.Processing.Processors
         /// Rotates the image 90 degrees clockwise at the centre point.
         /// </summary>
         /// <param name="source">The source image.</param>
-        private void Rotate90(ImageBase<TPixel> source)
+        /// <param name="configuration">The configuration.</param>
+        private void Rotate90(ImageFrame<TPixel> source, Configuration configuration)
         {
             int width = source.Width;
             int height = source.Height;
@@ -197,10 +229,10 @@ namespace ImageSharp.Processing.Processors
                 Parallel.For(
                     0,
                     height,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                         int newX = height - y - 1;
                         for (int x = 0; x < width; x++)
                         {

@@ -1,10 +1,10 @@
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class ToXyz<TPixel>
         where TPixel : struct, IPixel<TPixel>
@@ -35,11 +35,16 @@ namespace ImageSharp.Benchmarks.Color.Bulk
         {
             TPixel[] s = this.source.Array;
             byte[] d = this.destination.Array;
+            var rgb = default(Rgb24);
 
             for (int i = 0; i < this.Count; i++)
             {
                 TPixel c = s[i];
-                c.ToXyzBytes(d, i * 4);
+                int i3 = i * 3;
+                c.ToRgb24(ref rgb);
+                d[i3] = rgb.R;
+                d[i3 + 1] = rgb.G;
+                d[i3 + 2] = rgb.B;
             }
         }
 

@@ -1,20 +1,18 @@
-﻿// <copyright file="GifEncoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Buffers;
+using System.IO;
+using System.Linq;
+using System.Text;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers;
+
+namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using ImageSharp.PixelFormats;
-
-    using IO;
-    using Quantizers;
-
     /// <summary>
     /// Performs the gif encoding operation.
     /// </summary>
@@ -92,20 +90,18 @@ namespace ImageSharp.Formats
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             // Ensure that pallete size  can be set but has a fallback.
-            int paletteSize = this.paletteSize;
-            paletteSize = paletteSize > 0 ? paletteSize.Clamp(1, 256) : 256;
+            int size = this.paletteSize;
+            size = size > 0 ? size.Clamp(1, 256) : 256;
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSize);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(size);
 
-            this.hasFrames = image.Frames.Any();
+            this.hasFrames = image.Frames.Count > 1;
 
-            // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
-            var ditheredQuantizer = (IQuantizer<TPixel>)this.quantizer;
-            ditheredQuantizer.Dither = !this.hasFrames;
+            var pixelQuantizer = (IQuantizer<TPixel>)this.quantizer;
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image, paletteSize);
+            QuantizedImage<TPixel> quantized = pixelQuantizer.Quantize(image.Frames.RootFrame, size);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -116,28 +112,27 @@ namespace ImageSharp.Formats
             this.WriteLogicalScreenDescriptor(image, writer, index);
 
             // Write the first frame.
-            this.WriteGraphicalControlExtension(image.MetaData, writer, index);
             this.WriteComments(image, writer);
-            this.WriteImageDescriptor(image, writer);
-            this.WriteColorTable(quantized, writer);
-            this.WriteImageData(quantized, writer);
 
             // Write additional frames.
             if (this.hasFrames)
             {
                 this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
+            }
 
-                // ReSharper disable once ForCanBeConvertedToForeach
-                for (int i = 0; i < image.Frames.Count; i++)
+            foreach (ImageFrame<TPixel> frame in image.Frames)
+            {
+                if (quantized == null)
                 {
-                    ImageFrame<TPixel> frame = image.Frames[i];
-                    QuantizedImage<TPixel> quantizedFrame = ditheredQuantizer.Quantize(frame, paletteSize);
-
-                    this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantizedFrame));
-                    this.WriteImageDescriptor(frame, writer);
-                    this.WriteColorTable(quantizedFrame, writer);
-                    this.WriteImageData(quantizedFrame, writer);
+                    quantized = pixelQuantizer.Quantize(frame, size);
                 }
+
+                this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));
+                this.WriteImageDescriptor(frame, writer);
+                this.WriteColorTable(quantized, writer);
+                this.WriteImageData(quantized, writer);
+
+                quantized = null; // so next frame can regenerate it
             }
 
             // TODO: Write extension etc
@@ -159,18 +154,14 @@ namespace ImageSharp.Formats
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
+            var trans = default(Rgba32);
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToXyzwBytes(this.buffer, 0);
+                quantized.Palette[i].ToRgba32(ref trans);
 
-                if (this.buffer[3] > 0)
-                {
-                    continue;
-                }
-                else
+                if (trans.Equals(default(Rgba32)))
                 {
                     index = i;
-                    break;
                 }
             }
 
@@ -255,7 +246,7 @@ namespace ImageSharp.Formats
         /// Writes the image comments to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to be encoded.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
@@ -290,7 +281,7 @@ namespace ImageSharp.Formats
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(IMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
         {
             var extension = new GifGraphicsControlExtension
             {
@@ -323,9 +314,9 @@ namespace ImageSharp.Formats
         /// Writes the image descriptor to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to be encoded.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
-        private void WriteImageDescriptor<TPixel>(ImageBase<TPixel> image, EndianBinaryWriter writer)
+        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
@@ -349,7 +340,7 @@ namespace ImageSharp.Formats
         /// Writes the color table to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
         private void WriteColorTable<TPixel>(QuantizedImage<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
@@ -360,16 +351,16 @@ namespace ImageSharp.Formats
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
-
+            var rgb = default(Rgb24);
             try
             {
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    image.Palette[i].ToXyzBytes(this.buffer, 0);
-                    colorTable[offset] = this.buffer[0];
-                    colorTable[offset + 1] = this.buffer[1];
-                    colorTable[offset + 2] = this.buffer[2];
+                    image.Palette[i].ToRgb24(ref rgb);
+                    colorTable[offset] = rgb.R;
+                    colorTable[offset + 1] = rgb.G;
+                    colorTable[offset + 2] = rgb.B;
                 }
 
                 writer.Write(colorTable, 0, colorTableLength);

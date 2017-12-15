@@ -1,16 +1,10 @@
-﻿// <copyright file="GifDecoder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.Text;
+
+namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Decoder for generating an image out of a gif encoded stream.
     /// </summary>
@@ -25,5 +19,10 @@ namespace ImageSharp.Formats
         /// Gets the encoding that should be used when reading comments.
         /// </summary>
         Encoding TextEncoding { get; }
+
+        /// <summary>
+        /// Gets the decoding mode for multi-frame images
+        /// </summary>
+        FrameDecodingMode DecodingMode { get; }
     }
 }

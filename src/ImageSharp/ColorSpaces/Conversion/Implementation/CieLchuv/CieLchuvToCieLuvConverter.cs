@@ -1,14 +1,12 @@
-﻿// <copyright file="CieLchuvToCieLuvConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv
+using System;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce
 {
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Converts from <see cref="CieLch"/> to <see cref="CieLab"/>.
     /// </summary>
@@ -23,7 +21,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_.28CIELCH.29
             float l = input.L, c = input.C, hDegrees = input.H;
-            float hRadians = MathF.DegreeToRadian(hDegrees);
+            float hRadians = MathFExtensions.DegreeToRadian(hDegrees);
 
             float u = c * MathF.Cos(hRadians);
             float v = c * MathF.Sin(hRadians);

@@ -1,19 +1,17 @@
-﻿// <copyright file="SubFilter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// The Sub filter transmits the difference between each byte and the value of the corresponding byte
     /// of the prior pixel.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static unsafe class SubFilter
+    internal static class SubFilter
     {
         /// <summary>
         /// Decodes the scanline
@@ -48,13 +46,15 @@ namespace ImageSharp.Formats
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel)
+        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+            sum = 0;
 
             // Sub(x) = Raw(x) - Raw(x-bpp)
             resultBaseRef = 1;
@@ -66,6 +66,7 @@ namespace ImageSharp.Formats
                     byte scan = Unsafe.Add(ref scanBaseRef, x);
                     ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)(scan % 256);
+                    sum += res < 128 ? res : 256 - res;
                 }
                 else
                 {
@@ -73,8 +74,11 @@ namespace ImageSharp.Formats
                     byte prev = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
                     ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)((scan - prev) % 256);
+                    sum += res < 128 ? res : 256 - res;
                 }
             }
+
+            sum -= 1;
         }
     }
 }

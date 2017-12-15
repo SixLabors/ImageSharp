@@ -1,23 +1,20 @@
-// <copyright file="ResamplingWeightedProcessor.Weights.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Memory;
-
     /// <content>
     /// Conains the definition of <see cref="WeightsWindow"/> and <see cref="WeightsBuffer"/>.
     /// </content>
     internal abstract partial class ResamplingWeightedProcessor<TPixel>
     {
         /// <summary>
-        /// Points to a collection of of weights allocated in <see cref="WeightsBuffer"/>.
+        /// Points to a collection of weights allocated in <see cref="WeightsBuffer"/>.
         /// </summary>
         internal struct WeightsWindow
         {
@@ -156,7 +153,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Holds the <see cref="WeightsWindow"/> values in an optimized contigous memory region.
+        /// Holds the <see cref="WeightsWindow"/> values in an optimized contiguous memory region.
         /// </summary>
         internal class WeightsBuffer : IDisposable
         {

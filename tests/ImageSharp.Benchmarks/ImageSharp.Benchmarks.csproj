@@ -3,20 +3,26 @@
     <TargetFrameworks>netcoreapp1.1;net461</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
+    <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Colourful" Version="1.1.2" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.3.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net461'">
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.10.7" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.10.9" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp1.1'">
-    <PackageReference Include="BenchmarkDotNet" Version="0.10.7" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.10.9" />
     <PackageReference Include="System.Reflection" Version="4.3.0" />
     <PackageReference Include="CoreCompat.System.Drawing" Version="1.0.0-beta006" />
     <PackageReference Include="runtime.linux-x64.CoreCompat.System.Drawing" Version="1.0.0-beta009" />

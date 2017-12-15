@@ -1,16 +1,14 @@
-﻿// <copyright file="BlankProvider.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit.Abstractions;
-
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
@@ -33,7 +31,7 @@ namespace ImageSharp.Tests
 
             protected int Width { get; private set; }
 
-            public override Image<TPixel> GetImage() => this.Factory.CreateImage(this.Width, this.Height);
+            public override Image<TPixel> GetImage() => new Image<TPixel>(this.Width, this.Height);
 
 
             public override void Deserialize(IXunitSerializationInfo info)

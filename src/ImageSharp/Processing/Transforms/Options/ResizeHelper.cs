@@ -1,15 +1,13 @@
-﻿// <copyright file="ResizeHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing
+using System;
+using System.Linq;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing
 {
-    using System.Linq;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods to help calculate the target rectangle when resizing using the
     /// <see cref="ResizeMode"/> enumeration.
@@ -25,7 +23,7 @@ namespace ImageSharp.Processing
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle CalculateTargetLocationAndBounds<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+        public static Rectangle CalculateTargetLocationAndBounds<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (options.Mode)
@@ -56,7 +54,7 @@ namespace ImageSharp.Processing
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateCropRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+        private static Rectangle CalculateCropRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
@@ -175,7 +173,7 @@ namespace ImageSharp.Processing
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculatePadRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+        private static Rectangle CalculatePadRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
@@ -256,7 +254,7 @@ namespace ImageSharp.Processing
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateBoxPadRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+        private static Rectangle CalculateBoxPadRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
@@ -343,7 +341,7 @@ namespace ImageSharp.Processing
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMaxRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+        private static Rectangle CalculateMaxRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;
@@ -384,7 +382,7 @@ namespace ImageSharp.Processing
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        private static Rectangle CalculateMinRectangle<TPixel>(ImageBase<TPixel> source, ResizeOptions options)
+        private static Rectangle CalculateMinRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = options.Size.Width;

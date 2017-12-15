@@ -1,10 +1,10 @@
-# How to contribute to ImageSHarp
+# How to contribute to ImageSharp
 
 #### **Did you find a bug?**
 
-- Please **ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/JimBobSquarePants/ImageSharp/issues).
+- Please **ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/SixLabors/ImageSharp/issues).
 
-- If you're unable to find an open issue addressing the problem, please [open a new one](https://github.com/JimBobSquarePants/ImageSharp/issues/new). Be sure to include a **title, the applicable version, a clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring. Please do not hijack existing issues.
+- If you're unable to find an open issue addressing the problem, please [open a new one](https://github.com/SixLabors/ImageSharp/issues/new). Be sure to include a **title, the applicable version, a clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring. Please do not hijack existing issues.
 
 #### **Did you write a patch that fixes a bug?**
 

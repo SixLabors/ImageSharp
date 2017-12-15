@@ -1,14 +1,13 @@
-﻿// <copyright file="IBrush.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing
+using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Drawing.Brushes
 {
-    using ImageSharp.PixelFormats;
-    using Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Brush represents a logical configuration of a brush which can be used to source pixel colors
     /// </summary>
@@ -33,6 +32,6 @@ namespace ImageSharp.Drawing
         /// The <paramref name="region" /> when being applied to things like shapes would usually be the
         /// bounding box of the shape not necessarily the bounds of the whole image
         /// </remarks>
-        BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options);
+        BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options);
     }
 }

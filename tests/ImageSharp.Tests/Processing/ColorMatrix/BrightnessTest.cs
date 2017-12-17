@@ -13,19 +13,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         [Fact]
         public void Brightness_amount_BrightnessProcessorDefaultsSet()
         {
-            this.operations.Brightness(23);
-            var processor = this.Verify<BrightnessProcessor<Rgba32>>();
+            this.operations.Brightness(1.5F);
+            BrightnessProcessor<Rgba32> processor = this.Verify<BrightnessProcessor<Rgba32>>();
 
-            Assert.Equal(23, processor.Value);
+            Assert.Equal(1.5F, processor.Amount);
         }
 
         [Fact]
         public void Brightness_amount_rect_BrightnessProcessorDefaultsSet()
         {
-            this.operations.Brightness(23, this.rect);
-            var processor = this.Verify<BrightnessProcessor<Rgba32>>(this.rect);
+            this.operations.Brightness(1.5F, this.rect);
+            BrightnessProcessor<Rgba32> processor = this.Verify<BrightnessProcessor<Rgba32>>(this.rect);
 
-            Assert.Equal(23, processor.Value);
+            Assert.Equal(1.5F, processor.Amount);
         }
     }
 }

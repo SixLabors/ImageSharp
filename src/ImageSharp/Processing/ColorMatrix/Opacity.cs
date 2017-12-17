@@ -3,7 +3,6 @@
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
@@ -15,34 +14,28 @@ namespace SixLabors.ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Alters the saturation component of the image.
+        /// Alters the alpha component of the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
+        /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Saturation<TPixel>(this IImageProcessingContext<TPixel> source, int amount)
+        public static IImageProcessingContext<TPixel> Opacity<TPixel>(this IImageProcessingContext<TPixel> source, float amount)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new SaturationProcessor<TPixel>(amount));
-            return source;
-        }
+        => source.ApplyProcessor(new OpacityProcessor<TPixel>(amount));
 
         /// <summary>
-        /// Alters the saturation component of the image.
+        /// Alters the alpha component of the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="amount">The new saturation of the image. Must be between -100 and 100.</param>
+        /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Saturation<TPixel>(this IImageProcessingContext<TPixel> source, int amount, Rectangle rectangle)
+        public static IImageProcessingContext<TPixel> Opacity<TPixel>(this IImageProcessingContext<TPixel> source, float amount, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new SaturationProcessor<TPixel>(amount), rectangle);
-            return source;
-        }
+        => source.ApplyProcessor(new OpacityProcessor<TPixel>(amount), rectangle);
     }
 }

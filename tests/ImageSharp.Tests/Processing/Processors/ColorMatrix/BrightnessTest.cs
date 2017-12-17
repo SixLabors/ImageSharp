@@ -9,38 +9,38 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public class AlphaTest : FileTestBase
+    public class BrightnessTest : FileTestBase
     {
-        public static readonly TheoryData<float> AlphaValues
+        public static readonly TheoryData<float> BrightnessValues
         = new TheoryData<float>
         {
-            20/100F,
-            80/100F
+            .5F,
+           1.5F
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), DefaultPixelType)]
-        public void ImageShouldApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
+        public void ImageShouldApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Alpha(value));
+                image.Mutate(x => x.Brightness(value));
                 image.DebugSave(provider, value);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(AlphaValues), DefaultPixelType)]
-        public void ImageShouldApplyAlphaFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
+        public void ImageShouldApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Alpha(value, bounds));
+                image.Mutate(x => x.Brightness(value, bounds));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

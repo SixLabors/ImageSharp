@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.ColorMatrix
             this.operations.Hue(34f);
             var processor = this.Verify<HueProcessor<Rgba32>>();
 
-            Assert.Equal(34f, processor.Angle);
+            Assert.Equal(34f, processor.Degrees);
         }
 
         [Fact]
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.ColorMatrix
             this.operations.Hue(5f, this.rect);
             var processor = this.Verify<HueProcessor<Rgba32>>(this.rect);
 
-            Assert.Equal(5f, processor.Angle);
+            Assert.Equal(5f, processor.Degrees);
         }
     }
 }

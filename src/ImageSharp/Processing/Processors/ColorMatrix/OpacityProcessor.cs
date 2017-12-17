@@ -6,18 +6,18 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Applies a greyscale filter matrix using the given amount and the formula as specified by ITU-R Recommendation BT.709
+    /// Applies an opacity filter matrix using the given amount.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class GrayscaleBt709Processor<TPixel> : FilterProcessor<TPixel>
+    internal class OpacityProcessor<TPixel> : FilterProcessor<TPixel>
          where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GrayscaleBt709Processor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="OpacityProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
-        public GrayscaleBt709Processor(float amount)
-            : base(Matrix4x4Extensions.CreateGrayscaleBt709Filter(amount))
+        public OpacityProcessor(float amount)
+            : base(Matrix4x4Extensions.CreateOpacityFilter(amount))
         {
             this.Amount = amount;
         }

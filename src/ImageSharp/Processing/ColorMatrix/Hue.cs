@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="degrees">The angle in degrees to adjust the image.</param>
+        /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Hue<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
             where TPixel : struct, IPixel<TPixel>
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="degrees">The angle in degrees to adjust the image.</param>
+        /// <param name="degrees">The rotation angle in degrees to adjust the hue.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>

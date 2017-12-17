@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
+            new GrayscaleBt709Processor<TPixel>(1F).Apply(source, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>

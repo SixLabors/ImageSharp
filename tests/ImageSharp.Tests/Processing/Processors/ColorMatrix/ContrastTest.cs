@@ -11,16 +11,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
     public class ContrastTest : FileTestBase
     {
-        public static readonly TheoryData<int> ContrastValues
-        = new TheoryData<int>
+        public static readonly TheoryData<float> ContrastValues
+        = new TheoryData<float>
         {
-            50,
-           -50
+            .5F,
+           1.5F
         };
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), DefaultPixelType)]
-        public void ImageShouldApplyContrastFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
+        public void ImageShouldApplyContrastFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -32,11 +32,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), DefaultPixelType)]
-        public void ImageShouldApplyContrastFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
+        public void ImageShouldApplyContrastFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 

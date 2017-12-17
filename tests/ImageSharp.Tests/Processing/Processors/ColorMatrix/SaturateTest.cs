@@ -7,40 +7,40 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
 {
-    public class BrightnessTest : FileTestBase
+    public class SaturateTest : FileTestBase
     {
-        public static readonly TheoryData<int> BrightnessValues
-        = new TheoryData<int>
+        public static readonly TheoryData<float> SaturationValues
+        = new TheoryData<float>
         {
-            50,
-           -50
+            .5f,
+           1.5F,
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
-        public void ImageShouldApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), DefaultPixelType)]
+        public void ImageShouldApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Brightness(value));
+                image.Mutate(x => x.Saturate(value));
                 image.DebugSave(provider, value);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(BrightnessValues), DefaultPixelType)]
-        public void ImageShouldApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), DefaultPixelType)]
+        public void ImageShouldApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Brightness(value, bounds));
+                image.Mutate(x => x.Saturate(value, bounds));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

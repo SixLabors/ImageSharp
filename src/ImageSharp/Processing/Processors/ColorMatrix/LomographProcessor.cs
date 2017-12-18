@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class LomographProcessor<TPixel> : ColorMatrixProcessor<TPixel>
+    internal class LomographProcessor<TPixel> : FilterProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
@@ -22,21 +22,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="options">The options effecting blending and composition.</param>
         public LomographProcessor(GraphicsOptions options)
+            : base(Matrix4x4Extensions.LomographFilter)
         {
             this.options = options;
         }
-
-        /// <inheritdoc/>
-        public override Matrix4x4 Matrix => new Matrix4x4
-        {
-            M11 = 1.5F,
-            M22 = 1.45F,
-            M33 = 1.11F,
-            M41 = -.1F,
-            M42 = .0F,
-            M43 = -.08F,
-            M44 = 1
-        };
 
         /// <inheritdoc/>
         protected override void AfterApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)

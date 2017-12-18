@@ -47,8 +47,6 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateImage())
                 {
-                    image.Mutate(x => x.Saturate(1.5F, new Primitives.Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2)));
-
                     image.Save($"{path}/{file.FileName}");
                 }
             }

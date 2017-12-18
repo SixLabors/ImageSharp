@@ -13,6 +13,78 @@ namespace SixLabors.ImageSharp.Processing
     public static class Matrix4x4Extensions
     {
         /// <summary>
+        /// Gets an approximated black and white filter
+        /// </summary>
+        public static Matrix4x4 BlackWhiteFilter { get; } = new Matrix4x4()
+        {
+            M11 = 1.5F,
+            M12 = 1.5F,
+            M13 = 1.5F,
+            M21 = 1.5F,
+            M22 = 1.5F,
+            M23 = 1.5F,
+            M31 = 1.5F,
+            M32 = 1.5F,
+            M33 = 1.5F,
+            M41 = -1F,
+            M42 = -1F,
+            M43 = -1F,
+            M44 = 1
+        };
+
+        /// <summary>
+        /// Gets a filter recreating an old Kodachrome camera effect.
+        /// </summary>
+        public static Matrix4x4 KodachromeFilter { get; } = new Matrix4x4
+        {
+            M11 = 0.7297023F,
+            M22 = 0.6109577F,
+            M33 = 0.597218F,
+            M41 = 0.105F,
+            M42 = 0.145F,
+            M43 = 0.155F,
+            M44 = 1
+        }
+
+        * CreateSaturateFilter(1.2F) * CreateContrastFilter(1.35F);
+
+        /// <summary>
+        /// Gets a filter recreating an old Lomograph camera effect.
+        /// </summary>
+        public static Matrix4x4 LomographFilter { get; } = new Matrix4x4
+        {
+            M11 = 1.5F,
+            M22 = 1.45F,
+            M33 = 1.16F,
+            M41 = -.1F,
+            M42 = -.02F,
+            M43 = -.07F,
+            M44 = 1
+        }
+
+        * CreateSaturateFilter(1.1F) * CreateContrastFilter(1.33F);
+
+        /// <summary>
+        /// Gets a filter recreating an old Polaroid camera effect.
+        /// </summary>
+        public static Matrix4x4 PolaroidFilter { get; } = new Matrix4x4
+        {
+            M11 = 1.538F,
+            M12 = -0.062F,
+            M13 = -0.262F,
+            M21 = -0.022F,
+            M22 = 1.578F,
+            M23 = -0.022F,
+            M31 = .216F,
+            M32 = -.16F,
+            M33 = 1.5831F,
+            M41 = 0.02F,
+            M42 = -0.05F,
+            M43 = -0.05F,
+            M44 = 1
+        };
+
+        /// <summary>
         /// Create a brightness filter matrix using the given amount.
         /// </summary>
         /// <remarks>

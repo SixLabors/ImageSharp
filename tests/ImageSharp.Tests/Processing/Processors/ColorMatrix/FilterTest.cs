@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -19,7 +20,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Filter(MatrixFilters.CreateBrightnessFilter(1.2F) * MatrixFilters.CreateContrastFilter(1.2F)));
+                Matrix4x4 brightness = MatrixFilters.CreateBrightnessFilter(0.9F);
+                Matrix4x4 contrast = MatrixFilters.CreateContrastFilter(1.2F);
+                Matrix4x4 saturation = MatrixFilters.CreateSaturateFilter(1.5F);
+                image.Mutate(x => x.Filter(brightness * contrast * saturation));
                 image.DebugSave(provider);
             }
         }

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
     public class SaturateTest : FileTestBase
     {

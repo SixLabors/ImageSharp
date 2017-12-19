@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public static readonly string[] TestFiles = { TestImages.Gif.Giphy, TestImages.Gif.Rings, TestImages.Gif.Trans };
 
+        public static readonly string[] BadAppExtFiles = { TestImages.Gif.Issues.BadAppExtLength, TestImages.Gif.Issues.BadAppExtLength_2 };
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), PixelTypes)]
@@ -30,6 +31,7 @@ namespace SixLabors.ImageSharp.Tests
                 imageProvider.Utility.SaveTestOutputFile(image, "gif");
             }
         }
+
         [Theory]
         [WithFileCollection(nameof(TestFiles), PixelTypes)]
         public void DecodeResizeAndSave<TPixel>(TestImageProvider<TPixel> imageProvider)
@@ -130,6 +132,28 @@ namespace SixLabors.ImageSharp.Tests
                     ImageFrame<Rgba32> second = kumin2.Frames[i];
                     first.ComparePixelBufferTo(second.GetPixelSpan());
                 }
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(BadAppExtFiles), PixelTypes.Rgba32)]
+        public void DecodeBadApplicationExtensionLength<TPixel>(TestImageProvider<TPixel> imageProvider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = imageProvider.GetImage())
+            {
+                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32)]
+        public void DecodeBadDescriptorDimensionsLength<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "bmp");
             }
         }
     }

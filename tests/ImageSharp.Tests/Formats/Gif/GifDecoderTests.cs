@@ -136,13 +136,24 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(BadAppExtFiles), PixelTypes)]
+        [WithFileCollection(nameof(BadAppExtFiles), PixelTypes.Rgba32)]
         public void DecodeBadApplicationExtensionLength<TPixel>(TestImageProvider<TPixel> imageProvider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = imageProvider.GetImage())
             {
                 imageProvider.Utility.SaveTestOutputFile(image, "bmp");
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32)]
+        public void DecodeBadDescriptorDimensionsLength<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "bmp");
             }
         }
     }

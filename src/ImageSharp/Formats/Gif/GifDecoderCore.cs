@@ -443,7 +443,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 var rgba = new Rgba32(0, 0, 0, 255);
 
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                // #403 The left + width value can be larger than the image width
+                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < rowSpan.Length; x++)
                 {
                     int index = indices[i];
 

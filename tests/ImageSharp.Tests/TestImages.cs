@@ -157,6 +157,13 @@ namespace SixLabors.ImageSharp.Tests
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
 
+            public class Issues
+            {
+                public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
+                public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
+                public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+            }
+
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin };
         }
     }

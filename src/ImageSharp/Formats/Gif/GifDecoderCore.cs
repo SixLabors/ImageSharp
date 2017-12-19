@@ -155,10 +155,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadComments();
                                 break;
                             case GifConstants.ApplicationExtensionLabel:
-                                this.Skip(12); // No need to read.
+
+                                // The application extension length should be 11 but we've got test images that incorrectly
+                                // set this to 252.
+                                int appLength = stream.ReadByte();
+                                this.Skip(appLength); // No need to read.
                                 break;
                             case GifConstants.PlainTextLabel:
-                                this.Skip(13); // Not supported by any known decoder.
+                                int plainLength = stream.ReadByte();
+                                this.Skip(plainLength); // Not supported by any known decoder.
                                 break;
                         }
                     }
@@ -438,7 +443,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 var rgba = new Rgba32(0, 0, 0, 255);
 
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                // #403 The left + width value can be larger than the image width
+                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < rowSpan.Length; x++)
                 {
                     int index = indices[i];
 

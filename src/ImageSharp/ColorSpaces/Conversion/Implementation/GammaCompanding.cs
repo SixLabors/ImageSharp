@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Initializes a new instance of the <see cref="GammaCompanding"/> class.
         /// </summary>
         /// <param name="gamma">The gamma value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public GammaCompanding(float gamma)
         {
             this.Gamma = gamma;
@@ -27,7 +28,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Gets the gamma value
         /// </summary>
-        public float Gamma { get; }
+        public float Gamma
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

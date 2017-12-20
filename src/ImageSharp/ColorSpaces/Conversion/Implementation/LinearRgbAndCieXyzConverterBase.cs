@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
                 M44 = 1F
             };
 
-            Matrix4x4.Invert(xyzMatrix, out var inverseXyzMatrix);
+            Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
 
             var vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 

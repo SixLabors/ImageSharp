@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorSpaces;
 
@@ -16,35 +17,32 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(Cmyk input)
         {
-            float r = (1F - input.C) * (1F - input.K);
-            float g = (1F - input.M) * (1F - input.K);
-            float b = (1F - input.Y) * (1F - input.K);
+            DebugGuard.NotNull(input, nameof(input));
 
-            return new Rgb(r, g, b);
+            Vector3 rgb = (Vector3.One - new Vector3(input.C, input.M, input.Y)) * (Vector3.One - new Vector3(input.K));
+            return new Rgb(rgb);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Cmyk Convert(Rgb input)
         {
-            // To CMYK
-            float c = 1F - input.R;
-            float m = 1F - input.G;
-            float y = 1F - input.B;
+            DebugGuard.NotNull(input, nameof(input));
 
             // To CMYK
-            float k = MathF.Min(c, MathF.Min(m, y));
+            Vector3 cmy = Vector3.One - input.Vector;
 
-            if (MathF.Abs(k - 1F) < Constants.Epsilon)
+            // To CMYK
+            var k = new Vector3(MathF.Min(cmy.X, MathF.Min(cmy.Y, cmy.Z)));
+
+            if (MathF.Abs(k.X - 1F) < Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1F);
             }
 
-            c = (c - k) / (1F - k);
-            m = (m - k) / (1F - k);
-            y = (y - k) / (1F - k);
+            cmy = (cmy - k) / (Vector3.One - k);
 
-            return new Cmyk(c, m, y, k);
+            return new Cmyk(cmy.X, cmy.Y, cmy.Z, k.X);
         }
     }
 }

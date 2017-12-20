@@ -3,7 +3,6 @@
 $fallbackVersion = "1.0.0";
 $version = ''
 
-if($env:APPVEYOR -eq "true"){
 $tagRegex = '^v?(\d+\.\d+\.\d+)(-([a-zA-Z]+)\.?(\d*))?$'
 
 # we are running on the build server 
@@ -84,7 +83,6 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
         $version = "${version}-${branch}${buildNumber}";
     }
  }
-}
 
 if("$env:APPVEYOR_API_URL" -ne ""){
     Invoke-RestMethod -Method "PUT" `
@@ -96,12 +94,10 @@ if("$env:APPVEYOR_API_URL" -ne ""){
 
 Write-Host "Building version '${version}'"
 
-$versionCmd ="/p:packageversion=${$version}" 
-
-dotnet restore ${versionCmd}
+dotnet restore /p:packageversion=$version
 
 Write-Host "Building projects"
-dotnet build -c Release ${versionCmd}
+dotnet build -c Release /p:packageversion=$version
 
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
@@ -112,9 +108,9 @@ if ( $env:CI -ne "True") {
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
 # ECHO Packaging projects
-dotnet pack ./src/ImageSharp/ -c Release --output ../../artifacts --no-build  ${versionCmd}
+dotnet pack ./src/ImageSharp/ -c Release --output ../../artifacts --no-build  /p:packageversion=$version
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
-dotnet pack ./src/ImageSharp.Drawing/ -c Release --output ../../artifacts --no-build  ${versionCmd}
+dotnet pack ./src/ImageSharp.Drawing/ -c Release --output ../../artifacts --no-build  /p:packageversion=$version
 
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }

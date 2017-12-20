@@ -32,10 +32,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Cmyk_To_Rgb(float c, float m, float y, float k, float r, float g, float b)
         {
             // Arrange
-            Cmyk input = new Cmyk(c, m, y, k);
+            var input = new Cmyk(c, m, y, k);
 
             // Act
-            Rgb output = Converter.ToRgb(input);
+            var output = Converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
@@ -54,10 +54,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Rgb_To_Cmyk(float r, float g, float b, float c, float m, float y, float k)
         {
             // Arrange
-            Rgb input = new Rgb(r, g, b);
+            var input = new Rgb(r, g, b);
 
             // Act
-            Cmyk output = Converter.ToCmyk(input);
+            var output = Converter.ToCmyk(input);
 
             // Assert
             Assert.Equal(c, output.C, FloatRoundingComparer);

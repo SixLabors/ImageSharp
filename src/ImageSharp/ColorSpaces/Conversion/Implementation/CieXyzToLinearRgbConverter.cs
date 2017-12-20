@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
@@ -15,6 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToLinearRgbConverter"/> class.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToLinearRgbConverter()
             : this(Rgb.DefaultWorkingSpace)
         {
@@ -24,6 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// Initializes a new instance of the <see cref="CieXyzToLinearRgbConverter"/> class.
         /// </summary>
         /// <param name="workingSpace">The target working space.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzToLinearRgbConverter(IRgbWorkingSpace workingSpace)
         {
             this.TargetWorkingSpace = workingSpace;
@@ -33,9 +36,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Gets the target working space
         /// </summary>
-        public IRgbWorkingSpace TargetWorkingSpace { get; }
+        public IRgbWorkingSpace TargetWorkingSpace
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LinearRgb Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));

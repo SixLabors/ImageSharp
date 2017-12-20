@@ -21,6 +21,7 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
         $version = "${version}-${postTag}"
      }
      if("$count" -ne ""){
+        # for consistancy with previous releases we pad the counter to only 4 places
         $padded = $count.Trim().Trim('0').PadLeft(4,"0");
         Write-Debug "count '$count', padded '${padded}'"
 
@@ -51,8 +52,8 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
     }
 
     $buildNumber = $env:APPVEYOR_BUILD_NUMBER
-
-    $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(4,"0");
+    # build number replacement is padded to 6 places
+    $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(6,"0");
     if("$env:APPVEYOR_PULL_REQUEST_NUMBER" -ne ""){
         
         Write-Debug "building a PR"
@@ -77,7 +78,7 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
         $branch = $branch.Replace("/","-").ToLower()
 
         if($branch.ToLower() -eq "master"){
-            $branch = "ci"
+            $branch = "dev"
         }
         
         $version = "${version}-${branch}${buildNumber}";

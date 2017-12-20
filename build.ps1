@@ -56,8 +56,10 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
     $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(6,"0");
     if("$env:APPVEYOR_PULL_REQUEST_NUMBER" -ne ""){
         Write-Debug "building a PR"
+        
+        $prNumber = "$env:APPVEYOR_PULL_REQUEST_NUMBER".Trim().Trim('0').PadLeft(5,"0");
         # this is a PR
-        $version = "${version}-PullRequest${env:APPVEYOR_PULL_REQUEST_NUMBER}_${buildNumber}";
+        $version = "${version}-PullRequest${prNumber}${buildNumber}";
     }else{
         Write-Debug "building a branch commit"
 

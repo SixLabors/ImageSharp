@@ -688,7 +688,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 }
 
                 int th = this.Temp[0] & 0x0f;
-                if (th > OrigHuffmanTree.MaxTh || (!this.IsProgressive && (th > 1)))
+                if (th > OrigHuffmanTree.MaxTh)
                 {
                     throw new ImageFormatException("Bad Th value");
                 }

@@ -15,7 +15,7 @@
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Colourful" Version="1.1.2" />
+    <PackageReference Include="Colourful" Version="1.2.1" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net461'">

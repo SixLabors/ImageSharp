@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         public CieXyz Convert(LinearRgb input)
         {
             DebugGuard.NotNull(input, nameof(input));
-            Guard.IsTrue(input.WorkingSpace.Equals(this.SourceWorkingSpace), nameof(input.WorkingSpace), "Input and source working spaces must be equal.");
+            DebugGuard.IsTrue(input.WorkingSpace.Equals(this.SourceWorkingSpace), nameof(input.WorkingSpace), "Input and source working spaces must be equal.");
 
             var vector = Vector3.Transform(input.Vector, this.conversionMatrix);
             return new CieXyz(vector);

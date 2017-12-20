@@ -91,6 +91,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float ComputeVp(CieXyz input)
         {
             return (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));

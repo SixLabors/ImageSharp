@@ -89,7 +89,7 @@ if("$env:APPVEYOR_API_URL" -ne ""){
     Invoke-RestMethod -Method "PUT" `
                       -Uri "${env:APPVEYOR_API_URL}api/build" `
                       -Body "{version:'${version}'}" `
-                      -ContentType = "application/json"
+                      -ContentType "application/json"
 }
 
 

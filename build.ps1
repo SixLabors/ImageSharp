@@ -51,19 +51,17 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
     }
 
     $buildNumber = $env:APPVEYOR_BUILD_NUMBER
+
     # build number replacement is padded to 6 places
     $buildNumber = "$buildNumber".Trim().Trim('0').PadLeft(6,"0");
     if("$env:APPVEYOR_PULL_REQUEST_NUMBER" -ne ""){
-        
         Write-Debug "building a PR"
         # this is a PR
         $version = "${version}-PullRequest${env:APPVEYOR_PULL_REQUEST_NUMBER}_${buildNumber}";
     }else{
-
         Write-Debug "building a branch commit"
+
         # this is a general branch commit
-        # if master use 'ci' prefix
-        # if other branch use 'branch'
         $branch = $env:APPVEYOR_REPO_BRANCH
         
         if("$branch" -eq ""){
@@ -85,15 +83,14 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
  }
 
 if("$env:APPVEYOR_API_URL" -ne ""){
+    # update appveyor build number for this build
     Invoke-RestMethod -Method "PUT" `
                       -Uri "${env:APPVEYOR_API_URL}api/build" `
                       -Body "{version:'${version}'}" `
                       -ContentType "application/json"
 }
 
-
 Write-Host "Building version '${version}'"
-
 dotnet restore /p:packageversion=$version
 
 Write-Host "Building projects"
@@ -102,15 +99,13 @@ dotnet build -c Release /p:packageversion=$version
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
 if ( $env:CI -ne "True") {
-    #ECHO NOT on CI server running tests
     dotnet test ./tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build -c Release
 }
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
-# ECHO Packaging projects
+Write-Host "Packaging projects"
 dotnet pack ./src/ImageSharp/ -c Release --output ../../artifacts --no-build  /p:packageversion=$version
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
 dotnet pack ./src/ImageSharp.Drawing/ -c Release --output ../../artifacts --no-build  /p:packageversion=$version
-
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }

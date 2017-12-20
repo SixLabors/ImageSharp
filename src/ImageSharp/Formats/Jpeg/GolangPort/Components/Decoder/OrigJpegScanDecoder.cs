@@ -583,7 +583,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     }
 
                     zig = this.RefineNonZeroes(ref bp, zig, val0, delta);
-                    if (bp.ReachedEOF)
+
+                    if (bp.ReachedEOF || bp.HasError)
                     {
                         return;
                     }

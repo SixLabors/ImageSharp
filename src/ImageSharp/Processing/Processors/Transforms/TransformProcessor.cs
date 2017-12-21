@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="matrix">The transformation matrix</param>
         public TransformProcessor(Matrix3x2 matrix)
-            : this(matrix, KnownResamplers.NearestNeighbor)
+            : this(matrix, KnownResamplers.Bicubic)
         {
         }
 

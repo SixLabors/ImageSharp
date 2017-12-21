@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
         public SkewProcessor(float degreesX, float degreesY)
-            : this(degreesX, degreesY, KnownResamplers.NearestNeighbor)
+            : this(degreesX, degreesY, KnownResamplers.Bicubic)
         {
         }
 

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
     public class SepiaTest : FileTestBase
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
+        [WithTestPatternImages(100, 100, DefaultPixelType)]
         public void ImageShouldApplySepiaFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -24,14 +24,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
+        [WithTestPatternImages(100, 100, DefaultPixelType)]
         public void ImageShouldApplySepiaFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.Sepia(bounds));
                 image.DebugSave(provider);

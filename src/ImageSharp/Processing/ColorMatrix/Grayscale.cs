@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Grayscale<TPixel>(this IImageProcessingContext<TPixel> source, GrayscaleMode mode, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        => Grayscale(source, GrayscaleMode.Bt709, 1F, rectangle);
+        => Grayscale(source, mode, 1F, rectangle);
 
         /// <summary>
         /// Applies Grayscale toning to the image using the given amount.

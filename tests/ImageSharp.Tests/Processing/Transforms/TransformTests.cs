@@ -73,7 +73,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 var rotate = Matrix3x2.CreateRotation((float)Math.PI / 4F, new Vector2(5 / 2F, 5 / 2F));
                 var translate = Matrix3x2.CreateTranslation((7 - 5) / 2F, (7 - 5) / 2F);
 
-                image.Mutate(c => c.Transform(rotate * translate, resampler));
+                Rectangle sourceRectangle = image.Bounds();
+                Matrix3x2 matrix = rotate * translate;
+
+                Rectangle destRectangle = TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, matrix);
+
+                image.Mutate(c => c.Transform(matrix, resampler, destRectangle));
                 image.DebugSave(provider, resamplerName);
 
                 VerifyAllPixelsAreWhiteOrTransparent(image);
@@ -97,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 Matrix3x2 m = rotate * scale * translate;
 
                 this.PrintMatrix(m);
-                
+
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
                 image.DebugSave(provider, $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})");
             }

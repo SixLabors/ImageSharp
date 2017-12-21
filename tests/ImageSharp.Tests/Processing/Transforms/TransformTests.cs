@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         [Theory]
         [WithTestPatternImages(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
-        public void Transform_RotateScaleTranslate_AutoDestRectangle<TPixel>(
+        public void Transform_RotateScaleTranslate<TPixel>(
             TestImageProvider<TPixel> provider,
             float angleDeg,
             float sx, float sy,
@@ -107,31 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.DebugSave(provider, $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})");
             }
         }
-
-        [Theory]
-        [WithTestPatternImages(nameof(TransformValues), 100, 50, PixelTypes.Rgba32)]
-        public void Transform_RotateScaleTranslate_SameDestRectangle<TPixel>(
-            TestImageProvider<TPixel> provider,
-            float angleDeg,
-            float sx, float sy,
-            float tx, float ty)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-                var translate = Matrix3x2.CreateTranslation(tx, ty);
-                var scale = Matrix3x2.CreateScale(sx, sy);
-                Matrix3x2 m = rotate * scale * translate;
-
-                this.PrintMatrix(m);
-
-                Rectangle destBounds = image.Bounds();
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic, destBounds));
-                image.DebugSave(provider, $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})");
-            }
-        }
-
+        
         [Theory]
         [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
         public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)

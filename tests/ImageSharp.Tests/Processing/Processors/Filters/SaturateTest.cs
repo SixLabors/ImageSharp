@@ -9,38 +9,38 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class HueTest : FileTestBase
+    public class SaturateTest : FileTestBase
     {
-        public static readonly TheoryData<int> HueValues
-        = new TheoryData<int>
+        public static readonly TheoryData<float> SaturationValues
+        = new TheoryData<float>
         {
-            180,
-           -180
+            .5F,
+           1.5F,
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(HueValues), DefaultPixelType)]
-        public void ImageShouldApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithTestPatternImages(nameof(SaturationValues), 100, 100, DefaultPixelType)]
+        public void ImageShouldApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Hue(value));
+                image.Mutate(x => x.Saturate(value));
                 image.DebugSave(provider, value);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(HueValues), DefaultPixelType)]
-        public void ImageShouldApplyHueFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithTestPatternImages(nameof(SaturationValues), 100, 100, DefaultPixelType)]
+        public void ImageShouldApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Hue(value, bounds));
+                image.Mutate(x => x.Saturate(value, bounds));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

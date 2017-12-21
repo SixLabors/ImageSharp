@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         /// Use test patterns over loaded images to save decode time.
         /// </summary>
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, DefaultPixelType)]
-        public void ImageShouldApplyGrayscaleFilterAll<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 100, 100, DefaultPixelType)]
+        public void ImageShouldApplyGrayscaleFilter<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 50, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 100, 100, DefaultPixelType)]
         public void ImageShouldApplyGrayscaleFilterInBox<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -53,6 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
             using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
+
                 image.Mutate(x => x.Grayscale(value, bounds));
                 image.DebugSave(provider, value.ToString());
 

@@ -7,40 +7,40 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public class SaturateTest : FileTestBase
+    public class BrightnessTest : FileTestBase
     {
-        public static readonly TheoryData<float> SaturationValues
+        public static readonly TheoryData<float> BrightnessValues
         = new TheoryData<float>
         {
-            .5f,
-           1.5F,
+            .5F,
+           1.5F
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), DefaultPixelType)]
-        public void ImageShouldApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(BrightnessValues), 100, 100, DefaultPixelType)]
+        public void ImageShouldApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Saturate(value));
+                image.Mutate(x => x.Brightness(value));
                 image.DebugSave(provider, value);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(SaturationValues), DefaultPixelType)]
-        public void ImageShouldApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(BrightnessValues), 100, 100, DefaultPixelType)]
+        public void ImageShouldApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Saturate(value, bounds));
+                image.Mutate(x => x.Brightness(value, bounds));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), DefaultPixelType)]
+        [WithTestPatternImages(nameof(ContrastValues), 100, 100, DefaultPixelType)]
         public void ImageShouldApplyContrastFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -31,14 +31,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ContrastValues), DefaultPixelType)]
+        [WithTestPatternImages(nameof(ContrastValues), 100, 100, DefaultPixelType)]
         public void ImageShouldApplyContrastFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.Contrast(value, bounds));
                 image.DebugSave(provider, value);

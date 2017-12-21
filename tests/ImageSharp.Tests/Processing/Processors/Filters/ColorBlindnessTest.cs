@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         };
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ColorBlindnessFilters), DefaultPixelType)]
+        [WithTestPatternImages(nameof(ColorBlindnessFilters), 100, 100, DefaultPixelType)]
         public void ImageShouldApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -38,14 +38,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(ColorBlindnessFilters), DefaultPixelType)]
+        [WithTestPatternImages(nameof(ColorBlindnessFilters), 100, 100, DefaultPixelType)]
         public void ImageShouldApplyColorBlindnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.ColorBlindness(colorBlindness, bounds));
                 image.DebugSave(provider, colorBlindness.ToString());

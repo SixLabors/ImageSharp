@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="degrees">The angle of rotation in degrees.</param>
         public RotateProcessor(float degrees)
-            : this(degrees, KnownResamplers.NearestNeighbor)
+            : this(degrees, KnownResamplers.Bicubic)
         {
         }
 
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             degrees = degrees % 360;
 
-            if (degrees < 0)
+            while (degrees < 0)
             {
                 degrees += 360;
             }

@@ -4,14 +4,10 @@ image: Visual Studio 2017
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
 
-install:
-  - choco install gitversion.portable -pre -y
-
 before_build:
   - git submodule -q update --init
   - cmd: dotnet --version
-  - ps: c:\ProgramData\chocolatey\lib\gitversion.portable\tools\gitversion.exe /l console /output buildserver
-
+  
 build_script:
 - cmd: build.cmd
 
@@ -19,8 +15,8 @@ test_script:
 - tests\CodeCoverage\CodeCoverage.cmd
 
 after_test:
-  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%GitVersion_NuGetVersion%.nupkg"
-  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%GitVersion_NuGetVersion%.nupkg"
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%APPVEYOR_BUILD_VERSION%.nupkg"
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%APPVEYOR_BUILD_VERSION%.nupkg"
 
 deploy:
     # MyGet Deployment for builds & releases

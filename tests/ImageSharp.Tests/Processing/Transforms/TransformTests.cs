@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                       { 0, 1, 1, -20, -10 },
                       { 50, 1, 1, -20, -10 },
                       { 50, 1.5f, 1.5f, 0, 0 },
+                      { 50, 1.1F, 1.2F, 20, 10 },
                       { 0, 2f, 1f, 0, 0 },
                       { 0, 1f, 2f, 0, 0 },
                   };
@@ -126,6 +127,28 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
         }
 
+        [Theory]
+        [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
+        public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
+                Vector2 toCenter = 0.5f * new Vector2(image.Width, image.Height);
+                var translate = Matrix3x2.CreateTranslation(-toCenter);
+                var translateBack = Matrix3x2.CreateTranslation(toCenter);
+                var scale = Matrix3x2.CreateScale(s);
+
+                Matrix3x2 m = translate * rotate * scale * translateBack;
+
+                this.PrintMatrix(m);
+
+                Rectangle destBounds = image.Bounds();
+                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic, destBounds));
+                image.DebugSave(provider, $"R({angleDeg})_S({s})");
+            }
+        }
 
         [Theory]
         [WithTestPatternImages(nameof(ResamplerNames), 100, 200, PixelTypes.Rgba32)]

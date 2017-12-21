@@ -27,5 +27,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
             var translateToSourceCenter = Matrix3x2.CreateTranslation(sourceRectangle.Width * .5F, sourceRectangle.Height * .5F);
             return translationToTargetCenter * this.TransformMatrix * translateToSourceCenter;
         }
+
+        /// <inheritdoc/>
+        protected override Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix3x2 matrix)
+        {
+            return Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 sizeMatrix)
+                ? TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, sizeMatrix)
+                : sourceRectangle;
+        }
     }
 }

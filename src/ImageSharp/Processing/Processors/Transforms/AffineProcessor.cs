@@ -67,9 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             if (this.targetRectangle == Rectangle.Empty)
             {
-                this.targetRectangle = Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 sizeMatrix)
-                                           ? ImageMaths.GetBoundingRectangle(sourceRectangle, sizeMatrix)
-                                           : sourceRectangle;
+                this.targetRectangle = this.GetTransformedBoundingRectangle(sourceRectangle, this.TransformMatrix);
             }
 
             // We will always be creating the clone even for mutate because we may need to resize the canvas
@@ -148,6 +146,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                 Vector2 maxXY = point + radius;
                                 Vector2 minXY = point - radius;
 
+                                // max, maxY, minX, minY
                                 var extents = new Vector4(
                                     MathF.Floor(maxXY.X + .5F),
                                     MathF.Floor(maxXY.Y + .5F),
@@ -243,6 +242,17 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected virtual Matrix3x2 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
         {
             return this.TransformMatrix;
+        }
+
+        /// <summary>
+        /// Gets the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.
+        /// </summary>
+        /// <param name="sourceRectangle">The source rectangle.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>The <see cref="Rectangle"/></returns>
+        protected virtual Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix3x2 matrix)
+        {
+            return sourceRectangle;
         }
 
         /// <summary>

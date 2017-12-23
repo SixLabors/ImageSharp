@@ -16,6 +16,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     {
         private readonly ITestOutputHelper Output;
 
+        /// <summary>
+        /// angleDeg, sx, sy, tx, ty
+        /// </summary>
         public static readonly TheoryData<float, float, float, float, float> TransformValues
             = new TheoryData<float, float, float, float, float>
                   {
@@ -51,6 +54,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                       nameof(KnownResamplers.Welch),
                   };
 
+        public static readonly TheoryData<string> Transform_DoesNotCreateEdgeArtifacts_ResamplerNames =
+            new TheoryData<string>
+                {
+                    nameof(KnownResamplers.NearestNeighbor),
+                    nameof(KnownResamplers.Triangle),
+                    nameof(KnownResamplers.Bicubic),
+                    nameof(KnownResamplers.Lanczos8),
+                };
+
         public TransformTests(ITestOutputHelper output)
         {
             this.Output = output;
@@ -60,10 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         /// The output of an "all white" image should be "all white" or transparent, regardless of the transformation and the resampler.
         /// </summary>
         [Theory]
-        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.NearestNeighbor))]
-        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.Triangle))]
-        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.Bicubic))]
-        [WithSolidFilledImages(5, 5, 255, 255, 255, 255, PixelTypes.Rgba32, nameof(KnownResamplers.Lanczos8))]
+        [WithSolidFilledImages(nameof(Transform_DoesNotCreateEdgeArtifacts_ResamplerNames), 5, 5, 255, 255, 255, 255, PixelTypes.Rgba32)]
         public void Transform_DoesNotCreateEdgeArtifacts<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -115,19 +124,36 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
-                Vector2 toCenter = 0.5f * new Vector2(image.Width, image.Height);
-                var translate = Matrix3x2.CreateTranslation(-toCenter);
-                var translateBack = Matrix3x2.CreateTranslation(toCenter);
-                var scale = Matrix3x2.CreateScale(s);
+                Matrix3x2 m = this.MakeManuallyCenteredMatrix(angleDeg, s, image);
 
-                Matrix3x2 m = translate * rotate * scale * translateBack;
-
-                this.PrintMatrix(m);
-
-                Rectangle destBounds = image.Bounds();
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic, destBounds));
+                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
                 image.DebugSave(provider, $"R({angleDeg})_S({s})");
+            }
+        }
+
+        public static readonly TheoryData<int, int, int, int> Transform_IntoRectangle_Data =
+            new TheoryData<int, int, int, int>
+                {
+                    { 0, 0, 10, 10 },
+                    { 0, 0, 5, 10 },
+                    { 0, 0, 10, 5 },
+                    {-5,-5, 15, 15 }
+                };
+
+        [Theory]
+        [WithSolidFilledImages(nameof(Transform_IntoRectangle_Data), 10, 10, nameof(Rgba32.Red), PixelTypes.Rgba32)]
+        public void Transform_IntoRectangle<TPixel>(TestImageProvider<TPixel> provider, int x0, int y0, int w, int h)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var rectangle = new Rectangle(x0, y0, w, h);
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                Matrix3x2 m = this.MakeManuallyCenteredMatrix(45, 0.8f, image);
+
+                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                string testDetails = $"({x0},{y0}-W{w},H{h})";
+                image.DebugSave(provider, testDetails);
             }
         }
 
@@ -142,11 +168,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(50);
                 Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.5F, .5F));
                 var translate = Matrix3x2.CreateTranslation(75, 0);
-
-
+                
                 image.Mutate(i => i.Transform(rotate * scale * translate, sampler));
                 image.DebugSave(provider, resamplerName);
             }
+        }
+
+        private Matrix3x2 MakeManuallyCenteredMatrix<TPixel>(float angleDeg, float s, Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(angleDeg);
+            Vector2 toCenter = 0.5f * new Vector2(image.Width, image.Height);
+            var translate = Matrix3x2.CreateTranslation(-toCenter);
+            var translateBack = Matrix3x2.CreateTranslation(toCenter);
+            var scale = Matrix3x2.CreateScale(s);
+
+            Matrix3x2 m = translate * rotate * scale * translateBack;
+
+            this.PrintMatrix(m);
+            return m;
         }
 
         private static IResampler GetResampler(string name)

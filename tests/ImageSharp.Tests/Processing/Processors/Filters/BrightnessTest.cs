@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public class BrightnessTest : FileTestBase
+    public class BrightnessTest
     {
         public static readonly TheoryData<float> BrightnessValues
         = new TheoryData<float>
@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(BrightnessValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(BrightnessValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(BrightnessValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(BrightnessValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyBrightnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

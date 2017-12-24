@@ -9,11 +9,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class BlackWhiteTest : FileTestBase
+    public class BlackWhiteTest
     {
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ImageShouldApplyBlackWhiteFilter<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
+        public void ApplyBlackWhiteFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ImageShouldApplyBlackWhiteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
+        public void ApplyBlackWhiteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

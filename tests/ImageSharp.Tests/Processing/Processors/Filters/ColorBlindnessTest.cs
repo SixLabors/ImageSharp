@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 
         [Theory]
         [WithTestPatternImages(nameof(ColorBlindnessFilters), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
+        public void ApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 
         [Theory]
         [WithTestPatternImages(nameof(ColorBlindnessFilters), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyColorBlindnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
+        public void ApplyColorBlindnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

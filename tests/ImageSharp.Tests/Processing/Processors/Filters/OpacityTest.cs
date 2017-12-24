@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public class OpacityTest : FileTestBase
+    public class OpacityTest
     {
         public static readonly TheoryData<float> AlphaValues
         = new TheoryData<float>
@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(AlphaValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(AlphaValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(AlphaValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyAlphaFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(AlphaValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyAlphaFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

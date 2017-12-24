@@ -9,11 +9,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class LomographTest : FileTestBase
+    public class LomographTest
     {
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ImageShouldApplyLomographFilter<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
+        public void ApplyLomographFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ImageShouldApplyLomographFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
+        public void ApplyLomographFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

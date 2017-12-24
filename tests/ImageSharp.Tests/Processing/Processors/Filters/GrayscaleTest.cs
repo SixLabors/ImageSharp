@@ -11,7 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class GrayscaleTest : FileTestBase
+    public class GrayscaleTest
     {
         public static readonly TheoryData<GrayscaleMode> GrayscaleModeTypes
             = new TheoryData<GrayscaleMode>
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         /// Use test patterns over loaded images to save decode time.
         /// </summary>
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyGrayscaleFilter<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyGrayscaleFilter<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -45,8 +45,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyGrayscaleFilterInBox<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
+        [WithTestPatternImages(nameof(GrayscaleModeTypes), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyGrayscaleFilterInBox<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

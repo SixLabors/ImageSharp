@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
+    [GroupOutput("Filters")]
     public class FilterTest
     {
         // Testing the generic FilterProcessor with more than one pixel type intentionally.

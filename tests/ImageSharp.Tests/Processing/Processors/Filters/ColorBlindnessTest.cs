@@ -10,7 +10,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class ColorBlindnessTest : FileTestBase
+    [GroupOutput("Filters")]
+    public class ColorBlindnessTest
     {
         public static readonly TheoryData<ColorBlindness> ColorBlindnessFilters
         = new TheoryData<ColorBlindness>
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(ColorBlindnessFilters), 100, 100, DefaultPixelType)]
+        [WithTestPatternImages(nameof(ColorBlindnessFilters), 48, 48, PixelTypes.Rgba32)]
         public void ApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(ColorBlindnessFilters), 100, 100, DefaultPixelType)]
+        [WithTestPatternImages(nameof(ColorBlindnessFilters), 48, 48, PixelTypes.Rgba32)]
         public void ApplyColorBlindnessFilterInBox<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {

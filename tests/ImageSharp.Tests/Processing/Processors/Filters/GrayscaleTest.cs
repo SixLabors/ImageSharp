@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
+    [GroupOutput("Filters")]
     public class GrayscaleTest
     {
         public static readonly TheoryData<GrayscaleMode> GrayscaleModeTypes

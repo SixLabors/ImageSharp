@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
+    [GroupOutput("Filters")]
     public class SaturateTest
     {
         public static readonly TheoryData<float> SaturationValues

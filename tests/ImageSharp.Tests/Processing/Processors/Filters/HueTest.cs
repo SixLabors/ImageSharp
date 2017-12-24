@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
+    [GroupOutput("Filters")]
     public class HueTest
     {
         public static readonly TheoryData<int> HueValues

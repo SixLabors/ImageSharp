@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
+    [GroupOutput("Filters")]
     public class InvertTest
     {
         [Theory]

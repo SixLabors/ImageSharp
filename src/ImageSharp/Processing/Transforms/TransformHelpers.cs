@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Contains helper methods for working with affine transforms
     /// </summary>
-    public class TransformHelpers
+    internal class TransformHelpers
     {
         /// <summary>
         /// Returns the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.

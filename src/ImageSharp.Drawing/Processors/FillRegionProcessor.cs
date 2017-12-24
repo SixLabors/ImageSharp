@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                                 {
                                     for (int x = 0; x < scanlineWidth; x++)
                                     {
-                                        if (scanline[x] > 0.5)
+                                        if (scanline[x] >= 0.5)
                                         {
                                             scanline[x] = 1;
                                         }

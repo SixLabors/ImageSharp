@@ -9,11 +9,11 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public class InvertTest : FileTestBase
+    public class InvertTest
     {
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ImageShouldApplyInvertFilter<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
+        public void ApplyInvertFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         }
 
         [Theory]
-        [WithTestPatternImages(100, 100, DefaultPixelType)]
-        public void ImageShouldApplyInvertFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
+        public void ApplyInvertFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

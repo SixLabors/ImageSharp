@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class SaturateTest : FileTestBase
+    public class SaturateTest
     {
         public static readonly TheoryData<float> SaturationValues
         = new TheoryData<float>
@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(SaturationValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(SaturationValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(SaturationValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(SaturationValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplySaturationFilterInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

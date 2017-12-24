@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    public class HueTest : FileTestBase
+    public class HueTest
     {
         public static readonly TheoryData<int> HueValues
         = new TheoryData<int>
@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         };
 
         [Theory]
-        [WithTestPatternImages(nameof(HueValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithTestPatternImages(nameof(HueValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(HueValues), 100, 100, DefaultPixelType)]
-        public void ImageShouldApplyHueFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
+        [WithTestPatternImages(nameof(HueValues), 48, 48, PixelTypes.Rgba32)]
+        public void ApplyHueFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())

@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
             for (int i = 0; i < Block8x8F.Size; i++)
             {
                 ref float v = ref Unsafe.Add(ref b, i);
-                v = MathF.Round(v);
+                v = (float)Math.Round(v);
             }
         }
 

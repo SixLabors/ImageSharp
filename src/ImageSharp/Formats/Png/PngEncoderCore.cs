@@ -318,6 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
+            var rgba = default(Rgba32);
 
             // Copy the pixels across from the image.
             // Reuse the chunk type buffer.
@@ -326,8 +327,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // Convert the color to YCbCr and store the luminance
                 // Optionally store the original color alpha.
                 int offset = x * this.bytesPerPixel;
-                rowSpan[x].ToXyzwBytes(this.chunkTypeBuffer, 0);
-                byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
+                rowSpan[x].ToRgba32(ref rgba);
+                byte luminance = (byte)((0.299F * rgba.R) + (0.587F * rgba.G) + (0.114F * rgba.B));
 
                 for (int i = 0; i < this.bytesPerPixel; i++)
                 {
@@ -337,7 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                     else
                     {
-                        rawScanlineArray[offset + i] = this.chunkTypeBuffer[3];
+                        rawScanlineArray[offset + i] = rgba.A;
                     }
                 }
             }
@@ -518,7 +519,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
             byte[] alphaTable = ArrayPool<byte>.Shared.Rent(pixelCount);
-            byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
+            var rgba = default(Rgba32);
             bool anyAlpha = false;
             try
             {
@@ -527,13 +528,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (quantized.Pixels.Contains(i))
                     {
                         int offset = i * 3;
-                        palette[i].ToXyzwBytes(bytes, 0);
+                        palette[i].ToRgba32(ref rgba);
 
-                        byte alpha = bytes[3];
+                        byte alpha = rgba.A;
 
-                        colorTable[offset] = bytes[0];
-                        colorTable[offset + 1] = bytes[1];
-                        colorTable[offset + 2] = bytes[2];
+                        colorTable[offset] = rgba.R;
+                        colorTable[offset + 1] = rgba.G;
+                        colorTable[offset + 2] = rgba.B;
 
                         if (alpha > this.threshold)
                         {
@@ -557,7 +558,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 ArrayPool<byte>.Shared.Return(colorTable);
                 ArrayPool<byte>.Shared.Return(alphaTable);
-                ArrayPool<byte>.Shared.Return(bytes);
             }
 
             return quantized;

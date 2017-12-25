@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The global color table.
         /// </summary>
-        private byte[] globalColorTable;
+        private Buffer<byte> globalColorTable;
 
         /// <summary>
         /// The global color table length
@@ -123,10 +124,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 if (this.logicalScreenDescriptor.GlobalColorTableFlag)
                 {
                     this.globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
-                    this.globalColorTable = ArrayPool<byte>.Shared.Rent(this.globalColorTableLength);
+                    this.globalColorTable = Buffer<byte>.CreateClean(this.globalColorTableLength);
 
                     // Read the global color table from the stream
-                    stream.Read(this.globalColorTable, 0, this.globalColorTableLength);
+                    stream.Read(this.globalColorTable.Array, 0, this.globalColorTableLength);
                 }
 
                 // Loop though the respective gif parts and read the data.
@@ -154,10 +155,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
                                 this.ReadComments();
                                 break;
                             case GifConstants.ApplicationExtensionLabel:
-                                this.Skip(12); // No need to read.
+
+                                // The application extension length should be 11 but we've got test images that incorrectly
+                                // set this to 252.
+                                int appLength = stream.ReadByte();
+                                this.Skip(appLength); // No need to read.
                                 break;
                             case GifConstants.PlainTextLabel:
-                                this.Skip(13); // Not supported by any known decoder.
+                                int plainLength = stream.ReadByte();
+                                this.Skip(plainLength); // Not supported by any known decoder.
                                 break;
                         }
                     }
@@ -175,10 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
             finally
             {
-                if (this.globalColorTable != null)
-                {
-                    ArrayPool<byte>.Shared.Return(this.globalColorTable);
-                }
+                this.globalColorTable?.Dispose();
             }
 
             return this.image;
@@ -309,19 +312,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             GifImageDescriptor imageDescriptor = this.ReadImageDescriptor();
 
-            byte[] localColorTable = null;
-            byte[] indices = null;
+            Buffer<byte> localColorTable = null;
+            Buffer<byte> indices = null;
             try
             {
                 // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
                 if (imageDescriptor.LocalColorTableFlag)
                 {
                     int length = imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = ArrayPool<byte>.Shared.Rent(length);
-                    this.currentStream.Read(localColorTable, 0, length);
+                    localColorTable = Buffer<byte>.CreateClean(length);
+                    this.currentStream.Read(localColorTable.Array, 0, length);
                 }
 
-                indices = ArrayPool<byte>.Shared.Rent(imageDescriptor.Width * imageDescriptor.Height);
+                indices = Buffer<byte>.CreateClean(imageDescriptor.Width * imageDescriptor.Height);
 
                 this.ReadFrameIndices(imageDescriptor, indices);
                 this.ReadFrameColors(indices, localColorTable ?? this.globalColorTable, imageDescriptor);
@@ -331,12 +334,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
             finally
             {
-                if (localColorTable != null)
-                {
-                    ArrayPool<byte>.Shared.Return(localColorTable);
-                }
-
-                ArrayPool<byte>.Shared.Return(indices);
+                localColorTable?.Dispose();
+                indices?.Dispose();
             }
         }
 
@@ -346,7 +345,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
         /// <param name="indices">The pixel array to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadFrameIndices(GifImageDescriptor imageDescriptor, byte[] indices)
+        private void ReadFrameIndices(GifImageDescriptor imageDescriptor, Span<byte> indices)
         {
             int dataSize = this.currentStream.ReadByte();
             using (var lzwDecoder = new LzwDecoder(this.currentStream))
@@ -361,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private void ReadFrameColors(byte[] indices, byte[] colorTable, GifImageDescriptor descriptor)
+        private void ReadFrameColors(Span<byte> indices, Span<byte> colorTable, GifImageDescriptor descriptor)
         {
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
@@ -444,7 +443,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 var rgba = new Rgba32(0, 0, 0, 255);
 
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width; x++)
+                // #403 The left + width value can be larger than the image width
+                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < rowSpan.Length; x++)
                 {
                     int index = indices[i];
 

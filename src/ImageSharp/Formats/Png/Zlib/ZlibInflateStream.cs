@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -14,6 +12,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// </summary>
     internal sealed class ZlibInflateStream : Stream
     {
+        /// <summary>
+        /// Used to read the Adler-32 and Crc-32 checksums
+        /// We don't actually use this for anything so it doesn't
+        /// have to be threadsafe.
+        /// </summary>
+        private static readonly byte[] ChecksumBuffer = new byte[4];
+
         /// <summary>
         /// The inner raw memory stream
         /// </summary>
@@ -38,9 +43,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private bool isDisposed;
 
         /// <summary>
-        /// The read crc data.
+        /// Whether the crc value has been read.
         /// </summary>
-        private byte[] crcread;
+        private bool crcRead;
 
         /// <summary>
         /// The current data remaining to be read
@@ -149,14 +154,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     this.compressedStream.Dispose();
                     this.compressedStream = null;
 
-                    if (this.crcread == null)
+                    if (!this.crcRead)
                     {
                         // Consume the trailing 4 bytes
-                        this.crcread = new byte[4];
-                        for (int i = 0; i < 4; i++)
-                        {
-                            this.crcread[i] = (byte)this.innerStream.ReadByte();
-                        }
+                        this.innerStream.Read(ChecksumBuffer, 0, 4);
+                        this.currentDataRemaining -= 4;
+                        this.crcRead = true;
                     }
                 }
             }
@@ -171,11 +174,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         private void InitializeInflateStream()
         {
-            // The DICT dictionary identifier identifying the used dictionary.
-
-            // The preset dictionary.
-            bool fdict;
-
             // Read the zlib header : http://tools.ietf.org/html/rfc1950
             // CMF(Compression Method and flags)
             // This byte is divided into a 4 - bit compression method and a
@@ -195,26 +193,31 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 return;
             }
 
-            if ((cmf & 0x0f) != 8)
+            if ((cmf & 0x0F) == 8)
             {
-                throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
+                // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
+                int cinfo = (cmf & 0xF0) >> 4;
+
+                if (cinfo > 7)
+                {
+                    // Values of CINFO above 7 are not allowed in RFC1950.
+                    // CINFO is not defined in this specification for CM not equal to 8.
+                    throw new ImageFormatException($"Invalid window size for ZLIB header: cinfo={cinfo}");
+                }
+            }
+            else
+            {
+                throw new ImageFormatException($"Bad method for ZLIB header: cmf={cmf}");
             }
 
-            // CINFO is the base-2 logarithm of the LZ77 window size, minus eight.
-            // int cinfo = ((cmf & (0xf0)) >> 8);
-            fdict = (flag & 32) != 0;
-
+            // The preset dictionary.
+            bool fdict = (flag & 32) != 0;
             if (fdict)
             {
-                // The DICT dictionary identifier identifying the used dictionary.
-                byte[] dictId = new byte[4];
-
-                for (int i = 0; i < 4; i++)
-                {
-                    // We consume but don't use this.
-                    dictId[i] = (byte)this.innerStream.ReadByte();
-                    this.currentDataRemaining--;
-                }
+                // We don't need this for inflate so simply skip by the next four bytes.
+                // https://tools.ietf.org/html/rfc1950#page-6
+                this.innerStream.Read(ChecksumBuffer, 0, 4);
+                this.currentDataRemaining -= 4;
             }
 
             // Initialize the deflate Stream.

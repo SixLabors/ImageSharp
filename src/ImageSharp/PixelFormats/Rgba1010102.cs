@@ -109,9 +109,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -119,10 +119,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
+            dest.A = (byte)Math.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgr24(ref Bgr24 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -140,10 +140,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgra32(ref Bgra32 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
+            dest.A = (byte)Math.Round(vector.W);
         }
 
         /// <inheritdoc />

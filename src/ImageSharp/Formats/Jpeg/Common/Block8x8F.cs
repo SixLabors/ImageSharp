@@ -489,7 +489,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             for (int i = 0; i < Size; i++)
             {
-                this[i] = MathF.Round(this[i]);
+                this[i] = (float)Math.Round(this[i]);
             }
         }
 

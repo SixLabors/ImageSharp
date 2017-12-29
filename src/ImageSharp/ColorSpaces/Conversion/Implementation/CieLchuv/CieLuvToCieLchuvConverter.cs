@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvCol
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/CIELUV#Cylindrical_representation_.28CIELCH.29
             float l = input.L, a = input.U, b = input.V;
-            float c = MathF.Sqrt((a * a) + (b * b));
-            float hRadians = MathF.Atan2(b, a);
+            float c = (float)Math.Sqrt((a * a) + (b * b));
+            float hRadians = (float)Math.Atan2(b, a);
             float hDegrees = MathFExtensions.RadianToDegree(hRadians);
 
             // Wrap the angle round at 360.

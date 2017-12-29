@@ -1,120 +1,61 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <Description>A cross-platform library for the processing of image files; written in C#</Description>
-        <AssemblyTitle>SixLabors.ImageSharp</AssemblyTitle>
-        <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
-        <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
-        <Authors>Six Labors and contributors</Authors>
-        <TargetFrameworks>netstandard1.1;netstandard1.3;netstandard2.0</TargetFrameworks>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <AssemblyName>SixLabors.ImageSharp</AssemblyName>
-        <PackageId>SixLabors.ImageSharp</PackageId>
-        <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
-        <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
-        <PackageProjectUrl>https://github.com/SixLabors/ImageSharp</PackageProjectUrl>
-        <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-        <RepositoryType>git</RepositoryType>
-        <RepositoryUrl>https://github.com/SixLabors/ImageSharp</RepositoryUrl>
-        <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-        <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-        <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-        <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-        <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-        <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
-        <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-        <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-        <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-        <DebugType Condition="$(codecov) != ''">full</DebugType>
-        <DebugType Condition="$(codecov) == ''">portable</DebugType>
-        <DebugSymbols>True</DebugSymbols>
-        <Features>IOperation</Features>
-    </PropertyGroup>
+﻿<Project ToolsVersion="15.0" Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.1;netstandard1.3;netstandard1.6;netstandard2.0;netcoreapp2.0;net45;net471</TargetFrameworks>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<RootNamespace>SixLabors.ImageSharp</RootNamespace>
+	<AssemblyTitle>SixLabors.ImageSharp</AssemblyTitle>
+	<AssemblyName>SixLabors.ImageSharp</AssemblyName>
+	<PackageId>SixLabors.ImageSharp</PackageId>
+	<PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
+	<PackageIconUrl>https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-128.png</PackageIconUrl>
+	<PackageProjectUrl>https://github.com/SixLabors/ImageSharp</PackageProjectUrl>
+	<PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+	<RepositoryType>GIT</RepositoryType>
+	<RepositoryUrl>https://github.com/SixLabors/ImageSharp</RepositoryUrl>
+	<CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
+	<SignAssembly>true</SignAssembly>
+	<AssemblyOriginatorKeyFile>snKey.snk</AssemblyOriginatorKeyFile>
+	<Company>Six Labors</Company>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<Description>A cross-platform library for the processing of image files; written in C#</Description>
+	<PackageReleaseNotes>Update libraries to support .NET Core 2.0 and .NET Framework 4.7.1
+Now supports strong named assemblies.</PackageReleaseNotes>
+	<Version>1.0.0.0-beta3</Version>
+	<NeutralLanguage>en</NeutralLanguage>
+	<Copyright>Copyright (c) Six Labors and contributors.</Copyright>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DefineConstants>TRACE;DEBUG;NET45;NETSTANDARD1_1</DefineConstants>
+  </PropertyGroup>
     <ItemGroup>
-        <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0004" />
         <AdditionalFiles Include="..\..\stylecop.json" />
+        <PackageReference Include="SixLabors.Core" Version="0.1.0-beta3" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="System.Buffers" Version="4.4.0" />
         <PackageReference Include="System.Memory" Version="4.4.0-preview2-25405-01" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
-    </ItemGroup>
-    <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' OR '$(TargetFramework)' == 'netstandard1.3'">
-        <PackageReference Include="System.IO.Compression" Version="4.3.0" />
-        <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
         <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
-        <PackageReference Include="System.ValueTuple" Version="4.4.0" />
+	</ItemGroup>
+	<ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' OR '$(TargetFramework)' == 'net471' ">
+        <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
+		<PackageReference Include="System.ValueTuple" Version="4.4.0" />
     </ItemGroup>
-    <PropertyGroup>
-        <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
-        <RootNamespace>SixLabors.ImageSharp</RootNamespace>
-    </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
-    <ItemGroup>
-        <None Update="Formats\Jpeg\Common\Block8x8F.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="PixelFormats\Generated\PixelOperations{TPixel}.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>PixelOperations{TPixel}.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="PixelFormats\Generated\Rgba32.PixelOperations.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>Rgba32.PixelOperations.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.tt">
-            <LastGenOutput>PorterDuffFunctions.Generated.cs</LastGenOutput>
-            <Generator>TextTemplatingFileGenerator</Generator>
-        </None>
-        <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
-            <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
-            <Generator>TextTemplatingFileGenerator</Generator>
-        </None>
-    </ItemGroup>
-    <ItemGroup>
-        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Update="Formats\Jpeg\Common\Block8x8F.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="PixelFormats\Generated\PixelOperations{TPixel}.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>PixelOperations{TPixel}.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="PixelFormats\Generated\Rgba32.PixelOperations.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Rgba32.PixelOperations.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>DefaultPixelBlenders.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
-        </Compile>
-    </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard1.1|AnyCPU'">
+      <OutputPath>bin\Release\</OutputPath>
+      <DocumentationFile>obj\Release\SixLabors.ImageSharp.xml</DocumentationFile>
+      <DefineConstants>TRACE;RELEASE;NET45;NETSTANDARD1_1</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard1.1|AnyCPU'">
+      <OutputPath>bin\Debug\</OutputPath>
+      <DocumentationFile>obj\Debug\SixLabors.ImageSharp.xml</DocumentationFile>
+    </PropertyGroup>
+  <ItemGroup>
+	<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
 </Project>

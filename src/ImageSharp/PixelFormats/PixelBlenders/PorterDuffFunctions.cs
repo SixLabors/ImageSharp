@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
             xform.W = a;
 
             return xform;

@@ -122,8 +122,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
         }
 
@@ -132,8 +132,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
             dest.A = 255;
         }
@@ -143,8 +143,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgr24(ref Bgr24 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
         }
 
@@ -153,8 +153,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgra32(ref Bgra32 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
             dest.A = 255;
         }
@@ -214,8 +214,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             // Clamp the value between min and max values
             // Round rather than truncate.
-            uint word2 = (uint)((int)MathF.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF);
-            uint word1 = (uint)(((int)MathF.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10);
+            uint word2 = (uint)((int)Math.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF);
+            uint word1 = (uint)(((int)Math.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10);
 
             return word2 | word1;
         }
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToScaledVector4()
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             vector *= Half;
             vector += Round;
             vector += Half;

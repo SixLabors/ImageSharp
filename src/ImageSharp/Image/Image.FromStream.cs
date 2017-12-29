@@ -186,13 +186,13 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
+            var data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
 
-            format = data.format;
+            format = data.Item2;
 
-            if (data.img != null)
+            if (data.Item1 != null)
             {
-                return data.img;
+                return data.Item1;
             }
 
             var stringBuilder = new StringBuilder();

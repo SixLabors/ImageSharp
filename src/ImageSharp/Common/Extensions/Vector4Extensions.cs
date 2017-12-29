@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
                 return signal * 12.92F;
             }
 
-            return (1.055F * MathF.Pow(signal, 0.41666666F)) - 0.055F;
+            return (1.055F * (float)Math.Pow(signal, 0.41666666F)) - 0.055F;
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp
                 return signal / 12.92F;
             }
 
-            return MathF.Pow((signal + 0.055F) / 1.055F, 2.4F);
+            return (float)Math.Pow((signal + 0.055F) / 1.055F, 2.4F);
         }
     }
 }

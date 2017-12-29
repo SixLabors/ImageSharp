@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         {
             var sizeVect = (Vector2)(SizeF)originalSize;
             sizeVect /= new Vector2(divX, divY);
-            sizeVect.X = MathF.Ceiling(sizeVect.X);
-            sizeVect.Y = MathF.Ceiling(sizeVect.Y);
+            sizeVect.X = (float)Math.Ceiling(sizeVect.X);
+            sizeVect.Y = (float)Math.Ceiling(sizeVect.Y);
 
             return new Size((int)sizeVect.X, (int)sizeVect.Y);
         }

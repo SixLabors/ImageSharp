@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            if (MathF.Abs(this.Angle) < Constants.Epsilon || MathF.Abs(this.Angle - 90) < Constants.Epsilon || MathF.Abs(this.Angle - 180) < Constants.Epsilon || MathF.Abs(this.Angle - 270) < Constants.Epsilon)
+            if (Math.Abs(this.Angle) < Constants.Epsilon || Math.Abs(this.Angle - 90) < Constants.Epsilon || Math.Abs(this.Angle - 180) < Constants.Epsilon || Math.Abs(this.Angle - 270) < Constants.Epsilon)
             {
                 return;
             }
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 return;
             }
 
-            if (MathF.Abs(this.Angle) < Constants.Epsilon)
+            if (Math.Abs(this.Angle) < Constants.Epsilon)
             {
                 // No need to do anything so return.
                 return;
@@ -122,25 +122,25 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </returns>
         private bool OptimizedApply(ImageFrame<TPixel> source, Configuration configuration)
         {
-            if (MathF.Abs(this.Angle) < Constants.Epsilon)
+            if (Math.Abs(this.Angle) < Constants.Epsilon)
             {
                 // No need to do anything so return.
                 return true;
             }
 
-            if (MathF.Abs(this.Angle - 90) < Constants.Epsilon)
+            if (Math.Abs(this.Angle - 90) < Constants.Epsilon)
             {
                 this.Rotate90(source, configuration);
                 return true;
             }
 
-            if (MathF.Abs(this.Angle - 180) < Constants.Epsilon)
+            if (Math.Abs(this.Angle - 180) < Constants.Epsilon)
             {
                 this.Rotate180(source, configuration);
                 return true;
             }
 
-            if (MathF.Abs(this.Angle - 270) < Constants.Epsilon)
+            if (Math.Abs(this.Angle - 270) < Constants.Epsilon)
             {
                 this.Rotate270(source, configuration);
                 return true;

@@ -33,9 +33,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CmykColorSa
             float y = 1F - input.B;
 
             // To CMYK
-            float k = MathF.Min(c, MathF.Min(m, y));
+            float k = Math.Min(c, Math.Min(m, y));
 
-            if (MathF.Abs(k - 1F) < Constants.Epsilon)
+            if (Math.Abs(k - 1F) < Constants.Epsilon)
             {
                 return new Cmyk(0, 0, 0, 1F);
             }

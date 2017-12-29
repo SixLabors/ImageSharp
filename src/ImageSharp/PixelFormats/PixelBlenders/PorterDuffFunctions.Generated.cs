@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }
@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float a = xw + bw + sw;
 
             // calculate final value
-            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(a, Constants.Epsilon);
+            xform = ((xform * xw) + (backdrop * bw) + (source * sw)) / Math.Max(a, Constants.Epsilon);
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }

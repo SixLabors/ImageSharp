@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieXyyColor
         {
             DebugGuard.NotNull(input, nameof(input));
 
-            if (MathF.Abs(input.Y) < Constants.Epsilon)
+            if (Math.Abs(input.Y) < Constants.Epsilon)
             {
                 return new CieXyz(0, 0, input.Yl);
             }

@@ -53,13 +53,13 @@ namespace SixLabors.ImageSharp
         public static float Gaussian(float x, float sigma)
         {
             const float Numerator = 1.0f;
-            float denominator = MathF.Sqrt(2 * MathF.PI) * sigma;
+            float denominator = (float)Math.Sqrt(2 * Math.PI) * sigma;
 
             float exponentNumerator = -x * x;
             float exponentDenominator = (float)(2 * Math.Pow(sigma, 2));
 
             float left = Numerator / denominator;
-            float right = MathF.Exp(exponentNumerator / exponentDenominator);
+            float right = (float)Math.Exp(exponentNumerator / exponentDenominator);
 
             return left * right;
         }
@@ -75,11 +75,11 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float SinC(float f)
         {
-            if (MathF.Abs(f) > Constants.Epsilon)
+            if (Math.Abs(f) > Constants.Epsilon)
             {
-                f *= MathF.PI;
-                float result = MathF.Sin(f) / f;
-                return MathF.Abs(result) < Constants.Epsilon ? 0F : result;
+                f *= (float)Math.PI;
+                float result = (float)Math.Sin(f) / f;
+                return Math.Abs(result) < Constants.Epsilon ? 0F : result;
             }
 
             return 1F;
@@ -185,19 +185,19 @@ namespace SixLabors.ImageSharp
             switch (channel)
             {
                 case RgbaComponent.R:
-                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.G:
-                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon;
                     break;
 
                 case RgbaComponent.B:
-                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon;
                     break;
 
                 default:
-                    delegateFunc = (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
+                    delegateFunc = (pixels, x, y, b) => Math.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon;
                     break;
             }
 

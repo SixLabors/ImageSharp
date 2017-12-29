@@ -82,9 +82,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             var finalradiusX = this.RadiusX.Calculate(source.Size());
             var finalradiusY = this.RadiusY.Calculate(source.Size());
-            float rX = finalradiusX > 0 ? MathF.Min(finalradiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
-            float rY = finalradiusY > 0 ? MathF.Min(finalradiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
-            float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));
+            float rX = finalradiusX > 0 ? Math.Min(finalradiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            float rY = finalradiusY > 0 ? Math.Min(finalradiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
+            float maxDistance = (float)Math.Sqrt((rX * rX) + (rY * rY));
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);

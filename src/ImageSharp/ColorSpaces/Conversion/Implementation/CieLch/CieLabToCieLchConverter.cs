@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchColor
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC
             float l = input.L, a = input.A, b = input.B;
-            float c = MathF.Sqrt((a * a) + (b * b));
-            float hRadians = MathF.Atan2(b, a);
+            float c = (float)Math.Sqrt((a * a) + (b * b));
+            float hRadians = (float)Math.Atan2(b, a);
             float hDegrees = MathFExtensions.RadianToDegree(hRadians);
 
             // Wrap the angle round at 360.

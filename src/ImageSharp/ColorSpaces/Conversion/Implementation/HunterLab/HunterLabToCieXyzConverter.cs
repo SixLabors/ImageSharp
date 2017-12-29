@@ -25,9 +25,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
             float ka = ComputeKa(input.WhitePoint);
             float kb = ComputeKb(input.WhitePoint);
 
-            float y = MathF.Pow(l / 100F, 2) * yn;
-            float x = (((a / ka) * MathF.Sqrt(y / yn)) + (y / yn)) * xn;
-            float z = (((b / kb) * MathF.Sqrt(y / yn)) - (y / yn)) * (-zn);
+            float y = (float)Math.Pow(l / 100F, 2) * yn;
+            float x = (((a / ka) * (float)Math.Sqrt(y / yn)) + (y / yn)) * xn;
+            float z = (((b / kb) * (float)Math.Sqrt(y / yn)) - (y / yn)) * (-zn);
 
             return new CieXyz(x, y, z);
         }

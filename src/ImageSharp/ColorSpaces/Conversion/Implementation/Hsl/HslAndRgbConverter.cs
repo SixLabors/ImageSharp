@@ -26,9 +26,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSap
             float s = input.S;
             float l = input.L;
 
-            if (MathF.Abs(l) > Constants.Epsilon)
+            if (Math.Abs(l) > Constants.Epsilon)
             {
-                if (MathF.Abs(s) < Constants.Epsilon)
+                if (Math.Abs(s) < Constants.Epsilon)
                 {
                     r = g = b = l;
                 }
@@ -56,27 +56,27 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSap
             float g = input.G;
             float b = input.B;
 
-            float max = MathF.Max(r, MathF.Max(g, b));
-            float min = MathF.Min(r, MathF.Min(g, b));
+            float max = Math.Max(r, Math.Max(g, b));
+            float min = Math.Min(r, Math.Min(g, b));
             float chroma = max - min;
             float h = 0F;
             float s = 0F;
             float l = (max + min) / 2F;
 
-            if (MathF.Abs(chroma) < Constants.Epsilon)
+            if (Math.Abs(chroma) < Constants.Epsilon)
             {
                 return new Hsl(0F, s, l);
             }
 
-            if (MathF.Abs(r - max) < Constants.Epsilon)
+            if (Math.Abs(r - max) < Constants.Epsilon)
             {
                 h = (g - b) / chroma;
             }
-            else if (MathF.Abs(g - max) < Constants.Epsilon)
+            else if (Math.Abs(g - max) < Constants.Epsilon)
             {
                 h = 2F + ((b - r) / chroma);
             }
-            else if (MathF.Abs(b - max) < Constants.Epsilon)
+            else if (Math.Abs(b - max) < Constants.Epsilon)
             {
                 h = 4F + ((r - g) / chroma);
             }

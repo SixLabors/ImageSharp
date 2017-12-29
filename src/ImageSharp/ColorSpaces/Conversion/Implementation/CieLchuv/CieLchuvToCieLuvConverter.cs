@@ -23,8 +23,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvCol
             float l = input.L, c = input.C, hDegrees = input.H;
             float hRadians = MathFExtensions.DegreeToRadian(hDegrees);
 
-            float u = c * MathF.Cos(hRadians);
-            float v = c * MathF.Sin(hRadians);
+            float u = c * (float)Math.Cos(hRadians);
+            float v = c * (float)Math.Sin(hRadians);
 
             return new CieLuv(l, u, v, input.WhitePoint);
         }

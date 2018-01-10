@@ -29,7 +29,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="provider">The image provider</param>
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
-        /// <param name="grayscale">A boolean indicating whether we should save a smaller in size.</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
         public static Image<TPixel> DebugSave<TPixel>(
             this Image<TPixel> image,

@@ -34,6 +34,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string SnakeGame = "Png/SnakeGame.png";
+            public const string Icon = "Png/icon.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -126,6 +127,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
                 public const string BadZigZagProgressive385 = "Jpg/issues/Issue385-BadZigZag-Progressive.jpg";
+                public const string MultiHuffmanBaseline394 = "Jpg/issues/Issue394-MultiHuffmanBaseline-Speakers.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
@@ -156,8 +158,16 @@ namespace SixLabors.ImageSharp.Tests
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
+            public const string Kumin = "Gif/kumin.gif";
 
-            public static readonly string[] All = { Rings, Giphy, Cheers, Trans };
+            public class Issues
+            {
+                public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
+                public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
+                public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+            }
+
+            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin };
         }
     }
 }

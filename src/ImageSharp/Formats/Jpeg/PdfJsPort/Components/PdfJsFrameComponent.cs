@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             int blocksBufferSize = 64 * this.BlocksPerColumnForMcu * (this.BlocksPerLineForMcu + 1);
 
             // Pooled. Disposed via frame disposal
-            this.BlockData = Buffer<short>.CreateClean(blocksBufferSize);
+            this.BlockData = MemoryManager.Current.Allocate<short>(blocksBufferSize, true);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

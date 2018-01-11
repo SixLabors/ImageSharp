@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (var rgbaBuffer = new Buffer<Rgba32>(length))
+            using (var rgbaBuffer = MemoryManager.Current.Allocate<Rgba32>(length))
             {
                 PixelOperations<TPixel>.Instance.ToRgba32(source, rgbaBuffer, length);
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (var rgbaBuffer = new Buffer<Rgba32>(length))
+            using (var rgbaBuffer = MemoryManager.Current.Allocate<Rgba32>(length))
             {
                 PixelOperations<Argb32>.Instance.ToRgba32(source, rgbaBuffer, length);
 
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (var rgbaBuffer = new Buffer<Rgb24>(length))
+            using (var rgbaBuffer = MemoryManager.Current.Allocate<Rgb24>(length))
             {
                 PixelOperations<Rgb24>.Instance.ToRgb24(source, rgbaBuffer, length);
 
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (var workBuffer = new Buffer<Argb32>(w))
+            using (var workBuffer = MemoryManager.Current.Allocate<Argb32>(w))
             {
                 var destPtr = (Argb32*)workBuffer.Pin();
                 for (int y = 0; y < h; y++)
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (var workBuffer = new Buffer<Rgb24>(w))
+            using (var workBuffer = MemoryManager.Current.Allocate<Rgb24>(w))
             {
                 var destPtr = (Rgb24*)workBuffer.Pin();
                 for (int y = 0; y < h; y++)
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             long destRowByteCount = data.Stride;
             long sourceRowByteCount = w * sizeof(Argb32);
 
-            using (var workBuffer = new Buffer<Argb32>(w))
+            using (var workBuffer = MemoryManager.Current.Allocate<Argb32>(w))
             {
                 var sourcePtr = (Argb32*)workBuffer.Pin();
 

@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
-                            using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
+                            using (var tempRowBuffer = MemoryManager.Current.Allocate<Vector4>(source.Width))
                             {
                                 Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

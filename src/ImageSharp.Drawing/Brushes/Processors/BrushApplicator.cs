@@ -65,8 +65,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
         /// <remarks>scanlineBuffer will be > scanlineWidth but provide and offset in case we want to share a larger buffer across runs.</remarks>
         internal virtual void Apply(Span<float> scanline, int x, int y)
         {
-            using (var amountBuffer = new Buffer<float>(scanline.Length))
-            using (var overlay = new Buffer<TPixel>(scanline.Length))
+            using (var amountBuffer = MemoryManager.Current.Allocate<float>(scanline.Length))
+            using (var overlay = MemoryManager.Current.Allocate<TPixel>(scanline.Length))
             {
                 for (int i = 0; i < scanline.Length; i++)
                 {

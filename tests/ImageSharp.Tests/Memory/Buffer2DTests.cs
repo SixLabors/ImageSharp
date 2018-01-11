@@ -39,21 +39,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        [Theory]
-        [InlineData(7, 42)]
-        [InlineData(1025, 17)]
-        public void Construct_FromExternalArray(int width, int height)
-        {
-            TestStructs.Foo[] array = new TestStructs.Foo[width * height + 10];
-            using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(new Buffer<TestStructs.Foo>(array, array.Length), width, height))
-            {
-                Assert.Equal(width, buffer.Width);
-                Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.Buffer.Length);
-            }
-        }
-
-
         [Fact]
         public void CreateClean()
         {

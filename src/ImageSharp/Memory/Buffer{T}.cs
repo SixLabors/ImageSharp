@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <summary>
         /// Unpins <see cref="Array"/> and makes the object "quasi-disposed" so the array is no longer owned by this object.
-        /// If <see cref="Array"/> is rented, it's the callers responsibility to return it to it's pool. (Most likely <see cref="PixelDataPool{T}"/>)
+        /// If <see cref="Array"/> is rented, it's the callers responsibility to return it to it's pool.
         /// </summary>
         /// <returns>The unpinned <see cref="Array"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

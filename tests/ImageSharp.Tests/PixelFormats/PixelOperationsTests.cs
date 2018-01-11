@@ -50,8 +50,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
-                using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
+                using (Buffer<ImageSharp.Rgba32> source = MemoryManager.Current.Allocate<ImageSharp.Rgba32>(count))
+                using (Buffer<Vector4> dest = MemoryManager.Current.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
@@ -344,7 +344,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
                 this.SourceBuffer = new Buffer<TSource>(source);
                 this.ExpectedDestBuffer = new Buffer<TDest>(expectedDest);
-                this.ActualDestBuffer = new Buffer<TDest>(expectedDest.Length);
+                this.ActualDestBuffer = MemoryManager.Current.Allocate<TDest>(expectedDest.Length);
             }
 
             public void Dispose()

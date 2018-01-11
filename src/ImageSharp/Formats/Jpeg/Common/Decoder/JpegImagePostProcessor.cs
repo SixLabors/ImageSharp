@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
             this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
-            this.rgbaBuffer = new Buffer<Vector4>(rawJpeg.ImageSizeInPixels.Width);
+            this.rgbaBuffer = MemoryManager.Current.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
             this.colorConverter = ColorConverters.JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 

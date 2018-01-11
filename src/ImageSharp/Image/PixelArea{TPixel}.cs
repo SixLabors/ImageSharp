@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp
             this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
             this.Length = this.RowStride * height;
 
-            this.byteBuffer = Buffer<byte>.CreateClean(this.Length);
+            this.byteBuffer = MemoryManager.Current.Allocate<byte>(this.Length, true);
         }
 
         /// <summary>

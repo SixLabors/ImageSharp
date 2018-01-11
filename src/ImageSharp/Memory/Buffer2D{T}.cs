@@ -1,20 +1,20 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Memory
 {
-    using System;
-
     /// <summary>
     /// Represents a buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
     internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
-        where T : struct {
+        where T : struct
+    {
         public Buffer2D(Size size)
             : this(size.Width, size.Height)
         {
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
         public Buffer2D(int width, int height)
-            : this(MemoryManager.Current.Allocate<T>(width * height), width, height) 
+            : this(MemoryManager.Current.Allocate<T>(width * height), width, height)
         {
             this.Width = width;
             this.Height = height;
@@ -38,7 +38,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="array">The array to pin</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(T[] array, int width, int height) {
+        public Buffer2D(T[] array, int width, int height)
+        {
             this.Buffer = new Buffer<T>(array, width * height);
             this.Width = width;
             this.Height = height;
@@ -50,7 +51,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="wrappedBuffer">The buffer to wrap</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(Buffer<T> wrappedBuffer, int width, int height) {
+        public Buffer2D(Buffer<T> wrappedBuffer, int width, int height)
+        {
             this.Buffer = wrappedBuffer;
             this.Width = width;
             this.Height = height;
@@ -92,7 +94,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The <see cref="Buffer{T}"/> instance</returns>
         public static Buffer2D<T> CreateClean(int width, int height)
         {
-            return new Buffer2D<T>(MemoryManager.Current.Allocate<T>(width*height, true), width, height);
+            return new Buffer2D<T>(MemoryManager.Current.Allocate<T>(width * height, true), width, height);
         }
 
         /// <summary>
@@ -102,7 +104,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The <see cref="Buffer2D{T}"/> instance</returns>
         public static Buffer2D<T> CreateClean(Size size) => CreateClean(size.Width, size.Height);
 
-        public void Dispose() {
+        public void Dispose()
+        {
             this.Buffer?.Dispose();
         }
     }

@@ -424,7 +424,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Rgba32[] colors = { new Rgba32(0, 1, 2, 3), new Rgba32(4, 5, 6, 7), new Rgba32(8, 9, 10, 11), };
 
                 using (Buffer<Rgba32> colorBuf = new Buffer<Rgba32>(colors))
-                using (Buffer<byte> byteBuf = new Buffer<byte>(colors.Length * 4))
+                using (Buffer<byte> byteBuf = MemoryManager.Current.Allocate<byte>(colors.Length * 4))
                 {
                     SpanHelper.Copy(colorBuf.Span.AsBytes(), byteBuf, colorBuf.Length * sizeof(Rgba32));
 

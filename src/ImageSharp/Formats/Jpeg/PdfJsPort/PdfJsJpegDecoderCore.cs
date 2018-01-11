@@ -673,14 +673,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (var huffmanData = Buffer<byte>.CreateClean(256))
+            using (var huffmanData = MemoryManager.Current.Allocate<byte>(256, true))
             {
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (var codeLengths = Buffer<byte>.CreateClean(17))
+                    using (var codeLengths = MemoryManager.Current.Allocate<byte>(17, true))
                     {
                         int codeLengthSum = 0;
 
@@ -689,7 +689,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             codeLengthSum += codeLengths[j] = huffmanData[j - 1];
                         }
 
-                        using (var huffmanValues = Buffer<byte>.CreateClean(256))
+                        using (var huffmanValues = MemoryManager.Current.Allocate<byte>(256, true))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -784,8 +784,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
-            using (var computationBuffer = Buffer<short>.CreateClean(64))
-            using (var multiplicationBuffer = Buffer<short>.CreateClean(64))
+            using (var computationBuffer = MemoryManager.Current.Allocate<short>(64, true))
+            using (var multiplicationBuffer = MemoryManager.Current.Allocate<short>(64, true))
             {
                 Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
                 Span<short> computationBufferSpan = computationBuffer;

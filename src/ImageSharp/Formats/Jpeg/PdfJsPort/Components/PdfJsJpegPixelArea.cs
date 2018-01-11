@@ -69,11 +69,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.rowStride = width * numberOfComponents;
             var scale = new Vector2(this.imageWidth / (float)width, this.imageHeight / (float)height);
 
-            this.componentData = new Buffer<byte>(width * height * numberOfComponents);
+            this.componentData = MemoryManager.Current.Allocate<byte>(width * height * numberOfComponents);
             Span<byte> componentDataSpan = this.componentData;
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
-            using (var xScaleBlockOffset = new Buffer<int>(width))
+            using (var xScaleBlockOffset = MemoryManager.Current.Allocate<int>(width))
             {
                 Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
                 for (int i = 0; i < numberOfComponents; i++)

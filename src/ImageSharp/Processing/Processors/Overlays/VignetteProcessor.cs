@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             int width = maxX - minX;
-            using (var rowColors = new Buffer<TPixel>(width))
+            using (var rowColors = MemoryManager.Current.Allocate<TPixel>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     configuration.ParallelOptions,
                     y =>
                         {
-                            using (var amounts = new Buffer<float>(width))
+                            using (var amounts = MemoryManager.Current.Allocate<float>(width))
                             {
                                 int offsetY = y - startY;
                                 int offsetX = minX - startX;

@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Memory
     internal class Buffer<T> : IBuffer<T>
         where T : struct
     {
+        private MemoryManager memoryManager;
+
         /// <summary>
         /// A pointer to the first element of <see cref="Array"/> when pinned.
         /// </summary>
@@ -27,23 +29,6 @@ namespace SixLabors.ImageSharp.Memory
         private GCHandle handle;
 
         /// <summary>
-        /// A value indicating wheter <see cref="Array"/> should be returned to <see cref="PixelDataPool{T}"/>
-        /// when disposing this <see cref="Buffer{T}"/> instance.
-        /// </summary>
-        private bool isPoolingOwner;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Buffer{T}"/> class.
-        /// </summary>
-        /// <param name="length">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
-        public Buffer(int length)
-        {
-            this.Length = length;
-            this.Array = PixelDataPool<T>.Rent(length);
-            this.isPoolingOwner = true;
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Buffer{T}"/> class.
         /// </summary>
         /// <param name="array">The array to pin.</param>
@@ -51,7 +36,6 @@ namespace SixLabors.ImageSharp.Memory
         {
             this.Length = array.Length;
             this.Array = array;
-            this.isPoolingOwner = false;
         }
 
         /// <summary>
@@ -68,7 +52,6 @@ namespace SixLabors.ImageSharp.Memory
 
             this.Length = length;
             this.Array = array;
-            this.isPoolingOwner = false;
         }
 
         internal Buffer(T[] array, int length, MemoryManager memoryManager)
@@ -141,19 +124,6 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Creates a clean instance of <see cref="Buffer{T}"/> initializing it's elements with 'default(T)'.
-        /// </summary>
-        /// <param name="count">The desired count of elements. (Minimum size for <see cref="Array"/>)</param>
-        /// <returns>The <see cref="Buffer{T}"/> instance</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Buffer<T> CreateClean(int count)
-        {
-            Buffer<T> buffer = new Buffer<T>(count);
-            buffer.Clear();
-            return buffer;
-        }
-
-        /// <summary>
         /// Gets a <see cref="Span{T}"/> to an offseted position inside the buffer.
         /// </summary>
         /// <param name="start">The start</param>
@@ -190,12 +160,9 @@ namespace SixLabors.ImageSharp.Memory
             this.IsDisposedOrLostArrayOwnership = true;
             this.UnPin();
 
-            if (this.isPoolingOwner)
-            {
-                PixelDataPool<T>.Return(this.Array);
-            }
+            this.memoryManager?.Release(this);
 
-            this.isPoolingOwner = false;
+            this.memoryManager = null;
             this.Array = null;
             this.Length = 0;
 
@@ -220,7 +187,7 @@ namespace SixLabors.ImageSharp.Memory
             this.UnPin();
             T[] array = this.Array;
             this.Array = null;
-            this.isPoolingOwner = false;
+            this.memoryManager = null;
             return array;
         }
 

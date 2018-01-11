@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             get; set;
         }
 
-        = new Buffer2D<short>(64, 4);
+        = MemoryManager.Current.Allocate2D<short>(64, 4);
 
         /// <inheritdoc/>
         public void Dispose()

@@ -15,36 +15,6 @@ namespace SixLabors.ImageSharp.Memory
     internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
         where T : struct
     {
-        public Buffer2D(Size size)
-            : this(size.Width, size.Height)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
-        /// </summary>
-        /// <param name="width">The number of elements in a row</param>
-        /// <param name="height">The number of rows</param>
-        public Buffer2D(int width, int height)
-            : this(MemoryManager.Current.Allocate<T>(width * height), width, height)
-        {
-            this.Width = width;
-            this.Height = height;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
-        /// </summary>
-        /// <param name="array">The array to pin</param>
-        /// <param name="width">The number of elements in a row</param>
-        /// <param name="height">The number of rows</param>
-        public Buffer2D(T[] array, int width, int height)
-        {
-            this.Buffer = new Buffer<T>(array, width * height);
-            this.Width = width;
-            this.Height = height;
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>

@@ -26,7 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         {
             this.Component = component;
             this.ImagePostProcessor = imagePostProcessor;
-            this.ColorBuffer = new Buffer2D<float>(imagePostProcessor.PostProcessorBufferSize);
+            this.ColorBuffer = MemoryManager.Current.Allocate2D<float>(
+                imagePostProcessor.PostProcessorBufferSize.Width,
+                imagePostProcessor.PostProcessorBufferSize.Height);
 
             this.BlockRowsPerStep = JpegImagePostProcessor.BlockRowsPerStep / this.Component.SubSamplingDivisors.Height;
             this.blockAreaSize = this.Component.SubSamplingDivisors * 8;

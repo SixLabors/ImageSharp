@@ -144,8 +144,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                using (var amountBuffer = new Buffer<float>(scanline.Length))
-                using (var overlay = new Buffer<TPixel>(scanline.Length))
+                using (var amountBuffer = MemoryManager.Current.Allocate<float>(scanline.Length))
+                using (var overlay = MemoryManager.Current.Allocate<TPixel>(scanline.Length))
                 {
                     for (int i = 0; i < scanline.Length; i++)
                     {

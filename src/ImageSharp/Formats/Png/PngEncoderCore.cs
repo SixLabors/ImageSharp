@@ -620,16 +620,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
-            this.rawScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
-            this.result = Buffer<byte>.CreateClean(resultLength);
+            this.previousScanline = MemoryManager.Current.Allocate<byte>(this.bytesPerScanline, true);
+            this.rawScanline = MemoryManager.Current.Allocate<byte>(this.bytesPerScanline, true);
+            this.result = MemoryManager.Current.Allocate<byte>(resultLength, true);
 
             if (this.pngColorType != PngColorType.Palette)
             {
-                this.sub = Buffer<byte>.CreateClean(resultLength);
-                this.up = Buffer<byte>.CreateClean(resultLength);
-                this.average = Buffer<byte>.CreateClean(resultLength);
-                this.paeth = Buffer<byte>.CreateClean(resultLength);
+                this.sub = MemoryManager.Current.Allocate<byte>(resultLength, true);
+                this.up = MemoryManager.Current.Allocate<byte>(resultLength, true);
+                this.average = MemoryManager.Current.Allocate<byte>(resultLength, true);
+                this.paeth = MemoryManager.Current.Allocate<byte>(resultLength, true);
             }
 
             byte[] buffer;

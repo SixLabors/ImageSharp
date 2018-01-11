@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [GlobalSetup]
         public void Setup()
         {
-            this.buffer = new Buffer<Rgba32>(this.Count);
+            this.buffer = MemoryManager.Current.Allocate<Rgba32>(this.Count);
         }
 
         [GlobalCleanup]

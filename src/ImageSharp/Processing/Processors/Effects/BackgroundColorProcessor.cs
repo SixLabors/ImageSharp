@@ -67,8 +67,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int width = maxX - minX;
 
-            using (var colors = new Buffer<TPixel>(width))
-            using (var amount = new Buffer<float>(width))
+            using (var colors = MemoryManager.Current.Allocate<TPixel>(width))
+            using (var amount = MemoryManager.Current.Allocate<float>(width))
             {
                 for (int i = 0; i < width; i++)
                 {

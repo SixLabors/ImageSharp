@@ -71,6 +71,12 @@ namespace SixLabors.ImageSharp.Memory
             this.isPoolingOwner = false;
         }
 
+        internal Buffer(T[] array, int length, MemoryManager memoryManager)
+            : this(array, length)
+        {
+            this.memoryManager = memoryManager;
+        }
+
         /// <summary>
         /// Finalizes an instance of the <see cref="Buffer{T}"/> class.
         /// </summary>

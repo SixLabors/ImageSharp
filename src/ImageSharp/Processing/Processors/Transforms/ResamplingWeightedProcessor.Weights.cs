@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 this.flatStartIndex = (index * buffer.Width) + left;
                 this.Left = left;
-                this.buffer = buffer;
+                this.buffer = buffer.Buffer;
                 this.Length = length;
             }
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             /// </summary>
             /// <returns>The <see cref="Span{T}"/></returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Span<float> GetWindowSpan() => this.buffer.Slice(this.flatStartIndex, this.Length);
+            public Span<float> GetWindowSpan() => this.buffer.Span.Slice(this.flatStartIndex, this.Length);
 
             /// <summary>
             /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.

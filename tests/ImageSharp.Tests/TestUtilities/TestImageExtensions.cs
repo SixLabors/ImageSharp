@@ -233,9 +233,9 @@ namespace SixLabors.ImageSharp.Tests
 
             Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
-            for (int i = 0; i < buffer.Length; i++)
+            for (int i = 0; i < buffer.Buffer.Length; i++)
             {
-                float value = buffer[i] * scale;
+                float value = buffer.Buffer[i] * scale;
                 var v = new Vector4(value, value, value, 1f);
                 pixels[i].PackFromVector4(v);
             }

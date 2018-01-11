@@ -6,14 +6,15 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Memory
 {
+    using System;
+
     /// <summary>
     /// Represents a buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer2D<T> : Buffer<T>, IBuffer2D<T>
-        where T : struct
-    {
+    internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
+        where T : struct {
         public Buffer2D(Size size)
             : this(size.Width, size.Height)
         {
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
         public Buffer2D(int width, int height)
-            : base(width * height)
+            : this(MemoryManager.Current.Allocate<T>(width * height), width, height) 
         {
             this.Width = width;
             this.Height = height;
@@ -37,9 +38,20 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="array">The array to pin</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(T[] array, int width, int height)
-            : base(array, width * height)
-        {
+        public Buffer2D(T[] array, int width, int height) {
+            this.Buffer = new Buffer<T>(array, width * height);
+            this.Width = width;
+            this.Height = height;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
+        /// </summary>
+        /// <param name="wrappedBuffer">The buffer to wrap</param>
+        /// <param name="width">The number of elements in a row</param>
+        /// <param name="height">The number of rows</param>
+        public Buffer2D(Buffer<T> wrappedBuffer, int width, int height) {
+            this.Buffer = wrappedBuffer;
             this.Width = width;
             this.Height = height;
         }
@@ -49,6 +61,10 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <inheritdoc />
         public int Height { get; }
+
+        public Span<T> Span => this.Buffer.Span;
+
+        public Buffer<T> Buffer { get; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -64,7 +80,7 @@ namespace SixLabors.ImageSharp.Memory
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
-                return ref this.Array[(this.Width * y) + x];
+                return ref this.Buffer.Array[(this.Width * y) + x];
             }
         }
 
@@ -76,9 +92,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The <see cref="Buffer{T}"/> instance</returns>
         public static Buffer2D<T> CreateClean(int width, int height)
         {
-            var buffer = new Buffer2D<T>(width, height);
-            buffer.Clear();
-            return buffer;
+            return new Buffer2D<T>(MemoryManager.Current.Allocate<T>(width*height, true), width, height);
         }
 
         /// <summary>
@@ -87,5 +101,9 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="size">The size of the buffer</param>
         /// <returns>The <see cref="Buffer2D{T}"/> instance</returns>
         public static Buffer2D<T> CreateClean(Size size) => CreateClean(size.Width, size.Height);
+
+        public void Dispose() {
+            this.Buffer?.Dispose();
+        }
     }
 }

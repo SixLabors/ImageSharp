@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.Length);
+                Assert.Equal(width * height, buffer.Buffer.Length);
             }
         }
 
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.Length);
+                Assert.Equal(width * height, buffer.Buffer.Length);
             }
         }
 
@@ -61,10 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 using (Buffer2D<int> buffer = Buffer2D<int>.CreateClean(42, 42))
                 {
-                    for (int j = 0; j < buffer.Length; j++)
+                    for (int j = 0; j < buffer.Buffer.Length; j++)
                     {
-                        Assert.Equal(0, buffer.Array[j]);
-                        buffer.Array[j] = 666;
+                        Assert.Equal(0, buffer.Buffer.Array[j]);
+                        buffer.Buffer.Array[j] = 666;
                     }
                 }
             }
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 // Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
-                Assert.SpanPointsTo(span, buffer, width * y);
+                Assert.SpanPointsTo(span, buffer.Buffer, width * y);
             }
         }
 
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 // Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
-                Assert.SpanPointsTo(span, buffer, width * y + x);
+                Assert.SpanPointsTo(span, buffer.Buffer, width * y + x);
             }
         }
 
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<TestStructs.Foo> buffer = new Buffer2D<TestStructs.Foo>(width, height))
             {
-                TestStructs.Foo[] array = buffer.Array;
+                TestStructs.Foo[] array = buffer.Buffer.Array;
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 

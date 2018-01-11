@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Construct()
         {
-            using (var buffer = new Buffer2D<int>(10, 20))
+            using (var buffer = MemoryManager.Current.Allocate2D<int>(10, 20))
             {
                 var rectangle = new Rectangle(3,2, 5, 6);
                 var area = new BufferArea<int>(buffer, rectangle);
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         private static Buffer2D<int> CreateTestBuffer(int w, int h)
         {
-            var buffer = new Buffer2D<int>(w, h);
+            var buffer = MemoryManager.Current.Allocate2D<int>(w, h);
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)

@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source.</param>
         internal ImageFrame(ImageFrame<TPixel> source)
         {
-            this.pixelBuffer = new Buffer2D<TPixel>(source.pixelBuffer.Width, source.pixelBuffer.Height);
+            this.pixelBuffer = MemoryManager.Current.Allocate2D<TPixel>(source.pixelBuffer.Width, source.pixelBuffer.Height);
             source.pixelBuffer.Span.CopyTo(this.pixelBuffer.Span);
             this.MetaData = source.MetaData.Clone();
         }

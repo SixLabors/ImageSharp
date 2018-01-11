@@ -35,5 +35,13 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="buffer">The buffer to release</param>
         internal abstract void Release<T>(Buffer<T> buffer)
             where T : struct;
+
+        internal Buffer2D<T> Allocate2D<T>(int width, int height, bool clear = false)
+            where T : struct
+        {
+            var buffer = this.Allocate<T>(width * height, clear);
+
+            return new Buffer2D<T>(buffer, width, height);
+        }
     }
 }

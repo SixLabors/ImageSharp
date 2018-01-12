@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-            using (Buffer<Vector4> buffer = MemoryManager.Current.Allocate<Vector4>(destination.Length * 3))
+            using (Buffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3))
             {
                 Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                Buffer<float> amounts = MemoryManager.Current.Allocate<float>(image.Width);
+                Buffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width);
 
                 for (int x = 0; x < image.Width; x++)
                 {
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                Buffer<float> amounts = MemoryManager.Current.Allocate<float>(image.Width);
+                Buffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width);
 
                 for (int x = 0; x < image.Width; x++)
                 {

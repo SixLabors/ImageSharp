@@ -84,6 +84,11 @@ namespace SixLabors.ImageSharp
         public IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
 
         /// <summary>
+        /// Gets or sets the <see cref="MemoryManager"/> that is currently in use.
+        /// </summary>
+        public MemoryManager MemoryManager { get; set; } = new ArrayPoolMemoryManager(1024 * 80);
+
+        /// <summary>
         /// Gets the maximum header size of all the formats.
         /// </summary>
         internal int MaxHeaderSize { get; private set; }

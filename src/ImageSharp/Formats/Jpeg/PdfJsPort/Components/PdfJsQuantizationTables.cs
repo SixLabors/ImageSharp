@@ -40,6 +40,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 63
             };
 
+        public PdfJsQuantizationTables(MemoryManager memoryManager)
+        {
+            this.Tables = memoryManager.Allocate2D<short>(64, 4);
+        }
+
         /// <summary>
         /// Gets or sets the quantization tables.
         /// </summary>
@@ -48,8 +53,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get; set;
         }
-
-        = MemoryManager.Current.Allocate2D<short>(64, 4);
 
         /// <inheritdoc/>
         public void Dispose()

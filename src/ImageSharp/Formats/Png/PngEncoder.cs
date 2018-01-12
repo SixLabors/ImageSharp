@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
@@ -12,6 +14,13 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
+        private readonly MemoryManager memoryManager;
+
+        public PngEncoder(MemoryManager memoryManager)
+        {
+            this.memoryManager = memoryManager;
+        }
+        
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>
@@ -66,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(this))
+            using (var encoder = new PngEncoderCore(this.memoryManager, this))
             {
                 encoder.Encode(image, stream);
             }

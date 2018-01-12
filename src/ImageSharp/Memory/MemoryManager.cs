@@ -12,11 +12,6 @@ namespace SixLabors.ImageSharp.Memory
     public abstract class MemoryManager
     {
         /// <summary>
-        /// Gets or sets the <see cref="MemoryManager"/> that is currently in use.
-        /// </summary>
-        public static MemoryManager Current { get; set; } = new ArrayPoolMemoryManager(1024 * 80);
-
-        /// <summary>
         /// Allocates a <see cref="Buffer{T}"/> of size <paramref name="size"/>, optionally
         /// clearing the buffer before it gets returned.
         /// </summary>

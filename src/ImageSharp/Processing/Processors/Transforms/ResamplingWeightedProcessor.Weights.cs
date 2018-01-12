@@ -164,9 +164,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
             /// </summary>
             /// <param name="sourceSize">The size of the source window</param>
             /// <param name="destinationSize">The size of the destination window</param>
-            public WeightsBuffer(int sourceSize, int destinationSize)
+            public WeightsBuffer(MemoryManager memoryManager, int sourceSize, int destinationSize)
             {
-                this.dataBuffer = Buffer2D<float>.CreateClean(sourceSize, destinationSize);
+                this.dataBuffer = memoryManager.Allocate2D<float>(sourceSize, destinationSize, true);
                 this.Weights = new WeightsWindow[destinationSize];
             }
 

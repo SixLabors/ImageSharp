@@ -5,6 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -84,6 +87,9 @@ namespace SixLabors.ImageSharp.Tests
                 });
                 return this;
             }
+
+            public MemoryManager GetMemoryManager() => this.source.GetConfiguration().MemoryManager;
+
             public struct AppliedOpperation
             {
                 public Rectangle? Rectangle { get; set; }

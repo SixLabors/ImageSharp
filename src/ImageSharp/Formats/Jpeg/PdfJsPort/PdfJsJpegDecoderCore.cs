@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             ushort marker = this.ReadUint16();
             fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
 
-            this.quantizationTables = new PdfJsQuantizationTables();
+            this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
             this.dcHuffmanTables = new PdfJsHuffmanTables();
             this.acHuffmanTables = new PdfJsHuffmanTables();
 
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.NumberOfComponents}");
             }
 
-            this.pixelArea = new PdfJsJpegPixelArea(image.Width, image.Height, this.NumberOfComponents);
+            this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.NumberOfComponents);
             this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
 
             if (this.NumberOfComponents == 1)
@@ -648,7 +648,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     maxV = v;
                 }
 
-                var component = new PdfJsFrameComponent(this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                 this.Frame.Components[i] = component;
                 this.Frame.ComponentIds[i] = component.Id;
@@ -673,14 +673,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (var huffmanData = MemoryManager.Current.Allocate<byte>(256, true))
+            using (var huffmanData = this.configuration.MemoryManager.Allocate<byte>(256, true))
             {
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (var codeLengths = MemoryManager.Current.Allocate<byte>(17, true))
+                    using (var codeLengths = this.configuration.MemoryManager.Allocate<byte>(17, true))
                     {
                         int codeLengthSum = 0;
 
@@ -689,7 +689,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             codeLengthSum += codeLengths[j] = huffmanData[j - 1];
                         }
 
-                        using (var huffmanValues = MemoryManager.Current.Allocate<byte>(256, true))
+                        using (var huffmanValues = this.configuration.MemoryManager.Allocate<byte>(256, true))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -784,8 +784,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
-            using (var computationBuffer = MemoryManager.Current.Allocate<short>(64, true))
-            using (var multiplicationBuffer = MemoryManager.Current.Allocate<short>(64, true))
+            using (var computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
+            using (var multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             {
                 Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
                 Span<short> computationBufferSpan = computationBuffer;
@@ -823,7 +823,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="values">The values</param>
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
-            tables[index] = new PdfJsHuffmanTable(codeLengths, values);
+            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

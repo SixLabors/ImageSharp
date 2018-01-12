@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal sealed class PngEncoderCore : IDisposable
     {
+        private readonly MemoryManager memoryManager;
+
         /// <summary>
         /// The maximum block size, defaults at 64k for uncompressed blocks.
         /// </summary>
@@ -149,8 +151,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for influancing the encoder</param>
-        public PngEncoderCore(IPngEncoderOptions options)
+        public PngEncoderCore(MemoryManager memoryManager, IPngEncoderOptions options)
         {
+            this.memoryManager = memoryManager;
             this.ignoreMetadata = options.IgnoreMetadata;
             this.paletteSize = options.PaletteSize > 0 ? options.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
             this.pngColorType = options.PngColorType;
@@ -620,16 +623,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = MemoryManager.Current.Allocate<byte>(this.bytesPerScanline, true);
-            this.rawScanline = MemoryManager.Current.Allocate<byte>(this.bytesPerScanline, true);
-            this.result = MemoryManager.Current.Allocate<byte>(resultLength, true);
+            this.previousScanline = this.memoryManager.Allocate<byte>(this.bytesPerScanline, true);
+            this.rawScanline = this.memoryManager.Allocate<byte>(this.bytesPerScanline, true);
+            this.result = this.memoryManager.Allocate<byte>(resultLength, true);
 
             if (this.pngColorType != PngColorType.Palette)
             {
-                this.sub = MemoryManager.Current.Allocate<byte>(resultLength, true);
-                this.up = MemoryManager.Current.Allocate<byte>(resultLength, true);
-                this.average = MemoryManager.Current.Allocate<byte>(resultLength, true);
-                this.paeth = MemoryManager.Current.Allocate<byte>(resultLength, true);
+                this.sub = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.up = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.average = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.paeth = this.memoryManager.Allocate<byte>(resultLength, true);
             }
 
             byte[] buffer;

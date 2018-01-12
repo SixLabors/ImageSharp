@@ -20,6 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
         public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)

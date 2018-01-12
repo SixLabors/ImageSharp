@@ -30,6 +30,11 @@ namespace SixLabors.ImageSharp
         /// <returns>The current operations class to allow chaining of operations.</returns>
         IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor);
 
+        /// <summary>
+        /// Returns a reference to the <see cref="MemoryManager" /> used to allocate buffers
+        /// for this context.
+        /// </summary>
+        /// <returns>A <see cref="MemoryManager"/> to use for buffer allocations.</returns>
         MemoryManager GetMemoryManager();
     }
 

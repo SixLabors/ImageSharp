@@ -150,6 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="options">The options for influancing the encoder</param>
         public PngEncoderCore(MemoryManager memoryManager, IPngEncoderOptions options)
         {

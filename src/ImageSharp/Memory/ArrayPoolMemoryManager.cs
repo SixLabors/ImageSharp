@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
-
     /// <summary>
     /// Implements <see cref="MemoryManager"/> by allocating memory from <see cref="ArrayPool{T}"/>.
     /// </summary>

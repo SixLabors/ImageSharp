@@ -190,11 +190,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <inheritdoc />
         public void Dispose()
         {
-            for (int i = 0; i < this.HuffmanTrees.Length; i++)
-            {
-                this.HuffmanTrees[i].Dispose();
-            }
-
             if (this.Components != null)
             {
                 foreach (OrigComponent component in this.Components)

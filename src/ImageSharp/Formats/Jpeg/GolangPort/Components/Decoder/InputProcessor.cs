@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 if (this.LastErrorCode == OrigDecoderErrorCode.NoError)
                 {
                     int lutIndex = (this.Bits.Accumulator >> (this.Bits.UnreadBits - OrigHuffmanTree.LutSizeLog2)) & 0xFF;
-                    int v = huffmanTree.Lut[lutIndex];
+                    int v = huffmanTree.ReadLut(lutIndex);
 
                     if (v != 0)
                     {
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.Bits.UnreadBits--;
                 this.Bits.Mask >>= 1;
 
-                if (code <= huffmanTree.MaxCodes[i])
+                if (code <= huffmanTree.GetMaxCode(i))
                 {
                     result = huffmanTree.GetValue(code, i);
                     return this.LastErrorCode = OrigDecoderErrorCode.NoError;

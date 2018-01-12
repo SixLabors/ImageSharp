@@ -27,6 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsJpegPixelArea"/> struct.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="imageWidth">The image width</param>
         /// <param name="imageHeight">The image height</param>
         /// <param name="numberOfComponents">The number of components</param>

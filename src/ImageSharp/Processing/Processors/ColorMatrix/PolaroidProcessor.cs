@@ -26,8 +26,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public PolaroidProcessor(MemoryManager memoryManager, GraphicsOptions options) {
+        public PolaroidProcessor(MemoryManager memoryManager, GraphicsOptions options)
+        {
             this.memoryManager = memoryManager;
             this.options = options;
         }

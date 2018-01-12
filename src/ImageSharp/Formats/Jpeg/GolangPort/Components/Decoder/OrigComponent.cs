@@ -54,6 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
         public void InitializeDerivedData(MemoryManager memoryManager, OrigJpegDecoderCore decoder)
         {

@@ -20,8 +20,6 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        public MemoryManager MemoryManager { get; }
-
         /// <summary>
         /// The image pixels. Not private as Buffer2D requires an array in its constructor.
         /// </summary>
@@ -32,6 +30,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         internal ImageFrame(MemoryManager memoryManager, int width, int height)
@@ -42,6 +41,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metaData">The meta data.</param>
@@ -60,6 +60,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="source">The source.</param>
         internal ImageFrame(MemoryManager memoryManager, ImageFrame<TPixel> source)
         {
@@ -68,6 +69,11 @@ namespace SixLabors.ImageSharp
             source.pixelBuffer.Span.CopyTo(this.pixelBuffer.Span);
             this.MetaData = source.MetaData.Clone();
         }
+
+        /// <summary>
+        /// Gets the <see cref="MemoryManager" /> to use for buffer allocations.
+        /// </summary>
+        public MemoryManager MemoryManager { get; }
 
         /// <inheritdoc/>
         Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.pixelBuffer;

@@ -27,6 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="GlowProcessor{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The color or the glow.</param>
         /// <param name="radius">The radius of the glow.</param>
         /// <param name="options">The options effecting blending and composition.</param>

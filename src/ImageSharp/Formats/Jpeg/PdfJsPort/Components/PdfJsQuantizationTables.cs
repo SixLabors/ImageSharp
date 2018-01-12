@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal sealed class PdfJsQuantizationTables : IDisposable
     {
+        public PdfJsQuantizationTables(MemoryManager memoryManager)
+        {
+            this.Tables = memoryManager.Allocate2D<short>(64, 4);
+        }
+
         /// <summary>
         /// Gets the ZigZag scan table
         /// </summary>
@@ -39,11 +44,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 55, 62,
                 63
             };
-
-        public PdfJsQuantizationTables(MemoryManager memoryManager)
-        {
-            this.Tables = memoryManager.Allocate2D<short>(64, 4);
-        }
 
         /// <summary>
         /// Gets or sets the quantization tables.

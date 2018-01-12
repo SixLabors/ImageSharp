@@ -20,6 +20,7 @@ namespace SixLabors.ImageSharp.Drawing
         /// <summary>
         /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="shape">The shape.</param>
         public ShapeRegion(MemoryManager memoryManager, IPath shape)
         {

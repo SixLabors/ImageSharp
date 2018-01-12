@@ -44,6 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="rawJpeg">The <see cref="IRawJpegData"/> representing the uncompressed spectral Jpeg data</param>
         public JpegImagePostProcessor(MemoryManager memoryManager, IRawJpegData rawJpeg)
         {

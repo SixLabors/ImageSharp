@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The <typeparamref name="TPixel"/> to set the background color to.</param>
         /// <param name="options">The options defining blending algorithum and amount.</param>
         public BackgroundColorProcessor(MemoryManager memoryManager, TPixel color, GraphicsOptions options)

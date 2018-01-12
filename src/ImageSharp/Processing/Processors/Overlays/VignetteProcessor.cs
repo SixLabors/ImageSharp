@@ -27,6 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The color of the vignette.</param>
         /// <param name="radiusX">The x-radius.</param>
         /// <param name="radiusY">The y-radius.</param>
@@ -44,6 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The color of the vignette.</param>
         /// <param name="options">The options effecting blending and composition.</param>
         public VignetteProcessor(MemoryManager memoryManager, TPixel color,  GraphicsOptions options)

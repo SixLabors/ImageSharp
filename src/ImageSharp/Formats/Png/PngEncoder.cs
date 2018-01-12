@@ -16,11 +16,15 @@ namespace SixLabors.ImageSharp.Formats.Png
     {
         private readonly MemoryManager memoryManager;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PngEncoder"/> class.
+        /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         public PngEncoder(MemoryManager memoryManager)
         {
             this.memoryManager = memoryManager;
         }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>

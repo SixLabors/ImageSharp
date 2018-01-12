@@ -149,7 +149,7 @@
         public void Setup()
         {
             this.width = 2048;
-            this.buffer = MemoryManager.Current.Allocate2D<Vector4>(2048, 2048);
+            this.buffer = Configuration.Default.MemoryManager.Allocate2D<Vector4>(2048, 2048);
             this.pointer = (Vector4*)this.buffer.Buffer.Pin();
             this.array = this.buffer.Buffer.Array;
             this.pinnable = Unsafe.As<Pinnable<Vector4>>(this.array);

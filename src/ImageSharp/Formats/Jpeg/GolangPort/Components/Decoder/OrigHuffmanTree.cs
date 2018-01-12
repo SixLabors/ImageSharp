@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents a Huffman tree
     /// </summary>
-    internal struct OrigHuffmanTree : IDisposable
+    internal struct OrigHuffmanTree
     {
         /// <summary>
         /// The index of the AC table row
@@ -91,12 +91,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public int[] Indices;
 
-        private static readonly ArrayPool<int> IntPool256 = ArrayPool<int>.Create(MaxNCodes, 50);
-
-        private static readonly ArrayPool<byte> BytePool256 = ArrayPool<byte>.Create(MaxNCodes, 50);
-
-        private static readonly ArrayPool<int> CodesPool16 = ArrayPool<int>.Create(MaxCodeLength, 50);
-
         /// <summary>
         /// Creates and initializes an array of <see cref="OrigHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
         /// </summary>
@@ -113,18 +107,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Disposes the underlying buffers
-        /// </summary>
-        public void Dispose()
-        {
-            IntPool256.Return(this.Lut, true);
-            IntPool256.Return(this.Values, true);
-            CodesPool16.Return(this.MinCodes, true);
-            CodesPool16.Return(this.MaxCodes, true);
-            CodesPool16.Return(this.Indices, true);
         }
 
         /// <summary>
@@ -166,20 +148,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            byte[] values = null;
-            try
-            {
-                values = BytePool256.Rent(MaxNCodes);
-                inputProcessor.ReadFull(values, 0, this.Length);
+            byte[] values = new byte[MaxNCodes];
+            inputProcessor.ReadFull(values, 0, this.Length);
 
-                for (int i = 0; i < values.Length; i++)
-                {
-                    this.Values[i] = values[i];
-                }
-            }
-            finally
+            for (int i = 0; i < values.Length; i++)
             {
-                BytePool256.Return(values, true);
+                this.Values[i] = values[i];
             }
 
             // Derive the look-up table.
@@ -254,11 +228,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         private void Init()
         {
-            this.Lut = IntPool256.Rent(MaxNCodes);
-            this.Values = IntPool256.Rent(MaxNCodes);
-            this.MinCodes = CodesPool16.Rent(MaxCodeLength);
-            this.MaxCodes = CodesPool16.Rent(MaxCodeLength);
-            this.Indices = CodesPool16.Rent(MaxCodeLength);
+            this.Lut = new int[MaxNCodes];
+            this.Values = new int[MaxNCodes];
+            this.MinCodes = new int[MaxCodeLength];
+            this.MaxCodes = new int[MaxCodeLength];
+            this.Indices = new int[MaxCodeLength];
         }
     }
 }

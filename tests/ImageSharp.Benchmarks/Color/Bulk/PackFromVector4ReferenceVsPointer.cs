@@ -25,8 +25,8 @@
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = MemoryManager.Current.Allocate<Rgba32>(this.Count);
-            this.source = MemoryManager.Current.Allocate<Vector4>(this.Count * 4);
+            this.destination = Configuration.Default.MemoryManager.Allocate<Rgba32>(this.Count);
+            this.source = Configuration.Default.MemoryManager.Allocate<Vector4>(this.Count * 4);
             this.source.Pin();
             this.destination.Pin();
         }

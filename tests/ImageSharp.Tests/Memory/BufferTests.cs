@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(1111)]
         public void ConstructWithOwnArray(int count)
         {
-            using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(count))
+            using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(count))
             {
                 Assert.False(buffer.IsDisposedOrLostArrayOwnership);
                 Assert.NotNull(buffer.Array);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             for (int i = 0; i < 100; i++)
             {
-                using (Buffer<int> buffer = MemoryManager.Current.Allocate<int>(42, true))
+                using (Buffer<int> buffer = Configuration.Default.MemoryManager.Allocate<int>(42, true))
                 {
                     for (int j = 0; j < buffer.Length; j++)
                     {
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Dispose()
         {
-            Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(42);
+            Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(42);
             buffer.Dispose();
 
             Assert.True(buffer.IsDisposedOrLostArrayOwnership);
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(123)]
         public void CastToSpan(int bufferLength)
         {
-            using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(bufferLength))
+            using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(bufferLength))
             {
                 Span<TestStructs.Foo> span = buffer;
 
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Span()
         {
-            using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(42))
+            using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(42))
             {
                 Span<TestStructs.Foo> span = buffer.Span;
 
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [InlineData(123, 17)]
             public void WithStartOnly(int bufferLength, int start)
             {
-                using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(bufferLength))
+                using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(bufferLength))
                 {
                     Span<TestStructs.Foo> span = buffer.Slice(start);
 
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [InlineData(123, 17, 42)]
             public void WithStartAndLength(int bufferLength, int start, int spanLength)
             {
-                using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(bufferLength))
+                using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(bufferLength))
                 {
                     Span<TestStructs.Foo> span = buffer.Slice(start, spanLength);
 
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void UnPinAndTakeArrayOwnership()
         {
             TestStructs.Foo[] data = null;
-            using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(42))
+            using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(42))
             {
                 data = buffer.TakeArrayOwnership();
                 Assert.True(buffer.IsDisposedOrLostArrayOwnership);
@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Fact]
             public void ReturnsPinnedPointerToTheBeginningOfArray()
             {
-                using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(42))
+                using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(42))
                 {
                     TestStructs.Foo* actual = (TestStructs.Foo*)buffer.Pin();
                     fixed (TestStructs.Foo* expected = buffer.Array)
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Fact]
             public void SecondCallReturnsTheSamePointer()
             {
-                using (Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(42))
+                using (Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(42))
                 {
                     IntPtr ptr1 = buffer.Pin();
                     IntPtr ptr2 = buffer.Pin();
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             [Fact]
             public void WhenCalledOnDisposedBuffer_ThrowsInvalidOperationException()
             {
-                Buffer<TestStructs.Foo> buffer = MemoryManager.Current.Allocate<TestStructs.Foo>(42);
+                Buffer<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate<TestStructs.Foo>(42);
                 buffer.Dispose();
 
                 Assert.Throws<InvalidOperationException>(() => buffer.Pin());

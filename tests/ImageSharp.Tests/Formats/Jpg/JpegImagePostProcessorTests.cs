@@ -55,8 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             string imageFile = provider.SourceFileOrDescription;
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(decoder))
-            using (var imageFrame = new ImageFrame<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
+            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
+            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.DoPostProcessorStep(imageFrame);
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             string imageFile = provider.SourceFileOrDescription;
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(decoder))
+            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
             using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.PostProcess(image.Frames.RootFrame);

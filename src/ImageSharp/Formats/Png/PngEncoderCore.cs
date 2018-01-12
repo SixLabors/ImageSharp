@@ -521,11 +521,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
-            byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
-            byte[] alphaTable = ArrayPool<byte>.Shared.Rent(pixelCount);
             var rgba = default(Rgba32);
             bool anyAlpha = false;
-            try
+            using (Buffer<byte> colorTable = this.memoryManager.Allocate<byte>(colorTableLength))
+            using (Buffer<byte> alphaTable = this.memoryManager.Allocate<byte>(pixelCount))
             {
                 for (byte i = 0; i < pixelCount; i++)
                 {
@@ -550,18 +549,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable, 0, colorTableLength);
+                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable.Array, 0, colorTableLength);
 
                 // Write the transparency data
                 if (anyAlpha)
                 {
-                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable, 0, pixelCount);
+                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable.Array, 0, pixelCount);
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(colorTable);
-                ArrayPool<byte>.Shared.Return(alphaTable);
             }
 
             return quantized;

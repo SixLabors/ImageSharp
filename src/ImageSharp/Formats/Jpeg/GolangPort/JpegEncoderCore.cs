@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -657,14 +658,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             // Loop through and collect the tables as one array.
             // This allows us to reduce the number of writes to the stream.
             int dqtCount = (QuantizationTableCount * Block8x8F.Size) + QuantizationTableCount;
-            byte[] dqt = ArrayPool<byte>.Shared.Rent(dqtCount);
+            byte[] dqt = new byte[dqtCount];
             int offset = 0;
 
             WriteDataToDqt(dqt, ref offset, QuantIndex.Luminance, ref this.luminanceQuantTable);
             WriteDataToDqt(dqt, ref offset, QuantIndex.Chrominance, ref this.chrominanceQuantTable);
 
             this.outputStream.Write(dqt, 0, dqtCount);
-            ArrayPool<byte>.Shared.Return(dqt);
         }
 
         /// <summary>

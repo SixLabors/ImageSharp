@@ -29,23 +29,16 @@ namespace SixLabors.ImageSharp
             }
             else
             {
-                byte[] foo = ArrayPool<byte>.Shared.Rent(count);
-                try
+                byte[] foo = new byte[count];
+                while (count > 0)
                 {
-                    while (count > 0)
+                    int bytesRead = stream.Read(foo, 0, count);
+                    if (bytesRead == 0)
                     {
-                        int bytesRead = stream.Read(foo, 0, count);
-                        if (bytesRead == 0)
-                        {
-                            break;
-                        }
-
-                        count -= bytesRead;
+                        break;
                     }
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(foo);
+
+                    count -= bytesRead;
                 }
             }
         }

@@ -56,24 +56,6 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        /// <summary>
-        /// Creates a clean instance of <see cref="Buffer2D{T}"/> initializing it's elements with 'default(T)'.
-        /// </summary>
-        /// <param name="width">The number of elements in a row</param>
-        /// <param name="height">The number of rows</param>
-        /// <returns>The <see cref="Buffer{T}"/> instance</returns>
-        public static Buffer2D<T> CreateClean(int width, int height)
-        {
-            return new Buffer2D<T>(MemoryManager.Current.Allocate<T>(width * height, true), width, height);
-        }
-
-        /// <summary>
-        /// Creates a clean instance of <see cref="Buffer2D{T}"/> initializing it's elements with 'default(T)'.
-        /// </summary>
-        /// <param name="size">The size of the buffer</param>
-        /// <returns>The <see cref="Buffer2D{T}"/> instance</returns>
-        public static Buffer2D<T> CreateClean(Size size) => CreateClean(size.Width, size.Height);
-
         public void Dispose()
         {
             this.Buffer?.Dispose();

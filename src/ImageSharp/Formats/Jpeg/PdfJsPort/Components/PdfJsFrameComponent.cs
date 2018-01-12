@@ -15,10 +15,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal class PdfJsFrameComponent : IDisposable, IJpegComponent
     {
+        private readonly MemoryManager memoryManager;
 #pragma warning disable SA1401 // Fields should be private
 
-        public PdfJsFrameComponent(PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+        public PdfJsFrameComponent(MemoryManager memoryManager, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
+            this.memoryManager = memoryManager;
             this.Frame = frame;
             this.Id = id;
             this.HorizontalSamplingFactor = horizontalFactor;
@@ -114,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             int blocksBufferSize = 64 * this.BlocksPerColumnForMcu * (this.BlocksPerLineForMcu + 1);
 
             // Pooled. Disposed via frame disposal
-            this.BlockData = MemoryManager.Current.Allocate<short>(blocksBufferSize, true);
+            this.BlockData = this.memoryManager.Allocate<short>(blocksBufferSize, true);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

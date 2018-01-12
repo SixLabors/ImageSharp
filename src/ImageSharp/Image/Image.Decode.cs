@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (var buffer = MemoryManager.Current.Allocate<byte>(maxHeaderSize))
+            using (var buffer = config.MemoryManager.Allocate<byte>(maxHeaderSize))
             {
                 long startPosition = stream.Position;
                 stream.Read(buffer.Array, 0, maxHeaderSize);

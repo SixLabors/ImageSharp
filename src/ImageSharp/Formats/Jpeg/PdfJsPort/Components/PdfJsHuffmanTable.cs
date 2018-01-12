@@ -22,14 +22,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(byte[] lengths, byte[] values)
+        public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)
         {
-            this.lookahead = MemoryManager.Current.Allocate<short>(256, true);
-            this.valOffset = MemoryManager.Current.Allocate<short>(18, true);
-            this.maxcode = MemoryManager.Current.Allocate<long>(18, true);
+            this.lookahead = memoryManager.Allocate<short>(256, true);
+            this.valOffset = memoryManager.Allocate<short>(18, true);
+            this.maxcode = memoryManager.Allocate<long>(18, true);
 
-            using (var huffsize = MemoryManager.Current.Allocate<short>(257, true))
-            using (var huffcode = MemoryManager.Current.Allocate<short>(257, true))
+            using (var huffsize = memoryManager.Allocate<short>(257, true))
+            using (var huffcode = memoryManager.Allocate<short>(257, true))
             {
                 GenerateSizeTable(lengths, huffsize);
                 GenerateCodeTable(huffsize, huffcode);
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 GenerateLookaheadTables(lengths, values, this.lookahead);
             }
 
-            this.huffval = MemoryManager.Current.Allocate<byte>(values.Length, true);
+            this.huffval = memoryManager.Allocate<byte>(values.Length, true);
             Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
 
             this.MaxCode = this.maxcode.Array;

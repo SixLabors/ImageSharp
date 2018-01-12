@@ -375,8 +375,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = MemoryManager.Current.Allocate<byte>(this.bytesPerScanline, true);
-            this.scanline = MemoryManager.Current.Allocate<byte>(this.bytesPerScanline, true);
+            this.previousScanline = this.configuration.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
+            this.scanline = this.configuration.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
         }
 
         /// <summary>
@@ -669,7 +669,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         if (this.header.BitDepth == 16)
                         {
                             int length = this.header.Width * 3;
-                            using (var compressed = MemoryManager.Current.Allocate<byte>(length))
+                            using (var compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                             {
                                 // TODO: Should we use pack from vector here instead?
                                 this.From16BitTo8Bit(scanlineBuffer, compressed, length);
@@ -686,7 +686,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         if (this.header.BitDepth == 16)
                         {
                             int length = this.header.Width * 3;
-                            using (var compressed = MemoryManager.Current.Allocate<byte>(length))
+                            using (var compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                             {
                                 // TODO: Should we use pack from vector here instead?
                                 this.From16BitTo8Bit(scanlineBuffer, compressed, length);
@@ -727,7 +727,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 4;
-                        using (var compressed = MemoryManager.Current.Allocate<byte>(length))
+                        using (var compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
                             this.From16BitTo8Bit(scanlineBuffer, compressed, length);
@@ -930,7 +930,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 3;
-                        using (var compressed = MemoryManager.Current.Allocate<byte>(length))
+                        using (var compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
                             this.From16BitTo8Bit(scanlineBuffer, compressed, length);
@@ -998,7 +998,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 4;
-                        using (var compressed = MemoryManager.Current.Allocate<byte>(length))
+                        using (var compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
                             this.From16BitTo8Bit(scanlineBuffer, compressed, length);

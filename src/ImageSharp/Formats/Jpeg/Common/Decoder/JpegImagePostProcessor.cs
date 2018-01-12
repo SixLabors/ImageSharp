@@ -45,15 +45,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
         /// </summary>
         /// <param name="rawJpeg">The <see cref="IRawJpegData"/> representing the uncompressed spectral Jpeg data</param>
-        public JpegImagePostProcessor(IRawJpegData rawJpeg)
+        public JpegImagePostProcessor(MemoryManager memoryManager, IRawJpegData rawJpeg)
         {
             this.RawJpeg = rawJpeg;
             IJpegComponent c0 = rawJpeg.Components.First();
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
-            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
-            this.rgbaBuffer = MemoryManager.Current.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
+            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryManager, this, c)).ToArray();
+            this.rgbaBuffer = memoryManager.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
             this.colorConverter = ColorConverters.JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 

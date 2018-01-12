@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             public SolidBrushApplicator(ImageFrame<TPixel> source, TPixel color, GraphicsOptions options)
                 : base(source, options)
             {
-                this.Colors = MemoryManager.Current.Allocate<TPixel>(source.Width);
+                this.Colors = source.MemoryManager.Allocate<TPixel>(source.Width);
                 for (int i = 0; i < this.Colors.Length; i++)
                 {
                     this.Colors[i] = color;
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                 {
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    using (var amountBuffer = MemoryManager.Current.Allocate<float>(scanline.Length))
+                    using (var amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
                     {
                         for (int i = 0; i < scanline.Length; i++)
                         {

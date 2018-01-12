@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly MemoryManager memoryManager;
+
         private readonly GraphicsOptions options;
         private readonly PixelBlender<TPixel> blender;
 
@@ -29,11 +31,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="radiusX">The x-radius.</param>
         /// <param name="radiusY">The y-radius.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public VignetteProcessor(TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
+        public VignetteProcessor(MemoryManager memoryManager, TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
         {
             this.VignetteColor = color;
             this.RadiusX = radiusX;
             this.RadiusY = radiusY;
+            this.memoryManager = memoryManager;
             this.options = options;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
@@ -43,9 +46,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public VignetteProcessor(TPixel color,  GraphicsOptions options)
+        public VignetteProcessor(MemoryManager memoryManager, TPixel color,  GraphicsOptions options)
         {
             this.VignetteColor = color;
+            this.memoryManager = memoryManager;
             this.options = options;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
@@ -104,7 +108,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             int width = maxX - minX;
-            using (var rowColors = MemoryManager.Current.Allocate<TPixel>(width))
+            using (var rowColors = this.memoryManager.Allocate<TPixel>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -117,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     configuration.ParallelOptions,
                     y =>
                         {
-                            using (var amounts = MemoryManager.Current.Allocate<float>(width))
+                            using (var amounts = this.memoryManager.Allocate<float>(width))
                             {
                                 int offsetY = y - startY;
                                 int offsetX = minX - startX;

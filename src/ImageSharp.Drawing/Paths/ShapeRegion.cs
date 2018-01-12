@@ -15,12 +15,15 @@ namespace SixLabors.ImageSharp.Drawing
     /// </summary>
     internal class ShapeRegion : Region
     {
+        private readonly MemoryManager memoryManager;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
         /// </summary>
         /// <param name="shape">The shape.</param>
-        public ShapeRegion(IPath shape)
+        public ShapeRegion(MemoryManager memoryManager, IPath shape)
         {
+            this.memoryManager = memoryManager;
             this.Shape = shape.AsClosedPath();
             int left = (int)MathF.Floor(shape.Bounds.Left);
             int top = (int)MathF.Floor(shape.Bounds.Top);
@@ -46,7 +49,7 @@ namespace SixLabors.ImageSharp.Drawing
         {
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
-            using (var innerBuffer = MemoryManager.Current.Allocate<PointF>(buffer.Length))
+            using (var innerBuffer = this.memoryManager.Allocate<PointF>(buffer.Length))
             {
                 PointF[] array = innerBuffer.Array;
                 int count = this.Shape.FindIntersections(start, end, array, 0);

@@ -14,6 +14,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsJpegPixelArea : IDisposable
     {
+        private readonly MemoryManager memoryManager;
+
         private readonly int imageWidth;
 
         private readonly int imageHeight;
@@ -28,8 +30,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="imageWidth">The image width</param>
         /// <param name="imageHeight">The image height</param>
         /// <param name="numberOfComponents">The number of components</param>
-        public PdfJsJpegPixelArea(int imageWidth, int imageHeight, int numberOfComponents)
+        public PdfJsJpegPixelArea(MemoryManager memoryManager, int imageWidth, int imageHeight, int numberOfComponents)
         {
+            this.memoryManager = memoryManager;
             this.imageWidth = imageWidth;
             this.imageHeight = imageHeight;
             this.Width = 0;
@@ -69,11 +72,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.rowStride = width * numberOfComponents;
             var scale = new Vector2(this.imageWidth / (float)width, this.imageHeight / (float)height);
 
-            this.componentData = MemoryManager.Current.Allocate<byte>(width * height * numberOfComponents);
+            this.componentData = this.memoryManager.Allocate<byte>(width * height * numberOfComponents);
             Span<byte> componentDataSpan = this.componentData;
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
-            using (var xScaleBlockOffset = MemoryManager.Current.Allocate<int>(width))
+            using (var xScaleBlockOffset = this.memoryManager.Allocate<int>(width))
             {
                 Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
                 for (int i = 0; i < numberOfComponents; i++)

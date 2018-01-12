@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -72,5 +74,7 @@ namespace SixLabors.ImageSharp
         {
             return this.ApplyProcessor(processor, this.source.Bounds());
         }
+
+        public MemoryManager GetMemoryManager() => this.source.GetConfiguration().MemoryManager;
     }
 }

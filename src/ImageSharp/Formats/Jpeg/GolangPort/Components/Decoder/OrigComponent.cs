@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        public void InitializeDerivedData(OrigJpegDecoderCore decoder)
+        public void InitializeDerivedData(MemoryManager memoryManager, OrigJpegDecoderCore decoder)
         {
             // For 4-component images (either CMYK or YCbCrK), we only support two
             // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = Buffer2D<Block8x8>.CreateClean(this.SizeInBlocks);
+            this.SpectralBlocks = memoryManager.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
         }
 
         /// <summary>

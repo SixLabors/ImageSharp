@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp
             int count = width * height;
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
-            var image = new ImageFrame<TPixel>(width, height);
+            var image = new ImageFrame<TPixel>(Configuration.Default.MemoryManager, width, height);
             SpanHelper.Copy(data, image.GetPixelSpan(), count);
 
             return image;

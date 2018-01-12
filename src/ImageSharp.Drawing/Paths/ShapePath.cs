@@ -4,6 +4,8 @@
 using System;
 using System.Buffers;
 using System.Numerics;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Drawing
@@ -19,8 +21,8 @@ namespace SixLabors.ImageSharp.Drawing
         /// <param name="shape">The shape.</param>
         /// <param name="pen">The pen to apply to the shape.</param>
         // SixLabors.shape willbe moving to a Span/ReadOnlySpan based API shortly use ToArray for now.
-        public ShapePath(IPath shape, Pens.IPen pen)
-            : base(shape.GenerateOutline(pen.StrokeWidth, pen.StrokePattern.ToArray()))
+        public ShapePath(MemoryManager memoryManager, IPath shape, Pens.IPen pen)
+            : base(memoryManager, shape.GenerateOutline(pen.StrokeWidth, pen.StrokePattern.ToArray()))
         {
         }
     }

@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly MemoryManager memoryManager;
+
         private readonly GraphicsOptions options;
         private readonly PixelBlender<TPixel> blender;
 
@@ -28,8 +30,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="color">The color or the glow.</param>
         /// <param name="radius">The radius of the glow.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public GlowProcessor(TPixel color, ValueSize radius, GraphicsOptions options)
+        public GlowProcessor(MemoryManager memoryManager, TPixel color, ValueSize radius, GraphicsOptions options)
         {
+            this.memoryManager = memoryManager;
             this.options = options;
             this.GlowColor = color;
             this.Radius = radius;
@@ -83,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             int width = maxX - minX;
-            using (var rowColors = MemoryManager.Current.Allocate<TPixel>(width))
+            using (var rowColors = this.memoryManager.Allocate<TPixel>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -96,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     configuration.ParallelOptions,
                     y =>
                     {
-                        using (var amounts = MemoryManager.Current.Allocate<float>(width))
+                        using (var amounts = this.memoryManager.Allocate<float>(width))
                         {
                             int offsetY = y - startY;
                             int offsetX = minX - startX;

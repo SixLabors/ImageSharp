@@ -122,8 +122,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             internal override void Apply(Span<float> scanline, int x, int y)
             {
                 // Create a span for colors
-                using (var amountBuffer = MemoryManager.Current.Allocate<float>(scanline.Length))
-                using (var overlay = MemoryManager.Current.Allocate<TPixel>(scanline.Length))
+                using (var amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
+                using (var overlay = this.Target.MemoryManager.Allocate<TPixel>(scanline.Length))
                 {
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;

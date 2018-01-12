@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
             {
                 float[] buffer = arrayPool.Rent(maxIntersections);
                 int scanlineWidth = maxX - minX;
-                using (var scanline = MemoryManager.Current.Allocate<float>(scanlineWidth))
+                using (var scanline = source.MemoryManager.Allocate<float>(scanlineWidth))
                 {
                     try
                     {

@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoder options = new PngEncoder(Configuration.Default.MemoryManager) { Quantizer = new WuQuantizer<Rgba32>(), PaletteSize = 256 };
+                PngEncoder options = new PngEncoder(Configuration.Default.MemoryManager) { Quantizer = new WuQuantizer<Rgba32>(Configuration.Default.MemoryManager), PaletteSize = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }

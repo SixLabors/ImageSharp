@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
             {
                 Parallel.For(
                     0,
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
             {
                 Parallel.For(
                     0,

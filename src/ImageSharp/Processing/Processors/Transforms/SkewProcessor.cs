@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
             Rectangle sourceBounds = source.Bounds();
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
             {
                 Parallel.For(
                     0,

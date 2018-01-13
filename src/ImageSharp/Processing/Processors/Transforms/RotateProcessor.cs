@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
             Rectangle sourceBounds = source.Bounds();
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
             {
                 Parallel.For(
                     0,
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(height, width))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, height, width))
             {
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
             {
                 Parallel.For(
                     0,
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int width = source.Width;
             int height = source.Height;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(height, width))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, height, width))
             {
                 Parallel.For(
                     0,

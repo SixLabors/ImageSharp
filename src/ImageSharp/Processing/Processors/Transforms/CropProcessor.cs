@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(this.CropRectangle.Width, this.CropRectangle.Height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, this.CropRectangle.Width, this.CropRectangle.Height))
             {
                 Parallel.For(
                     minY,

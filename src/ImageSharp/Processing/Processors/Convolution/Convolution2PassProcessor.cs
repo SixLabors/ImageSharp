@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int height = source.Height;
             ParallelOptions parallelOptions = configuration.ParallelOptions;
 
-            using (var firstPassPixels = new PixelAccessor<TPixel>(width, height))
+            using (var firstPassPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
             using (PixelAccessor<TPixel> sourcePixels = source.Lock())
             {
                 this.ApplyConvolution(firstPassPixels, sourcePixels, source.Bounds(), this.KernelX, parallelOptions);

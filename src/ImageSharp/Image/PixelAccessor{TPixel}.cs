@@ -52,10 +52,11 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
-        public PixelAccessor(int width, int height)
-            : this(width, height, Configuration.Default.MemoryManager.Allocate2D<TPixel>(width, height, true), true)
+        public PixelAccessor(MemoryManager memoryManager, int width, int height)
+            : this(width, height, memoryManager.Allocate2D<TPixel>(width, height, true), true)
         {
         }
 

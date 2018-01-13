@@ -6,7 +6,13 @@
     public class NullMemoryManager : MemoryManager
     {
         /// <inheritdoc />
-        internal override Buffer<T> Allocate<T>(int size, bool clear = false)
+        internal override Buffer<T> Allocate<T>(int size)
+        {
+            return new Buffer<T>(new T[size], size);
+        }
+
+        /// <inheritdoc />
+        internal override Buffer<T> Allocate<T>(int size, bool clear)
         {
             return new Buffer<T>(new T[size], size);
         }

@@ -127,7 +127,8 @@ namespace SixLabors.ImageSharp.Quantizers
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
         public WuQuantizer(MemoryManager memoryManager)
-            : base(false) {
+            : base(false)
+        {
             this.memoryManager = memoryManager;
         }
 

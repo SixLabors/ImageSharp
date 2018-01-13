@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp
             switch (mode)
             {
                 case Quantization.Wu:
-                    quantizer = new WuQuantizer<TPixel>();
+                    quantizer = new WuQuantizer<TPixel>(source.GetMemoryManager());
                     break;
 
                 case Quantization.Palette:

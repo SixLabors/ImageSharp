@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Quantizers
 
                     float weight = Volume(ref this.colorCube[k], this.vwt);
 
-                    if (MathF.Abs(weight) > Constants.Epsilon)
+                    if (Math.Abs(weight) > Constants.Epsilon)
                     {
                         float r = Volume(ref this.colorCube[k], this.vmr);
                         float g = Volume(ref this.colorCube[k], this.vmg);
@@ -620,7 +620,7 @@ namespace SixLabors.ImageSharp.Quantizers
                 float halfA = baseA + Top(ref cube, direction, i, this.vma);
                 float halfW = baseW + Top(ref cube, direction, i, this.vwt);
 
-                if (MathF.Abs(halfW) < Constants.Epsilon)
+                if (Math.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }
@@ -630,7 +630,7 @@ namespace SixLabors.ImageSharp.Quantizers
 
                 halfW = wholeW - halfW;
 
-                if (MathF.Abs(halfW) < Constants.Epsilon)
+                if (Math.Abs(halfW) < Constants.Epsilon)
                 {
                     continue;
                 }

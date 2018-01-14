@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Expand(float channel)
         {
-            return channel <= 0.08 ? 100 * channel / CieConstants.Kappa : MathF.Pow((channel + 0.16F) / 1.16F, 3);
+            return channel <= 0.08 ? 100 * channel / CieConstants.Kappa : (float)Math.Pow((channel + 0.16F) / 1.16F, 3);
         }
 
         /// <inheritdoc/>
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         {
             return channel <= CieConstants.Epsilon
                 ? channel * CieConstants.Kappa / 100F
-                : MathF.Pow(1.16F * channel, 0.3333333F) - 0.16F;
+                : (float)Math.Pow(1.16F * channel, 0.3333333F) - 0.16F;
         }
     }
 }

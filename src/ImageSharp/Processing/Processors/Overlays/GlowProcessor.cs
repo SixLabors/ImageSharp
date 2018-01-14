@@ -61,9 +61,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
             TPixel glowColor = this.GlowColor;
             Vector2 centre = Rectangle.Center(sourceRectangle);
 
-            var finalRadius = this.Radius.Calculate(source.Size());
+            float finalRadius = this.Radius.Calculate(source.Size());
 
-            float maxDistance = finalRadius > 0 ? MathF.Min(finalRadius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+            float maxDistance = finalRadius > 0 ? Math.Min(finalRadius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);

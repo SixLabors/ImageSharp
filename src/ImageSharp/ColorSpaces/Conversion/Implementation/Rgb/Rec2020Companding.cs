@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Expand(float channel)
         {
-            return channel < 0.08145F ? channel / 4.5F : MathF.Pow((channel + 0.0993F) / 1.0993F, 2.222222F);
+            return channel < 0.08145F ? channel / 4.5F : (float)Math.Pow((channel + 0.0993F) / 1.0993F, 2.222222F);
         }
 
         /// <inheritdoc/>

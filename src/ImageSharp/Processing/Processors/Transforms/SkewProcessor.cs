@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;

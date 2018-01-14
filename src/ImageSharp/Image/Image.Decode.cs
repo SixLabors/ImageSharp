@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
@@ -66,18 +67,18 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
+        private static Tuple<Image<TPixel>, IImageFormat> Decode<TPixel>(Stream stream, Configuration config)
 #pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
             where TPixel : struct, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder == null)
             {
-                return (null, null);
+                return default(Tuple<Image<TPixel>, IImageFormat>);
             }
 
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
-            return (img, format);
+            return new Tuple<Image<TPixel>, IImageFormat>(img, format);
         }
     }
 }

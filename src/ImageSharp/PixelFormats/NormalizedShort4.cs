@@ -130,9 +130,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -140,10 +140,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
+            dest.A = (byte)Math.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -151,9 +151,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgr24(ref Bgr24 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
         }
 
         /// <inheritdoc />
@@ -161,10 +161,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgra32(ref Bgra32 dest)
         {
             Vector4 vector = this.ToScaledVector4();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
+            dest.B = (byte)Math.Round(vector.Z);
+            dest.A = (byte)Math.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -208,10 +208,10 @@ namespace SixLabors.ImageSharp.PixelFormats
             const float MinNeg = -MaxPos;
 
             // Clamp the value between min and max values
-            ulong word4 = ((ulong)MathF.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x00;
-            ulong word3 = ((ulong)MathF.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10;
-            ulong word2 = ((ulong)MathF.Round(z * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x20;
-            ulong word1 = ((ulong)MathF.Round(w * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x30;
+            ulong word4 = ((ulong)Math.Round(x * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x00;
+            ulong word3 = ((ulong)Math.Round(y * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x10;
+            ulong word2 = ((ulong)Math.Round(z * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x20;
+            ulong word1 = ((ulong)Math.Round(w * MaxPos).Clamp(MinNeg, MaxPos) & 0xFFFF) << 0x30;
 
             return word4 | word3 | word2 | word1;
         }
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToScaledVector4()
         {
-            Vector4 vector = this.ToVector4();
+            var vector = this.ToVector4();
             vector *= Half;
             vector += Round;
             vector += Half;

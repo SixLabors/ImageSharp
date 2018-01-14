@@ -33,14 +33,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Expand(float channel)
         {
-            return MathF.Pow(channel, this.Gamma);
+            return (float)Math.Pow(channel, this.Gamma);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Compress(float channel)
         {
-            return MathF.Pow(channel, 1 / this.Gamma);
+            return (float)Math.Pow(channel, 1 / this.Gamma);
         }
     }
 }

@@ -26,9 +26,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorS
             float cb = input.Cb - 128F;
             float cr = input.Cr - 128F;
 
-            float r = MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero);
-            float g = MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero);
-            float b = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
+            float r = (float)Math.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero);
+            float g = (float)Math.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero);
+            float b = (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
 
             return new Rgb(new Vector3(r, g, b) / MaxBytes);
         }

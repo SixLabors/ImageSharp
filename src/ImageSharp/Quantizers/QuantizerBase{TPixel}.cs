@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
                 leastDistance = distance;
 
                 // And if it's an exact match, exit the loop
-                if (MathF.Abs(distance) < Constants.Epsilon)
+                if (Math.Abs(distance) < Constants.Epsilon)
                 {
                     break;
                 }

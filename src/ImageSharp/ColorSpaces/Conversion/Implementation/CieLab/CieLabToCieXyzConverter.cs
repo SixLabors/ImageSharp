@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColor
             float fx = (a / 500F) + fy;
             float fz = fy - (b / 200F);
 
-            float fx3 = MathF.Pow(fx, 3F);
-            float fz3 = MathF.Pow(fz, 3F);
+            float fx3 = (float)Math.Pow(fx, 3F);
+            float fz3 = (float)Math.Pow(fz, 3F);
 
             float xr = fx3 > CieConstants.Epsilon ? fx3 : ((116F * fx) - 16F) / CieConstants.Kappa;
-            float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? MathF.Pow((l + 16F) / 116F, 3F) : l / CieConstants.Kappa;
+            float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? (float)Math.Pow((l + 16F) / 116F, 3F) : l / CieConstants.Kappa;
             float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
 
             float wx = input.WhitePoint.X, wy = input.WhitePoint.Y, wz = input.WhitePoint.Z;

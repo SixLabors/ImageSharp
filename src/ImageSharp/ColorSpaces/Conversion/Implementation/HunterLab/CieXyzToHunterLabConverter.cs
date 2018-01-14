@@ -53,9 +53,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
             float ka = ComputeKa(this.HunterLabWhitePoint);
             float kb = ComputeKb(this.HunterLabWhitePoint);
 
-            float l = 100 * MathF.Sqrt(y / yn);
-            float a = ka * (((x / xn) - (y / yn)) / MathF.Sqrt(y / yn));
-            float b = kb * (((y / yn) - (z / zn)) / MathF.Sqrt(y / yn));
+            float l = 100 * (float)Math.Sqrt(y / yn);
+            float a = ka * (((x / xn) - (y / yn)) / (float)Math.Sqrt(y / yn));
+            float b = kb * (((y / yn) - (z / zn)) / (float)Math.Sqrt(y / yn));
 
             if (float.IsNaN(a))
             {

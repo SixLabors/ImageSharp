@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce
 {
@@ -53,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
             float upr = ComputeUp(this.LuvWhitePoint);
             float vpr = ComputeVp(this.LuvWhitePoint);
 
-            float l = yr > CieConstants.Epsilon ? ((116 * MathF.Pow(yr, 0.3333333F)) - 16F) : (CieConstants.Kappa * yr);
+            float l = yr > CieConstants.Epsilon ? ((116 * (float)Math.Pow(yr, 0.3333333F)) - 16F) : (CieConstants.Kappa * yr);
 
             if (float.IsNaN(l) || l < 0)
             {

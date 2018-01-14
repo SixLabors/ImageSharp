@@ -31,12 +31,12 @@ namespace SixLabors.ImageSharp
                 // Ensure size is populated across both dimensions.
                 if (options.Size.Width == 0 && options.Size.Height > 0)
                 {
-                    options.Size = new Size((int)MathF.Round(img.Width * options.Size.Height / (float)img.Height), options.Size.Height);
+                    options.Size = new Size((int)Math.Round(img.Width * options.Size.Height / (float)img.Height), options.Size.Height);
                 }
 
                 if (options.Size.Height == 0 && options.Size.Width > 0)
                 {
-                    options.Size = new Size(options.Size.Width, (int)MathF.Round(img.Height * options.Size.Width / (float)img.Width));
+                    options.Size = new Size(options.Size.Width, (int)Math.Round(img.Height * options.Size.Width / (float)img.Width));
                 }
 
                 Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(img.Frames.RootFrame, options);
@@ -180,13 +180,13 @@ namespace SixLabors.ImageSharp
                 // TODO : Stop cheating here and move this stuff into the processors itself
                 if (width == 0 && height > 0)
                 {
-                    width = (int)MathF.Round(img.Width * height / (float)img.Height);
+                    width = (int)Math.Round(img.Width * height / (float)img.Height);
                     targetRectangle.Width = width;
                 }
 
                 if (height == 0 && width > 0)
                 {
-                    height = (int)MathF.Round(img.Height * width / (float)img.Width);
+                    height = (int)Math.Round(img.Height * width / (float)img.Width);
                     targetRectangle.Height = height;
                 }
 
@@ -220,13 +220,13 @@ namespace SixLabors.ImageSharp
                 // TODO : stop cheating here and move this stuff into the processors itself
                 if (width == 0 && height > 0)
                 {
-                    width = (int)MathF.Round(img.Width * height / (float)img.Height);
+                    width = (int)Math.Round(img.Width * height / (float)img.Height);
                     targetRectangle.Width = width;
                 }
 
                 if (height == 0 && width > 0)
                 {
-                    height = (int)MathF.Round(img.Height * width / (float)img.Width);
+                    height = (int)Math.Round(img.Height * width / (float)img.Width);
                     targetRectangle.Height = height;
                 }
 

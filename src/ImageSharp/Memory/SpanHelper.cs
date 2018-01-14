@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Memory
             fixed (byte* pSrc = &srcRef)
             fixed (byte* pDest = &destRef)
             {
-#if NETSTANDARD1_1
+#if NETSTANDARD1_1 || NET45
                 Unsafe.CopyBlock(pDest, pSrc, (uint)byteCount);
 #else
                 int destLength = destination.Length * Unsafe.SizeOf<T>();

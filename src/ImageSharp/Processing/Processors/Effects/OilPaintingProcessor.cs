@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     float sourceBlue = vector.Z;
                                     float sourceGreen = vector.Y;
 
-                                    int currentIntensity = (int)MathF.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
+                                    int currentIntensity = (int)Math.Round((sourceBlue + sourceGreen + sourceRed) / 3F * (levels - 1));
 
                                     intensityBin[currentIntensity] += 1;
                                     blueBin[currentIntensity] += sourceBlue;
@@ -123,9 +123,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     }
                                 }
 
-                                float red = MathF.Abs(redBin[maxIndex] / maxIntensity);
-                                float green = MathF.Abs(greenBin[maxIndex] / maxIntensity);
-                                float blue = MathF.Abs(blueBin[maxIndex] / maxIntensity);
+                                float red = Math.Abs(redBin[maxIndex] / maxIntensity);
+                                float green = Math.Abs(greenBin[maxIndex] / maxIntensity);
+                                float blue = Math.Abs(blueBin[maxIndex] / maxIntensity);
 
                                 ref TPixel pixel = ref targetRow[x];
                                 pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));

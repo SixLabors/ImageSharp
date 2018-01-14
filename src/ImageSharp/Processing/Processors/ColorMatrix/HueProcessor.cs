@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
             this.Angle = angle;
 
             float radians = MathFExtensions.DegreeToRadian(angle);
-            float cosradians = MathF.Cos(radians);
-            float sinradians = MathF.Sin(radians);
+            float cosradians = (float)Math.Cos(radians);
+            float sinradians = (float)Math.Sin(radians);
 
             float lumR = .213F;
             float lumG = .715F;

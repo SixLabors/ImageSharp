@@ -107,27 +107,27 @@ namespace SixLabors.ImageSharp.ColorSpaces
             float g = color.G / 255F;
             float b = color.B / 255F;
 
-            float max = MathF.Max(r, MathF.Max(g, b));
-            float min = MathF.Min(r, MathF.Min(g, b));
+            float max = Math.Max(r, Math.Max(g, b));
+            float min = Math.Min(r, Math.Min(g, b));
             float chroma = max - min;
             float h = 0;
             float s = 0;
             float v = max;
 
-            if (MathF.Abs(chroma) < Constants.Epsilon)
+            if (Math.Abs(chroma) < Constants.Epsilon)
             {
                 return new Hsv(0, s, v);
             }
 
-            if (MathF.Abs(r - max) < Constants.Epsilon)
+            if (Math.Abs(r - max) < Constants.Epsilon)
             {
                 h = (g - b) / chroma;
             }
-            else if (MathF.Abs(g - max) < Constants.Epsilon)
+            else if (Math.Abs(g - max) < Constants.Epsilon)
             {
                 h = 2 + ((b - r) / chroma);
             }
-            else if (MathF.Abs(b - max) < Constants.Epsilon)
+            else if (Math.Abs(b - max) < Constants.Epsilon)
             {
                 h = 4 + ((r - g) / chroma);
             }

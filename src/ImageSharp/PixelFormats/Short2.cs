@@ -120,8 +120,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector2 vector = this.ToScaledVector2();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
         }
 
@@ -130,8 +130,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             Vector2 vector = this.ToScaledVector2();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
             dest.A = 255;
         }
@@ -141,8 +141,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgr24(ref Bgr24 dest)
         {
             Vector2 vector = this.ToScaledVector2();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
         }
 
@@ -151,8 +151,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToBgra32(ref Bgra32 dest)
         {
             Vector2 vector = this.ToScaledVector2();
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
+            dest.R = (byte)Math.Round(vector.X);
+            dest.G = (byte)Math.Round(vector.Y);
             dest.B = 0;
             dest.A = 255;
         }

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Memory
         internal Buffer2D<T> Allocate2D<T>(int width, int height, bool clear = false)
             where T : struct
         {
-            var buffer = this.Allocate<T>(width * height, clear);
+            Buffer<T> buffer = this.Allocate<T>(width * height, clear);
 
             return new Buffer2D<T>(buffer, width, height);
         }

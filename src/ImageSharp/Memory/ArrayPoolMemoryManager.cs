@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Memory
     {
         /// <summary>
         /// Defines the default maximum size of pooled arrays.
-        /// Currently set to a value equivalent to 16 Megapixels of an <see cref="Rgba32"/> image.
+        /// Currently set to a value equivalent to 16 MegaPixels of an <see cref="Rgba32"/> image.
         /// </summary>
         public const int DefaultMaxSizeInBytes = 4096 * 4096 * 4;
 
@@ -22,8 +22,19 @@ namespace SixLabors.ImageSharp.Memory
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
         /// </summary>
         public ArrayPoolMemoryManager()
+            : this(DefaultMaxSizeInBytes)
         {
-            this.pool = ArrayPool<byte>.Create(DefaultMaxSizeInBytes, 50);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
+        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
+        /// </summary>
+        public ArrayPoolMemoryManager(int maxPoolSizeInBytes)
+        {
+            Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));
+
+            this.pool = ArrayPool<byte>.Create(maxPoolSizeInBytes, 50);
         }
 
         /// <inheritdoc />

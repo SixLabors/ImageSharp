@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets or sets the <see cref="MemoryManager"/> that is currently in use.
         /// </summary>
-        public MemoryManager MemoryManager { get; set; } = new ArrayPoolMemoryManager(512);
+        public MemoryManager MemoryManager { get; set; } = new ArrayPoolMemoryManager();
 
         /// <summary>
         /// Gets the maximum header size of all the formats.

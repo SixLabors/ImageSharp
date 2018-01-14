@@ -362,8 +362,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDest) == typeof(Vector4))
                 {
-                    Vector4[] expected = this.ExpectedDestBuffer.Array as Vector4[];
-                    Vector4[] actual = this.ActualDestBuffer.Array as Vector4[];
+                    
+                    Span<Vector4> expected = this.ExpectedDestBuffer.Span.NonPortableCast<TDest, Vector4>();
+                    Span<Vector4> actual = this.ActualDestBuffer.Span.NonPortableCast<TDest, Vector4>();
 
                     for (int i = 0; i < count; i++)
                     {

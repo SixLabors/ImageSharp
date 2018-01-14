@@ -99,7 +99,9 @@ namespace SixLabors.ImageSharp.Memory
             get
             {
                 DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
-                return ref this.Array[index];
+
+                Span<T> span = this.Span;
+                return ref span[index];
             }
         }
 

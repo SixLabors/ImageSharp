@@ -1,20 +1,21 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
+using System.Linq;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    using SixLabors.ImageSharp.Memory;
-
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="PixelDataPool{T}"/> class.
     /// </summary>
     public class PixelDataPoolTests
     {
+        readonly object monitor = new object();
+        
         [Fact]
         public void PixelDataPoolRentsMinimumSize()
         {
@@ -33,23 +34,62 @@ namespace SixLabors.ImageSharp.Tests.Memory
             Assert.True(pixels.Length >= 1024);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void CalculateMaxArrayLength(bool isRawData)
+        /// <summary>
+        /// Rent 'n' buffers -> return all -> re-rent, verify if there is at least one in common.
+        /// </summary>
+        private bool CheckIsPooled<T>(int n, int count)
+            where T : struct
         {
-            int max = isRawData ? PixelDataPool<int>.CalculateMaxArrayLength()
-                          : PixelDataPool<Rgba32>.CalculateMaxArrayLength();
+            lock (this.monitor)
+            {
+                T[][] original = new T[n][];
 
-            Assert.Equal(max > 1024 * 1024, !isRawData);
+                for (int i = 0; i < n; i++)
+                {
+                    original[i] = PixelDataPool<T>.Rent(count);
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    PixelDataPool<T>.Return(original[i]);
+                }
+
+                T[][] verification = new T[n][];
+
+                for (int i = 0; i < n; i++)
+                {
+                    verification[i] = PixelDataPool<T>.Rent(count);
+                }
+
+                return original.Intersect(verification).Any();
+            }
         }
 
         [Fact]
-        public void RentNonIPixelData()
+        public void SmallBuffersArePooled()
         {
-            byte[] data = PixelDataPool<byte>.Rent(16384);
+            Assert.True(this.CheckIsPooled<byte>(5, 512));
+        }
 
-            Assert.True(data.Length >= 16384);
+        [Fact]
+        public void LargeBuffersAreNotPooled_OfByte()
+        {
+            const int mb128 = 128 * 1024 * 1024;
+            Assert.False(this.CheckIsPooled<byte>(2, mb128));
+        }
+
+        [StructLayout(LayoutKind.Explicit, Size = 512)]
+        struct TestStruct
+        {
+        }
+
+        [Fact]
+        public unsafe void LaregeBuffersAreNotPooled_OfBigValueType()
+        {
+            const int mb128 = 128 * 1024 * 1024;
+            int count = mb128 / sizeof(TestStruct);
+
+            Assert.False(this.CheckIsPooled<TestStruct>(2, count));
         }
     }
 }

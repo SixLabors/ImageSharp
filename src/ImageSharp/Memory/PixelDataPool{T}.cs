@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
-using SixLabors.ImageSharp.PixelFormats;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -14,9 +14,20 @@ namespace SixLabors.ImageSharp.Memory
         where T : struct
     {
         /// <summary>
+        /// The maximum size of pooled arrays in bytes.
+        /// Currently set to 32MB, which is equivalent to 8 megapixels of raw <see cref="Rgba32"/> data.
+        /// </summary>
+        private const int MaxPooledBufferSizeInBytes = 32 * 1024 * 1024;
+
+        /// <summary>
+        /// The maximum array length of the <see cref="ArrayPool"/>.
+        /// </summary>
+        private static readonly int MaxArrayLength = MaxPooledBufferSizeInBytes / Unsafe.SizeOf<T>();
+
+        /// <summary>
         /// The <see cref="ArrayPool{T}"/> which is not kept clean.
         /// </summary>
-        private static readonly ArrayPool<T> ArrayPool = ArrayPool<T>.Create(CalculateMaxArrayLength(), 50);
+        private static readonly ArrayPool<T> ArrayPool = ArrayPool<T>.Create(MaxArrayLength, 50);
 
         /// <summary>
         /// Rents the pixel array from the pool.
@@ -35,25 +46,6 @@ namespace SixLabors.ImageSharp.Memory
         public static void Return(T[] array)
         {
             ArrayPool.Return(array);
-        }
-
-        /// <summary>
-        /// Heuristically calculates a reasonable maxArrayLength value for the backing <see cref="ArrayPool{T}"/>.
-        /// </summary>
-        /// <returns>The maxArrayLength value</returns>
-        internal static int CalculateMaxArrayLength()
-        {
-            // ReSharper disable once SuspiciousTypeConversion.Global
-            if (default(T) is IPixel)
-            {
-                const int MaximumExpectedImageSize = 16384 * 16384;
-                return MaximumExpectedImageSize;
-            }
-            else
-            {
-                const int MaxArrayLength = 1024 * 1024; // Match default pool.
-                return MaxArrayLength;
-            }
         }
     }
 }

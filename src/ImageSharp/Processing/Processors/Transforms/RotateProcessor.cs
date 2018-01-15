@@ -105,10 +105,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             profile.RemoveValue(ExifTag.Orientation);
 
-            if (this.Expand && profile.GetValue(ExifTag.PixelXDimension) != null)
+            if (this.Expand && profile.GetValue(ExifTag.PixelXDimension) != null && source.Width <= ushort.MaxValue && source.Height <= ushort.MaxValue)
             {
-                profile.SetValue(ExifTag.PixelXDimension, source.Width);
-                profile.SetValue(ExifTag.PixelYDimension, source.Height);
+                profile.SetValue(ExifTag.PixelXDimension, (ushort)source.Width);
+                profile.SetValue(ExifTag.PixelYDimension, (ushort)source.Height);
             }
         }
 

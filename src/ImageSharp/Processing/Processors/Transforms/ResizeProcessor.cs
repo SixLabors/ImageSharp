@@ -23,25 +23,27 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
         /// <param name="height">The target height.</param>
-        public ResizeProcessor(IResampler sampler, int width, int height)
-            : base(sampler, width, height, new Rectangle(0, 0, width, height))
+        public ResizeProcessor(MemoryManager memoryManager, IResampler sampler, int width, int height)
+            : base(memoryManager, sampler, width, height, new Rectangle(0, 0, width, height))
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ResizeProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
         /// <param name="height">The target height.</param>
         /// <param name="resizeRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
-        public ResizeProcessor(IResampler sampler, int width, int height, Rectangle resizeRectangle)
-            : base(sampler, width, height, resizeRectangle)
+        public ResizeProcessor(MemoryManager memoryManager, IResampler sampler, int width, int height, Rectangle resizeRectangle)
+            : base(memoryManager, sampler, width, height, resizeRectangle)
         {
         }
 
@@ -59,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // ------------
             // For resize we know we are going to populate every pixel with fresh data and we want a different target size so
             // let's manually clone an empty set of images at the correct target and then have the base class process them in turn.
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
+            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetConfiguration().MemoryManager, this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
             var image = new Image<TPixel>(config, source.MetaData.Clone(), frames); // base the place holder images in to prevent a extra frame being added
 
             return image;
@@ -121,9 +123,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (var firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
+            using (var firstPassPixels = this.MemoryManager.Allocate2D<Vector4>(width, source.Height))
             {
-                firstPassPixels.Clear();
+                firstPassPixels.Buffer.Clear();
 
                 Parallel.For(
                     0,
@@ -132,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
-                            using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
+                            using (var tempRowBuffer = this.MemoryManager.Allocate<Vector4>(source.Width))
                             {
                                 Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

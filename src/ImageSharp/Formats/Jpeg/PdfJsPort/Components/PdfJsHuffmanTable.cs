@@ -20,16 +20,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(byte[] lengths, byte[] values)
+        public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)
         {
-            this.lookahead = Buffer<short>.CreateClean(256);
-            this.valOffset = Buffer<short>.CreateClean(18);
-            this.maxcode = Buffer<long>.CreateClean(18);
+            this.lookahead = memoryManager.Allocate<short>(256, true);
+            this.valOffset = memoryManager.Allocate<short>(18, true);
+            this.maxcode = memoryManager.Allocate<long>(18, true);
 
-            using (var huffsize = Buffer<short>.CreateClean(257))
-            using (var huffcode = Buffer<short>.CreateClean(257))
+            using (var huffsize = memoryManager.Allocate<short>(257, true))
+            using (var huffcode = memoryManager.Allocate<short>(257, true))
             {
                 GenerateSizeTable(lengths, huffsize);
                 GenerateCodeTable(huffsize, huffcode);
@@ -37,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 GenerateLookaheadTables(lengths, values, this.lookahead);
             }
 
-            this.huffval = Buffer<byte>.CreateClean(values.Length);
+            this.huffval = memoryManager.Allocate<byte>(values.Length, true);
             Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
 
             this.MaxCode = this.maxcode.Array;

@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
@@ -26,12 +28,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="InputProcessor"/> struct.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="inputStream">The input <see cref="Stream"/></param>
         /// <param name="temp">Temporal buffer, same as <see cref="OrigJpegDecoderCore.Temp"/></param>
-        public InputProcessor(Stream inputStream, byte[] temp)
+        public InputProcessor(MemoryManager memoryManager, Stream inputStream, byte[] temp)
         {
             this.Bits = default(Bits);
-            this.Bytes = Bytes.Create();
+            this.Bytes = Bytes.Create(memoryManager);
             this.InputStream = inputStream;
             this.Temp = temp;
             this.LastErrorCode = OrigDecoderErrorCode.NoError;
@@ -155,13 +158,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             {
                 if (this.Bytes.J - this.Bytes.I >= length)
                 {
-                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, length);
+                    Array.Copy(this.Bytes.Buffer.Array, this.Bytes.I, data, offset, length);
                     this.Bytes.I += length;
                     length -= length;
                 }
                 else
                 {
-                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, this.Bytes.J - this.Bytes.I);
+                    Array.Copy(this.Bytes.Buffer.Array, this.Bytes.I, data, offset, this.Bytes.J - this.Bytes.I);
                     offset += this.Bytes.J - this.Bytes.I;
                     length -= this.Bytes.J - this.Bytes.I;
                     this.Bytes.I += this.Bytes.J - this.Bytes.I;
@@ -220,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 if (this.LastErrorCode == OrigDecoderErrorCode.NoError)
                 {
                     int lutIndex = (this.Bits.Accumulator >> (this.Bits.UnreadBits - OrigHuffmanTree.LutSizeLog2)) & 0xFF;
-                    int v = huffmanTree.Lut[lutIndex];
+                    int v = huffmanTree.ReadLut(lutIndex);
 
                     if (v != 0)
                     {
@@ -259,7 +262,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.Bits.UnreadBits--;
                 this.Bits.Mask >>= 1;
 
-                if (code <= huffmanTree.MaxCodes[i])
+                if (code <= huffmanTree.GetMaxCode(i))
                 {
                     result = huffmanTree.GetValue(code, i);
                     return this.LastErrorCode = OrigDecoderErrorCode.NoError;

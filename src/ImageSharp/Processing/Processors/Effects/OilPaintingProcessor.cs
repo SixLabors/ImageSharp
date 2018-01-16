@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int radius = this.BrushSize >> 1;
             int levels = this.Levels;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
+            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, source.Width, source.Height))
             {
                 source.CopyTo(targetPixels);
 

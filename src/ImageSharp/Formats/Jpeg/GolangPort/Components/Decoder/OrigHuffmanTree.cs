@@ -3,13 +3,14 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
     /// Represents a Huffman tree
     /// </summary>
-    internal struct OrigHuffmanTree : IDisposable
+    internal unsafe struct OrigHuffmanTree
     {
         /// <summary>
         /// The index of the AC table row
@@ -67,35 +68,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// are 1 plus the code length, or 0 if the value is too large to fit in
         /// lutSize bits.
         /// </summary>
-        public int[] Lut;
+        public fixed int Lut[MaxNCodes];
 
         /// <summary>
         /// Gets the the decoded values, sorted by their encoding.
         /// </summary>
-        public int[] Values;
+        public fixed int Values[MaxNCodes];
 
         /// <summary>
         /// Gets the array of minimum codes.
         /// MinCodes[i] is the minimum code of length i, or -1 if there are no codes of that length.
         /// </summary>
-        public int[] MinCodes;
+        public fixed int MinCodes[MaxCodeLength];
 
         /// <summary>
         /// Gets the array of maximum codes.
         /// MaxCodes[i] is the maximum code of length i, or -1 if there are no codes of that length.
         /// </summary>
-        public int[] MaxCodes;
+        public fixed int MaxCodes[MaxCodeLength];
 
         /// <summary>
         /// Gets the array of indices. Indices[i] is the index into Values of MinCodes[i].
         /// </summary>
-        public int[] Indices;
-
-        private static readonly ArrayPool<int> IntPool256 = ArrayPool<int>.Create(MaxNCodes, 50);
-
-        private static readonly ArrayPool<byte> BytePool256 = ArrayPool<byte>.Create(MaxNCodes, 50);
-
-        private static readonly ArrayPool<int> CodesPool16 = ArrayPool<int>.Create(MaxCodeLength, 50);
+        public fixed int Indices[MaxCodeLength];
 
         /// <summary>
         /// Creates and initializes an array of <see cref="OrigHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
@@ -103,28 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <returns>An array of <see cref="OrigHuffmanTree" /> instances representing the Huffman tables</returns>
         public static OrigHuffmanTree[] CreateHuffmanTrees()
         {
-            OrigHuffmanTree[] result = new OrigHuffmanTree[NumberOfTrees];
-            for (int i = 0; i < MaxTc + 1; i++)
-            {
-                for (int j = 0; j < MaxTh + 1; j++)
-                {
-                    result[(i * ThRowSize) + j].Init();
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Disposes the underlying buffers
-        /// </summary>
-        public void Dispose()
-        {
-            IntPool256.Return(this.Lut, true);
-            IntPool256.Return(this.Values, true);
-            CodesPool16.Return(this.MinCodes, true);
-            CodesPool16.Return(this.MaxCodes, true);
-            CodesPool16.Return(this.Indices, true);
+            return new OrigHuffmanTree[NumberOfTrees];
         }
 
         /// <summary>
@@ -166,75 +140,76 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 throw new ImageFormatException("DHT has wrong length");
             }
 
-            byte[] values = null;
-            try
-            {
-                values = BytePool256.Rent(MaxNCodes);
-                inputProcessor.ReadFull(values, 0, this.Length);
+            byte[] values = new byte[MaxNCodes];
+            inputProcessor.ReadFull(values, 0, this.Length);
 
+            fixed (int* valuesPtr = this.Values)
+            fixed (int* lutPtr = this.Lut)
+            {
                 for (int i = 0; i < values.Length; i++)
                 {
-                    this.Values[i] = values[i];
+                    valuesPtr[i] = values[i];
+                }
+
+                // Derive the look-up table.
+                for (int i = 0; i < MaxNCodes; i++)
+                {
+                    lutPtr[i] = 0;
+                }
+
+                int x = 0, code = 0;
+
+                for (int i = 0; i < LutSizeLog2; i++)
+                {
+                    code <<= 1;
+
+                    for (int j = 0; j < ncodes[i]; j++)
+                    {
+                        // The codeLength is 1+i, so shift code by 8-(1+i) to
+                        // calculate the high bits for every 8-bit sequence
+                        // whose codeLength's high bits matches code.
+                        // The high 8 bits of lutValue are the encoded value.
+                        // The low 8 bits are 1 plus the codeLength.
+                        int base2 = code << (7 - i);
+                        int lutValue = (valuesPtr[x] << 8) | (2 + i);
+
+                        for (int k = 0; k < 1 << (7 - i); k++)
+                        {
+                            lutPtr[base2 | k] = lutValue;
+                        }
+
+                        code++;
+                        x++;
+                    }
                 }
             }
-            finally
+
+            fixed (int* minCodesPtr = this.MinCodes)
+            fixed (int* maxCodesPtr = this.MaxCodes)
+            fixed (int* indicesPtr = this.Indices)
             {
-                BytePool256.Return(values, true);
-            }
-
-            // Derive the look-up table.
-            for (int i = 0; i < this.Lut.Length; i++)
-            {
-                this.Lut[i] = 0;
-            }
-
-            int x = 0, code = 0;
-
-            for (int i = 0; i < LutSizeLog2; i++)
-            {
-                code <<= 1;
-
-                for (int j = 0; j < ncodes[i]; j++)
+                // Derive minCodes, maxCodes, and indices.
+                int c = 0, index = 0;
+                for (int i = 0; i < ncodes.Length; i++)
                 {
-                    // The codeLength is 1+i, so shift code by 8-(1+i) to
-                    // calculate the high bits for every 8-bit sequence
-                    // whose codeLength's high bits matches code.
-                    // The high 8 bits of lutValue are the encoded value.
-                    // The low 8 bits are 1 plus the codeLength.
-                    int base2 = code << (7 - i);
-                    int lutValue = (this.Values[x] << 8) | (2 + i);
-
-                    for (int k = 0; k < 1 << (7 - i); k++)
+                    int nc = ncodes[i];
+                    if (nc == 0)
                     {
-                        this.Lut[base2 | k] = lutValue;
+                        minCodesPtr[i] = -1;
+                        maxCodesPtr[i] = -1;
+                        indicesPtr[i] = -1;
+                    }
+                    else
+                    {
+                        minCodesPtr[i] = c;
+                        maxCodesPtr[i] = c + nc - 1;
+                        indicesPtr[i] = index;
+                        c += nc;
+                        index += nc;
                     }
 
-                    code++;
-                    x++;
+                    c <<= 1;
                 }
-            }
-
-            // Derive minCodes, maxCodes, and indices.
-            int c = 0, index = 0;
-            for (int i = 0; i < ncodes.Length; i++)
-            {
-                int nc = ncodes[i];
-                if (nc == 0)
-                {
-                    this.MinCodes[i] = -1;
-                    this.MaxCodes[i] = -1;
-                    this.Indices[i] = -1;
-                }
-                else
-                {
-                    this.MinCodes[i] = c;
-                    this.MaxCodes[i] = c + nc - 1;
-                    this.Indices[i] = index;
-                    c += nc;
-                    index += nc;
-                }
-
-                c <<= 1;
             }
         }
 
@@ -246,19 +221,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <returns>The value</returns>
         public int GetValue(int code, int codeLength)
         {
-            return this.Values[this.Indices[codeLength] + code - this.MinCodes[codeLength]];
+            fixed (int* valuesPtr = this.Values)
+            fixed (int* minCodesPtr = this.MinCodes)
+            fixed (int* indicesPtr = this.Indices)
+            {
+                return valuesPtr[indicesPtr[codeLength] + code - minCodesPtr[codeLength]];
+            }
         }
 
-        /// <summary>
-        /// Initializes the Huffman tree
-        /// </summary>
-        private void Init()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ReadLut(int index)
         {
-            this.Lut = IntPool256.Rent(MaxNCodes);
-            this.Values = IntPool256.Rent(MaxNCodes);
-            this.MinCodes = CodesPool16.Rent(MaxCodeLength);
-            this.MaxCodes = CodesPool16.Rent(MaxCodeLength);
-            this.Indices = CodesPool16.Rent(MaxCodeLength);
+            fixed (int* lutPtr = this.Lut)
+            {
+                return lutPtr[index];
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetMaxCode(int index)
+        {
+            fixed (int* maxCodesPtr = this.MaxCodes)
+            {
+                return maxCodesPtr[index];
+            }
         }
     }
 }

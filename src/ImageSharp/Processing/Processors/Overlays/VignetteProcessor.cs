@@ -19,21 +19,25 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly MemoryManager memoryManager;
+
         private readonly GraphicsOptions options;
         private readonly PixelBlender<TPixel> blender;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The color of the vignette.</param>
         /// <param name="radiusX">The x-radius.</param>
         /// <param name="radiusY">The y-radius.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public VignetteProcessor(TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
+        public VignetteProcessor(MemoryManager memoryManager, TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
         {
             this.VignetteColor = color;
             this.RadiusX = radiusX;
             this.RadiusY = radiusY;
+            this.memoryManager = memoryManager;
             this.options = options;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
@@ -41,11 +45,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The color of the vignette.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public VignetteProcessor(TPixel color,  GraphicsOptions options)
+        public VignetteProcessor(MemoryManager memoryManager, TPixel color,  GraphicsOptions options)
         {
             this.VignetteColor = color;
+            this.memoryManager = memoryManager;
             this.options = options;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
         }
@@ -104,7 +110,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             int width = maxX - minX;
-            using (var rowColors = new Buffer<TPixel>(width))
+            using (var rowColors = this.memoryManager.Allocate<TPixel>(width))
             {
                 for (int i = 0; i < width; i++)
                 {
@@ -117,7 +123,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     configuration.ParallelOptions,
                     y =>
                         {
-                            using (var amounts = new Buffer<float>(width))
+                            using (var amounts = this.memoryManager.Allocate<float>(width))
                             {
                                 int offsetY = y - startY;
                                 int offsetX = minX - startX;

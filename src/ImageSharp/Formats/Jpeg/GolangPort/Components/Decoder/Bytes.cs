@@ -6,6 +6,8 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
@@ -25,12 +27,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// buffer[i:j] are the buffered bytes read from the underlying
         /// stream that haven't yet been passed further on.
         /// </summary>
-        public byte[] Buffer;
+        public Buffer<byte> Buffer;
 
         /// <summary>
         /// Values of <see cref="Buffer"/> converted to <see cref="int"/>-s
         /// </summary>
-        public int[] BufferAsInt;
+        public Buffer<int> BufferAsInt;
 
         /// <summary>
         /// Start of bytes read
@@ -48,20 +50,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public int UnreadableBytes;
 
-        private static readonly ArrayPool<byte> BytePool = ArrayPool<byte>.Create(BufferSize, 50);
-
-        private static readonly ArrayPool<int> IntPool = ArrayPool<int>.Create(BufferSize, 50);
-
         /// <summary>
         /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <returns>The bytes created</returns>
-        public static Bytes Create()
+        public static Bytes Create(MemoryManager memoryManager)
         {
             return new Bytes
             {
-                Buffer = BytePool.Rent(BufferSize),
-                BufferAsInt = IntPool.Rent(BufferSize)
+                Buffer = memoryManager.Allocate<byte>(BufferSize),
+                BufferAsInt = memoryManager.Allocate<int>(BufferSize)
             };
         }
 
@@ -70,11 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public void Dispose()
         {
-            if (this.Buffer != null)
-            {
-                BytePool.Return(this.Buffer);
-                IntPool.Return(this.BufferAsInt);
-            }
+            this.Buffer?.Dispose();
+            this.BufferAsInt?.Dispose();
 
             this.Buffer = null;
             this.BufferAsInt = null;
@@ -244,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
 
             // Fill in the rest of the buffer.
-            int n = inputStream.Read(this.Buffer, this.J, this.Buffer.Length - this.J);
+            int n = inputStream.Read(this.Buffer.Array, this.J, this.Buffer.Length - this.J);
             if (n == 0)
             {
                 return OrigDecoderErrorCode.UnexpectedEndOfStream;

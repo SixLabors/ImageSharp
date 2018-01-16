@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                var options = new PngEncoder()
+                var options = new PngEncoder(Configuration.Default.MemoryManager)
                 {
                     PngColorType = pngColorType
                 };
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (var ms = new MemoryStream())
             {
-                image.Save(ms, new PngEncoder());
+                image.Save(ms, new PngEncoder(Configuration.Default.MemoryManager));
                 
                 byte[] data = ms.ToArray().Take(8).ToArray(); 
                 byte[] expected = {

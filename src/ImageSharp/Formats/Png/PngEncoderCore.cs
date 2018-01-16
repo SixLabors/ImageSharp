@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal sealed class PngEncoderCore : IDisposable
     {
+        private readonly MemoryManager memoryManager;
+
         /// <summary>
         /// The maximum block size, defaults at 64k for uncompressed blocks.
         /// </summary>
@@ -148,9 +150,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="options">The options for influancing the encoder</param>
-        public PngEncoderCore(IPngEncoderOptions options)
+        public PngEncoderCore(MemoryManager memoryManager, IPngEncoderOptions options)
         {
+            this.memoryManager = memoryManager;
             this.ignoreMetadata = options.IgnoreMetadata;
             this.paletteSize = options.PaletteSize > 0 ? options.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
             this.pngColorType = options.PngColorType;
@@ -505,7 +509,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.quantizer == null)
             {
-                this.quantizer = new WuQuantizer<TPixel>();
+                this.quantizer = new WuQuantizer<TPixel>(this.memoryManager);
             }
 
             // Quantize the image returning a palette. This boxing is icky.
@@ -517,11 +521,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
-            byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
-            byte[] alphaTable = ArrayPool<byte>.Shared.Rent(pixelCount);
             var rgba = default(Rgba32);
             bool anyAlpha = false;
-            try
+            using (Buffer<byte> colorTable = this.memoryManager.Allocate<byte>(colorTableLength))
+            using (Buffer<byte> alphaTable = this.memoryManager.Allocate<byte>(pixelCount))
             {
                 for (byte i = 0; i < pixelCount; i++)
                 {
@@ -546,18 +549,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable, 0, colorTableLength);
+                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable.Array, 0, colorTableLength);
 
                 // Write the transparency data
                 if (anyAlpha)
                 {
-                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable, 0, pixelCount);
+                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable.Array, 0, pixelCount);
                 }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(colorTable);
-                ArrayPool<byte>.Shared.Return(alphaTable);
             }
 
             return quantized;
@@ -620,16 +618,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
-            this.rawScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
-            this.result = Buffer<byte>.CreateClean(resultLength);
+            this.previousScanline = this.memoryManager.Allocate<byte>(this.bytesPerScanline, true);
+            this.rawScanline = this.memoryManager.Allocate<byte>(this.bytesPerScanline, true);
+            this.result = this.memoryManager.Allocate<byte>(resultLength, true);
 
             if (this.pngColorType != PngColorType.Palette)
             {
-                this.sub = Buffer<byte>.CreateClean(resultLength);
-                this.up = Buffer<byte>.CreateClean(resultLength);
-                this.average = Buffer<byte>.CreateClean(resultLength);
-                this.paeth = Buffer<byte>.CreateClean(resultLength);
+                this.sub = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.up = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.average = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.paeth = this.memoryManager.Allocate<byte>(resultLength, true);
             }
 
             byte[] buffer;

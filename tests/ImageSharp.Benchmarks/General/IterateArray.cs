@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
         [GlobalSetup]
         public void Setup()
         {
-            this.buffer = new Buffer<Vector4>(this.Length);
+            this.buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(this.Length);
             this.buffer.Pin();
             this.array = new Vector4[this.Length];
         }

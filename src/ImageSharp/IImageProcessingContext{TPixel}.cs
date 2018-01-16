@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -28,6 +29,13 @@ namespace SixLabors.ImageSharp
         /// <param name="processor">The processor to apply</param>
         /// <returns>The current operations class to allow chaining of operations.</returns>
         IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor);
+
+        /// <summary>
+        /// Returns a reference to the <see cref="MemoryManager" /> used to allocate buffers
+        /// for this context.
+        /// </summary>
+        /// <returns>A <see cref="MemoryManager"/> to use for buffer allocations.</returns>
+        MemoryManager GetMemoryManager();
     }
 
     /// <summary>

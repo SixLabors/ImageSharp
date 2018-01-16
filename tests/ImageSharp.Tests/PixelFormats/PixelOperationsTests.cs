@@ -50,8 +50,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
-                using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
+                using (Buffer<ImageSharp.Rgba32> source = Configuration.Default.MemoryManager.Allocate<ImageSharp.Rgba32>(count))
+                using (Buffer<Vector4> dest = Configuration.Default.MemoryManager.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
@@ -344,7 +344,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
                 this.SourceBuffer = new Buffer<TSource>(source);
                 this.ExpectedDestBuffer = new Buffer<TDest>(expectedDest);
-                this.ActualDestBuffer = new Buffer<TDest>(expectedDest.Length);
+                this.ActualDestBuffer = Configuration.Default.MemoryManager.Allocate<TDest>(expectedDest.Length);
             }
 
             public void Dispose()
@@ -362,8 +362,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDest) == typeof(Vector4))
                 {
-                    Vector4[] expected = this.ExpectedDestBuffer.Array as Vector4[];
-                    Vector4[] actual = this.ActualDestBuffer.Array as Vector4[];
+                    
+                    Span<Vector4> expected = this.ExpectedDestBuffer.Span.NonPortableCast<TDest, Vector4>();
+                    Span<Vector4> actual = this.ActualDestBuffer.Span.NonPortableCast<TDest, Vector4>();
 
                     for (int i = 0; i < count; i++)
                     {

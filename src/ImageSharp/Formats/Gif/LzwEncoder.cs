@@ -5,6 +5,8 @@ using System;
 using System.Buffers;
 using System.IO;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
@@ -69,12 +71,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The hash table.
         /// </summary>
-        private readonly int[] hashTable;
+        private readonly Buffer<int> hashTable;
 
         /// <summary>
         /// The code table.
         /// </summary>
-        private readonly int[] codeTable;
+        private readonly Buffer<int> codeTable;
 
         /// <summary>
         /// Define the storage for the packet accumulator.
@@ -189,17 +191,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwEncoder"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="indexedPixels">The array of indexed pixels.</param>
         /// <param name="colorDepth">The color depth in bits.</param>
-        public LzwEncoder(byte[] indexedPixels, int colorDepth)
+        public LzwEncoder(MemoryManager memoryManager, byte[] indexedPixels, int colorDepth)
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
 
-            this.hashTable = ArrayPool<int>.Shared.Rent(HashSize);
-            this.codeTable = ArrayPool<int>.Shared.Rent(HashSize);
-            Array.Clear(this.hashTable, 0, HashSize);
-            Array.Clear(this.codeTable, 0, HashSize);
+            this.hashTable = memoryManager.Allocate<int>(HashSize, true);
+            this.codeTable = memoryManager.Allocate<int>(HashSize, true);
         }
 
         /// <summary>
@@ -483,8 +484,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             if (disposing)
             {
-                ArrayPool<int>.Shared.Return(this.hashTable);
-                ArrayPool<int>.Shared.Return(this.codeTable);
+                this.hashTable?.Dispose();
+                this.codeTable?.Dispose();
             }
 
             this.isDisposed = true;

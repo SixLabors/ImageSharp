@@ -5,6 +5,8 @@ using System;
 using System.Buffers;
 using System.IO;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
@@ -30,17 +32,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The prefix buffer.
         /// </summary>
-        private readonly int[] prefix;
+        private readonly Buffer<int> prefix;
 
         /// <summary>
         /// The suffix buffer.
         /// </summary>
-        private readonly int[] suffix;
+        private readonly Buffer<int> suffix;
 
         /// <summary>
         /// The pixel stack buffer.
         /// </summary>
-        private readonly int[] pixelStack;
+        private readonly Buffer<int> pixelStack;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -59,21 +61,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="stream">The stream to read from.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
-        public LzwDecoder(Stream stream)
+        public LzwDecoder(MemoryManager memoryManager, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
 
-            this.prefix = ArrayPool<int>.Shared.Rent(MaxStackSize);
-            this.suffix = ArrayPool<int>.Shared.Rent(MaxStackSize);
-            this.pixelStack = ArrayPool<int>.Shared.Rent(MaxStackSize + 1);
-
-            Array.Clear(this.prefix, 0, MaxStackSize);
-            Array.Clear(this.suffix, 0, MaxStackSize);
-            Array.Clear(this.pixelStack, 0, MaxStackSize + 1);
+            this.prefix = memoryManager.Allocate<int>(MaxStackSize, true);
+            this.suffix = memoryManager.Allocate<int>(MaxStackSize, true);
+            this.pixelStack = memoryManager.Allocate<int>(MaxStackSize + 1, true);
         }
 
         /// <summary>
@@ -262,9 +261,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             if (disposing)
             {
-                ArrayPool<int>.Shared.Return(this.prefix);
-                ArrayPool<int>.Shared.Return(this.suffix);
-                ArrayPool<int>.Shared.Return(this.pixelStack);
+                this.prefix?.Dispose();
+                this.suffix?.Dispose();
+                this.pixelStack?.Dispose();
             }
 
             this.isDisposed = true;

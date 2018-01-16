@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = new Buffer<TPixel>(this.Count);
-            this.source = new Buffer<Vector4>(this.Count);
+            this.destination = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
+            this.source = Configuration.Default.MemoryManager.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]

@@ -17,16 +17,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly MemoryManager memoryManager;
+
         private readonly GraphicsOptions options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The <typeparamref name="TPixel"/> to set the background color to.</param>
         /// <param name="options">The options defining blending algorithum and amount.</param>
-        public BackgroundColorProcessor(TPixel color, GraphicsOptions options)
+        public BackgroundColorProcessor(MemoryManager memoryManager, TPixel color, GraphicsOptions options)
         {
             this.Value = color;
+            this.memoryManager = memoryManager;
             this.options = options;
         }
 
@@ -67,8 +71,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int width = maxX - minX;
 
-            using (var colors = new Buffer<TPixel>(width))
-            using (var amount = new Buffer<float>(width))
+            using (var colors = this.memoryManager.Allocate<TPixel>(width))
+            using (var amount = this.memoryManager.Allocate<float>(width))
             {
                 for (int i = 0; i < width; i++)
                 {

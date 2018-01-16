@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp
             switch (mode)
             {
                 case Quantization.Wu:
-                    quantizer = new WuQuantizer<TPixel>();
+                    quantizer = new WuQuantizer<TPixel>(source.GetMemoryManager());
                     break;
 
                 case Quantization.Palette:
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp
                 QuantizedImage<TPixel> quantized = quantizer.Quantize(img.Frames.RootFrame, maxColors);
                 int palleteCount = quantized.Palette.Length - 1;
 
-                using (var pixels = new PixelAccessor<TPixel>(quantized.Width, quantized.Height))
+                using (var pixels = new PixelAccessor<TPixel>(source.GetMemoryManager(), quantized.Width, quantized.Height))
                 {
                     Parallel.For(
                         0,

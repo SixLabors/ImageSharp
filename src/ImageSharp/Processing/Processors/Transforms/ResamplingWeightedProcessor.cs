@@ -3,6 +3,8 @@
 
 using System;
 using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -19,18 +21,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="ResamplingWeightedProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="sampler">The sampler to perform the resize operation.</param>
         /// <param name="width">The target width.</param>
         /// <param name="height">The target height.</param>
         /// <param name="resizeRectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the target image object to draw to.
         /// </param>
-        protected ResamplingWeightedProcessor(IResampler sampler, int width, int height, Rectangle resizeRectangle)
+        protected ResamplingWeightedProcessor(MemoryManager memoryManager, IResampler sampler, int width, int height, Rectangle resizeRectangle)
         {
+            Guard.NotNull(memoryManager, nameof(memoryManager));
             Guard.NotNull(sampler, nameof(sampler));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
+            this.MemoryManager = memoryManager;
             this.Sampler = sampler;
             this.Width = width;
             this.Height = height;
@@ -56,6 +61,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Gets or sets the resize rectangle.
         /// </summary>
         public Rectangle ResizeRectangle { get; protected set; }
+
+        protected MemoryManager MemoryManager { get; }
 
         /// <summary>
         /// Gets or sets the horizontal weights.
@@ -86,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             IResampler sampler = this.Sampler;
             float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new WeightsBuffer(sourceSize, destinationSize);
+            var result = new WeightsBuffer(this.MemoryManager, sourceSize, destinationSize);
 
             for (int i = 0; i < destinationSize; i++)
             {

@@ -52,10 +52,11 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
-        public PixelAccessor(int width, int height)
-            : this(width, height, Buffer2D<TPixel>.CreateClean(width, height), true)
+        public PixelAccessor(MemoryManager memoryManager, int width, int height)
+            : this(width, height, memoryManager.Allocate2D<TPixel>(width, height, true), true)
         {
         }
 
@@ -86,7 +87,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the pixel buffer array.
         /// </summary>
-        public TPixel[] PixelArray => this.PixelBuffer.Array;
+        public TPixel[] PixelArray => this.PixelBuffer.Buffer.Array;
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp
         public int Height { get; private set; }
 
         /// <inheritdoc />
-        Span<TPixel> IBuffer2D<TPixel>.Span => this.PixelBuffer;
+        Span<TPixel> IBuffer2D<TPixel>.Span => this.PixelBuffer.Span;
 
         private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
@@ -158,7 +159,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public void Reset()
         {
-            this.PixelBuffer.Clear();
+            this.PixelBuffer.Buffer.Clear();
         }
 
         /// <summary>

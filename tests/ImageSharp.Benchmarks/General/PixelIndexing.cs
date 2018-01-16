@@ -33,9 +33,9 @@
 
             public Data(Buffer2D<Vector4> buffer)
             {
-                this.pointer = (Vector4*)buffer.Pin();
-                this.pinnable = Unsafe.As<Pinnable<Vector4>>(buffer.Array);
-                this.array = buffer.Array;
+                this.pointer = (Vector4*)buffer.Buffer.Pin();
+                this.pinnable = Unsafe.As<Pinnable<Vector4>>(buffer.Buffer.Array);
+                this.array = buffer.Buffer.Array;
                 this.width = buffer.Width;
             }
 
@@ -149,9 +149,9 @@
         public void Setup()
         {
             this.width = 2048;
-            this.buffer = new Buffer2D<Vector4>(2048, 2048);
-            this.pointer = (Vector4*)this.buffer.Pin();
-            this.array = this.buffer.Array;
+            this.buffer = Configuration.Default.MemoryManager.Allocate2D<Vector4>(2048, 2048);
+            this.pointer = (Vector4*)this.buffer.Buffer.Pin();
+            this.array = this.buffer.Buffer.Array;
             this.pinnable = Unsafe.As<Pinnable<Vector4>>(this.array);
 
             this.startIndex = 2048 / 2 - (this.Count / 2);

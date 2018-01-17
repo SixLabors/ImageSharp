@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </list>
     /// </para>
     /// </remarks>
-    public sealed class PngDecoder : IImageDecoder, IPngDecoderOptions
+    public sealed class PngDecoder : IImageDecoder, IPngDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -55,16 +53,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             return decoder.Decode<TPixel>(stream);
         }
 
-        /// <summary>
-        /// Detects the image pixel size from the specified stream.
-        /// </summary>
-        /// <param name="configuration">The configuration for the image.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>The color depth, in number of bits per pixel</returns>
-        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
+        /// <inheritdoc/>
+        public IImage Identify(Configuration configuration, Stream stream)
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return new PixelTypeInfo(decoder.DetectPixelSize(stream));
+            return decoder.Identify(stream);
         }
     }
 }

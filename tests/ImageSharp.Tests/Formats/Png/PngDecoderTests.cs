@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests
             TestFile testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                Assert.Equal(expectedPixelSize, Image.DetectPixelType(stream)?.BitsPerPixel);
+                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
             }
         }
 

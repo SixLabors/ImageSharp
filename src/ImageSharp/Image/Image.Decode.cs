@@ -81,17 +81,17 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Detects the image pixel size.
+        /// Reads the image base information.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
         /// <returns>
-        /// The <see cref="PixelTypeInfo"/> or null if suitable decoder not found.
+        /// The <see cref="IImage"/> or null if suitable info detector not found.
         /// </returns>
-        private static PixelTypeInfo InternalDetectPixelType(Stream stream, Configuration config)
+        private static IImage InternalIdentity(Stream stream, Configuration config)
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat _);
-            return decoder?.DetectPixelType(config, stream);
+            var detector = DiscoverDecoder(stream, config, out IImageFormat _) as IImageInfoDetector;
+            return detector?.Identify(config, stream);
         }
     }
 }

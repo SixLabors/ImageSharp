@@ -128,6 +128,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
 
         /// <summary>
+        /// Gets the color depth, in number of bits per pixel.
+        /// </summary>
+        public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
+        
+        /// <summary>
         /// Gets the image height
         /// </summary>
         public int ImageHeight => this.ImageSizeInPixels.Height;
@@ -193,14 +198,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Detects the image pixel size from the specified stream.
+        /// Reads the image base information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>The color depth, in number of bits per pixel</returns>
-        public int DetectPixelSize(Stream stream)
+        public IImage Identify(Stream stream)
         {
             this.ParseStream(stream, true);
-            return this.ComponentCount * SupportedPrecision;
+            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
         /// <inheritdoc />
@@ -785,7 +789,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             using (var postProcessor = new JpegImagePostProcessor(this))
             {
-                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
+                var image = new Image<TPixel>(this.configuration, new PixelTypeInfo(this.BitsPerPixel),  this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);
                 return image;
             }

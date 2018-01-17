@@ -201,11 +201,6 @@ namespace SixLabors.ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
-            public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
-            {
-                throw new NotImplementedException();
-            }
-
             public bool IsSupportedFileFormat(Span<byte> header) => testFormat.IsSupportedFileFormat(header);
         }
 

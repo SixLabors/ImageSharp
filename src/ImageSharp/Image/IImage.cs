@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
         /// Gets the width.
         /// </summary>
         int Width { get; }
-        
+
         /// <summary>
         /// Gets the height.
         /// </summary>

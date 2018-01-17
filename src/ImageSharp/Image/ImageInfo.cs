@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp
             this.Height = height;
             this.MetaData = metaData;
         }
-        
+
         public PixelTypeInfo PixelType { get; }
 
         public int Width { get; }

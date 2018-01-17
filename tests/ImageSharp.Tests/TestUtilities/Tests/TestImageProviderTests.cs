@@ -83,11 +83,6 @@ namespace SixLabors.ImageSharp.Tests
                 return new Image<TPixel>(42, 42);
             }
 
-            public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
-            {
-                throw new NotImplementedException();
-            }
-
             // Couldn't make xUnit happy without this hackery:
 
             private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
@@ -148,11 +143,6 @@ namespace SixLabors.ImageSharp.Tests
             {
                 invocationCounts[this.callerName]++;
                 return new Image<TPixel>(42, 42);
-            }
-
-            public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
-            {
-                throw new NotImplementedException();
             }
 
             private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();

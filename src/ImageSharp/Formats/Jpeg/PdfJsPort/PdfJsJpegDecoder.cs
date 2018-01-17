@@ -27,11 +27,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 return decoder.Decode<TPixel>(stream);
             }
         }
-
-        /// <inheritdoc/>
-        public PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream)
-        {
-            throw new System.NotImplementedException();
-        }
     }
 }

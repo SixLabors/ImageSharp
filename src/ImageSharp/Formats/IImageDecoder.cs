@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -22,13 +20,5 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>The decoded image</returns>
         Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>;
-
-        /// <summary>
-        /// Detects the image pixel size from the specified stream.
-        /// </summary>
-        /// <param name="configuration">The configuration for the image.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>The <see cref="PixelTypeInfo"/> object</returns>
-        PixelTypeInfo DetectPixelType(Configuration configuration, Stream stream);
     }
 }

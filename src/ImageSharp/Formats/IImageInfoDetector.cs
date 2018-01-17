@@ -1,0 +1,21 @@
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.IO;
+
+namespace SixLabors.ImageSharp.Formats
+{
+    /// <summary>
+    /// Used for detecting the image base information without decoding it.
+    /// </summary>
+    public interface IImageInfoDetector
+    {
+        /// <summary>
+        /// Reads the image base information from the specified stream.
+        /// </summary>
+        /// <param name="configuration">The configuration for the image.</param>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <returns>The <see cref="PixelTypeInfo"/> object</returns>
+        IImage Identify(Configuration configuration, Stream stream);
+    }
+}

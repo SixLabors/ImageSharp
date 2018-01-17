@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                                     deframeStream.AllocateNewBytes(currentChunk.Length);
                                     this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
-                                    stream.Read(this.crcBuffer, 0, 4);
+                                    this.currentStream.Read(this.crcBuffer, 0, 4);
                                     break;
                                 case PngChunkTypes.Palette:
                                     byte[] pal = new byte[currentChunk.Length];
@@ -279,42 +279,50 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Detects the image pixel size from the specified stream.
+        /// Reads the image base information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>The color depth, in number of bits per pixel</returns>
-        public int DetectPixelSize(Stream stream)
+        public IImage Identify(Stream stream)
         {
+            var metadata = new ImageMetaData();
             this.currentStream = stream;
             this.currentStream.Skip(8);
             try
             {
-                    PngChunk currentChunk;
-                    while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
+                PngChunk currentChunk;
+                while (!this.isEndChunkReached && (currentChunk = this.ReadChunk()) != null)
+                {
+                    try
                     {
-                        try
+                        switch (currentChunk.Type)
                         {
-                            switch (currentChunk.Type)
-                            {
-                                case PngChunkTypes.Header:
-                                    this.ReadHeaderChunk(currentChunk.Data);
-                                    this.ValidateHeader();
-                                    this.isEndChunkReached = true;
-                                    break;
-                                case PngChunkTypes.End:
-                                    this.isEndChunkReached = true;
-                                    break;
-                            }
-                        }
-                        finally
-                        {
-                            // Data is rented in ReadChunkData()
-                            if (currentChunk.Data != null)
-                            {
-                                ArrayPool<byte>.Shared.Return(currentChunk.Data);
-                            }
+                            case PngChunkTypes.Header:
+                                this.ReadHeaderChunk(currentChunk.Data);
+                                this.ValidateHeader();
+                                break;
+                            case PngChunkTypes.Physical:
+                                this.ReadPhysicalChunk(metadata, currentChunk.Data);
+                                break;
+                            case PngChunkTypes.Data:
+                                this.SkipChunkDataAndCrc(currentChunk);
+                                break;
+                            case PngChunkTypes.Text:
+                                this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
+                                break;
+                            case PngChunkTypes.End:
+                                this.isEndChunkReached = true;
+                                break;
                         }
                     }
+                    finally
+                    {
+                        // Data is rented in ReadChunkData()
+                        if (currentChunk.Data != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(currentChunk.Data);
+                        }
+                    }
+                }
             }
             finally
             {
@@ -327,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 throw new ImageFormatException("PNG Image hasn't header chunk");
             }
 
-            return this.CalculateBitsPerPixel();
+            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()),  this.header.Width, this.header.Height, metadata);
         }
 
         /// <summary>
@@ -418,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
+            image = new Image<TPixel>(this.configuration, new PixelTypeInfo(this.CalculateBitsPerPixel()),  this.header.Width, this.header.Height, metadata);
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
             this.bytesPerSample = 1;
@@ -1253,6 +1261,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 throw new ImageFormatException($"CRC Error. PNG {chunk.Type} chunk is corrupt!");
             }
+        }
+
+        /// <summary>
+        /// Skips the chunk data and the cycle redundancy chunk read from the data.
+        /// </summary>
+        private void SkipChunkDataAndCrc(PngChunk chunk)
+        {
+            this.currentStream.Skip(chunk.Length);
+            this.currentStream.Skip(4);
         }
 
         /// <summary>

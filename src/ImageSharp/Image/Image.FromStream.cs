@@ -37,22 +37,22 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// By reading the header on the provided stream this calculates the images color depth.
+        /// By reading the header on the provided stream this reads the image base information.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>
-        /// The <see cref="PixelTypeInfo"/> or null if suitable decoder not found.
+        /// The <see cref="IImage"/> or null if suitable info detector not found.
         /// </returns>
-        public static PixelTypeInfo DetectPixelType(Stream stream)
+        public static IImage Identify(Stream stream)
         {
-            return DetectPixelType(null, stream);
+            return Identify(null, stream);
         }
 
         /// <summary>
-        /// By reading the header on the provided stream this calculates the images color depth.
+        /// By reading the header on the provided stream this reads the image base information.
         /// </summary>
         /// <param name="config">The configuration.</param>
         /// <param name="stream">The image stream to read the header from.</param>
@@ -60,11 +60,11 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>
-        /// The <see cref="PixelTypeInfo"/> or null if suitable decoder not found.
+        /// The <see cref="IImage"/> or null if suitable info detector not found.
         /// </returns>
-        public static PixelTypeInfo DetectPixelType(Configuration config, Stream stream)
+        public static IImage Identify(Configuration config, Stream stream)
         {
-            return WithSeekableStream(stream, s => InternalDetectPixelType(s, config ?? Configuration.Default));
+            return WithSeekableStream(stream, s => InternalIdentity(s, config ?? Configuration.Default));
         }
 
         /// <summary>

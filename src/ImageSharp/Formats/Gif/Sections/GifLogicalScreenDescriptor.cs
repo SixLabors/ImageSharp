@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// rendered in the displaying device.
         /// </summary>
         public short Height { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the color depth, in number of bits per pixel.
         /// </summary>

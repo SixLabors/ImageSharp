@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         if (imageDescriptor.LocalColorTableFlag)
                         {
                             int length = imageDescriptor.LocalColorTableSize * 3;
-                            
+
                             // Skip local color table block
                             this.Skip(length);
                         }
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         switch (label)
                         {
                             case GifConstants.GraphicControlLabel:
-                                
+
                                 // Skip graphic control extension block
                                 this.Skip(0);
                                 break;

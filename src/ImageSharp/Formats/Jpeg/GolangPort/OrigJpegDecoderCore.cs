@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Gets the color depth, in number of bits per pixel.
         /// </summary>
         public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
-        
+
         /// <summary>
         /// Gets the image height
         /// </summary>

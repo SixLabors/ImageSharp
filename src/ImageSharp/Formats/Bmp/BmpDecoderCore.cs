@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.ReadImageHeaders(stream, out _, out _);
             return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, new ImageMetaData());
         }
-        
+
         /// <summary>
         /// Returns the y- value based on the given height.
         /// </summary>

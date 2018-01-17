@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp
         /// Gets the pixel buffer.
         /// </summary>
         Configuration IConfigurable.Configuration => this.configuration;
-        
+
         /// <inheritdoc/>
         public PixelTypeInfo PixelType { get; }
 

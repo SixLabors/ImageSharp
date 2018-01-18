@@ -9,19 +9,25 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
+    using System;
+
     /// <summary>
     /// Tests the <see cref="PixelDataPool{T}"/> class.
     /// </summary>
     public class PixelDataPoolTests
     {
+        private const int MaxPooledBufferSizeInBytes = PixelDataPool<byte>.MaxPooledBufferSizeInBytes;
+
         readonly object monitor = new object();
         
-        [Fact]
-        public void PixelDataPoolRentsMinimumSize()
+        [Theory]
+        [InlineData(1)]
+        [InlineData(1024)]
+        public void PixelDataPoolRentsMinimumSize(int size)
         {
-            Rgba32[] pixels = PixelDataPool<Rgba32>.Rent(1024);
+            Rgba32[] pixels = PixelDataPool<Rgba32>.Rent(size);
 
-            Assert.True(pixels.Length >= 1024);
+            Assert.True(pixels.Length >= size);
         }
 
         [Fact]
@@ -65,17 +71,21 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        [Fact]
-        public void SmallBuffersArePooled()
+        [Theory]
+        [InlineData(32)]
+        [InlineData(512)]
+        [InlineData(MaxPooledBufferSizeInBytes-1)]
+        public void SmallBuffersArePooled(int size)
         {
-            Assert.True(this.CheckIsPooled<byte>(5, 512));
+            Assert.True(this.CheckIsPooled<byte>(5, size));
         }
 
-        [Fact]
-        public void LargeBuffersAreNotPooled_OfByte()
+        [Theory]
+        [InlineData(128 * 1024 * 1024)]
+        [InlineData(MaxPooledBufferSizeInBytes+1)]
+        public void LargeBuffersAreNotPooled_OfByte(int size)
         {
-            const int mb128 = 128 * 1024 * 1024;
-            Assert.False(this.CheckIsPooled<byte>(2, mb128));
+            Assert.False(this.CheckIsPooled<byte>(2, size));
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 512)]

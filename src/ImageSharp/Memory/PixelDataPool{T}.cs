@@ -17,17 +17,32 @@ namespace SixLabors.ImageSharp.Memory
         /// The maximum size of pooled arrays in bytes.
         /// Currently set to 32MB, which is equivalent to 8 megapixels of raw <see cref="Rgba32"/> data.
         /// </summary>
-        private const int MaxPooledBufferSizeInBytes = 32 * 1024 * 1024;
+        internal const int MaxPooledBufferSizeInBytes = 32 * 1024 * 1024;
 
         /// <summary>
-        /// The maximum array length of the <see cref="ArrayPool"/>.
+        /// The threshold to pool arrays in <see cref="LargeArrayPool"/> which has less buckets for memory safety.
         /// </summary>
-        private static readonly int MaxArrayLength = MaxPooledBufferSizeInBytes / Unsafe.SizeOf<T>();
+        private const int LargeBufferThresholdInBytes = 8 * 1024 * 1024;
 
         /// <summary>
-        /// The <see cref="ArrayPool{T}"/> which is not kept clean.
+        /// The maximum array length of the <see cref="LargeArrayPool"/>.
         /// </summary>
-        private static readonly ArrayPool<T> ArrayPool = ArrayPool<T>.Create(MaxArrayLength, 50);
+        private static readonly int MaxLargeArrayLength = MaxPooledBufferSizeInBytes / Unsafe.SizeOf<T>();
+
+        /// <summary>
+        /// The maximum array length of the <see cref="NormalArrayPool"/>.
+        /// </summary>
+        private static readonly int MaxNormalArrayLength = LargeBufferThresholdInBytes / Unsafe.SizeOf<T>();
+
+        /// <summary>
+        /// The <see cref="ArrayPool{T}"/> for huge buffers, which is not kept clean.
+        /// </summary>
+        private static readonly ArrayPool<T> LargeArrayPool = ArrayPool<T>.Create(MaxLargeArrayLength, 8);
+
+        /// <summary>
+        /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
+        /// </summary>
+        private static readonly ArrayPool<T> NormalArrayPool = ArrayPool<T>.Create(MaxNormalArrayLength, 24);
 
         /// <summary>
         /// Rents the pixel array from the pool.
@@ -36,7 +51,14 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The <see cref="T:TPixel[]"/></returns>
         public static T[] Rent(int minimumLength)
         {
-            return ArrayPool.Rent(minimumLength);
+            if (minimumLength <= MaxNormalArrayLength)
+            {
+                return NormalArrayPool.Rent(minimumLength);
+            }
+            else
+            {
+                return LargeArrayPool.Rent(minimumLength);
+            }
         }
 
         /// <summary>
@@ -45,7 +67,14 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="array">The array to return to the buffer pool.</param>
         public static void Return(T[] array)
         {
-            ArrayPool.Return(array);
+            if (array.Length <= MaxNormalArrayLength)
+            {
+                NormalArrayPool.Return(array);
+            }
+            else
+            {
+                LargeArrayPool.Return(array);
+            }
         }
     }
 }

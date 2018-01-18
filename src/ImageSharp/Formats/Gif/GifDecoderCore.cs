@@ -180,17 +180,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     if (nextFlag == GifConstants.ImageLabel)
                     {
-                        GifImageDescriptor imageDescriptor = this.ReadImageDescriptor();
-
-                        // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
-                        if (imageDescriptor.LocalColorTableFlag)
-                        {
-                            int length = imageDescriptor.LocalColorTableSize * 3;
-
-                            // Skip local color table block
-                            this.Skip(length);
-                        }
-
                         // Skip image block
                         this.Skip(0);
                     }

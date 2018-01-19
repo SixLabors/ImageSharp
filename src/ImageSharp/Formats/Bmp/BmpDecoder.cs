@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -23,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// Formats will be supported in a later releases. We advise always
     /// to use only 24 Bit Windows bitmaps.
     /// </remarks>
-    public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions
+    public sealed class BmpDecoder : IImageDecoder, IBmpDecoderOptions, IImageInfoDetector
     {
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
@@ -33,6 +31,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(stream, "stream");
 
             return new BmpDecoderCore(configuration, this).Decode<TPixel>(stream);
+        }
+
+        /// <inheritdoc/>
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            return new BmpDecoderCore(configuration, this).Identify(stream);
         }
     }
 }

@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public short Height { get; set; }
 
         /// <summary>
+        /// Gets or sets the color depth, in number of bits per pixel.
+        /// </summary>
+        public int BitsPerPixel { get; set; }
+
+        /// <summary>
         /// Gets or sets the index at the Global Color Table for the Background Color.
         /// The Background Color is the color used for those
         /// pixels on the screen that are not covered by an image.

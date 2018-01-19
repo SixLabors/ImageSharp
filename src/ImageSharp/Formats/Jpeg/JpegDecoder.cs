@@ -4,7 +4,6 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
-    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions
+    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -28,6 +27,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using (var decoder = new OrigJpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
+            }
+        }
+
+        /// <inheritdoc/>
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            using (var decoder = new OrigJpegDecoderCore(configuration, this))
+            {
+                return decoder.Identify(stream);
             }
         }
     }

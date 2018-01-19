@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             this.QuantizeAndInverseAllComponents();
 
-            var image = new Image<TPixel>(this.configuration, null, this.ImageWidth, this.ImageHeight, metadata);
+            var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, metadata);
             this.FillPixelData(image.Frames.RootFrame);
             this.AssignResolution(image);
             return image;

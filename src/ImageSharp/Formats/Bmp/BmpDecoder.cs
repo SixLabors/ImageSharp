@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <inheritdoc/>
-        public IImage Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, "stream");
 

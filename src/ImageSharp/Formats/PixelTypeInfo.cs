@@ -1,7 +1,7 @@
 ﻿namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
-    /// Stores information about pixel.
+    /// Stores the raw image pixel type information.
     /// </summary>
     public class PixelTypeInfo
     {

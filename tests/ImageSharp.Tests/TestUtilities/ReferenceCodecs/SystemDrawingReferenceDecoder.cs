@@ -5,12 +5,11 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    using SixLabors.ImageSharp.MetaData;
-
     public class SystemDrawingReferenceDecoder : IImageDecoder, IImageInfoDetector
     {
         public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
-        public IImage Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
             {

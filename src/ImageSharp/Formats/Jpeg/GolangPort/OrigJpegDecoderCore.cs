@@ -198,10 +198,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Reads the image base information from the specified stream.
+        /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImage Identify(Stream stream)
+        public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
@@ -789,7 +789,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             using (var postProcessor = new JpegImagePostProcessor(this))
             {
-                var image = new Image<TPixel>(this.configuration, new PixelTypeInfo(this.BitsPerPixel),  this.ImageWidth, this.ImageHeight, this.MetaData);
+                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);
                 return image;
             }

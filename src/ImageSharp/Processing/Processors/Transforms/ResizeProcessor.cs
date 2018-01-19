@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // For resize we know we are going to populate every pixel with fresh data and we want a different target size so
             // let's manually clone an empty set of images at the correct target and then have the base class process them in turn.
             IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
-            var image = new Image<TPixel>(config, source.PixelType, source.MetaData.Clone(), frames); // base the place holder images in to prevent a extra frame being added
+            var image = new Image<TPixel>(config, source.MetaData.Clone(), frames); // base the place holder images in to prevent a extra frame being added
 
             return image;
         }

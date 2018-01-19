@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc/>
-        public IImage Identify(Configuration configuration, Stream stream)
+        public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             var decoder = new PngDecoderCore(configuration, this);
             return decoder.Identify(stream);

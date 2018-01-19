@@ -279,10 +279,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Reads the image base information from the specified stream.
+        /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImage Identify(Stream stream)
+        public IImageInfo Identify(Stream stream)
         {
             var metadata = new ImageMetaData();
             this.currentStream = stream;
@@ -426,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void InitializeImage<TPixel>(ImageMetaData metadata, out Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            image = new Image<TPixel>(this.configuration, new PixelTypeInfo(this.CalculateBitsPerPixel()),  this.header.Width, this.header.Height, metadata);
+            image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
             this.bytesPerSample = 1;

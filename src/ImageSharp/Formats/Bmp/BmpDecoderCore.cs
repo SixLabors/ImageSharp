@@ -141,10 +141,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Reads the image base information from the specified stream.
+        /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImage Identify(Stream stream)
+        public IImageInfo Identify(Stream stream)
         {
             this.ReadImageHeaders(stream, out _, out _);
             return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, new ImageMetaData());

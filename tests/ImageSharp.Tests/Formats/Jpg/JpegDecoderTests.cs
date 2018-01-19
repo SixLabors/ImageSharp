@@ -385,5 +385,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
             }
         }
+
+        [Theory]
+        [InlineData(TestImages.Jpeg.Progressive.Progress, 24)]
+        [InlineData(TestImages.Jpeg.Progressive.Fb, 24)]
+        [InlineData(TestImages.Jpeg.Baseline.Cmyk, 32)]
+        [InlineData(TestImages.Jpeg.Baseline.Ycck, 32)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg400, 8)]
+        [InlineData(TestImages.Jpeg.Baseline.Snake, 24)]
+        public void DetectPixelSize(string imagePath, int expectedPixelSize)
+        {
+            TestFile testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+            }
+        }
     }
 }

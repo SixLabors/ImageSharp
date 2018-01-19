@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </list>
     /// </para>
     /// </remarks>
-    public sealed class PngDecoder : IImageDecoder, IPngDecoderOptions
+    public sealed class PngDecoder : IImageDecoder, IPngDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -53,6 +51,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             var decoder = new PngDecoderCore(configuration, this);
             return decoder.Decode<TPixel>(stream);
+        }
+
+        /// <inheritdoc/>
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            var decoder = new PngDecoderCore(configuration, this);
+            return decoder.Identify(stream);
         }
     }
 }

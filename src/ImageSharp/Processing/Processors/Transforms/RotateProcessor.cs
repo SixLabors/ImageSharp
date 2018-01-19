@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Provides methods that allow the rotating of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class RotateProcessor<TPixel> : CenteredAffineProcessor<TPixel>
+    internal class RotateProcessor<TPixel> : CenteredAffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

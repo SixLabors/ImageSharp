@@ -5,12 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -20,35 +18,42 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Provides the base methods to perform affine transforms on an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class AffineProcessor<TPixel> : CloningImageProcessor<TPixel>
+    internal class AffineTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private Rectangle targetRectangle;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AffineProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="matrix">The transform matrix</param>
+        public AffineTransformProcessor(Matrix3x2 matrix)
+           : this(matrix, KnownResamplers.Bicubic)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        protected AffineProcessor(Matrix3x2 matrix, IResampler sampler)
+        public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler)
            : this(matrix, sampler, Rectangle.Empty)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AffineProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
         /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
-        protected AffineProcessor(Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
+        public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
+            : base(sampler)
         {
             // Tansforms are inverted else the output is the opposite of the expected.
             Matrix3x2.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
-
-            this.Sampler = sampler;
-
             this.targetRectangle = rectangle;
         }
 
@@ -56,11 +61,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Gets the matrix used to supply the affine transform
         /// </summary>
         public Matrix3x2 TransformMatrix { get; }
-
-        /// <summary>
-        /// Gets the sampler to perform interpolation of the transform operation.
-        /// </summary>
-        public IResampler Sampler { get; }
 
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int width = this.targetRectangle.Width;
             Rectangle sourceBounds = source.Bounds();
 
-            // Since could potentially be resizing the canvas we need to re-center the matrix
+            // Since could potentially be resizing the canvas we might need to re-calculate the matrix
             Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, this.targetRectangle);
 
             if (this.Sampler is NearestNeighborResampler)
@@ -211,26 +211,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
         }
 
-        /// <inheritdoc/>
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
-        {
-            ExifProfile profile = destination.MetaData.ExifProfile;
-            if (profile == null)
-            {
-                return;
-            }
-
-            if (profile.GetValue(ExifTag.PixelXDimension) != null)
-            {
-                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
-            }
-
-            if (profile.GetValue(ExifTag.PixelYDimension) != null)
-            {
-                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
-            }
-        }
-
         /// <summary>
         /// Gets a transform matrix adjusted for final processing based upon the target image bounds.
         /// </summary>
@@ -253,92 +233,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected virtual Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix3x2 matrix)
         {
             return sourceRectangle;
-        }
-
-        /// <summary>
-        /// Calculated the weights for the given point.
-        /// This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
-        /// Additionally the weights are nomalized.
-        /// </summary>
-        /// <param name="min">The minimum sampling offset</param>
-        /// <param name="max">The maximum sampling offset</param>
-        /// <param name="sourceMin">The minimum source bounds</param>
-        /// <param name="sourceMax">The maximum source bounds</param>
-        /// <param name="point">The transformed point dimension</param>
-        /// <param name="sampler">The sampler</param>
-        /// <param name="scale">The transformed image scale relative to the source</param>
-        /// <param name="weights">The collection of weights</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CalculateWeightsDown(int min, int max, int sourceMin, int sourceMax, float point, IResampler sampler, float scale, Span<float> weights)
-        {
-            float sum = 0;
-            ref float weightsBaseRef = ref weights[0];
-
-            // Downsampling weights requires more edge sampling plus normalization of the weights
-            for (int x = 0, i = min; i <= max; i++, x++)
-            {
-                int index = i;
-                if (index < sourceMin)
-                {
-                    index = sourceMin;
-                }
-
-                if (index > sourceMax)
-                {
-                    index = sourceMax;
-                }
-
-                float weight = sampler.GetValue((index - point) / scale);
-                sum += weight;
-                Unsafe.Add(ref weightsBaseRef, x) = weight;
-            }
-
-            if (sum > 0)
-            {
-                for (int i = 0; i < weights.Length; i++)
-                {
-                    ref float wRef = ref Unsafe.Add(ref weightsBaseRef, i);
-                    wRef = wRef / sum;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Calculated the weights for the given point.
-        /// </summary>
-        /// <param name="sourceMin">The minimum source bounds</param>
-        /// <param name="sourceMax">The maximum source bounds</param>
-        /// <param name="point">The transformed point dimension</param>
-        /// <param name="sampler">The sampler</param>
-        /// <param name="weights">The collection of weights</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CalculateWeightsScaleUp(int sourceMin, int sourceMax, float point, IResampler sampler, Span<float> weights)
-        {
-            ref float weightsBaseRef = ref weights[0];
-            for (int x = 0, i = sourceMin; i <= sourceMax; i++, x++)
-            {
-                float weight = sampler.GetValue(i - point);
-                Unsafe.Add(ref weightsBaseRef, x) = weight;
-            }
-        }
-
-        /// <summary>
-        /// Calculates the sampling radius for the current sampler
-        /// </summary>
-        /// <param name="sourceSize">The source dimension size</param>
-        /// <param name="destinationSize">The destination dimension size</param>
-        /// <returns>The radius, and scaling factor</returns>
-        private (float radius, float scale, float ratio) GetSamplingRadius(int sourceSize, int destinationSize)
-        {
-            float ratio = (float)sourceSize / destinationSize;
-            float scale = ratio;
-
-            if (scale < 1F)
-            {
-                scale = 1F;
-            }
-
-            return (MathF.Ceiling(scale * this.Sampler.Radius), scale, ratio);
         }
     }
 }

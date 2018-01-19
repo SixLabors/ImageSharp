@@ -7,15 +7,19 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
-    internal abstract class CenteredAffineProcessor<TPixel> : AffineProcessor<TPixel>
+    /// <summary>
+    /// A base class that provides methods to allow the automatic centering of affine transforms
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal abstract class CenteredAffineTransformProcessor<TPixel> : AffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CenteredAffineProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="CenteredAffineTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        protected CenteredAffineProcessor(Matrix3x2 matrix, IResampler sampler)
+        protected CenteredAffineTransformProcessor(Matrix3x2 matrix, IResampler sampler)
             : base(matrix, sampler)
         {
         }

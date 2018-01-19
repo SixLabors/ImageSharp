@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Provides methods that allow the skewing of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SkewProcessor<TPixel> : CenteredAffineProcessor<TPixel>
+    internal class SkewProcessor<TPixel> : CenteredAffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Reads the image base information.
+        /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>

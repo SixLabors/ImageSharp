@@ -1,15 +1,19 @@
-﻿using SixLabors.ImageSharp.Formats;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Represents raw image information.
+    /// Encapsulates properties that descibe basic image information including dimensions, pixel type information
+    /// and additional metadata
     /// </summary>
     public interface IImageInfo
     {
         /// <summary>
-        /// Gets the raw image pixel type information.
+        /// Gets information about the image pixels.
         /// </summary>
         PixelTypeInfo PixelType { get; }
 
@@ -24,7 +28,7 @@ namespace SixLabors.ImageSharp
         int Height { get; }
 
         /// <summary>
-        /// Gets the meta data of the image.
+        /// Gets the metadata of the image.
         /// </summary>
         ImageMetaData MetaData { get; }
     }

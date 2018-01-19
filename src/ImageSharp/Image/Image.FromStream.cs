@@ -52,15 +52,15 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// By reading the header on the provided stream this reads the raw image information.
+        /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
         /// <param name="config">The configuration.</param>
-        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
         /// </returns>
         public static IImageInfo Identify(Configuration config, Stream stream)
         {

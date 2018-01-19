@@ -86,9 +86,9 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
         /// <returns>
-        /// The <see cref="IImage"/> or null if suitable info detector not found.
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
         /// </returns>
-        private static IImage InternalIdentity(Stream stream, Configuration config)
+        private static IImageInfo InternalIdentity(Stream stream, Configuration config)
         {
             var detector = DiscoverDecoder(stream, config, out IImageFormat _) as IImageInfoDetector;
             return detector?.Identify(config, stream);

@@ -165,10 +165,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Reads the image base information from the specified stream.
+        /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImage Identify(Stream stream)
+        public IImageInfo Identify(Stream stream)
         {
             try
             {
@@ -425,7 +425,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             if (previousFrame == null)
             {
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                image = new Image<TPixel>(this.configuration, new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),  imageWidth, imageHeight, this.metaData);
+                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
 
                 this.SetFrameMetaData(image.Frames.RootFrame.MetaData);
 

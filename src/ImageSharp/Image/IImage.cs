@@ -1,31 +1,9 @@
-﻿using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData;
-
-namespace SixLabors.ImageSharp
+﻿namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// Represents the base image abstraction.
     /// </summary>
-    public interface IImage
+    public interface IImage : IImageInfo
     {
-        /// <summary>
-        /// Gets information about pixel.
-        /// </summary>
-        PixelTypeInfo PixelType { get; }
-
-        /// <summary>
-        /// Gets the width.
-        /// </summary>
-        int Width { get; }
-
-        /// <summary>
-        /// Gets the height.
-        /// </summary>
-        int Height { get; }
-
-        /// <summary>
-        /// Gets the meta data of the image.
-        /// </summary>
-        ImageMetaData MetaData { get; }
     }
 }

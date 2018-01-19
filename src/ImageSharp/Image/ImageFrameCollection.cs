@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp
 
             this.frames.Remove(frame);
 
-            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.PixelType, this.parent.MetaData.Clone(), new[] { frame });
+            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.Clone(), new[] { frame });
         }
 
         /// <inheritdoc/>
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp
         {
             ImageFrame<TPixel> frame = this[index];
             ImageFrame<TPixel> clonedFrame = frame.Clone();
-            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.PixelType, this.parent.MetaData.Clone(), new[] { clonedFrame });
+            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.Clone(), new[] { clonedFrame });
         }
 
         /// <inheritdoc/>

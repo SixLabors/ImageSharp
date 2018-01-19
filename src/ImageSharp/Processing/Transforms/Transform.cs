@@ -18,18 +18,18 @@ namespace SixLabors.ImageSharp
         /// Transforms an image by the given matrix.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to skew.</param>
+        /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix)
             where TPixel : struct, IPixel<TPixel>
-        => Transform(source, matrix, KnownResamplers.NearestNeighbor);
+            => Transform(source, matrix, KnownResamplers.NearestNeighbor);
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to skew.</param>
+        /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
@@ -41,13 +41,49 @@ namespace SixLabors.ImageSharp
         /// Transforms an image by the given matrix using the specified sampling algorithm.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image to skew.</param>
+        /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new TransformProcessor<TPixel>(matrix, sampler, rectangle));
+            => source.ApplyProcessor(new AffineTransformProcessor<TPixel>(matrix, sampler, rectangle));
+
+        /// <summary>
+        /// Transforms an image by the given matrix.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to transform.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
+            where TPixel : struct, IPixel<TPixel>
+            => Transform(source, matrix, KnownResamplers.NearestNeighbor);
+
+        /// <summary>
+        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to transform.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler)
+            where TPixel : struct, IPixel<TPixel>
+            => Transform(source, matrix, sampler, Rectangle.Empty);
+
+        /// <summary>
+        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to transform.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
+        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
+        /// <returns>The <see cref="Image{TPixel}"/></returns>
+        internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
+            => source.ApplyProcessor(new NonAffineTransformProcessor<TPixel>(matrix, sampler, rectangle));
     }
 }

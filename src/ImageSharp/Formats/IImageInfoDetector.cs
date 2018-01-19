@@ -6,7 +6,7 @@ using System.IO;
 namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
-    /// Used for detecting the raw image information without decoding it.
+    /// Encapsulates methods used for detecting the raw image information without fully decoding it.
     /// </summary>
     public interface IImageInfoDetector
     {

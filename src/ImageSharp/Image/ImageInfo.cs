@@ -1,17 +1,20 @@
-﻿using SixLabors.ImageSharp.Formats;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Stores the raw image information.
+    /// Contains information about the image including dimensions, pixel type information and additional metadata
     /// </summary>
     internal sealed class ImageInfo : IImageInfo
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageInfo"/> class.
         /// </summary>
-        /// <param name="pixelType">The raw image pixel type information.</param>
+        /// <param name="pixelType">The image pixel type information.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metaData">The images metadata.</param>

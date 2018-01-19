@@ -204,6 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
+
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 

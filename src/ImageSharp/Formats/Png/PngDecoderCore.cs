@@ -332,10 +332,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.header == null)
             {
-                throw new ImageFormatException("PNG Image hasn't header chunk");
+                throw new ImageFormatException("PNG Image does not contain a header chunk");
             }
 
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()),  this.header.Width, this.header.Height, metadata);
+            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), this.header.Width, this.header.Height, metadata);
         }
 
         /// <summary>

@@ -1,7 +1,10 @@
-﻿namespace SixLabors.ImageSharp.Formats
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
-    /// Stores the raw image pixel type information.
+    /// Contains information about the pixels that make up an images visual data.
     /// </summary>
     public class PixelTypeInfo
     {

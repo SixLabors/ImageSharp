@@ -185,6 +185,23 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
+        [InlineData(TestImages.Png.Bpp1, 1)]
+        [InlineData(TestImages.Png.Gray4Bpp, 4)]
+        [InlineData(TestImages.Png.Palette8Bpp, 8)]
+        [InlineData(TestImages.Png.Pd, 24)]
+        [InlineData(TestImages.Png.Blur, 32)]
+        [InlineData(TestImages.Png.Rgb48Bpp, 48)]
+        [InlineData(TestImages.Png.Rgb48BppInterlaced, 48)]
+        public void DetectPixelSize(string imagePath, int expectedPixelSize)
+        {
+            TestFile testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+            }
+        }
+
+        [Theory]
         [InlineData(PngChunkTypes.Header)]
         [InlineData(PngChunkTypes.Palette)]
         // [InlineData(PngChunkTypes.Data)] //TODO: Figure out how to test this

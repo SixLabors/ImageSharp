@@ -269,6 +269,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
+                if (image == null)
+                {
+                    throw new ImageFormatException("PNG Image does not contain a data chunk");
+                }
+
                 return image;
             }
             finally

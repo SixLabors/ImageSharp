@@ -129,7 +129,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 Matrix3x2 m = this.MakeManuallyCenteredMatrix(angleDeg, s, image);
 
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
-                image.DebugSave(provider, $"R({angleDeg})_S({s})");
+
+                string testOutputDetails = $"R({angleDeg})_S({s})";
+                image.DebugSave(provider, testOutputDetails);
+                image.CompareToReferenceOutput(provider, testOutputDetails);
             }
         }
 

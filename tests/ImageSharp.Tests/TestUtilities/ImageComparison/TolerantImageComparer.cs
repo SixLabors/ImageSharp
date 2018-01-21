@@ -15,14 +15,14 @@
         public static readonly float DefaultImageThreshold = GetDefaultImageThreshold();
 
         /// <summary>
-        /// Negative value for 'imageThreshold' indicates default threshold (see <see cref="DefaultImageThreshold"/>).
+        /// Negative value for 'imageThreshold' indicates a multiplier to be applied to the default threshold (see <see cref="DefaultImageThreshold"/>).
         /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
         /// </summary>
         public TolerantImageComparer(float imageThreshold, int perPixelManhattanThreshold = 0)
         {
             if (imageThreshold < 0)
             {
-                imageThreshold = DefaultImageThreshold;
+                imageThreshold *= -DefaultImageThreshold;
             }
 
             this.ImageThreshold = imageThreshold;

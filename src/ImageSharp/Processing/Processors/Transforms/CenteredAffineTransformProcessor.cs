@@ -33,11 +33,17 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix3x2 matrix)
+        protected override Size GetTransformedDimensions(Size sourceDimensions, Matrix3x2 matrix)
         {
-            return Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 sizeMatrix)
-                ? TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, sizeMatrix)
-                : sourceRectangle;
+            var sourceRectangle = new Rectangle(0, 0, sourceDimensions.Width, sourceDimensions.Height);
+
+            if (!Matrix3x2.Invert(this.TransformMatrix, out Matrix3x2 sizeMatrix))
+            {
+                // TODO: Shouldn't we throw an exception instead?
+                return sourceDimensions;
+            }
+
+            return TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, sizeMatrix).Size;
         }
     }
 }

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class AffineTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Rectangle targetRectangle;
+        private Size? targetDimensions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // Tansforms are inverted else the output is the opposite of the expected.
             Matrix3x2.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
-            this.targetRectangle = rectangle;
+            this.targetDimensions = rectangle == Rectangle.Empty ?(Size?)null : rectangle.Size;
         }
 
         /// <summary>
@@ -65,28 +65,38 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            if (this.targetRectangle == Rectangle.Empty)
+            if (!this.targetDimensions.HasValue)
             {
-                this.targetRectangle = this.GetTransformedBoundingRectangle(sourceRectangle, this.TransformMatrix);
+                // TODO: CreateDestination() should not modify the processors state! (kinda CQRS)
+                this.targetDimensions = this.GetTransformedDimensions(sourceRectangle.Size, this.TransformMatrix);
             }
+
+            Size targetDims = this.targetDimensions.Value;
 
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(this.targetRectangle.Width, this.targetRectangle.Height, x.MetaData.Clone()));
+                source.Frames.Select(x => new ImageFrame<TPixel>(targetDims.Width, targetDims.Height, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnApply(
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Rectangle sourceRectangle,
+            Configuration configuration)
         {
-            int height = this.targetRectangle.Height;
-            int width = this.targetRectangle.Width;
+            int height = this.targetDimensions.Value.Height;
+            int width = this.targetDimensions.Value.Width;
+
             Rectangle sourceBounds = source.Bounds();
+            var targetBounds = new Rectangle(0, 0, width, height);
 
             // Since could potentially be resizing the canvas we might need to re-calculate the matrix
-            Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, this.targetRectangle);
+
+            Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, targetBounds);
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -227,12 +237,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.
         /// </summary>
-        /// <param name="sourceRectangle">The source rectangle.</param>
+        /// <param name="sourceDimensions">The source rectangle.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns>The <see cref="Rectangle"/></returns>
-        protected virtual Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix3x2 matrix)
+        protected virtual Size GetTransformedDimensions(Size sourceDimensions, Matrix3x2 matrix)
         {
-            return sourceRectangle;
+            return sourceDimensions;
         }
     }
 }

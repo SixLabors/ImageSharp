@@ -143,40 +143,66 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                     { 0, 0, 5, 10 },
                     { 0, 0, 10, 5 },
                     { 5, 0, 5, 10 },
-                    {-5,-5, 15, 15 }
+                    {-5,-5, 20, 20 }
                 };
 
+        /// <summary>
+        /// Testing transforms using custom source rectangles:
+        /// https://github.com/SixLabors/ImageSharp/pull/386#issuecomment-357104963
+        /// </summary>
         [Theory]
-        [WithSolidFilledImages(nameof(Transform_IntoRectangle_Data), 10, 10, nameof(Rgba32.Red), PixelTypes.Rgba32)]
-        public void Transform_IntoRectangle<TPixel>(TestImageProvider<TPixel> provider, int x0, int y0, int w, int h)
+        [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
+        public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var rectangle = new Rectangle(x0, y0, w, h);
+            var rectangle = new Rectangle(48, 0, 96, 36);
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 m = this.MakeManuallyCenteredMatrix(45, 0.8f, image);
-
+                var m = Matrix3x2.CreateScale(2.0F, 1.5F);
+                
                 image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
-                string testDetails = $"({x0},{y0}-W{w},H{h})";
-                image.DebugSave(provider, testDetails);
+
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider);
             }
         }
 
         [Theory]
-        [WithTestPatternImages(nameof(ResamplerNames), 100, 200, PixelTypes.Rgba32)]
+        [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
+        public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var rectangle = new Rectangle(0, 24, 48, 48);
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var m = Matrix3x2.CreateScale(1.0F, 2.0F);
+
+                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider);
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
             where TPixel : struct, IPixel<TPixel>
         {
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(50);
-                Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.5F, .5F));
-                var translate = Matrix3x2.CreateTranslation(75, 0);
-                
-                image.Mutate(i => i.Transform(rotate * scale * translate, sampler));
+                Matrix3x2 m = this.MakeManuallyCenteredMatrix(50, 0.6f, image);
+
+                image.Mutate(i =>
+                    {
+                        i.Transform(m, sampler);
+                    });
+
                 image.DebugSave(provider, resamplerName);
+                image.CompareToReferenceOutput(provider, resamplerName);
             }
         }
 

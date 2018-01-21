@@ -165,6 +165,9 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        /// <summary>
+        /// Same as <see cref="RunValidatingProcessorTest{TPixel}"/> but with an additional <see cref="Rectangle"/> parameter passed to 'process'
+        /// </summary>
         internal static void RunRectangleConstrainedValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext<TPixel>, Rectangle> process,

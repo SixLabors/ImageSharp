@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class ProjectiveTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        // TODO: We should use a Size instead! (See AffineTransformProcessor<T>)
         private Rectangle targetRectangle;
 
         /// <summary>

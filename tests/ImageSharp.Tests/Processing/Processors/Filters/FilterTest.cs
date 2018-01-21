@@ -21,10 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Matrix4x4 brightness = MatrixFilters.CreateBrightnessFilter(0.9F);
-            Matrix4x4 hue = MatrixFilters.CreateHueFilter(180F);
-            Matrix4x4 saturation = MatrixFilters.CreateSaturateFilter(1.5F);
-            Matrix4x4 m = brightness * hue * saturation;
+            Matrix4x4 m = CreateCombinedTestFilterMatrix();
 
             provider.RunValidatingProcessorTest(x => x.Filter(m));
         }
@@ -34,19 +31,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
-            {
-                var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
+            Matrix4x4 m = CreateCombinedTestFilterMatrix();
 
-                Matrix4x4 brightness = MatrixFilters.CreateBrightnessFilter(0.9F);
-                Matrix4x4 hue = MatrixFilters.CreateHueFilter(180F);
-                Matrix4x4 saturation = MatrixFilters.CreateSaturateFilter(1.5F);
-                image.Mutate(x => x.Filter(brightness * hue * saturation, bounds));
-                image.DebugSave(provider);
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
+            provider.RunRectangleConstrainedValidatingProcessorTest((x, b) => x.Filter(m, b));
         }
+
+        private static Matrix4x4 CreateCombinedTestFilterMatrix()
+        {
+            Matrix4x4 brightness = MatrixFilters.CreateBrightnessFilter(0.9F);
+            Matrix4x4 hue = MatrixFilters.CreateHueFilter(180F);
+            Matrix4x4 saturation = MatrixFilters.CreateSaturateFilter(1.5F);
+            Matrix4x4 m = brightness * hue * saturation;
+            return m;
+        }
+
     }
 }

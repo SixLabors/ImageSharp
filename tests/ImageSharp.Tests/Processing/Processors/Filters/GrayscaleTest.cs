@@ -4,9 +4,7 @@
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
@@ -30,23 +28,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Grayscale(value), value);
-        }
-
-        [Theory]
-        [WithTestPatternImages(nameof(GrayscaleModeTypes), 48, 48, PixelTypes.Rgba32)]
-        public void ApplyGrayscaleFilterInBox<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> source = provider.GetImage())
-            using (Image<TPixel> image = source.Clone())
-            {
-                var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
-
-                image.Mutate(x => x.Grayscale(value, bounds));
-                image.DebugSave(provider, value.ToString());
-
-                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
-            }
         }
     }
 }

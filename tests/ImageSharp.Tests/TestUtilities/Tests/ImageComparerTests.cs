@@ -68,7 +68,10 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, 2);
+                    // Mono System.Drawing is trolling us! See TolerantImageComparer.GetDefaultImageThreshold()!
+                    byte tooBigToSucceed = TestEnvironment.IsWindows ? (byte)2 : (byte)6;
+
+                    ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, tooBigToSucceed);
 
                     var comparer = ImageComparer.Tolerant();
 

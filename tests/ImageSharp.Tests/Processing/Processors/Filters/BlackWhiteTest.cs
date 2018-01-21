@@ -17,11 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyBlackWhiteFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.BlackWhite());
-                image.DebugSave(provider);
-            }
+            provider.RunValidatingProcessorTest(ctx => ctx.BlackWhite());
         }
 
         [Theory]
@@ -29,6 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyBlackWhiteFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: We need a DRY-refactor on these tests for all Filter tests!
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())
             {

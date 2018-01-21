@@ -29,20 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyGrayscaleFilter<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Grayscale(value));
-                var rgb = default(Rgb24);
-                System.Span<TPixel> span = image.Frames.RootFrame.GetPixelSpan();
-                for (int i = 0; i < span.Length; i++)
-                {
-                    span[i].ToRgb24(ref rgb);
-                    Assert.Equal(rgb.R, rgb.B);
-                    Assert.Equal(rgb.B, rgb.G);
-                }
-
-                image.DebugSave(provider, value.ToString());
-            }
+            provider.RunValidatingProcessorTest(x => x.Grayscale(value), value);
         }
 
         [Theory]

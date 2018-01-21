@@ -24,11 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Hue(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(x => x.Hue(value), value);
         }
 
         [Theory]

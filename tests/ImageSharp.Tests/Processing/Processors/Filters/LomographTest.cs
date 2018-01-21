@@ -17,11 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyLomographFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Lomograph());
-                image.DebugSave(provider);
-            }
+            provider.RunValidatingProcessorTest(x => x.Lomograph());
         }
 
         [Theory]

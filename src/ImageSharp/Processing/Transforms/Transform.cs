@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, sampler, Rectangle.Empty);
+            => Transform(source, matrix, sampler, Size.Empty);
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm.
@@ -44,17 +44,18 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
+        /// <param name="sourceRectangle">The rectangle defining the source pixel area to transform. 'sourceRectangle.Location' becomes the origo of the transformed image.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(
             this IImageProcessingContext<TPixel> source,
             Matrix3x2 matrix,
             IResampler sampler,
-            Rectangle rectangle)
+            Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Fixme!
-            return source.ApplyProcessor(new AffineTransformProcessor<TPixel>(matrix, sampler, rectangle.Size));
+            var t = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
+            Matrix3x2 combinedMatrix = t * matrix;
+            return source.ApplyProcessor(new AffineTransformProcessor<TPixel>(combinedMatrix, sampler, sourceRectangle.Size));
         }
 
         /// <summary>

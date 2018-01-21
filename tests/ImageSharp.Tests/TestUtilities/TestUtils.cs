@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Various utility and extension methods.
     /// </summary>
@@ -142,5 +144,56 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         /// <returns>The pixel types</returns>
         internal static PixelTypes[] GetAllPixelTypes() => (PixelTypes[])Enum.GetValues(typeof(PixelTypes));
+
+        /// <summary>
+        /// Utility for testing image processor extension methods:
+        /// 1. Run a processor defined by 'process'
+        /// 2. Run 'DebugSave()' to save the output locally
+        /// 3. Run 'CompareToReferenceOutput()' to compare the results to the expected output
+        /// </summary>
+        internal static void RunValidatingProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<IImageProcessingContext<TPixel>> process,
+            object testOutputDetails = null)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(process);
+                image.DebugSave(provider, testOutputDetails);
+                image.CompareToReferenceOutput(provider, testOutputDetails);
+            }
+        }
+
+        internal static void RunRectangleConstrainedValidatingProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<IImageProcessingContext<TPixel>, Rectangle> process,
+            object testOutputDetails = null)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
+                image.Mutate(x => process(x, bounds));
+                image.DebugSave(provider, testOutputDetails);
+                image.CompareToReferenceOutput(provider, testOutputDetails);
+            }
+        }
+
+        /// <summary>
+        /// Same as <see cref="RunValidatingProcessorTest{TPixel}"/> but without the 'CompareToReferenceOutput()' step.
+        /// </summary>
+        internal static void RunProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<IImageProcessingContext<TPixel>> process,
+            object testOutputDetails = null)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(process);
+                image.DebugSave(provider, testOutputDetails);
+            }
+        }
     }
 }

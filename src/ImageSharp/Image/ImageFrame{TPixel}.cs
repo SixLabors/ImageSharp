@@ -13,6 +13,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
@@ -51,6 +53,16 @@ namespace SixLabors.ImageSharp
 
             this.pixelBuffer = Buffer2D<TPixel>.CreateClean(width, height);
             this.MetaData = metaData;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="size">The <see cref="Size"/> of the frame.</param>
+        /// <param name="metaData">The meta data.</param>
+        internal ImageFrame(Size size, ImageFrameMetaData metaData)
+            : this(size.Width, size.Height, metaData)
+        {
         }
 
         /// <summary>

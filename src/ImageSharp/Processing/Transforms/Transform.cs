@@ -38,34 +38,38 @@ namespace SixLabors.ImageSharp
             => Transform(source, matrix, sampler, Size.Empty);
 
         /// <summary>
-        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// Transforms an image by the given matrix using the specified sampling algorithm
+        /// and a rectangle defining the transform origin in the source image and the size of the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="sourceRectangle">The rectangle defining the source pixel area to transform. 'sourceRectangle.Location' becomes the origo of the transformed image.</param>
+        /// <param name="rectangle">
+        /// The rectangle defining the transform origin in the source image, and the size of the result image.
+        /// </param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(
             this IImageProcessingContext<TPixel> source,
             Matrix3x2 matrix,
             IResampler sampler,
-            Rectangle sourceRectangle)
+            Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
         {
-            var t = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
+            var t = Matrix3x2.CreateTranslation(-rectangle.Location);
             Matrix3x2 combinedMatrix = t * matrix;
-            return source.ApplyProcessor(new AffineTransformProcessor<TPixel>(combinedMatrix, sampler, sourceRectangle.Size));
+            return source.ApplyProcessor(new AffineTransformProcessor<TPixel>(combinedMatrix, sampler, rectangle.Size));
         }
 
         /// <summary>
-        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// Transforms an image by the given matrix using the specified sampling algorithm,
+        /// cropping or extending the image according to <paramref name="destinationSize"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
-        /// <param name="destinationSize">The dimensions to constrain the transformed image to.</param>
+        /// <param name="destinationSize">The size of the destination image.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(
             this IImageProcessingContext<TPixel> source,

@@ -11,15 +11,15 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// A base class that provides methods to allow the automatic centering of non-affine transforms
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class CenteredNonAffineTransformProcessor<TPixel> : NonAffineTransformProcessor<TPixel>
+    internal abstract class CenteredProjectiveTransformProcessor<TPixel> : ProjectiveTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CenteredNonAffineTransformProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="CenteredProjectiveTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        protected CenteredNonAffineTransformProcessor(Matrix4x4 matrix, IResampler sampler)
+        protected CenteredProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler)
             : base(matrix, sampler)
         {
         }

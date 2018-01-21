@@ -16,39 +16,40 @@ namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
     /// Provides the base methods to perform non-affine transforms on an image.
+    /// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class NonAffineTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
+    internal class ProjectiveTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private Rectangle targetRectangle;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NonAffineTransformProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
-        public NonAffineTransformProcessor(Matrix4x4 matrix)
+        public ProjectiveTransformProcessor(Matrix4x4 matrix)
            : this(matrix, KnownResamplers.Bicubic)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NonAffineTransformProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        public NonAffineTransformProcessor(Matrix4x4 matrix, IResampler sampler)
+        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler)
            : this(matrix, sampler, Rectangle.Empty)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NonAffineTransformProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
         /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
-        public NonAffineTransformProcessor(Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
+        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
             : base(sampler)
         {
             // Tansforms are inverted else the output is the opposite of the expected.

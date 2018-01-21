@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class AffineTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Size? targetDimensions;
+        private Size targetDimensions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
         public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler)
-           : this(matrix, sampler, Rectangle.Empty)
+           : this(matrix, sampler, Size.Empty)
         {
         }
 
@@ -47,14 +47,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
-        public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Rectangle rectangle)
+        /// <param name="targetDimensions">The target dimensions to constrain the transformed image to.</param>
+        public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size targetDimensions)
             : base(sampler)
         {
             // Tansforms are inverted else the output is the opposite of the expected.
             Matrix3x2.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
-            this.targetDimensions = rectangle == Rectangle.Empty ?(Size?)null : rectangle.Size;
+            this.targetDimensions = targetDimensions;
         }
 
         /// <summary>
@@ -65,17 +65,15 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            if (!this.targetDimensions.HasValue)
+            if (this.targetDimensions == Size.Empty)
             {
                 // TODO: CreateDestination() should not modify the processors state! (kinda CQRS)
                 this.targetDimensions = this.GetTransformedDimensions(sourceRectangle.Size, this.TransformMatrix);
             }
 
-            Size targetDims = this.targetDimensions.Value;
-
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(targetDims.Width, targetDims.Height, x.MetaData.Clone()));
+                source.Frames.Select(x => new ImageFrame<TPixel>(this.targetDimensions, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
@@ -88,14 +86,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Rectangle sourceRectangle,
             Configuration configuration)
         {
-            int height = this.targetDimensions.Value.Height;
-            int width = this.targetDimensions.Value.Width;
+            int height = this.targetDimensions.Height;
+            int width = this.targetDimensions.Width;
 
             Rectangle sourceBounds = source.Bounds();
             var targetBounds = new Rectangle(0, 0, width, height);
 
             // Since could potentially be resizing the canvas we might need to re-calculate the matrix
-
             Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, targetBounds);
 
             if (this.Sampler is NearestNeighborResampler)

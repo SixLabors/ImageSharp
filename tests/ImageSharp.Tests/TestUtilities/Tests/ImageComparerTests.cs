@@ -23,6 +23,19 @@ namespace SixLabors.ImageSharp.Tests
 
         private ITestOutputHelper Output { get; }
 
+        [Fact]
+        public void TolerantImageComparer_NegativeThresholdIsMultiplierForDefault()
+        {
+            var c1 = (TolerantImageComparer)ImageComparer.Tolerant();
+            var c2 = (TolerantImageComparer)ImageComparer.Tolerant(-2);
+            var c3 = (TolerantImageComparer)ImageComparer.Tolerant(-42);
+
+            Assert.True(c1.ImageThreshold > 0);
+            Assert.Equal(TolerantImageComparer.DefaultImageThreshold, c1.ImageThreshold);
+            Assert.Equal(c1.ImageThreshold * 2, c2.ImageThreshold);
+            Assert.Equal(c1.ImageThreshold * 42, c3.ImageThreshold);
+        }
+
         [Theory]
         [WithTestPatternImages(100,100,PixelTypes.Rgba32, 0.0001f, 1)]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0, 0)]

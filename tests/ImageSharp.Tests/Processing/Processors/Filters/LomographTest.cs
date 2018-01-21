@@ -7,6 +7,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
     [GroupOutput("Filters")]
     public class LomographTest
     {
@@ -15,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyLomographFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.RunValidatingProcessorTest(x => x.Lomograph());
+            provider.RunValidatingProcessorTest(x => x.Lomograph(), comparer: ImageComparer.Tolerant(-2));
         }
     }
 }

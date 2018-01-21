@@ -89,7 +89,8 @@ namespace SixLabors.ImageSharp
             => Transform(source, matrix, KnownResamplers.NearestNeighbor);
 
         /// <summary>
-        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.
+        /// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
@@ -101,7 +102,8 @@ namespace SixLabors.ImageSharp
             => Transform(source, matrix, sampler, Rectangle.Empty);
 
         /// <summary>
-        /// Transforms an image by the given matrix using the specified sampling algorithm.
+        /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.
+        /// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
@@ -111,6 +113,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new NonAffineTransformProcessor<TPixel>(matrix, sampler, rectangle));
+            => source.ApplyProcessor(new ProjectiveTransformProcessor<TPixel>(matrix, sampler, rectangle));
     }
 }

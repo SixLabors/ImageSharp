@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.Primitives;
 
     /// <summary>
@@ -154,7 +155,8 @@ namespace SixLabors.ImageSharp.Tests
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext<TPixel>> process,
-            object testOutputDetails = null)
+            object testOutputDetails = null,
+            ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -171,7 +173,8 @@ namespace SixLabors.ImageSharp.Tests
         internal static void RunRectangleConstrainedValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext<TPixel>, Rectangle> process,
-            object testOutputDetails = null)
+            object testOutputDetails = null,
+            ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

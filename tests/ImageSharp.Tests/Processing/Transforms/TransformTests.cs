@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                       { 0, 1, 1, -20, -10 },
                       { 50, 1, 1, -20, -10 },
                       { 50, 1.5f, 1.5f, 0, 0 },
-                      { 50, 1.1F, 1.2F, 20, 10 },
+                      { 50, 1.1F, 1.3F, 30, -20 },
                       { 0, 2f, 1f, 0, 0 },
                       { 0, 1f, 2f, 0, 0 },
                   };
@@ -113,7 +113,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 this.PrintMatrix(m);
 
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
-                image.DebugSave(provider, $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})");
+
+                string testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
+                image.DebugSave(provider, testOutputDetails);
+                image.CompareToReferenceOutput(provider, testOutputDetails);
             }
         }
         

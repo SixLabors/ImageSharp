@@ -24,11 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         public void ApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Opacity(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(x => x.Opacity(value), value);
         }
 
         [Theory]

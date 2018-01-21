@@ -21,14 +21,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplyFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                Matrix4x4 brightness = MatrixFilters.CreateBrightnessFilter(0.9F);
-                Matrix4x4 hue = MatrixFilters.CreateHueFilter(180F);
-                Matrix4x4 saturation = MatrixFilters.CreateSaturateFilter(1.5F);
-                image.Mutate(x => x.Filter(brightness * hue * saturation));
-                image.DebugSave(provider);
-            }
+            Matrix4x4 brightness = MatrixFilters.CreateBrightnessFilter(0.9F);
+            Matrix4x4 hue = MatrixFilters.CreateHueFilter(180F);
+            Matrix4x4 saturation = MatrixFilters.CreateSaturateFilter(1.5F);
+            Matrix4x4 m = brightness * hue * saturation;
+
+            provider.RunValidatingProcessorTest(x => x.Filter(m));
         }
 
         [Theory]

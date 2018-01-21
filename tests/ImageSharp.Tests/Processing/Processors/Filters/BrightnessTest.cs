@@ -24,11 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         public void ApplyBrightnessFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Brightness(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(ctx => ctx.Brightness(value), value);
         }
 
         [Theory]

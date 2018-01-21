@@ -24,11 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         public void ApplyContrastFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Contrast(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(x => x.Contrast(value), value);
         }
 
         [Theory]

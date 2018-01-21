@@ -24,11 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         public void ApplySaturationFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Saturate(value));
-                image.DebugSave(provider, value);
-            }
+            provider.RunValidatingProcessorTest(x => x.Saturate(value), value);
         }
 
         [Theory]

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         /// <summary>
         /// Returns an instance of <see cref="TolerantImageComparer"/>.
         /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
-        /// Negative value for 'imageThreshold' indicates default threshold (see <see cref="TolerantImageComparer.DefaultImageThreshold"/>).
+        /// Negative value for 'imageThreshold' indicates multiplier to be applied to the default threshold (see <see cref="TolerantImageComparer.DefaultImageThreshold"/>).
         /// </summary>
         public static ImageComparer Tolerant(
             float imageThreshold = -1,

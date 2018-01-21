@@ -6,13 +6,12 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using Xunit;
 using Xunit.Abstractions;
+using SixLabors.ImageSharp.Helpers;
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using SixLabors.ImageSharp.Helpers;
-
-    public class TransformTests
+    public class AffineTransformTests
     {
         private readonly ITestOutputHelper Output;
 
@@ -63,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                     nameof(KnownResamplers.Lanczos8),
                 };
 
-        public TransformTests(ITestOutputHelper output)
+        public AffineTransformTests(ITestOutputHelper output)
         {
             this.Output = output;
         }

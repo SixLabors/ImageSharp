@@ -20,19 +20,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
             {
-                { "Bicubic", new BicubicResampler() },
-                { "Triangle", new TriangleResampler() },
-                { "NearestNeighbor", new NearestNeighborResampler() },
-                { "Box", new BoxResampler() },
-                { "Lanczos3", new Lanczos3Resampler() },
-                { "Lanczos5", new Lanczos5Resampler() },
-                { "MitchellNetravali", new MitchellNetravaliResampler() },
-                { "Lanczos8", new Lanczos8Resampler() },
-                { "Hermite", new HermiteResampler() },
-                { "Spline", new SplineResampler() },
-                { "Robidoux", new RobidouxResampler() },
-                { "RobidouxSharp", new RobidouxSharpResampler() },
-                { "Welch", new WelchResampler() }
+                { "Bicubic", KnownResamplers.Bicubic },
+                { "Triangle", KnownResamplers.Triangle},
+                { "NearestNeighbor", KnownResamplers.NearestNeighbor },
+                { "Box", KnownResamplers.Box },
+                // { "Lanczos2", KnownResamplers.Lanczos2 }, TODO: Add expected file
+                { "Lanczos3", KnownResamplers.Lanczos3 },
+                { "Lanczos5", KnownResamplers.Lanczos5 },
+                { "MitchellNetravali", KnownResamplers.MitchellNetravali  },
+                { "Lanczos8", KnownResamplers.Lanczos8  },
+                { "Hermite", KnownResamplers.Hermite  },
+                { "Spline", KnownResamplers.Spline  },
+                { "Robidoux", KnownResamplers.Robidoux  },
+                { "RobidouxSharp", KnownResamplers.RobidouxSharp },
+                { "Welch", KnownResamplers.Welch  }
             };
 
         [Theory]
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 var sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Resize(image.Width, image.Height, new BicubicResampler(), sourceRectangle, destRectangle, false));
+                image.Mutate(x => x.Resize(image.Width, image.Height, KnownResamplers.Bicubic, sourceRectangle, destRectangle, false));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
@@ -286,7 +287,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void BicubicWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = new BicubicResampler();
+            var sampler = KnownResamplers.Bicubic;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -300,7 +301,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void TriangleWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = new TriangleResampler();
+            var sampler = KnownResamplers.Triangle;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -314,7 +315,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = new Lanczos3Resampler();
+            var sampler = KnownResamplers.Lanczos3;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -328,7 +329,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(4, 0)]
         public static void Lanczos5WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = new Lanczos5Resampler();
+            var sampler = KnownResamplers.Lanczos5;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);

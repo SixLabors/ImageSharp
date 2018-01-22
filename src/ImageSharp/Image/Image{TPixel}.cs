@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed partial class Image<TPixel> : IDisposable, IConfigurable
+    public sealed partial class Image<TPixel> : IImage, IDisposable, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
         private Configuration configuration;
@@ -61,6 +61,7 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, int width, int height, ImageMetaData metadata)
         {
             this.configuration = configuration ?? Configuration.Default;
+            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata ?? new ImageMetaData();
             this.frames = new ImageFrameCollection<TPixel>(this, width, height);
         }
@@ -75,6 +76,7 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, ImageMetaData metadata, IEnumerable<ImageFrame<TPixel>> frames)
         {
             this.configuration = configuration ?? Configuration.Default;
+            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata ?? new ImageMetaData();
 
             this.frames = new ImageFrameCollection<TPixel>(this, frames);
@@ -85,19 +87,16 @@ namespace SixLabors.ImageSharp
         /// </summary>
         Configuration IConfigurable.Configuration => this.configuration;
 
-        /// <summary>
-        /// Gets the width.
-        /// </summary>
+        /// <inheritdoc/>
+        public PixelTypeInfo PixelType { get; }
+
+        /// <inheritdoc/>
         public int Width => this.frames.RootFrame.Width;
 
-        /// <summary>
-        /// Gets the height.
-        /// </summary>
+        /// <inheritdoc/>
         public int Height => this.frames.RootFrame.Height;
 
-        /// <summary>
-        /// Gets the meta data of the image.
-        /// </summary>
+        /// <inheritdoc/>
         public ImageMetaData MetaData { get; private set; } = new ImageMetaData();
 
         /// <summary>

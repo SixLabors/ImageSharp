@@ -6,6 +6,8 @@ using System.Reflection;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.PixelFormats;
+
     /// <summary>
     /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which produce an image of size width * height filled with the requested color.
     /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
@@ -56,14 +58,88 @@ namespace SixLabors.ImageSharp.Tests
             byte a,
             PixelTypes pixelTypes,
             params object[] additionalParameters)
-            : base(width, height, pixelTypes, additionalParameters)
+            : this(null, width, height, r, g, b, a, pixelTypes, additionalParameters)
+        {
+        }
+
+        /// <summary>
+        /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which produce an image of size width * height filled with the requested color.
+        /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+        /// </summary>
+        /// <param name="memberData">The member data to apply to theories</param>
+        /// <param name="width">The width of the requested image</param>
+        /// <param name="height">The height of the requested image</param>
+        /// <param name="r">Red</param>
+        /// <param name="g">Green</param>
+        /// <param name="b">Blue</param>
+        /// /// <param name="a">Alpha</param>
+        /// <param name="pixelTypes">The requested pixel types</param>
+        /// <param name="additionalParameters">Additional theory parameter values</param>
+        public WithSolidFilledImagesAttribute(
+            string memberData,
+            int width,
+            int height,
+            byte r,
+            byte g,
+            byte b,
+            byte a,
+            PixelTypes pixelTypes,
+            params object[] additionalParameters)
+            : base(memberData, width, height, pixelTypes, additionalParameters)
         {
             this.R = r;
             this.G = g;
             this.B = b;
             this.A = a;
         }
-        
+
+        /// <summary>
+        /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which produce an image of size width * height filled with the requested color.
+        /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+        /// </summary>
+        /// <param name="width">The width of the requested image</param>
+        /// <param name="height">The height of the requested image</param>
+        /// <param name="colorName">The referenced color name (name of property in <see cref="NamedColors{TPixel}")/></param>
+        /// <param name="pixelTypes">The requested pixel types</param>
+        /// <param name="additionalParameters">Additional theory parameter values</param>
+        public WithSolidFilledImagesAttribute(
+            int width,
+            int height,
+            string colorName,
+            PixelTypes pixelTypes,
+            params object[] additionalParameters)
+            : this(null, width, height, colorName, pixelTypes, additionalParameters)
+        {
+        }
+
+        /// <summary>
+        /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which produce an image of size width * height filled with the requested color.
+        /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter
+        /// </summary>
+        /// <param name="memberData">The member data to apply to theories</param>
+        /// <param name="width">The width of the requested image</param>
+        /// <param name="height">The height of the requested image</param>
+        /// <param name="colorName">The referenced color name (name of property in <see cref="NamedColors{TPixel}")/></param>
+        /// <param name="pixelTypes">The requested pixel types</param>
+        /// <param name="additionalParameters">Additional theory parameter values</param>
+        public WithSolidFilledImagesAttribute(
+            string memberData,
+            int width,
+            int height,
+            string colorName,
+            PixelTypes pixelTypes,
+            params object[] additionalParameters)
+            : base(memberData, width, height, pixelTypes, additionalParameters)
+        {
+            Guard.NotNull(colorName, nameof(colorName));
+
+            var c = (Rgba32)typeof(Rgba32).GetTypeInfo().GetField(colorName).GetValue(null);
+            this.R = c.R;
+            this.G = c.G;
+            this.B = c.B;
+            this.A = c.A;
+        }
+
         /// <summary>
         /// Red
         /// </summary>

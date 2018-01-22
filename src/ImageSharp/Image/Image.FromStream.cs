@@ -37,6 +37,37 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// By reading the header on the provided stream this reads the raw image information.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(Stream stream)
+        {
+            return Identify(null, stream);
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration config, Stream stream)
+        {
+            return WithSeekableStream(stream, s => InternalIdentity(s, config ?? Configuration.Default));
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>

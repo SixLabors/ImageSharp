@@ -24,6 +24,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Powerpoint = "Png/pp.png";
             public const string SplashInterlaced = "Png/splash-interlaced.png";
             public const string Interlaced = "Png/interlaced.png";
+            public const string Palette8Bpp = "Png/palette-8bpp.png";
+            public const string Bpp1 = "Png/bpp1.png";
+            public const string Gray4Bpp = "Png/gray_4bpp.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
@@ -156,6 +159,13 @@ namespace SixLabors.ImageSharp.Tests
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
+
+            public class Issues
+            {
+                public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
+                public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
+                public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+            }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin };
         }

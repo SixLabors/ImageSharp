@@ -25,14 +25,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [InlineData(RotateType.Rotate90, FlipType.Vertical, 90)]
         [InlineData(RotateType.Rotate180, FlipType.Vertical, 180)]
         [InlineData(RotateType.Rotate270, FlipType.Vertical, 270)]
-        public void Rotate_degreesFloat_RotateProcessorWithAnglesSetAndExpandTrue(RotateType angle, FlipType flip, float expectedAngle)
+        public void Rotate_degreesFloat_RotateProcessorWithAnglesSetrue(RotateType angle, FlipType flip, float expectedAngle)
         {
             this.operations.RotateFlip(angle, flip);
-            var rotateProcessor = this.Verify<RotateProcessor<Rgba32>>(0);
-            var flipProcessor = this.Verify<FlipProcessor<Rgba32>>(1);
+            RotateProcessor<Rgba32> rotateProcessor = this.Verify<RotateProcessor<Rgba32>>(0);
+            FlipProcessor<Rgba32> flipProcessor = this.Verify<FlipProcessor<Rgba32>>(1);
 
-            Assert.Equal(expectedAngle, rotateProcessor.Angle);
-            Assert.False(rotateProcessor.Expand);
+            Assert.Equal(expectedAngle, rotateProcessor.Degrees);
             Assert.Equal(flip, flipProcessor.FlipType);
         }
     }

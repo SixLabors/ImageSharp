@@ -12,9 +12,11 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters;
+
     public class JpegColorConverterTests
     {
-        private const float Precision = 1/255f;
+        private const float Precision = 0.1f / 255;
 
         public static readonly TheoryData<int, int, int> CommonConversionData =
             new TheoryData<int, int, int>
@@ -68,8 +70,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrSimd(int inputBufferLength, int resultBufferLength, int seed)
         {
-            ValidateConversion(new JpegColorConverter.FromYCbCrSimd(), 3, inputBufferLength, resultBufferLength, seed, ValidateYCbCr);
+            ValidateConversion(
+                new JpegColorConverter.FromYCbCrSimd(),
+                3,
+                inputBufferLength,
+                resultBufferLength,
+                seed,
+                ValidateYCbCr);
         }
+
+        [Theory]
+        [MemberData(nameof(CommonConversionData))]
+        public void FromYCbCrSimdAvx2(int inputBufferLength, int resultBufferLength, int seed)
+        {
+            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            {
+                this.Output.WriteLine("No AVX2 present, skipping test!");
+                return;
+            }
+
+            //JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
+
+            ValidateConversion(
+                new JpegColorConverter.FromYCbCrSimdAvx2(),
+                3,
+                inputBufferLength,
+                resultBufferLength,
+                seed,
+                ValidateYCbCr);
+        }
+
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -206,11 +236,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         float cr = values.Component2[i] - 128F;
                         float k = values.Component3[i] / 255F;
 
-                        v.X = (255F - MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
-                        v.Y = (255F - MathF.Round(
+                        v.X = (255F - (float)Math.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
+                        v.Y = (255F - (float)Math.Round(
                                    y - (0.344136F * cb) - (0.714136F * cr),
                                    MidpointRounding.AwayFromZero)) * k;
-                        v.Z = (255F - MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
+                        v.Z = (255F - (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
                         v.W = 1F;
 
                         v *= scale;

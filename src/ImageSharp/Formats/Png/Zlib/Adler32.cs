@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -74,9 +75,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
-        public long Value => this.checksum;
+        public long Value
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return this.checksum;
+            }
+        }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Reset()
         {
             this.checksum = 1;
@@ -88,6 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="value">
         /// The data value to add. The high byte of the int is ignored.
         /// </param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(int value)
         {
             // We could make a length 1 byte array and call update again, but I
@@ -102,6 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(byte[] buffer)
         {
             if (buffer == null)
@@ -113,32 +124,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(byte[] buffer, int offset, int count)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (offset < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), "cannot be negative");
-            }
-
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), "cannot be negative");
-            }
-
-            if (offset >= buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), "not a valid index into buffer");
-            }
-
-            if (offset + count > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), "exceeds buffer size");
-            }
+            DebugGuard.NotNull(buffer, nameof(buffer));
+            DebugGuard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
+            DebugGuard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
+            DebugGuard.MustBeLessThan(offset, buffer.Length, nameof(offset));
+            DebugGuard.MustBeLessThanOrEqualTo(offset + count, buffer.Length, nameof(count));
 
             // (By Per Bothner)
             uint s1 = this.checksum & 0xFFFF;

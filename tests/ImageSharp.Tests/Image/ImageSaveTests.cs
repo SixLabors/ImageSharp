@@ -9,9 +9,12 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using Moq;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System.Runtime.CompilerServices;
+
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
@@ -47,76 +50,39 @@ namespace SixLabors.ImageSharp.Tests
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 
-        [Fact]
-        public void SavePixelData_Rgba32()
+        [Theory]
+        [WithTestPatternImages(13, 19, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        public void SavePixelData_ToPixelStructArray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (var img = new Image<Rgba32>(2, 2))
+            using (Image<TPixel> image = provider.GetImage())
             {
-                img[0, 0] = Rgba32.White;
-                img[1, 0] = Rgba32.Black;
+                TPixel[] buffer = new TPixel[image.Width*image.Height];
+                image.SavePixelData(buffer);
 
-                img[0, 1] = Rgba32.Red;
-                img[1, 1] = Rgba32.Blue;
-                var buffer = new byte[2 * 2 * 4]; // width * height * bytes per pixel
-                img.SavePixelData(buffer);
+                image.ComparePixelBufferTo(buffer);
 
-                Assert.Equal(255, buffer[0]); // 0, 0, R
-                Assert.Equal(255, buffer[1]); // 0, 0, G
-                Assert.Equal(255, buffer[2]); // 0, 0, B
-                Assert.Equal(255, buffer[3]); // 0, 0, A
-
-                Assert.Equal(0, buffer[4]); // 1, 0, R
-                Assert.Equal(0, buffer[5]); // 1, 0, G
-                Assert.Equal(0, buffer[6]); // 1, 0, B
-                Assert.Equal(255, buffer[7]); // 1, 0, A
-
-                Assert.Equal(255, buffer[8]); // 0, 1, R
-                Assert.Equal(0, buffer[9]); // 0, 1, G
-                Assert.Equal(0, buffer[10]); // 0, 1, B
-                Assert.Equal(255, buffer[11]); // 0, 1, A
-
-                Assert.Equal(0, buffer[12]); // 1, 1, R
-                Assert.Equal(0, buffer[13]); // 1, 1, G
-                Assert.Equal(255, buffer[14]); // 1, 1, B
-                Assert.Equal(255, buffer[15]); // 1, 1, A
+                // TODO: We need a separate test-case somewhere ensuring that image pixels are stored in row-major order!
             }
         }
 
-
-        [Fact]
-        public void SavePixelData_Bgr24()
+        [Theory]
+        [WithTestPatternImages(19, 13, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        public void SavePixelData_ToByteArray<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            using (var img = new Image<Bgr24>(2, 2))
+            using (Image<TPixel> image = provider.GetImage())
             {
-                img[0, 0] = NamedColors<Bgr24>.White;
-                img[1, 0] = NamedColors<Bgr24>.Black;
+                byte[] buffer = new byte[image.Width*image.Height*Unsafe.SizeOf<TPixel>()];
 
-                img[0, 1] = NamedColors<Bgr24>.Red;
-                img[1, 1] = NamedColors<Bgr24>.Blue;
+                image.SavePixelData(buffer);
 
-                var buffer = new byte[2 * 2 * 3]; // width * height * bytes per pixel
-                img.SavePixelData(buffer);
-
-                Assert.Equal(255, buffer[0]); // 0, 0, B
-                Assert.Equal(255, buffer[1]); // 0, 0, G
-                Assert.Equal(255, buffer[2]); // 0, 0, R
-
-                Assert.Equal(0, buffer[3]); // 1, 0, B
-                Assert.Equal(0, buffer[4]); // 1, 0, G
-                Assert.Equal(0, buffer[5]); // 1, 0, R
-
-                Assert.Equal(0, buffer[6]); // 0, 1, B
-                Assert.Equal(0, buffer[7]); // 0, 1,   G
-                Assert.Equal(255, buffer[8]); // 0, 1,  R
-
-                Assert.Equal(255, buffer[9]); // 1, 1,  B
-                Assert.Equal(0, buffer[10]); // 1, 1,  G
-                Assert.Equal(0, buffer[11]); // 1, 1, R
+                image.ComparePixelBufferTo(buffer.AsSpan().NonPortableCast<byte, TPixel>());
             }
         }
-
+        
         [Fact]
-        public void SavePixelData_Rgba32_Buffer_must_be_bigger()
+        public void SavePixelData_Rgba32_WhenBufferIsTooSmall_Throws()
         {
             using (var img = new Image<Rgba32>(2, 2))
             {

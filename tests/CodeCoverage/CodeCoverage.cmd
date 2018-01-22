@@ -9,6 +9,8 @@ cd ..
 cd ..
 
 dotnet restore ImageSharp.sln
+rem Clean the solution to force a rebuild with /p:codecov=true
+dotnet clean ImageSharp.sln -c Release
 rem The -threshold options prevents this taking ages...
 tests\CodeCoverage\OpenCover.4.6.519\tools\OpenCover.Console.exe -target:"dotnet.exe" -targetargs:"test tests\ImageSharp.Tests\ImageSharp.Tests.csproj -c Release /p:codecov=true" -register:user -threshold:10 -oldStyle -safemode:off -output:.\ImageSharp.Coverage.xml -hideskipped:All -returntargetcode -filter:"+[SixLabors.ImageSharp*]*" 
 

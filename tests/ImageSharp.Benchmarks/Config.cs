@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Benchmarks
             this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
         }
 
-        public class Short : Config
+        public class ShortClr : Config
         {
-            public Short()
+            public ShortClr()
             {
                 this.Add(
                     Job.Clr.WithLaunchCount(1)

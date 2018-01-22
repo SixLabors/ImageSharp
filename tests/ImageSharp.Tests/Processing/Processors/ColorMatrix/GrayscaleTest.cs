@@ -31,13 +31,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Grayscale(value));
-                byte[] data = new byte[3];
+                var rgb = default(Rgb24);
                 System.Span<TPixel> span = image.Frames.RootFrame.GetPixelSpan();
                 for (int i = 0; i < span.Length; i++)
                 {
-                    span[i].ToXyzBytes(data, 0);
-                    Assert.Equal(data[0], data[1]);
-                    Assert.Equal(data[1], data[2]);
+                    span[i].ToRgb24(ref rgb);
+                    Assert.Equal(rgb.R, rgb.B);
+                    Assert.Equal(rgb.B, rgb.G);
                 }
 
                 image.DebugSave(provider, value.ToString());
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.ColorMatrix
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
                 image.Mutate(x => x.Grayscale(value, bounds));

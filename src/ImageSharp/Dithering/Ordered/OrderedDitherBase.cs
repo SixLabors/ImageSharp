@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Dithering.Base
 {
     /// <summary>
-    /// The base class for performing ordered ditheroing using a 4x4 matrix.
+    /// The base class for performing ordered dithering using a 4x4 matrix.
     /// </summary>
     public abstract class OrderedDitherBase : IOrderedDither
     {
@@ -26,14 +27,27 @@ namespace SixLabors.ImageSharp.Dithering.Base
         }
 
         /// <inheritdoc />
-        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte[] bytes, int index, int x, int y)
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, ref Rgba32 rgba, int index, int x, int y)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: This doesn't really cut it for me.
-            // I'd rather be using float but we need to add some sort of normalization vector methods to all IPixel implementations
-            // before we can do that as the vectors all cover different ranges.
-            source.ToXyzwBytes(bytes, 0);
-            image[x, y] = this.matrix[y % 3, x % 3] >= bytes[index] ? lower : upper;
+            source.ToRgba32(ref rgba);
+            switch (index)
+            {
+                case 0:
+                    image[x, y] = this.matrix[y % 3, x % 3] >= rgba.R ? lower : upper;
+                    return;
+                case 1:
+                    image[x, y] = this.matrix[y % 3, x % 3] >= rgba.G ? lower : upper;
+                    return;
+                case 2:
+                    image[x, y] = this.matrix[y % 3, x % 3] >= rgba.B ? lower : upper;
+                    return;
+                case 3:
+                    image[x, y] = this.matrix[y % 3, x % 3] >= rgba.A ? lower : upper;
+                    return;
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(index), "Index should be between 0 and 3 inclusive.");
         }
     }
 }

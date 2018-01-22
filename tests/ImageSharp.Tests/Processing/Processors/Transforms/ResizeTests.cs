@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 SizeF newSize = image.Size() * ratio;
                 image.Mutate(x => x.Resize((Size)newSize, sampler, false));
-                string details = $"{name}-{ratio}";
+                string details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
                 image.CompareToReferenceOutput(provider, details);
@@ -245,7 +247,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 var options = new ResizeOptions
                 {
-                    Size = new Size((int)MathF.Round(image.Width * .75F), (int)MathF.Round(image.Height * .95F)),
+                    Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
                     Mode = ResizeMode.Min
                 };
 

@@ -77,6 +77,11 @@ namespace SixLabors.ImageSharp.Tests
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 12;
+                if (stride < 1)
+                {
+                    stride = 1;
+                }
+
                 TPixel[] c = {
                                      NamedColors<TPixel>.HotPink,
                                      NamedColors<TPixel>.Blue
@@ -197,14 +202,14 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)
-                for (int y = top; y < bottom; y++)
-                {
-                    t.PackedValue += stepsPerPixel;
-                    Vector4 v = t.ToVector4();
-                    //v.W = (x - left) / (float)left;
-                    c.PackFromVector4(v);
-                    pixels[x, y] = c;
-                }
+                    for (int y = top; y < bottom; y++)
+                    {
+                        t.PackedValue += stepsPerPixel;
+                        Vector4 v = t.ToVector4();
+                        //v.W = (x - left) / (float)left;
+                        c.PackFromVector4(v);
+                        pixels[x, y] = c;
+                    }
             }
         }
     }

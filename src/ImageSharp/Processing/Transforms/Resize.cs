@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp
                     options.Size = new Size(options.Size.Width, (int)MathF.Round(img.Height * options.Size.Width / (float)img.Width));
                 }
 
-                Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds<TPixel>(img, options);
+                Rectangle targetRectangle = ResizeHelper.CalculateTargetLocationAndBounds(img.Frames.RootFrame, options);
 
                 img.Mutate(x => Resize(x, options.Size.Width, options.Size.Height, options.Sampler, targetRectangle, options.Compand));
             });

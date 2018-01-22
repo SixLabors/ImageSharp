@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
 
-                if (!SimdUtils.IsAvx2)
+                if (!SimdUtils.IsAvx2CompatibleArchitecture)
                 {
                     base.PackFromVector4(sourceVectors, destColors, count);
                     return;

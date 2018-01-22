@@ -70,17 +70,17 @@ namespace SixLabors.ImageSharp.Tests
         protected static readonly List<TestFile> Files = new List<TestFile>
         {
                TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
-            // TestFile.Create(TestImages.Jpeg.Baseline.Turtle), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Baseline.Floorplan), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Progressive.Festzug), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Baseline.Bad.MissingEOF), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
-            // TestFile.Create(TestImages.Jpeg.Progressive.Bad.BadEOF), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.Turtle), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.Floorplan), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Progressive.Festzug), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.Bad.BadEOF), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
+             //TestFile.Create(TestImages.Jpeg.Progressive.Bad.BadEOF), // Perf: Enable for local testing only
                TestFile.Create(TestImages.Bmp.Car),
             // TestFile.Create(TestImages.Bmp.NegHeight), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Bmp.CoreHeader), // Perf: Enable for local testing only

@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
@@ -53,12 +54,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <summary>
         /// Contains information about the JFIF marker
         /// </summary>
-        private PdfJsJFif jFif;
+        private JFifMarker jFif;
 
         /// <summary>
         /// Contains information about the Adobe marker
         /// </summary>
-        private PdfJsAdobe adobe;
+        private AdobeMarker adobe;
 
         /// <summary>
         /// Initializes static members of the <see cref="PdfJsJpegDecoderCore"/> class.
@@ -345,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (this.NumberOfComponents == 3)
             {
-                if (this.adobe.Equals(default(PdfJsAdobe)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                if (this.adobe.Equals(default(AdobeMarker)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
                     this.FillYCbCrImage(image);
                 }
@@ -409,26 +410,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, 13);
-            remaining -= 13;
+            this.InputStream.Read(this.temp, 0, JFifMarker.Length);
+            remaining -= JFifMarker.Length;
 
-            bool isJfif = this.temp[0] == PdfJsJpegConstants.Markers.JFif.J &&
-                          this.temp[1] == PdfJsJpegConstants.Markers.JFif.F &&
-                          this.temp[2] == PdfJsJpegConstants.Markers.JFif.I &&
-                          this.temp[3] == PdfJsJpegConstants.Markers.JFif.F &&
-                          this.temp[4] == PdfJsJpegConstants.Markers.JFif.Null;
-
-            if (isJfif)
-            {
-                this.jFif = new PdfJsJFif
-                {
-                    MajorVersion = this.temp[5],
-                    MinorVersion = this.temp[6],
-                    DensityUnits = this.temp[7],
-                    XDensity = (short)((this.temp[8] << 8) | this.temp[9]),
-                    YDensity = (short)((this.temp[10] << 8) | this.temp[11])
-                };
-            }
+            JFifMarker.TryParse(this.temp, out this.jFif);
 
             // TODO: thumbnail
             if (remaining > 0)
@@ -524,32 +509,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp14Marker(int remaining)
         {
-            if (remaining < 12)
+            const int MarkerLength = AdobeMarker.Length;
+            if (remaining < MarkerLength)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, 12);
-            remaining -= 12;
+            this.InputStream.Read(this.temp, 0, MarkerLength);
+            remaining -= MarkerLength;
 
-            bool isAdobe = this.temp[0] == PdfJsJpegConstants.Markers.Adobe.A &&
-                           this.temp[1] == PdfJsJpegConstants.Markers.Adobe.D &&
-                           this.temp[2] == PdfJsJpegConstants.Markers.Adobe.O &&
-                           this.temp[3] == PdfJsJpegConstants.Markers.Adobe.B &&
-                           this.temp[4] == PdfJsJpegConstants.Markers.Adobe.E;
-
-            if (isAdobe)
-            {
-                this.adobe = new PdfJsAdobe
-                {
-                    DCTEncodeVersion = (short)((this.temp[5] << 8) | this.temp[6]),
-                    APP14Flags0 = (short)((this.temp[7] << 8) | this.temp[8]),
-                    APP14Flags1 = (short)((this.temp[9] << 8) | this.temp[10]),
-                    ColorTransform = this.temp[11]
-                };
-            }
+            AdobeMarker.TryParse(this.temp, out this.adobe);
 
             if (remaining > 0)
             {

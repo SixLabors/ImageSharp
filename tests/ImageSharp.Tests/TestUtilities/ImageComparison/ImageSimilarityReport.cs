@@ -26,9 +26,24 @@
         // TODO: This should not be a nullable value!
         public float? TotalNormalizedDifference { get; }
 
-        public string DifferencePercentageString => this.TotalNormalizedDifference.HasValue
-                                                  ? $"{this.TotalNormalizedDifference.Value * 100:0.0000}%"
-                                                  : "?";
+        public string DifferencePercentageString
+        {
+            get
+            {
+                if (!this.TotalNormalizedDifference.HasValue)
+                {
+                    return "?";
+                }
+                else if (this.TotalNormalizedDifference == 0)
+                {
+                    return "0%";
+                }
+                else
+                {
+                    return $"{this.TotalNormalizedDifference.Value * 100:0.0000}%";
+                }
+            }
+        }
 
         public PixelDifference[] Differences { get; }
 

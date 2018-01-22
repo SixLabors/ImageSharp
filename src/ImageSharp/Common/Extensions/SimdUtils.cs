@@ -15,13 +15,13 @@ namespace SixLabors.ImageSharp
     internal static class SimdUtils
     {
         /// <summary>
-        /// Indicates AVX2 architecture where both float and integer registers are of size 256 byte.
+        /// Gets a value indicating whether the code is being executed on AVX2 CPU where both float and integer registers are of size 256 byte.
         /// </summary>
-        public static readonly bool IsAvx2 = Vector<float>.Count == 8 && Vector<int>.Count == 8;
+        public static bool IsAvx2CompatibleArchitecture => Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
         internal static void GuardAvx2(string operation)
         {
-            if (!IsAvx2)
+            if (!IsAvx2CompatibleArchitecture)
             {
                 throw new NotSupportedException($"{operation} is supported only on AVX2 CPU!");
             }

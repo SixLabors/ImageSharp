@@ -32,6 +32,15 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             this.image = image;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageBrush{TPixel}"/> class.
+        /// </summary>
+        /// <param name="image">The image.</param>
+        public ImageBrush(Image<TPixel> image)
+            : this(image.Frames.RootFrame)
+        {
+        }
+
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {

@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.Equal(expected, provider.PixelType);
         }
-        
+
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.All, 88)]
         [WithFile(TestImages.Bmp.F, PixelTypes.All, 88)]
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
-            
+
             private static readonly object Monitor = new object();
 
             public static void DoTestThreadSafe(Action action)
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
-            
+
             private static readonly object Monitor = new object();
 
             public static void DoTestThreadSafe(Action action)
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Tests
             Image<TPixel> image = provider.GetImage();
             provider.Utility.SaveTestOutputFile(image, "png");
         }
-        
+
         [Theory]
         [WithSolidFilledImages(10, 20, 255, 100, 50, 200, PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void Use_WithSolidFilledImagesAttribute<TPixel>(TestImageProvider<TPixel> provider)
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(10, img.Width);
             Assert.Equal(20, img.Height);
 
-            byte[] colors = new byte[4];
+            var rgba = default(Rgba32);
 
             using (PixelAccessor<TPixel> pixels = img.Lock())
             {
@@ -252,12 +252,12 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     for (int x = 0; x < pixels.Width; x++)
                     {
-                        pixels[x, y].ToXyzwBytes(colors, 0);
+                        pixels[x, y].ToRgba32(ref rgba);
 
-                        Assert.Equal(255, colors[0]);
-                        Assert.Equal(100, colors[1]);
-                        Assert.Equal(50, colors[2]);
-                        Assert.Equal(200, colors[3]);
+                        Assert.Equal(255, rgba.R);
+                        Assert.Equal(100, rgba.G);
+                        Assert.Equal(50, rgba.B);
+                        Assert.Equal(200, rgba.A);
                     }
                 }
             }

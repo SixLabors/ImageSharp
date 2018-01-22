@@ -1,43 +1,35 @@
+<h1 align="center">
+    <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="175"/>
+    <br>
+    ImageSharp
+    <br>
+    <br>
+    <a href="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt"><img src="https://camo.githubusercontent.com/8f54547853cfad57acfc8e06e6008cc296cda34d/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f6c6963656e73652d417061636865253230322d626c75652e737667" alt="GitHub license" data-canonical-src="https://img.shields.io/badge/license-Apache%202-blue.svg" style="max-width:100%;"></a>
+    <a href="https://gitter.im/ImageSharp/General?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://camo.githubusercontent.com/da2edb525cde1455a622c58c0effc3a90b9a181c/68747470733a2f2f6261646765732e6769747465722e696d2f4a6f696e253230436861742e737667" alt="Gitter" data-canonical-src="https://badges.gitter.im/Join%20Chat.svg" style="max-width:100%;"></a>
+    <a href="https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&amp;text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&amp;url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&amp;via=sixlabors"><img src="https://camo.githubusercontent.com/aed174887b7d1f0a0877dd0a68c3872bc54d2fff/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f75726c2f68747470732f6769746875622e636f6d2f5369784c61626f72732f496d61676553686172702e7376673f7374796c653d736f6369616c" alt="Twitter" data-canonical-src="https://img.shields.io/twitter/url/https/github.com/SixLabors/ImageSharp.svg?style=social" style="max-width:100%;"></a>
+    <a href="#backers"><img src="https://camo.githubusercontent.com/c9af371c98b22cb92323a385a267a1215c454663/68747470733a2f2f6f70656e636f6c6c6563746976652e636f6d2f696d61676573686172702f6261636b6572732f62616467652e737667" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/backers/badge.svg" style="max-width:100%;"></a>
+    <a href="#sponsors"><img src="https://camo.githubusercontent.com/5a9ae612f8e7fb5207f51a605f025770bfa9a80e/68747470733a2f2f6f70656e636f6c6c6563746976652e636f6d2f696d61676573686172702f73706f6e736f72732f62616467652e737667" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/sponsors/badge.svg" style="max-width:100%;"></a>
+</h1>
 
-# <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="52"/> ImageSharp
+### **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API. 
 
-**ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API designed to allow the processing of images without the use of `System.Drawing`. 
+Without the use of `System.Drawing` we have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks. Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
 
 Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
-> **ImageSharp** has made excellent progress and contains many great features but is still considered by us to be still in early stages (alpha). As such, we cannot support its use on production environments until the library reaches release candidate status.
->
-> Pre-release downloads are available from the [MyGet package repository](https://www.myget.org/gallery/sixlabors).
+### Questions?
 
-[![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt)
-[![GitHub issues](https://img.shields.io/github/issues/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/issues)
-[![GitHub stars](https://img.shields.io/github/stars/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/SixLabors/ImageSharp.svg)](https://github.com/SixLabors/ImageSharp/network)
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ImageSharp/General?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Twitter](https://img.shields.io/twitter/url/https/github.com/SixLabors/ImageSharp.svg?style=social)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
-[![OpenCollective](https://opencollective.com/imagesharp/backers/badge.svg)](#backers) 
-[![OpenCollective](https://opencollective.com/imagesharp/sponsors/badge.svg)](#sponsors)
-
-
-
-|             |Build Status|Code Coverage|
-|-------------|:----------:|:-----------:|
-|**Linux/Mac**|[![Build Status](https://travis-ci.org/SixLabors/ImageSharp.svg)](https://travis-ci.org/SixLabors/ImageSharp)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
-|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/m9pn907xdah3ca39/branch/master?svg=true)](https://ci.appveyor.com/project/six-labors/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
-
+Do you have questions? We are happy to help! Please [join our gitter channel](https://gitter.im/ImageSharp/General), or ask them on [stackoverflow](https://stackoverflow.com) using the `ImageSharp` tag.
 
 ### Installation
-At present the code is pre-release but when ready it will be available on [Nuget](http://www.nuget.org). 
 
-**Pre-release downloads**
-
-We already have a [MyGet package repository](https://www.myget.org/gallery/sixlabors) - for bleeding-edge / development NuGet releases.
+| Package Name                   | Release (NuGet) | Nightly (MyGet) |
+|--------------------------------|-----------------|-----------------|
+| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![MyGet](https://img.shields.io/myget/sixlabors/v/SixLabors.ImageSharp.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp) |
+| `SixLabors.ImageSharp.Drawing` | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.Drawing.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp.Drawing/) | [![MyGet](https://img.shields.io/myget/sixlabors/v/SixLabors.ImageSharp.Drawing.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp.Drawing) |
 
 ### Packages
-
-The **ImageSharp** library is made up of multiple packages.
-
-Packages include:
+The **ImageSharp** library is made up of multiple packages:
 - **SixLabors.ImageSharp**
   - Contains the generic `Image<TPixel>` class, PixelFormats, Primitives, Configuration, and other core functionality.
   - The `IImageFormat` interface, Jpeg, Png, Bmp, and Gif formats.
@@ -49,23 +41,12 @@ Packages include:
   - Various vector drawing methods for drawing paths, polygons etc.
   - Text drawing.
 
-### Manual build
+### Build Status
 
-If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:
-
-- [Visual Studio 2017 (or above)](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
-- The [.NET Core SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
-
-Alternatively on Linux you can use:
-
-- [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
-- [.Net Core](https://www.microsoft.com/net/core#linuxubuntu)
-
-To clone it locally click the "Clone in Windows" button above or run the following git commands.
-
-```bash
-git clone https://github.com/SixLabors/ImageSharp
-```
+|             |Build Status|Code Coverage|
+|-------------|:----------:|:-----------:|
+|**Linux/Mac**|[![Build Status](https://travis-ci.org/SixLabors/ImageSharp.svg)](https://travis-ci.org/SixLabors/ImageSharp)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
+|**Windows**  |[![Build Status](https://ci.appveyor.com/api/projects/status/m9pn907xdah3ca39/branch/master?svg=true)](https://ci.appveyor.com/project/six-labors/imagesharp/branch/master)|[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)|
 
 ### Features
 
@@ -73,15 +54,7 @@ There's plenty there and more coming. Check out the [current features](features.
 
 ### API 
 
-Without the constraints of `System.Drawing` We have been able to develop something much more flexible, easier to code against, and much, much less prone to memory leaks.
-
-Gone are system-wide process-locks; ImageSharp images are thread-safe and fully supported in web environments.
-
-Many `Image<TPixel>` methods are also fluent.
-
 Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
-
-`Rgba32` is our default PixelFormat, equivalent to `System.Drawing Color`.
 
 On platforms supporting netstandard 1.3+
 ```csharp
@@ -118,22 +91,33 @@ using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 }
 ```
 
-For optimized synchronous access within a loop it is recommended that the following methods are used.
-
-1. `image.GetRowSpan(y)`
-2. `image.GetRowSpan(x, y)`
-
-For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/SixLabors/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
+`Rgba32` is our default PixelFormat, equivalent to `System.Drawing Color`. For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/SixLabors/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
 All in all this should allow image processing to be much more accessible to developers which has always been my goal from the start.
 
+**Check out [this blog post](https://sixlabors.com/blog/announcing-imagesharp-beta-1/) or our [Samples Repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp) for more examples!**
+
+### Manual build
+
+If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:
+
+- [Visual Studio 2017 (or above)](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
+- The [.NET Core SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
+
+Alternatively on Linux you can use:
+
+- [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
+- [.Net Core](https://www.microsoft.com/net/core#linuxubuntu)
+
+To clone it locally click the "Clone in Windows" button above or run the following git commands.
+
+```bash
+git clone https://github.com/SixLabors/ImageSharp
+```
+
 ### How can you help?
 
-Please... Spread the word, contribute algorithms, submit performance improvements, unit tests. 
-
-Performance is a biggie, if you know anything about the `System.Numerics.Vectors` types and can apply some fancy new stuff with that it would be awesome. 
-
-There's a lot of developers out there who could write this stuff a lot better and faster than I and I would love to see what we collectively can come up with so please, if you can help in any way it would be most welcome and benificial for all.
+Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. 
 
 ### The ImageSharp Team
 

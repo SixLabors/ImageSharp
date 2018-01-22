@@ -59,10 +59,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public static Bytes Create()
         {
             return new Bytes
-                       {
-                           Buffer = BytePool.Rent(BufferSize),
-                           BufferAsInt = IntPool.Rent(BufferSize)
-                       };
+            {
+                Buffer = BytePool.Rent(BufferSize),
+                BufferAsInt = IntPool.Rent(BufferSize)
+            };
         }
 
         /// <summary>
@@ -148,8 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte ReadByte(Stream inputStream)
         {
-            byte result;
-            OrigDecoderErrorCode errorCode = this.ReadByteUnsafe(inputStream, out result);
+            OrigDecoderErrorCode errorCode = this.ReadByteUnsafe(inputStream, out byte result);
             errorCode.EnsureNoError();
             return result;
         }

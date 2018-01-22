@@ -34,15 +34,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        [Theory] // Benchmark, enable manually
-        [MemberData(nameof(DecodeJpegData))]
+        //[Theory] // Benchmark, enable manually
+        //[MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg_Original(string fileName)
         {
             this.DecodeJpegBenchmarkImpl(fileName, new OrigJpegDecoder());
         }
 
-        [Theory] // Benchmark, enable manually
-        [MemberData(nameof(DecodeJpegData))]
+        // [Theory] // Benchmark, enable manually
+        // [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg_PdfJs(string fileName)
         {
             this.DecodeJpegBenchmarkImpl(fileName, new PdfJsJpegDecoder());
@@ -50,6 +50,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
         {
+            // do not run this on CI even by accident
+            if (TestEnvironment.RunsOnCI)
+            {
+                return;
+            }
+
             const int ExecutionCount = 30;
 
             if (!Vector.IsHardwareAccelerated)
@@ -78,6 +84,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         // [InlineData(30, 100, JpegSubsample.Ratio444)]
         public void EncodeJpeg(int executionCount, int quality, JpegSubsample subsample)
         {
+            // do not run this on CI even by accident
+            if (TestEnvironment.RunsOnCI)
+            {
+                return;
+            }
+
             string[] testFiles = TestImages.Bmp.All
                 .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk })
                 .ToArray();

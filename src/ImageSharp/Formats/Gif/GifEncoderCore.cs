@@ -98,12 +98,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.hasFrames = image.Frames.Count > 1;
 
-            // Dithering when animating gifs is a bad idea as we introduce pixel tearing across frames.
-            var ditheredQuantizer = (IQuantizer<TPixel>)this.quantizer;
-            ditheredQuantizer.Dither = !this.hasFrames;
+            var pixelQuantizer = (IQuantizer<TPixel>)this.quantizer;
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = ditheredQuantizer.Quantize(image.Frames.RootFrame, size);
+            QuantizedImage<TPixel> quantized = pixelQuantizer.Quantize(image.Frames.RootFrame, size);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -126,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 if (quantized == null)
                 {
-                    quantized = ditheredQuantizer.Quantize(frame, size);
+                    quantized = pixelQuantizer.Quantize(frame, size);
                 }
 
                 this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));
@@ -156,18 +154,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
+            var trans = default(Rgba32);
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToXyzwBytes(this.buffer, 0);
+                quantized.Palette[i].ToRgba32(ref trans);
 
-                if (this.buffer[3] > 0)
-                {
-                    continue;
-                }
-                else
+                if (trans.Equals(default(Rgba32)))
                 {
                     index = i;
-                    break;
                 }
             }
 
@@ -287,7 +281,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(IFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
         {
             var extension = new GifGraphicsControlExtension
             {
@@ -357,16 +351,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
-
+            var rgb = default(Rgb24);
             try
             {
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    image.Palette[i].ToXyzBytes(this.buffer, 0);
-                    colorTable[offset] = this.buffer[0];
-                    colorTable[offset + 1] = this.buffer[1];
-                    colorTable[offset + 2] = this.buffer[2];
+                    image.Palette[i].ToRgb24(ref rgb);
+                    colorTable[offset] = rgb.R;
+                    colorTable[offset + 1] = rgb.G;
+                    colorTable[offset + 2] = rgb.B;
                 }
 
                 writer.Write(colorTable, 0, colorTableLength);

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     /// of the prior pixel.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static unsafe class SubFilter
+    internal static class SubFilter
     {
         /// <summary>
         /// Decodes the scanline
@@ -46,13 +46,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel)
+        public static void Encode(Span<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+            sum = 0;
 
             // Sub(x) = Raw(x) - Raw(x-bpp)
             resultBaseRef = 1;
@@ -64,6 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     byte scan = Unsafe.Add(ref scanBaseRef, x);
                     ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)(scan % 256);
+                    sum += res < 128 ? res : 256 - res;
                 }
                 else
                 {
@@ -71,8 +74,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     byte prev = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
                     ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)((scan - prev) % 256);
+                    sum += res < 128 ? res : 256 - res;
                 }
             }
+
+            sum -= 1;
         }
     }
 }

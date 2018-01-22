@@ -53,8 +53,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
+        /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel)
+        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
@@ -62,6 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+            sum = 0;
 
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
             resultBaseRef = 3;
@@ -74,6 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     byte above = Unsafe.Add(ref prevBaseRef, x);
                     ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)((scan - (above >> 1)) % 256);
+                    sum += res < 128 ? res : 256 - res;
                 }
                 else
                 {
@@ -82,8 +85,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     byte above = Unsafe.Add(ref prevBaseRef, x);
                     ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                     res = (byte)((scan - Average(left, above)) % 256);
+                    sum += res < 128 ? res : 256 - res;
                 }
             }
+
+            sum -= 3;
         }
 
         /// <summary>

@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -233,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Collect the indexed pixel data
             if (this.pngColorType == PngColorType.Palette)
             {
-                this.CollectIndexedBytes<TPixel>(image.Frames.RootFrame, stream, header);
+                this.CollectIndexedBytes(image.Frames.RootFrame, stream, header);
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -243,9 +242,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Flush();
         }
 
-        /// <summary>
-        /// Disposes PngEncoderCore instance, disposing it's internal buffers.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
             this.previousScanline?.Dispose();
@@ -321,6 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
+            var rgba = default(Rgba32);
 
             // Copy the pixels across from the image.
             // Reuse the chunk type buffer.
@@ -329,8 +327,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // Convert the color to YCbCr and store the luminance
                 // Optionally store the original color alpha.
                 int offset = x * this.bytesPerPixel;
-                rowSpan[x].ToXyzwBytes(this.chunkTypeBuffer, 0);
-                byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
+                rowSpan[x].ToRgba32(ref rgba);
+                byte luminance = (byte)((0.299F * rgba.R) + (0.587F * rgba.G) + (0.114F * rgba.B));
 
                 for (int i = 0; i < this.bytesPerPixel; i++)
                 {
@@ -340,7 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                     else
                     {
-                        rawScanlineArray[offset + i] = this.chunkTypeBuffer[3];
+                        rawScanlineArray[offset + i] = rgba.A;
                     }
                 }
             }
@@ -411,14 +409,12 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
-            UpFilter.Encode(scanSpan, prevSpan, this.up);
+            UpFilter.Encode(scanSpan, prevSpan, this.up, out int currentSum);
 
-            int currentSum = this.CalculateTotalVariation(this.up, int.MaxValue);
             int lowestSum = currentSum;
             Buffer<byte> actualResult = this.up;
 
-            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
+            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -426,8 +422,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 actualResult = this.paeth;
             }
 
-            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
+            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -435,8 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 actualResult = this.sub;
             }
 
-            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.average, currentSum);
+            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -444,34 +438,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             return actualResult;
-        }
-
-        /// <summary>
-        /// Calculates the total variation of given byte array. Total variation is the sum of the absolute values of
-        /// neighbor differences.
-        /// </summary>
-        /// <param name="scanline">The scanline bytes</param>
-        /// <param name="lastSum">The last variation sum</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int CalculateTotalVariation(Span<byte> scanline, int lastSum)
-        {
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
-            int sum = 0;
-
-            for (int i = 1; i < this.bytesPerScanline; i++)
-            {
-                byte v = Unsafe.Add(ref scanBaseRef, i);
-                sum += v < 128 ? v : 256 - v;
-
-                // No point continuing if we are larger.
-                if (sum >= lastSum)
-                {
-                    break;
-                }
-            }
-
-            return sum;
         }
 
         /// <summary>
@@ -553,7 +519,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
             byte[] alphaTable = ArrayPool<byte>.Shared.Rent(pixelCount);
-            byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
+            var rgba = default(Rgba32);
             bool anyAlpha = false;
             try
             {
@@ -562,13 +528,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (quantized.Pixels.Contains(i))
                     {
                         int offset = i * 3;
-                        palette[i].ToXyzwBytes(bytes, 0);
+                        palette[i].ToRgba32(ref rgba);
 
-                        byte alpha = bytes[3];
+                        byte alpha = rgba.A;
 
-                        colorTable[offset] = bytes[0];
-                        colorTable[offset + 1] = bytes[1];
-                        colorTable[offset + 2] = bytes[2];
+                        colorTable[offset] = rgba.R;
+                        colorTable[offset + 1] = rgba.G;
+                        colorTable[offset + 2] = rgba.B;
 
                         if (alpha > this.threshold)
                         {
@@ -592,7 +558,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 ArrayPool<byte>.Shared.Return(colorTable);
                 ArrayPool<byte>.Shared.Return(alphaTable);
-                ArrayPool<byte>.Shared.Return(bytes);
             }
 
             return quantized;

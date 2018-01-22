@@ -19,6 +19,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     /// </summary>
     internal static partial class ReferenceImplementations
     {
+        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        {
+            float* b = (float*)blockPtr;
+            float* qtp = (float*)qtPtr;
+            for (int qtIndex = 0; qtIndex < Block8x8F.Size; qtIndex++)
+            {
+                int i = unzigPtr[qtIndex];
+                float* unzigPos = b + i;
+
+                float val = *unzigPos;
+                val *= qtp[qtIndex];
+                *unzigPos = val;
+            }
+        }
+
         /// <summary>
         /// Transpose 8x8 block stored linearly in a <see cref="Span{T}"/> (inplace)
         /// </summary>
@@ -93,14 +108,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         }
 
         /// <summary>
-        /// Reference implementation to test <see cref="Block8x8F.UnzigDivRound"/>.
+        /// Reference implementation to test <see cref="Block8x8F.Quantize"/>.
         /// Rounding is done used an integer-based algorithm defined in <see cref="RationalRound(int,int)"/>.
         /// </summary>
         /// <param name="src">The input block</param>
         /// <param name="dest">The destination block of integers</param>
         /// <param name="qt">The quantization table</param>
-        /// <param name="unzigPtr">Pointer to <see cref="UnzigData.Data"/> </param>
-        public static unsafe void UnZigDivRoundRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
+        /// <param name="unzigPtr">Pointer to <see cref="ZigZag.Data"/> </param>
+        public static unsafe void QuantizeRational(Block8x8F* src, int* dest, Block8x8F* qt, int* unzigPtr)
         {
             float* s = (float*)src;
             float* q = (float*)qt;

@@ -37,9 +37,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         private readonly Buffer<Vector4> rgbaBuffer;
 
         /// <summary>
-        /// The <see cref="JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.
+        /// The <see cref="ColorConverters.JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.
         /// </summary>
-        private JpegColorConverter colorConverter;
+        private ColorConverters.JpegColorConverter colorConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 
             this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
             this.rgbaBuffer = new Buffer<Vector4>(rawJpeg.ImageSizeInPixels.Width);
-            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
+            this.colorConverter = ColorConverters.JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             {
                 int y = yy - this.PixelRowCounter;
 
-                var values = new JpegColorConverter.ComponentValues(buffers, y);
+                var values = new ColorConverters.JpegColorConverter.ComponentValues(buffers, y);
                 this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer);
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);

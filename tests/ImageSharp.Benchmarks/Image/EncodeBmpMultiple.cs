@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Bmp;
 
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class EncodeBmpMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Bmp/", "Jpg/baseline" };

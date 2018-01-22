@@ -45,12 +45,6 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void ActualOutputDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.ActualOutputDirectoryFullPath);
-        }
-
-        [Fact]
         public void ExpectedOutputDirectoryFullPath()
         {
             this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);

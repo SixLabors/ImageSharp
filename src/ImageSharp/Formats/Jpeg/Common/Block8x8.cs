@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -176,17 +179,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
-        /// Convert into <see cref="Block8x8F"/>
+        /// Convert to <see cref="Block8x8F"/>
         /// </summary>
         public Block8x8F AsFloatBlock()
         {
-            // TODO: Optimize this
             var result = default(Block8x8F);
-            for (int i = 0; i < Size; i++)
-            {
-                result[i] = this[i];
-            }
-
+            result.LoadFrom(ref this);
             return result;
         }
 

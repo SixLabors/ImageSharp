@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.IO
             CheckByteArgument(value, startIndex, 8);
             long p1 = (value[startIndex + 7] << 24) | (value[startIndex + 6] << 16) | (value[startIndex + 5] << 8) | value[startIndex + 4];
             long p2 = (value[startIndex + 3] << 24) | (value[startIndex + 2] << 16) | (value[startIndex + 1] << 8) | value[startIndex];
-            return p2 | (p1 << 32);
+            return (p2 & 0xFFFFFFFF) | (p1 << 32);
         }
     }
 }

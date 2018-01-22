@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing
 
             if (x < 3F)
             {
-                return MathF.SinC(x) * (1F - (x * x / 9F));
+                return ImageMaths.SinC(x) * (1F - (x * x / 9F));
             }
 
             return 0F;

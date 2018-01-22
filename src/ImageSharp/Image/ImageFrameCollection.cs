@@ -4,7 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -13,124 +13,139 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an imaged collection of frames.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    internal sealed class ImageFrameCollection<TPixel> : IImageFrameCollection<TPixel>, IDisposable
+    internal sealed class ImageFrameCollection<TPixel> : IImageFrameCollection<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
+        private readonly Image<TPixel> parent;
 
-        internal ImageFrameCollection(int width, int height)
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height)
         {
-            this.Add(new ImageFrame<TPixel>(width, height));
+            Guard.NotNull(parent, nameof(parent));
+
+            this.parent = parent;
+
+            // Frames are already cloned within the caller
+            this.frames.Add(new ImageFrame<TPixel>(width, height));
         }
 
-        internal ImageFrameCollection(IEnumerable<ImageFrame<TPixel>> frames)
+        internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
         {
+            Guard.NotNull(parent, nameof(parent));
             Guard.NotNullOrEmpty(frames, nameof(frames));
+
+            this.parent = parent;
+
+            // Frames are already cloned by the caller
             foreach (ImageFrame<TPixel> f in frames)
             {
-                this.Add(f);
+                this.ValidateFrame(f);
+                this.frames.Add(f);
             }
         }
 
-        /// <summary>
-        /// Gets the count.
-        /// </summary>
+        /// <inheritdoc/>
         public int Count => this.frames.Count;
 
-        /// <summary>
-        /// Gets the root frame.
-        /// </summary>
+        /// <inheritdoc/>
         public ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
 
-        /// <summary>
-        /// Gets or sets the <see cref="ImageFrame{TPixel}"/> at the specified index.
-        /// </summary>
-        /// <value>
-        /// The <see cref="ImageFrame{TPixel}"/>.
-        /// </value>
-        /// <param name="index">The index.</param>
-        /// <returns>The <see cref="ImageFrame{TPixel}"/> at the specified index.</returns>
+        /// <inheritdoc/>
         public ImageFrame<TPixel> this[int index]
         {
             get => this.frames[index];
-
-            set
-            {
-                this.ValidateFrame(value);
-                this.frames[index] = value;
-            }
         }
 
-        /// <summary>
-        ///  Determines the index of a specific <paramref name="frame"/> in the <seealso cref="Image{TPixel}"/>.
-        /// </summary>
-        /// <param name="frame">The <seealso cref="ImageFrame{TPixel}"/> to locate in the <seealso cref="Image{TPixel}"/>.</param>
-        /// <returns>The index of item if found in the list; otherwise, -1.</returns>
+        /// <inheritdoc/>
         public int IndexOf(ImageFrame<TPixel> frame) => this.frames.IndexOf(frame);
 
-        /// <summary>
-        ///  Inserts the <paramref name="frame"/> to the <seealso cref="Image{TPixel}"/> at the specified <paramref name="index"/>.
-        /// </summary>
-        /// <param name="index"> The zero-based index at which item should be inserted..</param>
-        /// <param name="frame">The <seealso cref="ImageFrame{TPixel}"/> to insert into the <seealso cref="Image{TPixel}"/>.</param>
-        public void Insert(int index, ImageFrame<TPixel> frame)
+        /// <inheritdoc/>
+        public ImageFrame<TPixel> InsertFrame(int index, ImageFrame<TPixel> frame)
         {
             this.ValidateFrame(frame);
-            this.frames.Insert(index, frame);
+            ImageFrame<TPixel> clonedFrame = frame.Clone();
+            this.frames.Insert(index, clonedFrame);
+            return clonedFrame;
         }
 
-        /// <summary>
-        /// Removes the <seealso cref="ImageFrame{TPixel}"/> from the <seealso cref="Image{TPixel}"/> at the specified index.
-        /// </summary>
-        /// <param name="index">The zero-based index of the item to remove.</param>
-        /// <exception cref="InvalidOperationException">Cannot remove last frame.</exception>
-        public void RemoveAt(int index)
+        /// <inheritdoc/>
+        public ImageFrame<TPixel> AddFrame(ImageFrame<TPixel> frame)
+        {
+            this.ValidateFrame(frame);
+            ImageFrame<TPixel> clonedFrame = frame.Clone();
+            this.frames.Add(clonedFrame);
+            return clonedFrame;
+        }
+
+        /// <inheritdoc/>
+        public ImageFrame<TPixel> AddFrame(TPixel[] data)
+        {
+            var frame = ImageFrame.LoadPixelData(new Span<TPixel>(data), this.RootFrame.Width, this.RootFrame.Height);
+            this.frames.Add(frame);
+            return frame;
+        }
+
+        /// <inheritdoc/>
+        public void RemoveFrame(int index)
         {
             if (index == 0 && this.Count == 1)
             {
                 throw new InvalidOperationException("Cannot remove last frame.");
             }
 
+            ImageFrame<TPixel> frame = this.frames[index];
             this.frames.RemoveAt(index);
+            frame.Dispose();
         }
 
-        /// <summary>
-        /// Adds the specified frame.
-        /// </summary>
-        /// <param name="frame">The frame.</param>
-        /// <exception cref="ArgumentException">Frame must have the same dimensions as the image - frame</exception>
-        public void Add(ImageFrame<TPixel> frame)
-        {
-            this.ValidateFrame(frame);
-            this.frames.Add(frame);
-        }
-
-        /// <summary>
-        /// Determines whether the <seealso cref="Image{TPixel}"/> contains the <paramref name="frame"/>.
-        /// </summary>
-        /// <param name="frame">The frame.</param>
-        /// <returns>
-        ///   <c>true</c> if the <seealso cref="Image{TPixel}"/> the specified frame; otherwise, <c>false</c>.
-        /// </returns>
+        /// <inheritdoc/>
         public bool Contains(ImageFrame<TPixel> frame)
         {
             return this.frames.Contains(frame);
         }
 
-        /// <summary>
-        /// Removes the specified frame.
-        /// </summary>
-        /// <param name="frame">The frame.</param>
-        /// <returns>true if item is found in the <seealso cref="Image{TPixel}"/>; otherwise,</returns>
-        /// <exception cref="InvalidOperationException">Cannot remove last frame</exception>
-        public bool Remove(ImageFrame<TPixel> frame)
+        /// <inheritdoc/>
+        public void MoveFrame(int sourceIndex, int destIndex)
         {
+            if (sourceIndex == destIndex)
+            {
+                return;
+            }
+
+            ImageFrame<TPixel> frameAtIndex = this.frames[sourceIndex];
+            this.frames.RemoveAt(sourceIndex);
+            this.frames.Insert(destIndex, frameAtIndex);
+        }
+
+        /// <inheritdoc/>
+        public Image<TPixel> ExportFrame(int index)
+        {
+            ImageFrame<TPixel> frame = this[index];
+
             if (this.Count == 1 && this.frames.Contains(frame))
             {
                 throw new InvalidOperationException("Cannot remove last frame.");
             }
 
-            return this.frames.Remove(frame);
+            this.frames.Remove(frame);
+
+            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.Clone(), new[] { frame });
+        }
+
+        /// <inheritdoc/>
+        public Image<TPixel> CloneFrame(int index)
+        {
+            ImageFrame<TPixel> frame = this[index];
+            ImageFrame<TPixel> clonedFrame = frame.Clone();
+            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.Clone(), new[] { clonedFrame });
+        }
+
+        /// <inheritdoc/>
+        public ImageFrame<TPixel> CreateFrame()
+        {
+            var frame = new ImageFrame<TPixel>(this.RootFrame.Width, this.RootFrame.Height);
+            this.frames.Add(frame);
+            return frame;
         }
 
         /// <inheritdoc/>
@@ -152,8 +167,7 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        /// <inheritdoc/>
-        public void Dispose()
+        internal void Dispose()
         {
             foreach (ImageFrame<TPixel> f in this.frames)
             {

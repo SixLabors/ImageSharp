@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
 {
     using System.Drawing;
     using System.Drawing.Imaging;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
-    using CoreImage = ImageSharp.Image;
+    using CoreImage = SixLabors.ImageSharp.Image;
 
     public class EncodeJpeg : BenchmarkBase
     {

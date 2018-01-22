@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="height">The height of the pixel index array.</param>
         /// <param name="dataSize">Size of the data.</param>
         /// <param name="pixels">The pixel array to decode to.</param>
-        public void DecodePixels(int width, int height, int dataSize, byte[] pixels)
+        public void DecodePixels(int width, int height, int dataSize, Span<byte> pixels)
         {
             Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
 

@@ -24,6 +24,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
 
+        /// <summary>
+        /// Gets or sets the decoding mode for multi-frame images
+        /// </summary>
+        public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
+
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
     /// rather than just to its left, is used as the predictor.
     /// <see href="https://www.w3.org/TR/PNG-Filters.html"/>
     /// </summary>
-    internal static unsafe class UpFilter
+    internal static class UpFilter
     {
         /// <summary>
         /// Decodes the scanline
@@ -41,8 +41,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="previousScanline">The previous scanline.</param>
         /// <param name="result">The filtered scanline result.</param>
+        /// <param name="sum">The sum of the total variance of the filtered row</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result)
+        public static void Encode(Span<byte> scanline, Span<byte> previousScanline, Span<byte> result, out int sum)
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
@@ -50,6 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
             ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
             ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+            sum = 0;
 
             // Up(x) = Raw(x) - Prior(x)
             resultBaseRef = 2;
@@ -60,7 +62,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 byte above = Unsafe.Add(ref prevBaseRef, x);
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
                 res = (byte)((scan - above) % 256);
+                sum += res < 128 ? res : 256 - res;
             }
+
+            sum -= 2;
         }
     }
 }

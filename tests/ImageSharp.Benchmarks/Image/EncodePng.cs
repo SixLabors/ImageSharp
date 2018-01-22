@@ -10,11 +10,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
     using System.IO;
 
     using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Png;
     using SixLabors.ImageSharp.Quantizers;
     using SixLabors.ImageSharp.Quantizers.Base;
+    using SixLabors.ImageSharp.Tests;
+
     using CoreImage = ImageSharp.Image;
 
     public class EncodePng : BenchmarkBase
@@ -35,9 +35,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             if (this.bmpStream == null)
             {
-                string path = this.LargeImage
-                                  ? "../ImageSharp.Tests/TestImages/Formats/Jpg/baseline/jpeg420exif.jpg"
-                                  : "../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp";
+                string path = Path.Combine(
+                    TestEnvironment.InputImagesDirectoryFullPath,
+                    this.LargeImage ? TestImages.Jpeg.Baseline.Jpeg420Exif : TestImages.Bmp.Car);
+
+
                 this.bmpStream = File.OpenRead(path);
                 this.bmpCore = CoreImage.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;
@@ -56,7 +58,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
         public void PngSystemDrawing()
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
                 this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
             }
@@ -65,14 +67,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Png")]
         public void PngCore()
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
                 QuantizerBase<Rgba32> quantizer = this.UseOctreeQuantizer
                 ? (QuantizerBase<Rgba32>)
                 new OctreeQuantizer<Rgba32>()
                 : new PaletteQuantizer<Rgba32>();
 
-                PngEncoder options = new PngEncoder() { Quantizer = quantizer };
+                var options = new PngEncoder { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

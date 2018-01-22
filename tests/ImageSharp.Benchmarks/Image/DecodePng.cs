@@ -10,29 +10,39 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
 
+    using SixLabors.ImageSharp.Tests;
+
     using CoreImage = ImageSharp.Image;
 
     using CoreSize = SixLabors.Primitives.Size;
 
+    [Config(typeof(Config.ShortClr))]
     public class DecodePng : BenchmarkBase
     {
         private byte[] pngBytes;
+
+        private string TestImageFullPath => Path.Combine(
+            TestEnvironment.InputImagesDirectoryFullPath,
+            this.TestImage);
+
+        [Params(TestImages.Png.Splash)]
+        public string TestImage { get; set; }
 
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.pngBytes == null)
             {
-                this.pngBytes = File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Png/splash.png");
+                this.pngBytes = File.ReadAllBytes(this.TestImageFullPath);
             }
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
         public Size PngSystemDrawing()
         {
-            using (MemoryStream memoryStream = new MemoryStream(this.pngBytes))
+            using (var memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (Image image = Image.FromStream(memoryStream))
+                using (var image = Image.FromStream(memoryStream))
                 {
                     return image.Size;
                 }
@@ -42,9 +52,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         [Benchmark(Description = "ImageSharp Png")]
         public CoreSize PngCore()
         {
-            using (MemoryStream memoryStream = new MemoryStream(this.pngBytes))
+            using (var memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream))
+                using (var image = CoreImage.Load<Rgba32>(memoryStream))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

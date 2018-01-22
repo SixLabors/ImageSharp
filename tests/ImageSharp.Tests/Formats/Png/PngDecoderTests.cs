@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Png.Splash, TestImages.Png.Indexed,
                 TestImages.Png.FilterVar,
                 TestImages.Png.Bad.ChunkLength1,
+                TestImages.Png.Bad.CorruptedChunk,
 
                 TestImages.Png.VimImage1,
                 TestImages.Png.VersioningImage1,

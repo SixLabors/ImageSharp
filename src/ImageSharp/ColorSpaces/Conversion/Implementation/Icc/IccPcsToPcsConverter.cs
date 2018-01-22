@@ -8,14 +8,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
     /// <summary>
     /// Color converter for ICC profiles
     /// </summary>
-    internal class IccPcsToPcsConverter : IccDataToPcsConverter
+    internal class IccPcsToPcsConverter : IccConverterBase
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccPcsToPcsConverter"/> class.
         /// </summary>
         /// <param name="profile">The ICC profile to use for the conversions</param>
         public IccPcsToPcsConverter(IccProfile profile)
-            : base(profile)
+            : base(profile, true)
         {
         }
     }

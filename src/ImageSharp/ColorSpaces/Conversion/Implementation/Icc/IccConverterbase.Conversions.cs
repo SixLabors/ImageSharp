@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calculators;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
@@ -12,12 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
     /// </summary>
     internal abstract partial class IccConverterBase
     {
-        /// <summary>
-        /// A delegate for converting colors with an ICC profile
-        /// </summary>
-        /// <param name="values">The values to convert</param>
-        /// <returns>The converted values</returns>
-        protected delegate float[] ConversionDelegate(float[] values);
+        private IVector4Calculator calculator;
 
         /// <summary>
         /// Checks the profile for available conversion methods and gathers all the informations necessary for it
@@ -25,45 +20,60 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
         /// <param name="profile">The profile to use for the conversion</param>
         /// <param name="toPcs">True if the conversion is to the Profile Connection Space</param>
         /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available</param>
-        /// <returns>A delegate that does the appropriate conversion</returns>
-        protected ConversionDelegate Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
+        protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
         {
             ConversionMethod method = this.GetConversionMethod(profile, renderingIntent);
             switch (method)
             {
                 case ConversionMethod.D0:
-                    return toPcs ? this.InitD(profile, IccProfileTag.DToB0) :
+                    this.calculator = toPcs ?
+                        this.InitD(profile, IccProfileTag.DToB0) :
                         this.InitD(profile, IccProfileTag.BToD0);
+                    break;
 
                 case ConversionMethod.D1:
-                    return toPcs ? this.InitD(profile, IccProfileTag.DToB1) :
+                    this.calculator = toPcs ?
+                        this.InitD(profile, IccProfileTag.DToB1) :
                         this.InitD(profile, IccProfileTag.BToD1);
+                    break;
 
                 case ConversionMethod.D2:
-                    return toPcs ? this.InitD(profile, IccProfileTag.DToB2) :
+                    this.calculator = toPcs ?
+                        this.InitD(profile, IccProfileTag.DToB2) :
                         this.InitD(profile, IccProfileTag.BToD2);
+                    break;
 
                 case ConversionMethod.D3:
-                    return toPcs ? this.InitD(profile, IccProfileTag.DToB3) :
+                    this.calculator = toPcs ?
+                        this.InitD(profile, IccProfileTag.DToB3) :
                         this.InitD(profile, IccProfileTag.BToD3);
+                    break;
 
                 case ConversionMethod.A0:
-                    return toPcs ? this.InitA(profile, IccProfileTag.AToB0) :
+                    this.calculator = toPcs ?
+                        this.InitA(profile, IccProfileTag.AToB0) :
                         this.InitA(profile, IccProfileTag.BToA0);
+                    break;
 
                 case ConversionMethod.A1:
-                    return toPcs ? this.InitA(profile, IccProfileTag.AToB1) :
+                    this.calculator = toPcs ?
+                        this.InitA(profile, IccProfileTag.AToB1) :
                         this.InitA(profile, IccProfileTag.BToA1);
+                    break;
 
                 case ConversionMethod.A2:
-                    return toPcs ? this.InitA(profile, IccProfileTag.AToB2) :
+                    this.calculator = toPcs ?
+                        this.InitA(profile, IccProfileTag.AToB2) :
                         this.InitA(profile, IccProfileTag.BToA2);
+                    break;
 
                 case ConversionMethod.ColorTrc:
-                    return this.InitColorTrc(profile, toPcs);
+                    this.calculator = this.InitColorTrc(profile, toPcs);
+                    break;
 
                 case ConversionMethod.GrayTrc:
-                    return this.InitGrayTrc(profile, !toPcs);
+                    this.calculator = this.InitGrayTrc(profile, toPcs);
+                    break;
 
                 case ConversionMethod.Invalid:
                 default:
@@ -71,26 +81,26 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
             }
         }
 
-        private ConversionDelegate InitA(IccProfile profile, IccProfileTag tag)
+        private IVector4Calculator InitA(IccProfile profile, IccProfileTag tag)
         {
             IccTagDataEntry entry = this.GetTag(profile, tag);
             switch (entry)
             {
                 case IccLut8TagDataEntry lut8:
-                    return (values) => this.CalculateLut(lut8, values);
+                    return new LutEntryCalculator(lut8);
                 case IccLut16TagDataEntry lut16:
-                    return (values) => this.CalculateLut(lut16, values);
+                    return new LutEntryCalculator(lut16);
                 case IccLutAToBTagDataEntry lutAtoB:
-                    return (values) => this.CalculateLutAToB(lutAtoB, values);
+                    return new LutABCalculator(lutAtoB);
                 case IccLutBToATagDataEntry lutBtoA:
-                    return (values) => this.CalculateLutBToA(lutBtoA, values);
+                    return new LutABCalculator(lutBtoA);
 
                 default:
                     throw new InvalidIccProfileException();
             }
         }
 
-        private ConversionDelegate InitD(IccProfile profile, IccProfileTag tag)
+        private IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)
         {
             IccMultiProcessElementsTagDataEntry entry = this.GetTag<IccMultiProcessElementsTagDataEntry>(profile, tag);
             if (entry == null)
@@ -98,36 +108,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
                 throw new InvalidIccProfileException();
             }
 
-            return (values) =>
-            {
-                float[] result = new float[values.Length];
-                Array.Copy(values, result, values.Length);
-                for (int i = 0; i < entry.Data.Length; i++)
-                {
-                    switch (entry.Data[i])
-                    {
-                        case IccCurveSetProcessElement curve:
-                            result = this.CalculateMpeCurveSet(curve, result);
-                            break;
-
-                        case IccMatrixProcessElement matrix:
-                            result = this.CalculateMpeMatrix(matrix, result);
-                            break;
-
-                        case IccClutProcessElement clut:
-                            result = this.CalculateMpeClut(clut, result);
-                            break;
-
-                        default:
-                            throw new InvalidIccProfileException();
-                    }
-                }
-
-                return result;
-            };
+            throw new NotImplementedException("Multi process elements are not supported");
         }
 
-        private ConversionDelegate InitColorTrc(IccProfile profile, bool toPcs)
+        private IVector4Calculator InitColorTrc(IccProfile profile, bool toPcs)
         {
             IccXyzTagDataEntry redMatrixColumn = this.GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
             IccXyzTagDataEntry greenMatrixColumn = this.GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
@@ -147,50 +131,20 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
                 throw new InvalidIccProfileException();
             }
 
-            Vector3 mr = redMatrixColumn.Data[0];
-            Vector3 mg = greenMatrixColumn.Data[0];
-            Vector3 mb = blueMatrixColumn.Data[0];
-            var matrix = new Matrix4x4(mr.X, mr.Y, mr.Z, 0, mg.X, mg.Y, mg.Z, 0, mb.X, mb.Y, mb.Z, 0, 0, 0, 0, 1);
-
-            if (toPcs)
-            {
-                return (values) =>
-                {
-                    var vector = new Vector3(
-                        this.CalculateCurve(redTrc, false, values[0]),
-                        this.CalculateCurve(greenTrc, false, values[1]),
-                        this.CalculateCurve(blueTrc, false, values[2]));
-
-                    var result = Vector3.Transform(vector, matrix);
-                    return new float[3]
-                    {
-                        result.X,
-                        result.Y,
-                        result.Z,
-                    };
-                };
-            }
-            else
-            {
-                Matrix4x4.Invert(matrix, out matrix);
-
-                return (values) =>
-                {
-                    var result = Vector3.Transform(new Vector3(values[0], values[1], values[2]), matrix);
-                    return new float[3]
-                    {
-                        this.CalculateCurve(redTrc, true, result.X),
-                        this.CalculateCurve(greenTrc, true, result.Y),
-                        this.CalculateCurve(blueTrc, true, result.Z),
-                    };
-                };
-            }
+            return new ColorTrcCalculator(
+                redMatrixColumn,
+                greenMatrixColumn,
+                blueMatrixColumn,
+                redTrc,
+                greenTrc,
+                blueTrc,
+                toPcs);
         }
 
-        private ConversionDelegate InitGrayTrc(IccProfile profile, bool inverted)
+        private IVector4Calculator InitGrayTrc(IccProfile profile, bool toPcs)
         {
             IccTagDataEntry entry = this.GetTag(profile, IccProfileTag.GrayTrc);
-            return (values) => new float[] { this.CalculateCurve(entry, inverted, values[0]) };
+            return new GrayTrcCalculator(entry, toPcs);
         }
     }
 }

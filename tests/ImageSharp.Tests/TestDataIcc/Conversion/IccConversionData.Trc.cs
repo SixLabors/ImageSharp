@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
@@ -16,37 +17,42 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
         private static IccParametricCurveTagDataEntry ParamCurve3 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 1.5f, -0.5f, 0.3f));
         private static IccParametricCurveTagDataEntry ParamCurve4 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.4f, 1 / 1.055f, 0.055f / 1.055f, 1 / 12.92f, 0.04045f));
         private static IccParametricCurveTagDataEntry ParamCurve5 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 0.7f, 0.2f, 0.3f, 0.1f, 0.5f, 0.2f));
-        
+
         public static object[][] TrcArrayConversionTestData =
         {
             new object[]
             {
                 new IccTagDataEntry[] { IdentityCurve, Gamma2Curve, ParamCurve1 },
                 false,
-                new float[] { 2, 2, 0.5f },
-                new float[] { 2, 4, 0.217637628f },
+                new Vector4(2, 2, 0.5f, 0),
+                new Vector4(2, 4, 0.217637628f, 0),
             },
             new object[]
             {
                 new IccTagDataEntry[] { IdentityCurve, Gamma2Curve, ParamCurve1 },
                 true,
-                new float[] { 2, 4, 0.217637628f },
-                new float[] { 2, 2, 0.5f },
+                new Vector4(1, 4, 0.217637628f, 0),
+                new Vector4(1, 2, 0.5f, 0),
             },
         };
 
-        public static object[][] TrcSingleConversionTestData =
+        public static object[][] CurveConversionTestData =
         {
             new object[] { IdentityCurve, false, 2, 2 },
             new object[] { Gamma2Curve, false, 2, 4 },
-            new object[] { LutCurve, false, 0.1, 0 },
+            new object[] { LutCurve, false, 0.1, 0.14 },
             new object[] { LutCurve, false, 0.5, 0.7 },
+            new object[] { LutCurve, false, 0.75, 0.85 },
 
             new object[] { IdentityCurve, true, 2, 2 },
             new object[] { Gamma2Curve, true, 4, 2 },
-            new object[] { LutCurve, true, 0.1, 0 },
-            new object[] { LutCurve, true, 0.75, 0.5 },
+            new object[] { LutCurve, true, 0.14, 0.1 },
+            new object[] { LutCurve, true, 0.7, 0.5 },
+            new object[] { LutCurve, true, 0.85, 0.75 },
+        };
 
+        public static object[][] ParametricCurveConversionTestData =
+        {
             new object[] { ParamCurve1, false, 0.5f, 0.217637628f },
             new object[] { ParamCurve2, false, 0.6f, 0.133208528f },
             new object[] { ParamCurve2, false, 0.21f, 0 },

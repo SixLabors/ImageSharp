@@ -34,6 +34,8 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         public string TestGroupName { get; set; } = string.Empty;
 
+        public string OutputSubfolderName { get; set; } = string.Empty;
+
         /// <summary>
         /// The name of the test case (by default)
         /// </summary>
@@ -165,41 +167,22 @@ namespace SixLabors.ImageSharp.Tests
                 );
         }
 
-        internal void Init(string typeName, string methodName)
+        internal void Init(string typeName, string methodName, string outputSubfolderName)
         {
             this.TestGroupName = typeName;
             this.TestName = methodName;
+            this.OutputSubfolderName = outputSubfolderName;
         }
-
-        internal void Init(MethodInfo method)
-        {
-            this.Init(method.DeclaringType.Name, method.Name);
-        }
-
-        //private static IImageEncoder GetEncoderByExtension(string extension, bool grayscale)
-        //{
-        //    extension = extension?.TrimStart('.');
-        //    var format = Configuration.Default.FindFormatByFileExtension(extension);
-        //    IImageEncoder encoder = Configuration.Default.FindEncoder(format);
-        //    PngEncoder pngEncoder = encoder as PngEncoder;
-        //    if (pngEncoder != null)
-        //    {
-        //        pngEncoder = new PngEncoder();
-        //        encoder = pngEncoder;
-        //        pngEncoder.CompressionLevel = 9;
-
-        //        if (grayscale)
-        //        {
-        //            pngEncoder.PngColorType = PngColorType.Grayscale;
-        //        }
-        //    }
-
-        //    return encoder;
-        //}
-
+        
         internal string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
+
+            if (!string.IsNullOrEmpty(this.OutputSubfolderName))
+            {
+                testGroupName = Path.Combine(this.OutputSubfolderName, testGroupName);
+            }
+
             return TestEnvironment.CreateOutputDirectory(testGroupName);
         }
 

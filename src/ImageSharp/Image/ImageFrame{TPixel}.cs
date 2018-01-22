@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -51,6 +52,16 @@ namespace SixLabors.ImageSharp
 
             this.pixelBuffer = Buffer2D<TPixel>.CreateClean(width, height);
             this.MetaData = metaData;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="size">The <see cref="Size"/> of the frame.</param>
+        /// <param name="metaData">The meta data.</param>
+        internal ImageFrame(Size size, ImageFrameMetaData metaData)
+            : this(size.Width, size.Height, metaData)
+        {
         }
 
         /// <summary>

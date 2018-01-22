@@ -12,18 +12,15 @@
 
     public class TolerantImageComparer : ImageComparer
     {
-        public static readonly float DefaultImageThreshold = GetDefaultImageThreshold();
+        // 1% of all pixels in a 100*100 pixel area are allowed to have a difference of 1 unit
+        public const float DefaultImageThreshold = 1.0f / (100 * 100 * 255);
 
         /// <summary>
-        /// Negative value for 'imageThreshold' indicates a multiplier to be applied to the default threshold (see <see cref="DefaultImageThreshold"/>).
         /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
         /// </summary>
         public TolerantImageComparer(float imageThreshold, int perPixelManhattanThreshold = 0)
         {
-            if (imageThreshold < 0)
-            {
-                imageThreshold *= -DefaultImageThreshold;
-            }
+            Guard.MustBeGreaterThanOrEqualTo(imageThreshold, 0, nameof(imageThreshold));
 
             this.ImageThreshold = imageThreshold;
             this.PerPixelManhattanThreshold = perPixelManhattanThreshold;
@@ -116,15 +113,5 @@
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Diff(byte a, byte b) => Math.Abs(a - b);
-
-        private static float GetDefaultImageThreshold()
-        {
-            // 1% of all pixels in a 100*100 pixel area are allowed to have a difference of 1 unit
-            float t = 1.0f / (100 * 100 * 255);
-
-            // but not with Mono System.Drawing!
-            // TODO: We may need a runtime-specific check here, instead of the OS specific one!
-            return TestEnvironment.IsWindows ? t : 4 * t;
-        }
     }
 }

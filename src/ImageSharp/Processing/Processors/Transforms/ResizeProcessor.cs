@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -53,20 +54,16 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            Configuration config = source.GetConfiguration();
+            // We will always be creating the clone even for mutate because we may need to resize the canvas
+            IEnumerable<ImageFrame<TPixel>> frames =
+                source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone()));
 
-            // We will always be creating the clone even for mutate because thats the way this base processor works
-            // ------------
-            // For resize we know we are going to populate every pixel with fresh data and we want a different target size so
-            // let's manually clone an empty set of images at the correct target and then have the base class process them in turn.
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
-            var image = new Image<TPixel>(config, source.MetaData.Clone(), frames); // base the place holder images in to prevent a extra frame being added
-
-            return image;
+            // Use the overload to prevent an extra frame being added
+            return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override unsafe void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
         {
             // Jump out, we'll deal with that later.
             if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
@@ -192,6 +189,26 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             }
                         }
                     });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        {
+            ExifProfile profile = destination.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            if (profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
+            }
+
+            if (profile.GetValue(ExifTag.PixelYDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
             }
         }
     }

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         public MatrixCalculator(Matrix4x4 matrix3x3, Vector3 matrix3x1)
         {
             this.matrix2D = matrix3x3;
-            this.matrix1D = new Vector4(0, matrix3x1.Y, matrix3x1.Z, matrix3x1.X);
+            this.matrix1D = new Vector4(matrix3x1, 0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

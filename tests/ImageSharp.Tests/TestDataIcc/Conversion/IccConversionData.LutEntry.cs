@@ -23,13 +23,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
             new IccLut[] { LutIdentity, LutIdentity });
 
         private static IccLut8TagDataEntry Lut8Matrix = new IccLut8TagDataEntry(
-            IccConversionDataMatrix.Matrix,
+            IccConversionDataMatrix.Matrix3x3Random,
             new IccLut[] { Lut256, Lut256, Lut256 },
             IccConversionDataClut.Clut3x2,
             new IccLut[] { Lut256, Lut256 });
 
         private static IccLut16TagDataEntry Lut16Matrix = new IccLut16TagDataEntry(
-            IccConversionDataMatrix.Matrix,
+            IccConversionDataMatrix.Matrix3x3Random,
             new IccLut[] { Lut32, Lut32, Lut32 },
             IccConversionDataClut.Clut3x2,
             new IccLut[] { LutIdentity, LutIdentity });

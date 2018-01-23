@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using SixLabors.Primitives;
 using Xunit;
@@ -39,9 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges(detector));
                 image.DebugSave(provider, detector.ToString());
-
-                // TODO: Enable once we have updated the images
-                // image.CompareToReferenceOutput(provider, detector.ToString());
+                image.CompareToReferenceOutput(provider, detector.ToString());
             }
         }
 
@@ -81,8 +78,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
                 image.Mutate(x => x.DetectEdges(bounds));
                 image.DebugSave(provider);
-
-                // TODO: Enable once we have updated the images
                 image.CompareToReferenceOutput(provider);
             }
         }

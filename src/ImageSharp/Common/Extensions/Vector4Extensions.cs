@@ -13,6 +13,32 @@ namespace SixLabors.ImageSharp
     internal static class Vector4Extensions
     {
         /// <summary>
+        /// Premultiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+        /// <returns>The <see cref="Vector4"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Premultiply(this Vector4 source)
+        {
+            float w = source.W;
+            Vector4 premultiplied = source * w;
+            return new Vector4(premultiplied.X, premultiplied.Y, premultiplied.Z, w);
+        }
+
+        /// <summary>
+        /// Reverses the result of premultiplying a vector via <see cref="Premultiply(Vector4)"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+        /// <returns>The <see cref="Vector4"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 UnPremultiply(this Vector4 source)
+        {
+            float w = source.W;
+            Vector4 unpremultiplied = source / w;
+            return new Vector4(unpremultiplied.X, unpremultiplied.Y, unpremultiplied.Z, w);
+        }
+
+        /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>
         /// <see href="http://entropymine.com/imageworsener/srgbformula/"/>

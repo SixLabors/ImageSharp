@@ -113,13 +113,13 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                                 offsetX = offsetX.Clamp(0, maxX);
 
-                                var currentColor = row[offsetX].ToVector4();
+                                Vector4 currentColor = row[offsetX].ToVector4().Premultiply();
                                 destination += kernel[fy, fx] * currentColor;
                             }
                         }
 
                         ref TPixel pixel = ref targetRow[x];
-                        pixel.PackFromVector4(destination);
+                        pixel.PackFromVector4(destination.UnPremultiply());
                     }
                 });
         }

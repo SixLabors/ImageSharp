@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class ResamplingWeightedProcessor<TPixel> : CloningImageProcessor<TPixel>
+    internal abstract class ResamplingWeightedProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

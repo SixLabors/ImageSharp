@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp
     internal static class Vector4Extensions
     {
         /// <summary>
-        /// Premultiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
+        /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
         /// </summary>
         /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
         /// <returns>The <see cref="Vector4"/></returns>
@@ -22,7 +22,8 @@ namespace SixLabors.ImageSharp
         {
             float w = source.W;
             Vector4 premultiplied = source * w;
-            return new Vector4(premultiplied.X, premultiplied.Y, premultiplied.Z, w);
+            premultiplied.W = w;
+            return premultiplied;
         }
 
         /// <summary>
@@ -35,7 +36,8 @@ namespace SixLabors.ImageSharp
         {
             float w = source.W;
             Vector4 unpremultiplied = source / w;
-            return new Vector4(unpremultiplied.X, unpremultiplied.Y, unpremultiplied.Z, w);
+            unpremultiplied.W = w;
+            return unpremultiplied;
         }
 
         /// <summary>

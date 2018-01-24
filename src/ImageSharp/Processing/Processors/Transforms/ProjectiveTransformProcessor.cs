@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
             : base(sampler)
         {
-            // Tansforms are inverted else the output is the opposite of the expected.
+            // Transforms are inverted else the output is the opposite of the expected.
             Matrix4x4.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
             this.targetRectangle = rectangle;

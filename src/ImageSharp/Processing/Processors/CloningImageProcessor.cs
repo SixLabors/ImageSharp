@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing
 
                 if (clone.Frames.Count != source.Frames.Count)
                 {
-                    throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
+                    throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
                 Configuration configuration = source.GetConfiguration();
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing
                 // we now need to move the pixel data/size data from one image base to another
                 if (cloned.Frames.Count != source.Frames.Count)
                 {
-                    throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
+                    throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
                 source.SwapPixelsBuffers(cloned);
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Generates a deep clone of the source image that operatinos should be applied to.
+        /// Generates a deep clone of the source image that operations should be applied to.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The source rectangle.</param>

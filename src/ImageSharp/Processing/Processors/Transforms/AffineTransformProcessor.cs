@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size targetDimensions)
             : base(sampler)
         {
-            // Tansforms are inverted else the output is the opposite of the expected.
+            // Transforms are inverted else the output is the opposite of the expected.
             Matrix3x2.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
             this.targetDimensions = targetDimensions;

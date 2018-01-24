@@ -32,17 +32,29 @@ namespace SixLabors.ImageSharp
             if (profile.GetValue(ExifTag.PixelXDimension) != null)
             {
                 profile.RemoveValue(ExifTag.PixelXDimension);
-                profile.SetValue(
-                    ExifTag.PixelXDimension,
-                    image.Width <= ushort.MaxValue ? (ushort)image.Width : (uint)image.Width);
+
+                if (image.Width <= ushort.MaxValue)
+                {
+                    profile.SetValue(ExifTag.PixelXDimension, (ushort)image.Width);
+                }
+                else
+                {
+                    profile.SetValue(ExifTag.PixelXDimension, (uint)image.Width);
+                }
             }
 
             if (profile.GetValue(ExifTag.PixelYDimension) != null)
             {
                 profile.RemoveValue(ExifTag.PixelYDimension);
-                profile.SetValue(
-                    ExifTag.PixelYDimension,
-                    image.Height <= ushort.MaxValue ? (ushort)image.Height : (uint)image.Height);
+
+                if (image.Height <= ushort.MaxValue)
+                {
+                    profile.SetValue(ExifTag.PixelYDimension, (ushort)image.Height);
+                }
+                else
+                {
+                    profile.SetValue(ExifTag.PixelYDimension, (uint)image.Height);
+                }
             }
         }
 

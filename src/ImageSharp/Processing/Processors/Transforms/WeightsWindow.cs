@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
                 Vector4 v = Unsafe.Add(ref vecPtr, i);
-                result += v * weight;
+                result += v.Premultiply() * weight;
             }
 
             return result;
@@ -114,10 +114,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
                 Vector4 v = Unsafe.Add(ref vecPtr, i);
-                result += v.Expand() * weight;
+                result += v.Premultiply().Expand() * weight;
             }
 
-            return result;
+            return result.UnPremultiply();
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 result += firstPassPixels[x, index] * yw;
             }
 
-            return result;
+            return result.UnPremultiply();
         }
     }
 }

@@ -49,22 +49,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
 
         internal static IccClut Clut2x2 = new IccClut(new float[][]
         {
-            new float[] { 0.1f, 0.1f },
-            new float[] { 0.2f, 0.2f },
-            new float[] { 0.3f, 0.3f },
+            new float[] { 0.1f, 0.9f },
+            new float[] { 0.2f, 0.8f },
+            new float[] { 0.3f, 0.7f },
 
-            new float[] { 0.11f, 0.11f },
-            new float[] { 0.21f, 0.21f },
-            new float[] { 0.31f, 0.31f },
+            new float[] { 0.4f, 0.6f },
+            new float[] { 0.5f, 0.5f },
+            new float[] { 0.6f, 0.4f },
 
-            new float[] { 0.12f, 0.12f },
-            new float[] { 0.22f, 0.22f },
-            new float[] { 0.32f, 0.32f },
+            new float[] { 0.7f, 0.3f },
+            new float[] { 0.8f, 0.2f },
+            new float[] { 0.9f, 0.1f },
         }, new byte[] { 3, 3 }, IccClutDataType.Float);
 
         public static object[][] ClutConversionTestData =
         {
             new object[] { Clut3x2, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0.31f, 0, 0) },
+            new object[] { Clut2x2, new Vector4(0.2f, 0.6f, 0, 0), new Vector4(0.46f, 0.54f, 0, 0) },
+            new object[] { Clut2x2, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0.6f, 0, 0) },
         };
     }
 }

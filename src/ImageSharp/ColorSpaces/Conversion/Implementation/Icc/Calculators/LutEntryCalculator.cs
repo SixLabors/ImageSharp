@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
             this.clutCalculator = new ClutCalculator(clut);
             this.matrix = matrix;
 
-            this.doTransform = matrix != null && inputCurve.Length == 3;
+            this.doTransform = !matrix.IsIdentity && inputCurve.Length == 3;
         }
 
         private LutCalculator[] InitLut(IccLut[] curves)

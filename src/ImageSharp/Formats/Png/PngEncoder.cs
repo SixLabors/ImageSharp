@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <summary>
-        /// Gets or sets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
+        /// Gets or sets the size of the color palette to use. Set to zero to leave png encoding to use pixel data.
         /// </summary>
         public int PaletteSize { get; set; } = 0;
 

@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options for influancing the encoder</param>
+        /// <param name="options">The options for influencing the encoder</param>
         public PngEncoderCore(IPngEncoderOptions options)
         {
             this.ignoreMetadata = options.IgnoreMetadata;

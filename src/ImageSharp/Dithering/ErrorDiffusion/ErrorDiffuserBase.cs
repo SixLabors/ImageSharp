@@ -70,22 +70,10 @@ namespace SixLabors.ImageSharp.Dithering.Base
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageFrame<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.Dither(pixels, source, transformed, x, y, minX, minY, maxX, maxY, true);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (replacePixel)
-            {
-                // Assign the transformed pixel to the array.
-                image[x, y] = transformed;
-            }
+            image[x, y] = transformed;
 
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();
@@ -117,6 +105,8 @@ namespace SixLabors.ImageSharp.Dithering.Base
                             var offsetColor = pixel.ToVector4();
 
                             Vector4 result = ((error * coefficient) / this.divisorVector) + offsetColor;
+
+                            // result.W = offsetColor.W;
                             pixel.PackFromVector4(result);
                         }
                     }

@@ -31,6 +31,15 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Initializes a new instance of the <see cref="Fast2DArray{T}" /> struct.
         /// </summary>
+        /// <param name="length">The length of each dimension.</param>
+        public Fast2DArray(int length)
+            : this(length, length)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Fast2DArray{T}" /> struct.
+        /// </summary>
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         public Fast2DArray(int width, int height)
@@ -96,7 +105,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="data">The source array.</param>
         /// <returns>
-        /// The <see cref="Fast2DArray{T}"/> represenation on the source data.
+        /// The <see cref="Fast2DArray{T}"/> representation on the source data.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Fast2DArray<T>(T[,] data)

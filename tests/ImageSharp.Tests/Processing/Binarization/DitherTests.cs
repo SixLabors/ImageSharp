@@ -5,7 +5,6 @@ using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using Moq;
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
@@ -23,55 +22,84 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void Dither_CorrectProcessor()
         {
-            this.operations.Dither(orderedDither);
-            var p = this.Verify<OrderedDitherProcessor<Rgba32>>();
+            this.operations.BinaryDither(this.orderedDither);
+            BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>();
             Assert.Equal(this.orderedDither, p.Dither);
-            Assert.Equal(0, p.Index);
+            Assert.Equal(NamedColors<Rgba32>.White, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.Black, p.LowerColor);
         }
 
         [Fact]
         public void Dither_rect_CorrectProcessor()
         {
-            this.operations.Dither(orderedDither, this.rect);
-            var p = this.Verify<OrderedDitherProcessor<Rgba32>>(this.rect);
+            this.operations.BinaryDither(this.orderedDither, this.rect);
+            BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>(this.rect);
             Assert.Equal(this.orderedDither, p.Dither);
-            Assert.Equal(0, p.Index);
+            Assert.Equal(NamedColors<Rgba32>.White, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.Black, p.LowerColor);
         }
         [Fact]
         public void Dither_index_CorrectProcessor()
         {
-            this.operations.Dither(orderedDither, 2);
-            var p = this.Verify<OrderedDitherProcessor<Rgba32>>();
+            this.operations.BinaryDither(this.orderedDither, NamedColors<Rgba32>.Yellow, NamedColors<Rgba32>.HotPink);
+            BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>();
             Assert.Equal(this.orderedDither, p.Dither);
-            Assert.Equal(2, p.Index);
+            Assert.Equal(NamedColors<Rgba32>.Yellow, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.HotPink, p.LowerColor);
         }
 
         [Fact]
         public void Dither_index_rect_CorrectProcessor()
         {
-            this.operations.Dither(orderedDither, this.rect, 2);
-            var p = this.Verify<OrderedDitherProcessor<Rgba32>>(this.rect);
+            this.operations.BinaryDither(this.orderedDither, NamedColors<Rgba32>.Yellow, NamedColors<Rgba32>.HotPink, this.rect);
+            BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>(this.rect);
             Assert.Equal(this.orderedDither, p.Dither);
-            Assert.Equal(2, p.Index);
+            Assert.Equal(NamedColors<Rgba32>.HotPink, p.LowerColor);
         }
 
 
         [Fact]
-        public void Dither_ErrorDifuser_CorrectProcessor()
+        public void Dither_ErrorDiffuser_CorrectProcessor()
         {
-            this.operations.Dither(errorDiffuser, 4);
-            var p = this.Verify<ErrorDiffusionDitherProcessor<Rgba32>>();
+            this.operations.BinaryDiffuse(this.errorDiffuser, .4F);
+            BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>();
             Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(4, p.Threshold);
+            Assert.Equal(.4F, p.Threshold);
+            Assert.Equal(NamedColors<Rgba32>.White, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.Black, p.LowerColor);
         }
 
         [Fact]
-        public void Dither_ErrorDifuser_rect_CorrectProcessor()
+        public void Dither_ErrorDiffuser_rect_CorrectProcessor()
         {
-            this.operations.Dither(this.errorDiffuser, 3, this.rect);
-            var p = this.Verify<ErrorDiffusionDitherProcessor<Rgba32>>(this.rect);
+            this.operations.BinaryDiffuse(this.errorDiffuser, .3F, this.rect);
+            BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>(this.rect);
             Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(3, p.Threshold);
+            Assert.Equal(.3F, p.Threshold);
+            Assert.Equal(NamedColors<Rgba32>.White, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.Black, p.LowerColor);
+        }
+
+        [Fact]
+        public void Dither_ErrorDiffuser_CorrectProcessorWithColors()
+        {
+            this.operations.BinaryDiffuse(this.errorDiffuser, .5F, NamedColors<Rgba32>.HotPink, NamedColors<Rgba32>.Yellow);
+            BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>();
+            Assert.Equal(this.errorDiffuser, p.Diffuser);
+            Assert.Equal(.5F, p.Threshold);
+            Assert.Equal(NamedColors<Rgba32>.HotPink, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.Yellow, p.LowerColor);
+        }
+
+        [Fact]
+        public void Dither_ErrorDiffuser_rect_CorrectProcessorWithColors()
+        {
+            this.operations.BinaryDiffuse(this.errorDiffuser, .5F, NamedColors<Rgba32>.HotPink, NamedColors<Rgba32>.Yellow, this.rect);
+            BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>(this.rect);
+            Assert.Equal(this.errorDiffuser, p.Diffuser);
+            Assert.Equal(.5F, p.Threshold);
+            Assert.Equal(NamedColors<Rgba32>.HotPink, p.UpperColor);
+            Assert.Equal(NamedColors<Rgba32>.Yellow, p.LowerColor);
         }
     }
 }

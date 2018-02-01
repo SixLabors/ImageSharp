@@ -22,8 +22,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>
         {
-            { "Ordered", new OrderedDither() },
-            { "Bayer", new BayerDither() }
+            { "Bayer8x8", new Bayer8x8Dither() },
+            { "Bayer4x4", new Bayer4x4Dither() },
+            { "Bayer2x2", new Bayer2x2Dither() }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         };
 
 
-        private static IOrderedDither DefaultDitherer => new OrderedDither();
+        private static IOrderedDither DefaultDitherer => new Bayer4x4Dither();
 
         private static IErrorDiffuser DefaultErrorDiffuser => new AtkinsonDiffuser();
 
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Dither(ditherer));
+                image.Mutate(x => x.BinaryDither(ditherer));
                 image.DebugSave(provider, name);
             }
         }
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Dither(diffuser, .5F));
+                image.Mutate(x => x.BinaryDiffuse(diffuser, .5F));
                 image.DebugSave(provider, name);
             }
         }
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Dither(DefaultDitherer));
+                image.Mutate(x => x.BinaryDither(DefaultDitherer));
                 image.DebugSave(provider);
             }
         }
@@ -88,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Dither(DefaultErrorDiffuser, 0.5f));
+                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, 0.5f));
                 image.DebugSave(provider);
             }
         }
@@ -103,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Dither(DefaultDitherer, bounds));
+                image.Mutate(x => x.BinaryDither(DefaultDitherer, bounds));
                 image.DebugSave(provider);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Dither(DefaultErrorDiffuser, .5F, bounds));
+                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, .5F, bounds));
                 image.DebugSave(provider);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

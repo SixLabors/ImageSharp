@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
@@ -719,5 +721,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Represents a <see paramref="TPixel"/> matching the W3C definition that has an hex value of #9ACD32.
         /// </summary>
         public static readonly TPixel YellowGreen = ColorBuilder<TPixel>.FromRGBA(154, 205, 50, 255);
+
+        /// <summary>
+        /// Represents a <see cref="T:TPixel[]"/> matching the W3C definition of web safe colors.
+        /// </summary>
+        public static readonly TPixel[] WebSafePalette = GetWebSafePalette();
+
+        private static TPixel[] GetWebSafePalette()
+        {
+            Rgba32[] constants = ColorConstants.WebSafeColors;
+            TPixel[] safe = new TPixel[constants.Length + 1];
+
+            Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
+            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, safe, constants.Length);
+            return safe;
+        }
     }
 }

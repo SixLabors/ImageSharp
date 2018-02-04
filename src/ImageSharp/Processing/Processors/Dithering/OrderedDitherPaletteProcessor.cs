@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         previousPixel = sourcePixel;
                     }
 
-                    this.Dither.Dither(source, sourcePixel, pair.First, pair.Second, luminance, x, y);
+                    this.Dither.Dither(source, sourcePixel, pair.Second, pair.First, luminance, x, y);
                 }
             }
         }

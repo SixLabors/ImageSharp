@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         previousPixel = sourcePixel;
                     }
 
-                    TPixel transformedPixel = luminance >= threshold ? pair.First : pair.Second;
+                    TPixel transformedPixel = luminance >= threshold ? pair.Second : pair.First;
                     this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, startX, startY, endX, endY);
                 }
             }

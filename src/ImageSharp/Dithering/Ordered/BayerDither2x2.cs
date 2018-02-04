@@ -4,14 +4,14 @@
 namespace SixLabors.ImageSharp.Dithering
 {
     /// <summary>
-    /// Applies order dithering using the 4x4 Bayer dithering matrix.
+    /// Applies order dithering using the 2x2 Bayer dithering matrix.
     /// </summary>
-    public sealed class Bayer4x4Dither : BayerDither
+    public sealed class BayerDither2x2 : OrderedDither
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Bayer4x4Dither"/> class.
+        /// Initializes a new instance of the <see cref="BayerDither2x2"/> class.
         /// </summary>
-        public Bayer4x4Dither()
+        public BayerDither2x2()
             : base(2)
         {
         }

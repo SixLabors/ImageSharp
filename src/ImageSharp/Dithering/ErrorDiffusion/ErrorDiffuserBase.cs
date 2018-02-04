@@ -105,8 +105,6 @@ namespace SixLabors.ImageSharp.Dithering.Base
                             var offsetColor = pixel.ToVector4();
 
                             Vector4 result = ((error * coefficient) / this.divisorVector) + offsetColor;
-
-                            // result.W = offsetColor.W;
                             pixel.PackFromVector4(result);
                         }
                     }

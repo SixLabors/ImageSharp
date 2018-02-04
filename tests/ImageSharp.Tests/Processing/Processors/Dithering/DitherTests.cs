@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryDither(ditherer));
+                image.Mutate(x => x.Dither(ditherer));
                 image.DebugSave(provider, name);
             }
         }
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryDiffuse(diffuser, .5F));
+                image.Mutate(x => x.Diffuse(diffuser, .5F));
                 image.DebugSave(provider, name);
             }
         }
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryDither(DefaultDitherer));
+                image.Mutate(x => x.Dither(DefaultDitherer));
                 image.DebugSave(provider);
             }
         }
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, 0.5f));
+                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, 0.5f));
                 image.DebugSave(provider);
             }
         }
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryDither(DefaultDitherer, bounds));
+                image.Mutate(x => x.Dither(DefaultDitherer, bounds));
                 image.DebugSave(provider);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, .5F, bounds));
+                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, .5F, bounds));
                 image.DebugSave(provider);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

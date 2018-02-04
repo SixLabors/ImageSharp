@@ -8,19 +8,19 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
-    public class DitherTest : BaseImageOperationsExtensionTest
+    public class BinaryDitherTest : BaseImageOperationsExtensionTest
     {
         private readonly IOrderedDither orderedDither;
         private readonly IErrorDiffuser errorDiffuser;
 
-        public DitherTest()
+        public BinaryDitherTest()
         {
             this.orderedDither = KnownDitherers.BayerDither4x4;
             this.errorDiffuser = KnownDiffusers.FloydSteinberg;
         }
 
         [Fact]
-        public void Dither_CorrectProcessor()
+        public void BinaryDither_CorrectProcessor()
         {
             this.operations.BinaryDither(this.orderedDither);
             BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>();
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         }
 
         [Fact]
-        public void Dither_rect_CorrectProcessor()
+        public void BinaryDither_rect_CorrectProcessor()
         {
             this.operations.BinaryDither(this.orderedDither, this.rect);
             BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>(this.rect);
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             Assert.Equal(NamedColors<Rgba32>.Black, p.LowerColor);
         }
         [Fact]
-        public void Dither_index_CorrectProcessor()
+        public void BinaryDither_index_CorrectProcessor()
         {
             this.operations.BinaryDither(this.orderedDither, NamedColors<Rgba32>.Yellow, NamedColors<Rgba32>.HotPink);
             BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>();
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         }
 
         [Fact]
-        public void Dither_index_rect_CorrectProcessor()
+        public void BinaryDither_index_rect_CorrectProcessor()
         {
             this.operations.BinaryDither(this.orderedDither, NamedColors<Rgba32>.Yellow, NamedColors<Rgba32>.HotPink, this.rect);
             BinaryOrderedDitherProcessor<Rgba32> p = this.Verify<BinaryOrderedDitherProcessor<Rgba32>>(this.rect);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
 
         [Fact]
-        public void Dither_ErrorDiffuser_CorrectProcessor()
+        public void BinaryDither_ErrorDiffuser_CorrectProcessor()
         {
             this.operations.BinaryDiffuse(this.errorDiffuser, .4F);
             BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>();
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         }
 
         [Fact]
-        public void Dither_ErrorDiffuser_rect_CorrectProcessor()
+        public void BinaryDither_ErrorDiffuser_rect_CorrectProcessor()
         {
             this.operations.BinaryDiffuse(this.errorDiffuser, .3F, this.rect);
             BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>(this.rect);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         }
 
         [Fact]
-        public void Dither_ErrorDiffuser_CorrectProcessorWithColors()
+        public void BinaryDither_ErrorDiffuser_CorrectProcessorWithColors()
         {
             this.operations.BinaryDiffuse(this.errorDiffuser, .5F, NamedColors<Rgba32>.HotPink, NamedColors<Rgba32>.Yellow);
             BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>();
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         }
 
         [Fact]
-        public void Dither_ErrorDiffuser_rect_CorrectProcessorWithColors()
+        public void BinaryDither_ErrorDiffuser_rect_CorrectProcessorWithColors()
         {
             this.operations.BinaryDiffuse(this.errorDiffuser, .5F, NamedColors<Rgba32>.HotPink, NamedColors<Rgba32>.Yellow, this.rect);
             BinaryErrorDiffusionProcessor<Rgba32> p = this.Verify<BinaryErrorDiffusionProcessor<Rgba32>>(this.rect);

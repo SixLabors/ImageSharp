@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
-using Moq;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
@@ -16,9 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
         public DitherTest()
         {
-            this.orderedDither = new Mock<IOrderedDither>().Object;
-            this.errorDiffuser = new Mock<IErrorDiffuser>().Object;
+            this.orderedDither = KnownDitherers.BayerDither4x4;
+            this.errorDiffuser = KnownDiffusers.FloydSteinberg;
         }
+
         [Fact]
         public void Dither_CorrectProcessor()
         {

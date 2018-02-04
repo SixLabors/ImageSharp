@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Memory
         public int Height;
 
         /// <summary>
+        /// Gets the number of items in the 2D array
+        /// </summary>
+        public int Count;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Fast2DArray{T}" /> struct.
         /// </summary>
         /// <param name="length">The length of each dimension.</param>
@@ -50,7 +55,8 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.Data = new T[this.Width * this.Height];
+            this.Count = width * height;
+            this.Data = new T[this.Count];
         }
 
         /// <summary>
@@ -66,7 +72,8 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThan(this.Width, 0, nameof(this.Width));
             Guard.MustBeGreaterThan(this.Height, 0, nameof(this.Height));
 
-            this.Data = new T[this.Width * this.Height];
+            this.Count = this.Width * this.Height;
+            this.Data = new T[this.Count];
 
             for (int y = 0; y < this.Height; y++)
             {

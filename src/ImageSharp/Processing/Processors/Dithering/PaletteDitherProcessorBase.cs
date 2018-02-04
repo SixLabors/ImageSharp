@@ -50,8 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             for (int index = 0; index < colorPalette.Length; index++)
             {
                 TPixel temp = colorPalette[index];
-                var tempVector = temp.ToVector4();
-                float distance = Vector4.Distance(vector, tempVector);
+                float distance = Vector4.Distance(vector, temp.ToVector4());
 
                 if (distance < leastDistance)
                 {

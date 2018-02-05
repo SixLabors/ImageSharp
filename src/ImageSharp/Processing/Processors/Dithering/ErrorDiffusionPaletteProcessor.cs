@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
-            byte luminance = (byte)(isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B)).Clamp(0, 255);
+            float luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
 
             for (int y = startY; y < endY; y++)
             {
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     {
                         pair = this.GetClosestPixelPair(ref sourcePixel, this.Palette);
                         sourcePixel.ToRgba32(ref rgba);
-                        luminance = (byte)(isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B)).Clamp(0, 255);
+                        luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
 
                         // Setup the previous pointer
                         previousPixel = sourcePixel;

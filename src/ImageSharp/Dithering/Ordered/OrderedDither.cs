@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Dithering
         }
 
         /// <inheritdoc />
-        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, byte threshold, int x, int y)
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel upper, TPixel lower, float threshold, int x, int y)
             where TPixel : struct, IPixel<TPixel>
         {
             image[x, y] = this.thresholdMatrix[y % this.modulusY, x % this.modulusX] >= threshold ? lower : upper;

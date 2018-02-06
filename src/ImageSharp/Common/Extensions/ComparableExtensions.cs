@@ -169,19 +169,5 @@ namespace SixLabors.ImageSharp
         {
             return (byte)value.Clamp(0, 255);
         }
-
-        /// <summary>
-        /// Swaps the references to two objects in memory.
-        /// </summary>
-        /// <param name="first">The first reference.</param>
-        /// <param name="second">The second reference.</param>
-        /// <typeparam name="T">The type of object.</typeparam>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Swap<T>(ref T first, ref T second)
-        {
-            T temp = second;
-            second = first;
-            first = temp;
-        }
     }
 }

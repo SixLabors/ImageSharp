@@ -183,17 +183,6 @@ namespace SixLabors.ImageSharp.Benchmarks
                 Vector3 vectorCb = VectorCb * vectorRgb;
                 Vector3 vectorCr = VectorCr * vectorRgb;
 
-                // Should be better in theory, but came out to be worse: :(
-                // Vector3 c = new Vector3(0, 128, 128);
-                // Vector3 xx = new Vector3(vectorY.X, vectorCb.X, vectorCr.X);
-                // Vector3 yy = new Vector3(vectorY.Y, -vectorCb.Y, -vectorCr.Y);
-                // Vector3 zz = new Vector3(vectorY.Z, vectorCb.Z, -vectorCr.Z);
-
-                // c += xx + yy + zz;
-                // *yPtr++ = c.X;
-                // *cbPtr++ = c.Y;
-                // *crPtr++ = c.Z;
-
                 *yPtr++ = vectorY.X + vectorY.Y + vectorY.Z;
                 *cbPtr++ = 128 + (vectorCb.X - vectorCb.Y + vectorCb.Z);
                 *crPtr++ = 128 + (vectorCr.X - vectorCr.Y - vectorCr.Z);

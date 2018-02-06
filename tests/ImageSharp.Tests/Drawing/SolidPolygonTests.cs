@@ -81,13 +81,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
+                    Assert.True(Rgba32.HotPink == sourcePixels[11, 11], "[11, 11] wrong");
 
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[199, 150]);
+                    Assert.True(Rgba32.HotPink == sourcePixels[199, 149], "[199, 149] wrong");
 
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[50, 50]);
+                    Assert.True(Rgba32.HotPink == sourcePixels[50, 50], "[50, 50] wrong");
 
-                    Assert.Equal(Rgba32.Blue, sourcePixels[2, 2]);
+                    Assert.True(Rgba32.Blue == sourcePixels[2, 2], "[2, 2] wrong");
                 }
             }
         }

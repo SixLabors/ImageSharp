@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <summary>
-        /// Gets the index index of the given color in the palette.
+        /// Gets the index of the given color in the palette.
         /// </summary>
         /// <param name="r">The red value.</param>
         /// <param name="g">The green value.</param>
@@ -827,7 +827,7 @@ namespace SixLabors.ImageSharp.Quantizers
         {
             if (this.Dither)
             {
-                // The colors have changed so we need to use Euclidean distance caclulation to find the closest value.
+                // The colors have changed so we need to use Euclidean distance calculation to find the closest value.
                 // This palette can never be null here.
                 return this.GetClosestPixel(pixel, this.palette, this.colorMap);
             }

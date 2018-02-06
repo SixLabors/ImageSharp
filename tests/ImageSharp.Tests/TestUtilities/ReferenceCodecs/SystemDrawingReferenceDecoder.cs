@@ -1,19 +1,16 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-
-using PixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
-    public class SystemDrawingReferenceDecoder : IImageDecoder
+    public class SystemDrawingReferenceDecoder : IImageDecoder, IImageInfoDetector
     {
         public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
 
@@ -22,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
             {
-                if (sourceBitmap.PixelFormat == PixelFormat.Format32bppArgb)
+                if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
                 {
                     return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sourceBitmap);
                 }
@@ -32,17 +29,26 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                     sourceBitmap.Height,
                     System.Drawing.Imaging.PixelFormat.Format32bppArgb))
                 {
-                    using (var g = Graphics.FromImage(convertedBitmap))
+                    using (var g = System.Drawing.Graphics.FromImage(convertedBitmap))
                     {
                         g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
                         g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
                         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
 
                         g.DrawImage(sourceBitmap, 0, 0, sourceBitmap.Width, sourceBitmap.Height);
                     }
                     return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(convertedBitmap);
                 }
+            }
+        }
+
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            using (var sourceBitmap = new System.Drawing.Bitmap(stream))
+            {
+                var pixelType = new PixelTypeInfo(System.Drawing.Image.GetPixelFormatSize(sourceBitmap.PixelFormat));
+                return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetaData());
             }
         }
     }

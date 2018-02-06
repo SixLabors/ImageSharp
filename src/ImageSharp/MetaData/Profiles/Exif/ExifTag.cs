@@ -975,7 +975,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         [ExifTagDescription((ushort)71, "Fired, Red-eye reduction, Return detected")]
         [ExifTagDescription((ushort)73, "On, Red-eye reduction")]
         [ExifTagDescription((ushort)77, "On, Red-eye reduction, Return not detected")]
-        [ExifTagDescription((ushort)69, "On, Red-eye reduction, Return detected")]
+        [ExifTagDescription((ushort)79, "On, Red-eye reduction, Return detected")]
         [ExifTagDescription((ushort)80, "Off, Red-eye reduction")]
         [ExifTagDescription((ushort)88, "Auto, Did not fire, Red-eye reduction")]
         [ExifTagDescription((ushort)89, "Auto, Fired, Red-eye reduction")]

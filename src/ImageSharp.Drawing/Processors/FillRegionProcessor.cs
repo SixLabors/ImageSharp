@@ -82,8 +82,15 @@ namespace SixLabors.ImageSharp.Drawing.Processors
 
             int maxIntersections = region.MaxIntersections;
             float subpixelCount = 4;
+
+            // we need to offset the pixel grid to account for when we outline a path.
+            // basically if the line is [1,2] => [3,2] then when outlining at 1 we end up with a region of [0.5,1.5],[1.5, 1.5],[3.5,2.5],[2.5,2.5]
+            // and this can cause missed fills when not using antialiasing.so we offset the pixel grid by 0.5 in the x & y direction thus causing the#
+            // region to alline with the pixel grid.
+            float offset = 0.5f;
             if (this.Options.Antialias)
             {
+                offset = 0f; // we are antialising skip offsetting as real antalising should take care of offset.
                 subpixelCount = this.Options.AntialiasSubpixelDepth;
                 if (subpixelCount < 4)
                 {
@@ -117,7 +124,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                             float subpixelFractionPoint = subpixelFraction / subpixelCount;
                             for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
                             {
-                                int pointsFound = region.Scan(subPixel, buffer, 0);
+                                int pointsFound = region.Scan(subPixel + offset, buffer, 0);
                                 if (pointsFound == 0)
                                 {
                                     // nothing on this line skip
@@ -131,8 +138,8 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                                     // points will be paired up
                                     float scanStart = buffer[point] - minX;
                                     float scanEnd = buffer[point + 1] - minX;
-                                    int startX = (int)MathF.Floor(scanStart);
-                                    int endX = (int)MathF.Floor(scanEnd);
+                                    int startX = (int)MathF.Floor(scanStart + offset);
+                                    int endX = (int)MathF.Floor(scanEnd + offset);
 
                                     if (startX >= 0 && startX < scanline.Length)
                                     {
@@ -169,7 +176,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                                 {
                                     for (int x = 0; x < scanlineWidth; x++)
                                     {
-                                        if (scanline[x] > 0.5)
+                                        if (scanline[x] >= 0.5)
                                         {
                                             scanline[x] = 1;
                                         }

@@ -40,8 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb output = converter.ToRgb(input);
 
             // Assert
-            // TODO: Enable next line
-            // Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
+            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
             Assert.Equal(r, output.R, FloatRoundingComparer);
             Assert.Equal(g, output.G, FloatRoundingComparer);
             Assert.Equal(b, output.B, FloatRoundingComparer);

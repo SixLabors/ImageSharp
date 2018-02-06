@@ -22,10 +22,25 @@ namespace SixLabors.ImageSharp.ColorSpaces
         RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 
         /// <summary>
-        /// Gets the companding function associated with the RGB color system. Used for conversion to XYZ and backwards.
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
-        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
+        /// Expands a compressed channel to its linear equivalent with respect to the energy.
         /// </summary>
-        ICompanding Companding { get; }
+        /// <remarks>
+        /// For more info see:
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
+        /// </remarks>
+        /// <param name="channel">The channel value</param>
+        /// <returns>The linear channel value</returns>
+        float Expand(float channel);
+
+        /// <summary>
+        /// Compresses an expanded channel (linear) to its nonlinear equivalent (depends on the RGB color system).
+        /// </summary>
+        /// <remarks>
+        /// For more info see:
+        /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
+        /// </remarks>
+        /// <param name="channel">The channel value</param>
+        /// <returns>The nonlinear channel value</returns>
+        float Compress(float channel);
     }
 }

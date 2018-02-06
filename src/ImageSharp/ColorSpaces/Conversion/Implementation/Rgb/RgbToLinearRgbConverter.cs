@@ -16,9 +16,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             Guard.NotNull(input, nameof(input));
 
             Vector3 vector = input.Vector;
-            vector.X = input.WorkingSpace.Companding.Expand(vector.X);
-            vector.Y = input.WorkingSpace.Companding.Expand(vector.Y);
-            vector.Z = input.WorkingSpace.Companding.Expand(vector.Z);
+            vector.X = input.WorkingSpace.Expand(vector.X);
+            vector.Y = input.WorkingSpace.Expand(vector.Y);
+            vector.Z = input.WorkingSpace.Expand(vector.Z);
 
             return new LinearRgb(vector, input.WorkingSpace);
         }

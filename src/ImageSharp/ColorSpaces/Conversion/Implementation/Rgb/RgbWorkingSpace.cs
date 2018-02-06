@@ -84,10 +84,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <inheritdoc/>
         public bool Equals(IRgbWorkingSpace other)
         {
-            // TODO: Object.Equals for ICompanding will be slow.
             return this.WhitePoint.Equals(other.WhitePoint)
-                && this.ChromaticityCoordinates.Equals(other.ChromaticityCoordinates)
-                && Equals(this.Companding, other.Companding);
+                && this.ChromaticityCoordinates.Equals(other.ChromaticityCoordinates);
+
+            // TODO: This should be refactored as separate classes with different companding implementations.
+            // && Equals(this.Companding, other.Companding);
         }
 
         /// <inheritdoc/>

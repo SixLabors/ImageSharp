@@ -16,9 +16,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             DebugGuard.NotNull(input, nameof(input));
 
             Vector3 vector = input.Vector;
-            vector.X = input.WorkingSpace.Companding.Compress(vector.X);
-            vector.Y = input.WorkingSpace.Companding.Compress(vector.Y);
-            vector.Z = input.WorkingSpace.Companding.Compress(vector.Z);
+            vector.X = input.WorkingSpace.Compress(vector.X);
+            vector.Y = input.WorkingSpace.Compress(vector.Y);
+            vector.Z = input.WorkingSpace.Compress(vector.Z);
 
             return new Rgb(vector, input.WorkingSpace);
         }

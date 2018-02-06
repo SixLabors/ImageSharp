@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// </returns>
         public static bool operator ==(RgbWorkingSpace left, RgbWorkingSpace right)
         {
-            return Equals(left, right);
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// </returns>
         public static bool operator !=(RgbWorkingSpace left, RgbWorkingSpace right)
         {
-            return !Equals(left, right);
+            return !left.Equals(right);
         }
 
         /// <inheritdoc/>

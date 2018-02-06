@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     {
         private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(6);
 
+        private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
+
         /// <summary>
         /// Tests conversion from <see cref="CieXyz"/> (<see cref="Illuminants.D50"/>)
         /// to <see cref="Rgb"/> (<see cref="Rgb.DefaultWorkingSpace">default sRGB working space</see>).
@@ -40,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb output = converter.ToRgb(input);
 
             // Assert
-            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
+            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
             Assert.Equal(r, output.R, FloatRoundingComparer);
             Assert.Equal(g, output.G, FloatRoundingComparer);
             Assert.Equal(b, output.B, FloatRoundingComparer);
@@ -68,8 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb output = converter.ToRgb(input);
 
             // Assert
-            // TODO: Enable next line
-            // Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
+            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
             Assert.Equal(r, output.R, FloatRoundingComparer);
             Assert.Equal(g, output.G, FloatRoundingComparer);
             Assert.Equal(b, output.B, FloatRoundingComparer);

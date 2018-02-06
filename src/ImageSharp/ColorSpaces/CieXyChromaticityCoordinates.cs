@@ -124,19 +124,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
                 return "CieXyChromaticityCoordinates [Empty]";
             }
 
-            return $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
+            return $"CieXyChromaticityCoordinates [ X={this.X}, Y={this.Y}]";
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieXyChromaticityCoordinates)
-            {
-                return this.Equals((CieXyChromaticityCoordinates)obj);
-            }
-
-            return false;
+            return obj is CieXyChromaticityCoordinates coordinates && this.Equals(coordinates);
         }
 
         /// <inheritdoc/>

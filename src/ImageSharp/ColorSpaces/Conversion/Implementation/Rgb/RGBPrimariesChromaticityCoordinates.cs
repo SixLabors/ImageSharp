@@ -76,18 +76,19 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is RgbPrimariesChromaticityCoordinates)
-            {
-                return this.Equals((RgbPrimariesChromaticityCoordinates)obj);
-            }
-
-            return false;
+            return obj is RgbPrimariesChromaticityCoordinates coordinates && this.Equals(coordinates);
         }
 
         /// <inheritdoc/>
         public bool Equals(RgbPrimariesChromaticityCoordinates other)
         {
             return this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"RgbPrimariesChromaticityCoordinates [ R={this.R}, G={this.G}, B={this.B}]";
         }
 
         /// <inheritdoc />

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Encasulates the RGB working color space
+    /// Encapsulates the RGB working color space
     /// </summary>
     internal interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {

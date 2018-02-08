@@ -1,18 +1,16 @@
-﻿// <copyright file="DrawPolygon.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System.Numerics;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Pens;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
+
+namespace SixLabors.ImageSharp
 {
-    using System.Numerics;
-    using Drawing;
-    using Drawing.Brushes;
-    using Drawing.Pens;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using SixLabors.Shapes;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -28,7 +26,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawPolygon<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), new Polygon(new LinearLineSegment(points)), options);
@@ -43,7 +41,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawPolygon<TPixel>(this Image<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(new Pen<TPixel>(brush, thickness), new Polygon(new LinearLineSegment(points)));
@@ -58,7 +56,7 @@ namespace ImageSharp
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawPolygon<TPixel>(this Image<TPixel> source, TPixel color, float thickness, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawPolygon(new SolidBrush<TPixel>(color), thickness, points);
@@ -74,7 +72,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawPolygon<TPixel>(this Image<TPixel> source, TPixel color, float thickness, PointF[] points, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.DrawPolygon(new SolidBrush<TPixel>(color), thickness, points, options);
@@ -88,7 +86,7 @@ namespace ImageSharp
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawPolygon<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, PointF[] points)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, new Polygon(new LinearLineSegment(points)), GraphicsOptions.Default);
@@ -103,7 +101,7 @@ namespace ImageSharp
         /// <param name="points">The points.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> DrawPolygon<TPixel>(this Image<TPixel> source, IPen<TPixel> pen, PointF[] points, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, PointF[] points, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             return source.Draw(pen, new Polygon(new LinearLineSegment(points)), options);

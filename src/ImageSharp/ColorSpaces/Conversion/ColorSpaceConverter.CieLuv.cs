@@ -1,14 +1,12 @@
-﻿// <copyright file="ColorSpaceConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv;
-    using ImageSharp.ColorSpaces.Conversion.Implementation.CieLuv;
-
     /// <content>
     /// Allows conversion to <see cref="CieLuv"/>.
     /// </content>

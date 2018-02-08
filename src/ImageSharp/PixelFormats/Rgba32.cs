@@ -1,17 +1,14 @@
-﻿// <copyright file="Rgba32.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue, and alpha order.
@@ -367,7 +364,7 @@ namespace ImageSharp
         /// <returns>A string representation of the packed vector.</returns>
         public override string ToString()
         {
-            return this.ToVector4().ToString();
+            return $"({this.R},{this.G},{this.B},{this.A})";
         }
 
         /// <inheritdoc/>
@@ -432,7 +429,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Pack(float x, float y, float z, float w)
         {
-            Vector4 value = new Vector4(x, y, z, w);
+            var value = new Vector4(x, y, z, w);
             this.Pack(ref value);
         }
 
@@ -443,7 +440,7 @@ namespace ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Pack(ref Vector3 vector)
         {
-            Vector4 value = new Vector4(vector, 1);
+            var value = new Vector4(vector, 1);
             this.Pack(ref value);
         }
 

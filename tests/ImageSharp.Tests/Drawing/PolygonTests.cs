@@ -1,39 +1,36 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Drawing;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using System.IO;
-    using Xunit;
-    using Drawing;
-    using ImageSharp.Drawing;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     public class PolygonTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Polygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Polygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .DrawPolygon(Rgba32.HotPink, 5,
-                        new SixLabors.Primitives.PointF[] {
+                image.Mutate(x => x
+                    .BackgroundColor(Rgba32.Blue)
+                    .DrawPolygon(Rgba32.HotPink, 5,
+                    new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)
-                        })
-                        .Save($"{path}/Simple.png");
+                    }));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -51,7 +48,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Polygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Polygons");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
@@ -62,10 +59,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .DrawPolygon(color, 10, simplePath)
-                        .Save($"{path}/Opacity.png");
+                image.Mutate(x => x
+                    .BackgroundColor(Rgba32.Blue)
+                    .DrawPolygon(color, 10, simplePath));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
@@ -86,14 +83,14 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByRectangleOutline()
         {
-            string path = this.CreateOutputDirectory("Drawing", "Polygons");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "Polygons");
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Draw(Rgba32.HotPink, 10, new Rectangle(10, 10, 190, 140))
-                        .Save($"{path}/Rectangle.png");
+                image.Mutate(x => x
+                    .BackgroundColor(Rgba32.Blue)
+                    .Draw(Rgba32.HotPink, 10, new Rectangle(10, 10, 190, 140)));
+                image.Save($"{path}/Rectangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {

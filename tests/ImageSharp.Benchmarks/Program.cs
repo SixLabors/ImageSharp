@@ -3,11 +3,11 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Running;
     
-    using ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats;
     using System.Reflection;
 
     public class Program

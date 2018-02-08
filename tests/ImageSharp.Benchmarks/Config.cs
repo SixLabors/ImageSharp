@@ -5,7 +5,7 @@
 
 using BenchmarkDotNet.Configs;
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using BenchmarkDotNet.Jobs;
 
@@ -17,12 +17,12 @@ namespace ImageSharp.Benchmarks
             this.Add(new BenchmarkDotNet.Diagnosers.MemoryDiagnoser());
         }
 
-        public class Short : Config
+        public class ShortClr : Config
         {
-            public Short()
+            public ShortClr()
             {
                 this.Add(
-                    Job.Default.WithLaunchCount(1)
+                    Job.Clr.WithLaunchCount(1)
                         .WithWarmupCount(3)
                         .WithTargetCount(3)
                         );

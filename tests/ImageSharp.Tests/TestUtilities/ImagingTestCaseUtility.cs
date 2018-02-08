@@ -1,23 +1,22 @@
-﻿// <copyright file="ImagingTestCaseUtility.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Utility class to provide information about the test image & the test case for the test code,
     /// and help managing IO.
     /// </summary>
-    public class ImagingTestCaseUtility : TestBase
+    public class ImagingTestCaseUtility
     {
         /// <summary>
         /// Name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>
@@ -35,17 +34,14 @@ namespace ImageSharp.Tests
         /// </summary>
         public string TestGroupName { get; set; } = string.Empty;
 
+        public string OutputSubfolderName { get; set; } = string.Empty;
+
         /// <summary>
         /// The name of the test case (by default)
         /// </summary>
         public string TestName { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets the recommended file name for the output of the test
-        /// </summary>
-        /// <param name="extension"></param>
-        /// <returns>The required extension</returns>
-        public string GetTestOutputFileName(string extension = null, string tag = null)
+        private string GetTestOutputFileNameImpl(string extension, string details, bool appendPixelTypeToFileName)
         {
             string fn = string.Empty;
 
@@ -65,6 +61,7 @@ namespace ImageSharp.Tests
             {
                 extension = ".bmp";
             }
+            extension = extension.ToLower();
 
             if (extension[0] != '.')
             {
@@ -73,21 +70,67 @@ namespace ImageSharp.Tests
 
             if (fn != string.Empty) fn = '_' + fn;
 
-            string pixName = this.PixelTypeName;
-            if (pixName != string.Empty)
+            string pixName = "";
+
+            if (appendPixelTypeToFileName)
             {
-                pixName = '_' + pixName;
+                pixName = this.PixelTypeName;
+
+                if (pixName != string.Empty)
+                {
+                    pixName = '_' + pixName;
+                }
             }
 
-            tag = tag ?? string.Empty;
-            if (tag != string.Empty)
+            details = details ?? string.Empty;
+            if (details != string.Empty)
             {
-                tag = '_' + tag;
+                details = '_' + details;
             }
 
-
-            return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{tag}{extension}";
+            return $"{this.GetTestOutputDir()}/{this.TestName}{pixName}{fn}{details}{extension}";
         }
+
+        private static string Inv(FormattableString formattable) => System.FormattableString.Invariant(formattable);
+        
+        /// <summary>
+        /// Gets the recommended file name for the output of the test
+        /// </summary>
+        /// <param name="extension">The required extension</param>
+        /// <param name="testOutputDetails">The settings modifying the output path</param>
+        /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to output file name.</param>
+        /// <returns>The file test name</returns>
+        public string GetTestOutputFileName(string extension = null, object testOutputDetails = null, bool appendPixelTypeToFileName = true)
+        {
+            string detailsString = null;
+            string s = testOutputDetails as string;
+
+            if (s != null)
+            {
+                detailsString = s;
+            }
+            else if (testOutputDetails != null)
+            {
+                Type type = testOutputDetails.GetType();
+                TypeInfo info = type.GetTypeInfo();
+                if (info.IsPrimitive || info.IsEnum || type == typeof(decimal))
+                {
+                    detailsString = Inv($"{testOutputDetails}");
+                }
+                else
+                {
+                    IEnumerable<PropertyInfo> properties = testOutputDetails.GetType().GetRuntimeProperties();
+
+                    detailsString = string.Join(
+                        "_",
+                        properties.ToDictionary(x => x.Name, x => x.GetValue(testOutputDetails))
+                            .Select(x => Inv($"{x.Key}-{x.Value}"))
+                        );
+                }
+            }
+            return this.GetTestOutputFileNameImpl(extension, detailsString, appendPixelTypeToFileName);
+        }
+
 
         /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
@@ -96,42 +139,104 @@ namespace ImageSharp.Tests
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
-        /// <param name="options">Optional encoder options</param>
-        public void SaveTestOutputFile<TPixel>(Image<TPixel> image, string extension = null, IImageEncoder encoder = null, string tag = null)
+        public string SaveTestOutputFile<TPixel>(
+            Image<TPixel> image,
+            string extension = null,
+            IImageEncoder encoder = null,
+            object testOutputDetails = null,
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = this.GetTestOutputFileName(extension: extension, tag:tag);
-            extension = Path.GetExtension(path);
-            encoder = encoder ?? GetImageFormatByExtension(extension);
+            string path = this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
+            encoder = encoder ?? TestEnvironment.GetReferenceEncoder(path);
 
             using (FileStream stream = File.OpenWrite(path))
             {
                 image.Save(stream, encoder);
             }
+            return path;
         }
 
-        internal void Init(string typeName, string methodName)
+        internal string GetReferenceOutputFileName(
+            string extension,
+            object settings,
+            bool appendPixelTypeToFileName)
+        {
+            return TestEnvironment.GetReferenceOutputFileName(
+                this.GetTestOutputFileName(extension, settings, appendPixelTypeToFileName)
+                );
+        }
+
+        internal void Init(string typeName, string methodName, string outputSubfolderName)
         {
             this.TestGroupName = typeName;
             this.TestName = methodName;
+            this.OutputSubfolderName = outputSubfolderName;
         }
-
-        internal void Init(MethodInfo method)
-        {
-            this.Init(method.DeclaringType.Name, method.Name);
-        }
-
-        private static IImageEncoder GetImageFormatByExtension(string extension)
-        {
-            extension = extension?.TrimStart('.');
-            var format = Configuration.Default.FindFormatByFileExtensions(extension);
-            return Configuration.Default.FindEncoder(format);
-        }
-
-        private string GetTestOutputDir()
+        
+        internal string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
-            return CreateOutputDirectory(testGroupName);
+
+            if (!string.IsNullOrEmpty(this.OutputSubfolderName))
+            {
+                testGroupName = Path.Combine(this.OutputSubfolderName, testGroupName);
+            }
+
+            return TestEnvironment.CreateOutputDirectory(testGroupName);
+        }
+
+        public static void ModifyPixel<TPixel>(Image<TPixel> img, int x, int y, byte perChannelChange)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ModifyPixel(img.Frames.RootFrame, x, y, perChannelChange);
+        }
+
+        public static void ModifyPixel<TPixel>(ImageFrame<TPixel> img, int x, int y, byte perChannelChange)
+        where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel pixel = img[x, y];
+            var rgbaPixel = default(Rgba32);
+            pixel.ToRgba32(ref rgbaPixel);
+
+            if (rgbaPixel.R + perChannelChange <= 255)
+            {
+                rgbaPixel.R += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.R -= perChannelChange;
+            }
+
+            if (rgbaPixel.G + perChannelChange <= 255)
+            {
+                rgbaPixel.G += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.G -= perChannelChange;
+            }
+
+            if (rgbaPixel.B + perChannelChange <= 255)
+            {
+                rgbaPixel.B += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.B -= perChannelChange;
+            }
+
+            if (rgbaPixel.A + perChannelChange <= 255)
+            {
+                rgbaPixel.A += perChannelChange;
+            }
+            else
+            {
+                rgbaPixel.A -= perChannelChange;
+            }
+
+            pixel.PackFromRgba32(rgbaPixel);
+            img[x, y] = pixel;
         }
     }
 }

@@ -1,16 +1,14 @@
-﻿// <copyright file="ExifProfile.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.IO;
-
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Represents an EXIF profile providing access to the collection of values.
     /// </summary>
@@ -82,9 +80,11 @@ namespace ImageSharp
                     this.values.Add(new ExifValue(value));
                 }
             }
-            else
+
+            if (other.data != null)
             {
-                this.data = other.data;
+                this.data = new byte[other.data.Length];
+                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
             }
         }
 
@@ -131,7 +131,7 @@ namespace ImageSharp
                 return null;
             }
 
-            if (this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
+            if (this.data == null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
             {
                 return null;
             }

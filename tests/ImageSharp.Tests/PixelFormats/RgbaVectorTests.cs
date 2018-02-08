@@ -1,17 +1,13 @@
-﻿// <copyright file="RgbaVectorTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="RgbaVector"/> struct.
     /// </summary>

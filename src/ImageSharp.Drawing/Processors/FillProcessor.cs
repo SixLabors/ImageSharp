@@ -1,21 +1,20 @@
-﻿// <copyright file="FillProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Drawing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using Drawing;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Using the bursh as a source of pixels colors blends the brush color with source.
     /// </summary>
@@ -41,7 +40,7 @@ namespace ImageSharp.Drawing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
@@ -67,9 +66,6 @@ namespace ImageSharp.Drawing.Processors
 
             int width = maxX - minX;
 
-            // We could possibly do some optimization by having knowledge about the individual brushes operate
-            // for example If brush is SolidBrush<TPixel> then we could just get the color upfront
-            // and skip using the IBrushApplicator<TPixel>?.
             using (var amount = new Buffer<float>(width))
             using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(source, sourceRectangle, this.options))
             {
@@ -81,7 +77,7 @@ namespace ImageSharp.Drawing.Processors
                     Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
                         int offsetY = y - startY;

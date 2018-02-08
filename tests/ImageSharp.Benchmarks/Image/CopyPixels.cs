@@ -3,14 +3,14 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System;
     using System.Threading.Tasks;
 
     using BenchmarkDotNet.Attributes;
-
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Memory;
 
     public class CopyPixels : BenchmarkBase
     {
@@ -103,8 +103,8 @@ namespace ImageSharp.Benchmarks.Image
                     Configuration.Default.ParallelOptions,
                     y =>
                     {
-                        Span<Rgba32> sourceRow = source.GetRowSpan(y);
-                        Span<Rgba32> targetRow = target.GetRowSpan(y);
+                        Span<Rgba32> sourceRow = source.Frames.RootFrame.GetPixelRowSpan(y);
+                        Span<Rgba32> targetRow = target.Frames.RootFrame.GetPixelRowSpan(y);
 
                         for (int x = 0; x < source.Width; x++)
                         {

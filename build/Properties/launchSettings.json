@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "build": {
-      "commandName": "Project",
-      "commandLineArgs": "reset"
-    }
-  }
-}

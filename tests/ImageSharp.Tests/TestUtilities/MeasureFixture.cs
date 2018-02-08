@@ -1,20 +1,17 @@
-﻿// <copyright file="MeasureFixture.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Xunit.Abstractions;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
-
-    using Xunit.Abstractions;
-
     /// <summary>
     /// Utility class to measure the execution of an operation. It can be used either by inheritance or by composition.
     /// </summary>
-    public class MeasureFixture : TestBase
+    public class MeasureFixture
     {
         /// <summary>
         /// Value indicating whether priniting is enabled.
@@ -58,5 +55,28 @@ namespace ImageSharp.Tests
         }
 
         protected ITestOutputHelper Output { get; }
+    }
+
+    public class MeasureGuard : IDisposable
+    {
+        private readonly string operation;
+
+        private readonly Stopwatch stopwatch = new Stopwatch();
+
+        public MeasureGuard(ITestOutputHelper output, string operation)
+        {
+            this.operation = operation;
+            this.Output = output;
+            this.Output.WriteLine(operation + " ...");
+            this.stopwatch.Start();
+        }
+
+        private ITestOutputHelper Output { get; }
+        
+        public void Dispose()
+        {
+            this.stopwatch.Stop();
+            this.Output.WriteLine($"{this.operation} completed in {this.stopwatch.ElapsedMilliseconds}ms");
+        }
     }
 }

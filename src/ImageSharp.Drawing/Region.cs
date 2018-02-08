@@ -1,13 +1,11 @@
-﻿// <copyright file="Region.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing
+using System;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Drawing
 {
-    using System;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Represents a region of an image.
     /// </summary>
@@ -22,7 +20,7 @@ namespace ImageSharp.Drawing
         /// Gets the bounding box that entirely surrounds this region.
         /// </summary>
         /// <remarks>
-        /// This should always contains all possible points returned from <see cref="Scan(float, Span{float})"/>.
+        /// This should always contains all possible points returned from <see cref="Scan(float, float[], int)"/>.
         /// </remarks>
         public abstract Rectangle Bounds { get; }
 
@@ -31,7 +29,8 @@ namespace ImageSharp.Drawing
         /// </summary>
         /// <param name="y">The position along the y axis to find intersections.</param>
         /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The point in the buffer to start setting offset.</param>
         /// <returns>The number of intersections found.</returns>
-        public abstract int Scan(float y, Span<float> buffer);
+        public abstract int Scan(float y, float[] buffer, int offset);
     }
 }

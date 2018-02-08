@@ -1,34 +1,33 @@
-// <copyright file="JpegUtilsTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
+
+
 
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
     using System.Numerics;
 
-    using ImageSharp.Formats.Jpg;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
+    using SixLabors.ImageSharp.PixelFormats;
 
     using Xunit;
 
-    public class JpegUtilsTests : TestBase
+    public class JpegUtilsTests
     {
-        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+        public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> image = factory.CreateImage(10, 10);
+            var image = new Image<TPixel>(10, 10);
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
                     for (int j = 0; j < 10; j++)
                     {
-                        Vector4 v = new Vector4(i / 10f, j / 10f, 0, 1);
+                        var v = new Vector4(i / 10f, j / 10f, 0, 1);
 
-                        TPixel color = default(TPixel);
+                        var color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -45,7 +44,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> src = provider.GetImage())
-            using (Image<TPixel> dest = provider.Factory.CreateImage(8, 8))
+            using (Image<TPixel> dest = new Image<TPixel>(8,8))
             using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
             using (PixelAccessor<TPixel> s = src.Lock())
             using (PixelAccessor<TPixel> d = dest.Lock())
@@ -68,7 +67,7 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> src = provider.GetImage())
             using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
-            using (Image<TPixel> dest = provider.Factory.CreateImage(8, 8))
+            using (Image<TPixel> dest = new Image<TPixel>(8, 8))
             using (PixelAccessor<TPixel> s = src.Lock())
             using (PixelAccessor<TPixel> d = dest.Lock())
             {

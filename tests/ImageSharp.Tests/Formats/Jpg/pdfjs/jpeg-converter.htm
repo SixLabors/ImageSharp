@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+    <input type="file" id="files" />
+    <canvas id="canvas"></canvas>
+    <div id="output"></div>
+    <script src="jpg.js"></script>
+    <script>
+        (function (document) {
+            var input = document.getElementById("files"),
+                output = document.getElementById('output'),
+                canvas = document.getElementById("canvas"),
+                ctx = canvas.getContext('2d'),
+                fileData; // We need fileData to be visible to getBuffer.
+
+            // Eventhandler for file input. 
+            function openfile(evt) {
+                var files = input.files;
+                // Pass the file to the blob, not the input[0].
+                fileData = new Blob([files[0]]);
+                // Pass getBuffer to promise.
+                var promise = new Promise(getBuffer);
+                // Wait for promise to be resolved, or log error.
+                promise.then(function (data) {
+                    // Here you can pass the bytes to another function.
+                    // output.innerHTML = data.toString();
+                    // console.log(data);
+                  
+                    var jpeg = new JpegImage();
+                    jpeg.parse(data);
+
+                    console.log(jpeg.width);
+                    console.log(jpeg.height);
+
+                    canvas.width = jpeg.width;
+                    canvas.height = jpeg.height;
+
+                    var d = jpeg.getData(jpeg.width, jpeg.height, true);
+
+                    console.log(d.length);
+
+                    var rgba = new Uint8Array(jpeg.width * jpeg.height * 4);
+
+                    for(i = 0, j = 0; i < d.length; i += 3, j +=4){
+                        rgba[j] = d[i];
+                        rgba[j + 1] = d[i + 1];
+                        rgba[j + 2] = d[i + 2];
+                        rgba[j + 3] = 255;
+                    }
+
+                    var imageData = new ImageData(Uint8ClampedArray.from(rgba), jpeg.width, jpeg.height);
+
+
+                    ctx.putImageData(imageData, 0 , 0);
+                    // output.innerHTML = d.toString();
+                    //console.log(new Date());
+                    //console.log(d);
+
+                }).catch(function (err) {
+                    console.log('Error: ', err);
+                });
+            }
+
+            /* 
+              Create a function which will be passed to the promise
+              and resolve it when FileReader has finished loading the file.
+            */
+            function getBuffer(resolve) {
+                var reader = new FileReader();
+                reader.readAsArrayBuffer(fileData);
+                reader.onload = function () {
+                    var arrayBuffer = reader.result
+                    var bytes = new Uint8Array(arrayBuffer);
+                    resolve(bytes);
+                }
+            }
+
+            // Eventlistener for file input.
+            input.addEventListener('change', openfile, false);
+        }(document));
+    </script>
+
+</body>
+
+</html>

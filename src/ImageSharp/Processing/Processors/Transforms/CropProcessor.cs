@@ -1,16 +1,15 @@
-﻿// <copyright file="CropProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Threading.Tasks;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods to allow the cropping of an image.
     /// </summary>
@@ -33,7 +32,7 @@ namespace ImageSharp.Processing.Processors
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.CropRectangle == sourceRectangle)
             {
@@ -50,10 +49,10 @@ namespace ImageSharp.Processing.Processors
                 Parallel.For(
                     minY,
                     maxY,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> sourceRow = source.GetRowSpan(minX, y);
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(minX);
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y - minY);
                         SpanHelper.Copy(sourceRow, targetRow, maxX - minX);
                     });
@@ -61,5 +60,9 @@ namespace ImageSharp.Processing.Processors
                 source.SwapPixelsBuffers(targetPixels);
             }
         }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+            => TransformHelpers.UpdateDimensionalMetData(source);
     }
 }

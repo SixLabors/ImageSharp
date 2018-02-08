@@ -1,13 +1,11 @@
-﻿// <copyright file="PackedPixelConverterHelper.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Numerics;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-
     /// <summary>
     /// Assists with the conversion of known packed pixel formats from one to another.
     /// </summary>
@@ -21,18 +19,11 @@ namespace ImageSharp.PixelFormats
         /// <summary>
         /// Returns the correct scaling function for the given types The compute scale function.
         /// </summary>
-        /// <param name="scaleFunc">The scale function.</param>
         /// <typeparam name="TPixel">The source pixel format.</typeparam>
         /// <typeparam name="TPixel2">The target pixel format.</typeparam>
         /// <returns>The <see cref="Func{Vector4,Vector4}"/></returns>
-        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>(Func<Vector4, Vector4> scaleFunc)
+        public static Func<Vector4, Vector4> ComputeScaleFunction<TPixel, TPixel2>()
         {
-            // Custom type with a custom function.
-            if (scaleFunc != null)
-            {
-                return scaleFunc;
-            }
-
             Type source = typeof(TPixel);
             Type target = typeof(TPixel2);
 
@@ -299,9 +290,11 @@ namespace ImageSharp.PixelFormats
         /// <returns>The <see cref="bool"/></returns>
         private static bool IsStandardNormalizedType(Type type)
         {
-            return type == typeof(Rgba32)
+            return
+                type == typeof(Alpha8)
                 || type == typeof(Argb32)
-                || type == typeof(Alpha8)
+                || type == typeof(Bgr24)
+                || type == typeof(Bgra32)
                 || type == typeof(Bgr565)
                 || type == typeof(Bgra4444)
                 || type == typeof(Bgra5551)
@@ -309,8 +302,10 @@ namespace ImageSharp.PixelFormats
                 || type == typeof(HalfVector2)
                 || type == typeof(HalfVector4)
                 || type == typeof(Rg32)
-                || type == typeof(Rgba1010102)
-                || type == typeof(Rgba64);
+                || type == typeof(Rgb24)
+                || type == typeof(Rgba32)
+                || type == typeof(Rgba64)
+                || type == typeof(Rgba1010102);
         }
 
         /// <summary>

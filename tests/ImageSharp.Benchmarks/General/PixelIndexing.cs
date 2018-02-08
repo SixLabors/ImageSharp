@@ -1,11 +1,11 @@
-﻿namespace ImageSharp.Benchmarks.General
+﻿namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Memory;
 
     // Pixel indexing benchmarks compare different methods for getting/setting all pixel values in a subsegment of a single pixel row.
     public abstract unsafe class PixelIndexing

@@ -1,17 +1,13 @@
-﻿// <copyright file="BmpEncoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.IO;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.PixelFormats;
-
-    using IO;
-
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>
@@ -37,12 +33,12 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageBase{TPixel}"/>.
+        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(ImageBase<TPixel> image, Stream stream)
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
@@ -58,7 +54,7 @@ namespace ImageSharp.Formats
 
             BmpInfoHeader infoHeader = new BmpInfoHeader
             {
-                HeaderSize = BmpInfoHeader.Size,
+                HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
                 Height = image.Height,
                 Width = image.Width,
                 BitsPerPixel = bpp,
@@ -77,7 +73,7 @@ namespace ImageSharp.Formats
 
             WriteHeader(writer, fileHeader);
             this.WriteInfo(writer, infoHeader);
-            this.WriteImage(writer, image);
+            this.WriteImage(writer, image.Frames.RootFrame);
 
             writer.Flush();
         }
@@ -129,9 +125,9 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="writer">The <see cref="EndianBinaryWriter"/> containing the stream to write to.</param>
         /// <param name="image">
-        /// The <see cref="ImageBase{TPixel}"/> containing pixel data.
+        /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
         /// </param>
-        private void WriteImage<TPixel>(EndianBinaryWriter writer, ImageBase<TPixel> image)
+        private void WriteImage<TPixel>(EndianBinaryWriter writer, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())

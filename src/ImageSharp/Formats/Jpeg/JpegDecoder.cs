@@ -1,20 +1,17 @@
-﻿// <copyright file="JpegDecoder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.IO;
+
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
-    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions
+    public sealed class JpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -25,11 +22,22 @@ namespace ImageSharp.Formats
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
-            using (JpegDecoderCore decoder = new JpegDecoderCore(configuration, this))
+            using (var decoder = new OrigJpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
+            }
+        }
+
+        /// <inheritdoc/>
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, "stream");
+
+            using (var decoder = new OrigJpegDecoderCore(configuration, this))
+            {
+                return decoder.Identify(stream);
             }
         }
     }

@@ -1,16 +1,13 @@
-// <copyright file="YCbCrAndRgbConverter .cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.YCbCr
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorSapce
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Color converter between YCbCr and Rgb
     /// See <see href="https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion"/> for formulas.

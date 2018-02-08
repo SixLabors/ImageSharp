@@ -1,34 +1,57 @@
-﻿// <copyright file="BmpDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats
-{
-    using System;
-    using System.IO;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
 
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Bmp
+{
     /// <summary>
     /// Performs the bmp decoding operation.
     /// </summary>
+    /// <remarks>
+    /// A useful decoding source example can be found at <see href="https://dxr.mozilla.org/mozilla-central/source/image/decoders/nsBMPDecoder.cpp"/>
+    /// </remarks>
     internal sealed class BmpDecoderCore
     {
         /// <summary>
         /// The mask for the red part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16RMask = 0x00007C00;
+        private const int Rgb16RMask = 0x7C00;
 
         /// <summary>
         /// The mask for the green part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16GMask = 0x000003E0;
+        private const int Rgb16GMask = 0x3E0;
 
         /// <summary>
         /// The mask for the blue part of the color for 16 bit rgb bitmaps.
         /// </summary>
-        private const int Rgb16BMask = 0x0000001F;
+        private const int Rgb16BMask = 0x1F;
+
+        /// <summary>
+        /// RLE8 flag value that indicates following byte has special meaning
+        /// </summary>
+        private const int RleCommand = 0x00;
+
+        /// <summary>
+        /// RLE8 flag value marking end of a scan line
+        /// </summary>
+        private const int RleEndOfLine = 0x00;
+
+        /// <summary>
+        /// RLE8 flag value marking end of bitmap data
+        /// </summary>
+        private const int RleEndOfBitmap = 0x01;
+
+        /// <summary>
+        /// RLE8 flag value marking the start of [x,y] offset instruction
+        /// </summary>
+        private const int RleDelta = 0x02;
 
         /// <summary>
         /// The stream to decode from.
@@ -72,74 +95,16 @@ namespace ImageSharp.Formats
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.currentStream = stream;
-
             try
             {
-                this.ReadFileHeader();
-                this.ReadInfoHeader();
+                this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
-                // If the height is negative, then this is a Windows bitmap whose origin
-                // is the upper-left corner and not the lower-left.The inverted flag
-                // indicates a lower-left origin.Our code will be outputting an
-                // upper-left origin pixel array.
-                bool inverted = false;
-                if (this.infoHeader.Height < 0)
-                {
-                    inverted = true;
-                    this.infoHeader.Height = -this.infoHeader.Height;
-                }
-
-                int colorMapSize = -1;
-
-                if (this.infoHeader.ClrUsed == 0)
-                {
-                    if (this.infoHeader.BitsPerPixel == 1 ||
-                        this.infoHeader.BitsPerPixel == 4 ||
-                        this.infoHeader.BitsPerPixel == 8)
-                    {
-                        colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
-                    }
-                }
-                else
-                {
-                    colorMapSize = this.infoHeader.ClrUsed * 4;
-                }
-
-                byte[] palette = null;
-
-                if (colorMapSize > 0)
-                {
-                    // 256 * 4
-                    if (colorMapSize > 1024)
-                    {
-                        throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
-                    }
-
-                    palette = new byte[colorMapSize];
-
-                    this.currentStream.Read(palette, 0, colorMapSize);
-                }
-
-                if (this.infoHeader.Width > Image<TPixel>.MaxWidth || this.infoHeader.Height > Image<TPixel>.MaxHeight)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
-                        + $"bigger then the max allowed size '{Image<TPixel>.MaxWidth}x{Image<TPixel>.MaxHeight}'");
-                }
-
-                Image<TPixel> image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
                 using (PixelAccessor<TPixel> pixels = image.Lock())
                 {
                     switch (this.infoHeader.Compression)
                     {
                         case BmpCompression.RGB:
-                            if (this.infoHeader.HeaderSize != 40)
-                            {
-                                throw new ImageFormatException($"Header Size value '{this.infoHeader.HeaderSize}' is not valid.");
-                            }
-
                             if (this.infoHeader.BitsPerPixel == 32)
                             {
                                 this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
@@ -158,6 +123,10 @@ namespace ImageSharp.Formats
                             }
 
                             break;
+                        case BmpCompression.RLE8:
+                            this.ReadRle8(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
+
+                            break;
                         default:
                             throw new NotSupportedException("Does not support this kind of bitmap files.");
                     }
@@ -172,12 +141,23 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public IImageInfo Identify(Stream stream)
+        {
+            this.ReadImageHeaders(stream, out _, out _);
+            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, new ImageMetaData());
+        }
+
+        /// <summary>
         /// Returns the y- value based on the given height.
         /// </summary>
         /// <param name="y">The y- value representing the current row.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         /// <returns>The <see cref="int"/> representing the inverted value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Invert(int y, int height, bool inverted)
         {
             int row;
@@ -215,6 +195,127 @@ namespace ImageSharp.Formats
         }
 
         /// <summary>
+        /// Performs final shifting from a 5bit value to an 8bit one.
+        /// </summary>
+        /// <param name="value">The masked and shifted value</param>
+        /// <returns>The <see cref="byte"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte GetBytesFrom5BitValue(int value)
+        {
+            return (byte)((value << 3) | (value >> 2));
+        }
+
+        /// <summary>
+        /// Looks up color values and builds the image from de-compressed RLE8 data.
+        /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Span{byte})"/>
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
+        /// <param name="width">The width of the bitmap.</param>
+        /// <param name="height">The height of the bitmap.</param>
+        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        private void ReadRle8<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var color = default(TPixel);
+            var rgba = new Rgba32(0, 0, 0, 255);
+
+            using (var buffer = Buffer2D<byte>.CreateClean(width, height))
+            {
+                this.UncompressRle8(width, buffer);
+
+                for (int y = 0; y < height; y++)
+                {
+                    int newY = Invert(y, height, inverted);
+                    Span<byte> bufferRow = buffer.GetRowSpan(y);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[bufferRow[x] * 4]);
+                        color.PackFromRgba32(rgba);
+                        pixelRow[x] = color;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Produce uncompressed bitmap data from RLE8 stream
+        /// </summary>
+        /// <remarks>
+        /// RLE8 is a 2-byte run-length encoding
+        /// <br/>If first byte is 0, the second byte may have special meaning
+        /// <br/>Otherwise, first byte is the length of the run and second byte is the color for the run
+        /// </remarks>
+        /// <param name="w">The width of the bitmap.</param>
+        /// <param name="buffer">Buffer for uncompressed data.</param>
+        private void UncompressRle8(int w, Span<byte> buffer)
+        {
+            byte[] cmd = new byte[2];
+            int count = 0;
+
+            while (count < buffer.Length)
+            {
+                if (this.currentStream.Read(cmd, 0, cmd.Length) != 2)
+                {
+                    throw new Exception("Failed to read 2 bytes from stream");
+                }
+
+                if (cmd[0] == RleCommand)
+                {
+                    switch (cmd[1])
+                    {
+                        case RleEndOfBitmap:
+                            return;
+
+                        case RleEndOfLine:
+                            int extra = count % w;
+                            if (extra > 0)
+                            {
+                                count += w - extra;
+                            }
+
+                            break;
+
+                        case RleDelta:
+                            int dx = this.currentStream.ReadByte();
+                            int dy = this.currentStream.ReadByte();
+                            count += (w * dy) + dx;
+
+                            break;
+
+                        default:
+                            // If the second byte > 2, signals 'absolute mode'
+                            // Take this number of bytes from the stream as uncompressed data
+                            int length = cmd[1];
+                            int copyLength = length;
+
+                            // Absolute mode data is aligned to two-byte word-boundary
+                            length += length & 1;
+
+                            byte[] run = new byte[length];
+                            this.currentStream.Read(run, 0, run.Length);
+                            for (int i = 0; i < copyLength; i++)
+                            {
+                                buffer[count++] = run[i];
+                            }
+
+                            break;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < cmd[0]; i++)
+                    {
+                        buffer[count++] = cmd[1];
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Reads the color palette from the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -242,35 +343,36 @@ namespace ImageSharp.Formats
                 padding = 4 - padding;
             }
 
-            byte[] row = new byte[arrayWidth + padding];
-            TPixel color = default(TPixel);
-
-            Rgba32 rgba = default(Rgba32);
-
-            for (int y = 0; y < height; y++)
+            using (var row = Buffer<byte>.CreateClean(arrayWidth + padding))
             {
-                int newY = Invert(y, height, inverted);
-                this.currentStream.Read(row, 0, row.Length);
-                int offset = 0;
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                var color = default(TPixel);
+                var rgba = new Rgba32(0, 0, 0, 255);
 
-                // TODO: Could use PixelOperations here!
-                for (int x = 0; x < arrayWidth; x++)
+                for (int y = 0; y < height; y++)
                 {
-                    int colOffset = x * ppb;
+                    int newY = Invert(y, height, inverted);
+                    this.currentStream.Read(row.Array, 0, row.Length);
+                    int offset = 0;
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
-                    for (int shift = 0; shift < ppb && (x + shift) < width; shift++)
+                    // TODO: Could use PixelOperations here!
+                    for (int x = 0; x < arrayWidth; x++)
                     {
-                        int colorIndex = ((row[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
-                        int newX = colOffset + shift;
+                        int colOffset = x * ppb;
 
-                        // Stored in b-> g-> r order.
-                        rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[colorIndex]);
-                        color.PackFromRgba32(rgba);
-                        pixelRow[newX] = color;
+                        for (int shift = 0; shift < ppb && (x + shift) < width; shift++)
+                        {
+                            int colorIndex = ((row[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
+                            int newX = colOffset + shift;
+
+                            // Stored in b-> g-> r order.
+                            rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[colorIndex]);
+                            color.PackFromRgba32(rgba);
+                            pixelRow[newX] = color;
+                        }
+
+                        offset++;
                     }
-
-                    offset++;
                 }
             }
         }
@@ -286,36 +388,31 @@ namespace ImageSharp.Formats
         private void ReadRgb16<TPixel>(PixelAccessor<TPixel> pixels, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
-            // We divide here as we will store the colors in our floating point format.
-            const int ScaleR = 8; // 256/32
-            const int ScaleG = 4; // 256/64
-            const int ComponentCount = 2;
+            int padding = CalculatePadding(width, 2);
+            int stride = (width * 2) + padding;
+            var color = default(TPixel);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
-            TPixel color = default(TPixel);
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
-
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Xyz))
+            using (var buffer = new Buffer<byte>(stride))
             {
                 for (int y = 0; y < height; y++)
                 {
-                    row.Read(this.currentStream);
-
+                    this.currentStream.Read(buffer.Array, 0, stride);
                     int newY = Invert(y, height, inverted);
-
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
                     int offset = 0;
                     for (int x = 0; x < width; x++)
                     {
-                        short temp = BitConverter.ToInt16(row.Bytes, offset);
+                        short temp = BitConverter.ToInt16(buffer.Array, offset);
 
-                        rgba.R = (byte)(((temp & Rgb16RMask) >> 11) * ScaleR);
-                        rgba.G = (byte)(((temp & Rgb16GMask) >> 5) * ScaleG);
-                        rgba.B = (byte)((temp & Rgb16BMask) * ScaleR);
+                        rgba.R = GetBytesFrom5BitValue((temp & Rgb16RMask) >> 10);
+                        rgba.G = GetBytesFrom5BitValue((temp & Rgb16GMask) >> 5);
+                        rgba.B = GetBytesFrom5BitValue(temp & Rgb16BMask);
 
                         color.PackFromRgba32(rgba);
                         pixelRow[x] = color;
-                        offset += ComponentCount;
+                        offset += 2;
                     }
                 }
             }
@@ -333,7 +430,7 @@ namespace ImageSharp.Formats
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -357,7 +454,7 @@ namespace ImageSharp.Formats
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
+            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -374,11 +471,85 @@ namespace ImageSharp.Formats
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] data = new byte[BmpInfoHeader.Size];
+            byte[] data = new byte[BmpInfoHeader.MaxHeaderSize];
 
-            this.currentStream.Read(data, 0, BmpInfoHeader.Size);
+            // read header size
+            this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
+            int headerSize = BitConverter.ToInt32(data, 0);
+            if (headerSize < BmpInfoHeader.BitmapCoreHeaderSize)
+            {
+                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+            }
 
-            this.infoHeader = new BmpInfoHeader
+            int skipAmmount = 0;
+            if (headerSize > BmpInfoHeader.MaxHeaderSize)
+            {
+                skipAmmount = headerSize - BmpInfoHeader.MaxHeaderSize;
+                headerSize = BmpInfoHeader.MaxHeaderSize;
+            }
+
+            // read the rest of the header
+            this.currentStream.Read(data, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
+
+            switch (headerSize)
+            {
+                case BmpInfoHeader.BitmapCoreHeaderSize:
+                    this.infoHeader = this.ParseBitmapCoreHeader(data);
+                    break;
+                case BmpInfoHeader.BitmapInfoHeaderSize:
+                    this.infoHeader = this.ParseBitmapInfoHeader(data);
+                    break;
+                default:
+                    if (headerSize > BmpInfoHeader.BitmapInfoHeaderSize)
+                    {
+                        this.infoHeader = this.ParseBitmapInfoHeader(data);
+                        break;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                    }
+            }
+
+            // skip the remaining header because we can't read those parts
+            this.currentStream.Skip(skipAmmount);
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
+        {
+            return new BmpInfoHeader
+            {
+                HeaderSize = BitConverter.ToInt32(data, 0),
+                Width = BitConverter.ToUInt16(data, 4),
+                Height = BitConverter.ToUInt16(data, 6),
+                Planes = BitConverter.ToInt16(data, 8),
+                BitsPerPixel = BitConverter.ToInt16(data, 10),
+
+                // the rest is not present in the core header
+                ImageSize = 0,
+                XPelsPerMeter = 0,
+                YPelsPerMeter = 0,
+                ClrUsed = 0,
+                ClrImportant = 0,
+                Compression = BmpCompression.RGB
+            };
+        }
+
+        /// <summary>
+        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPINFOHEADER format.
+        /// </summary>
+        /// <param name="data">Header bytes read from the stream</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
+        {
+            return new BmpInfoHeader
             {
                 HeaderSize = BitConverter.ToInt32(data, 0),
                 Width = BitConverter.ToInt32(data, 4),
@@ -410,6 +581,74 @@ namespace ImageSharp.Formats
                 Reserved = BitConverter.ToInt32(data, 6),
                 Offset = BitConverter.ToInt32(data, 10)
             };
+        }
+
+        /// <summary>
+        /// Reads the <see cref="BmpFileHeader"/> and <see cref="BmpInfoHeader"/> from the stream and sets the corresponding fields.
+        /// </summary>
+        private void ReadImageHeaders(Stream stream, out bool inverted, out byte[] palette)
+        {
+            this.currentStream = stream;
+
+            try
+            {
+                this.ReadFileHeader();
+                this.ReadInfoHeader();
+
+                // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
+                // If the height is negative, then this is a Windows bitmap whose origin
+                // is the upper-left corner and not the lower-left.The inverted flag
+                // indicates a lower-left origin.Our code will be outputting an
+                // upper-left origin pixel array.
+                inverted = false;
+                if (this.infoHeader.Height < 0)
+                {
+                    inverted = true;
+                    this.infoHeader.Height = -this.infoHeader.Height;
+                }
+
+                int colorMapSize = -1;
+
+                if (this.infoHeader.ClrUsed == 0)
+                {
+                    if (this.infoHeader.BitsPerPixel == 1 ||
+                        this.infoHeader.BitsPerPixel == 4 ||
+                        this.infoHeader.BitsPerPixel == 8)
+                    {
+                        colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
+                    }
+                }
+                else
+                {
+                    colorMapSize = this.infoHeader.ClrUsed * 4;
+                }
+
+                palette = null;
+
+                if (colorMapSize > 0)
+                {
+                    // 256 * 4
+                    if (colorMapSize > 1024)
+                    {
+                        throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
+                    }
+
+                    palette = new byte[colorMapSize];
+
+                    this.currentStream.Read(palette, 0, colorMapSize);
+                }
+
+                if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
+                        + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
+                }
+            }
+            catch (IndexOutOfRangeException e)
+            {
+                throw new ImageFormatException("Bitmap does not have a valid format.", e);
+            }
         }
     }
 }

@@ -1,14 +1,12 @@
-﻿// <copyright file="EndianBinaryWriter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.IO
+using System;
+using System.IO;
+using System.Text;
+
+namespace SixLabors.ImageSharp.IO
 {
-    using System;
-    using System.IO;
-    using System.Text;
-
     /// <summary>
     /// Equivalent of <see cref="BinaryWriter"/>, but with either endianness, depending on
     /// the <see cref="EndianBitConverter"/> it is constructed with.

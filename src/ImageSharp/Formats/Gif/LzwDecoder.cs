@@ -1,14 +1,12 @@
-﻿// <copyright file="LzwDecoder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Buffers;
+using System.IO;
+
+namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-
     /// <summary>
     /// Decompresses and decodes data using the dynamic LZW algorithms.
     /// </summary>
@@ -85,7 +83,7 @@ namespace ImageSharp.Formats
         /// <param name="height">The height of the pixel index array.</param>
         /// <param name="dataSize">Size of the data.</param>
         /// <param name="pixels">The pixel array to decode to.</param>
-        public void DecodePixels(int width, int height, int dataSize, byte[] pixels)
+        public void DecodePixels(int width, int height, int dataSize, Span<byte> pixels)
         {
             Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
 

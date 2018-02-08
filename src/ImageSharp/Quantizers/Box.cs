@@ -1,15 +1,12 @@
-﻿// <copyright file="Box.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Quantizers
+namespace SixLabors.ImageSharp.Quantizers
 {
     /// <summary>
     /// Represents a box color cube.
-    /// TODO: This should be a struct for performance
     /// </summary>
-    internal sealed class Box
+    internal struct Box
     {
         /// <summary>
         /// Gets or sets the min red value, exclusive.

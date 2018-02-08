@@ -1,18 +1,19 @@
-﻿// <copyright file="ResizeProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// </summary>
@@ -45,12 +46,30 @@ namespace ImageSharp.Processing.Processors
         {
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to compress or expand individual pixel color values on processing.
+        /// </summary>
+        public bool Compand { get; set; }
+
         /// <inheritdoc/>
-        protected override unsafe void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
+        {
+            // We will always be creating the clone even for mutate because we may need to resize the canvas
+            IEnumerable<ImageFrame<TPixel>> frames =
+                source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone()));
+
+            // Use the overload to prevent an extra frame being added
+            return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
+        }
+
+        /// <inheritdoc/>
+        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
         {
             // Jump out, we'll deal with that later.
-            if (source.Width == this.Width && source.Height == this.Height && sourceRectangle == this.ResizeRectangle)
+            if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
             {
+                // the cloned will be blank here copy all the pixel data over
+                source.GetPixelSpan().CopyTo(cloned.GetPixelSpan());
                 return;
             }
 
@@ -74,113 +93,122 @@ namespace ImageSharp.Processing.Processors
                 float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
-                using (var targetPixels = new PixelAccessor<TPixel>(width, height))
-                {
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    minY,
+                    maxY,
+                    configuration.ParallelOptions,
+                    y =>
+                    {
+                        // Y coordinates of source points
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
+                        Span<TPixel> targetRow = cloned.GetPixelRowSpan(y);
+
+                        for (int x = minX; x < maxX; x++)
                         {
-                            // Y coordinates of source points
-                            Span<TPixel> sourceRow = source.GetRowSpan((int)(((y - startY) * heightFactor) + sourceY));
-                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
+                            // X coordinates of source points
+                            targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
+                        }
+                    });
 
-                            for (int x = minX; x < maxX; x++)
-                            {
-                                // X coordinates of source points
-                                targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
-                            }
-                        });
-
-                    // Break out now.
-                    source.SwapPixelsBuffers(targetPixels);
-                    return;
-                }
+                return;
             }
 
             // Interpolate the image using the calculated weights.
             // A 2-pass 1D algorithm appears to be faster than splitting a 1-pass 2D algorithm
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
-
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (var firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
             {
-                using (var firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
-                {
-                    firstPassPixels.Clear();
+                firstPassPixels.Clear();
 
-                    Parallel.For(
-                        0,
-                        sourceRectangle.Bottom,
-                        this.ParallelOptions,
-                        y =>
-                            {
-                                // TODO: Without Parallel.For() this buffer object could be reused:
-                                using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
-                                {
-                                    Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
-                                    Span<TPixel> sourceRow = source.GetRowSpan(y);
-                                    PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
-
-                                    if (this.Compand)
-                                    {
-                                        for (int x = minX; x < maxX; x++)
-                                        {
-                                            WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for (int x = minX; x < maxX; x++)
-                                        {
-                                            WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                            firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
-                                        }
-                                    }
-                                }
-                            });
-
-                    // Now process the rows.
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        this.ParallelOptions,
-                        y =>
+                Parallel.For(
+                    0,
+                    sourceRectangle.Bottom,
+                    configuration.ParallelOptions,
+                    y =>
                         {
-                            // Ensure offsets are normalised for cropping and padding.
-                            WeightsWindow window = this.VerticalWeights.Weights[y - startY];
-                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                            if (this.Compand)
+                            // TODO: Without Parallel.For() this buffer object could be reused:
+                            using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
                             {
-                                for (int x = 0; x < width; x++)
-                                {
-                                    // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
-                                    destination = destination.Compress();
+                                Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
+                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                                PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
 
-                                    ref TPixel pixel = ref targetRow[x];
-                                    pixel.PackFromVector4(destination);
+                                if (this.Compand)
+                                {
+                                    for (int x = minX; x < maxX; x++)
+                                    {
+                                        WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                        firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                for (int x = 0; x < width; x++)
+                                else
                                 {
-                                    // Destination color components
-                                    Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
-
-                                    ref TPixel pixel = ref targetRow[x];
-                                    pixel.PackFromVector4(destination);
+                                    for (int x = minX; x < maxX; x++)
+                                    {
+                                        WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                        firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
+                                    }
                                 }
                             }
                         });
-                }
 
-                source.SwapPixelsBuffers(targetPixels);
+                // Now process the rows.
+                Parallel.For(
+                    minY,
+                    maxY,
+                    configuration.ParallelOptions,
+                    y =>
+                    {
+                        // Ensure offsets are normalised for cropping and padding.
+                        WeightsWindow window = this.VerticalWeights.Weights[y - startY];
+                        Span<TPixel> targetRow = cloned.GetPixelRowSpan(y);
+
+                        if (this.Compand)
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                // Destination color components
+                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
+                                destination = destination.Compress();
+
+                                ref TPixel pixel = ref targetRow[x];
+                                pixel.PackFromVector4(destination);
+                            }
+                        }
+                        else
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                // Destination color components
+                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
+
+                                ref TPixel pixel = ref targetRow[x];
+                                pixel.PackFromVector4(destination);
+                            }
+                        }
+                    });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
+        {
+            ExifProfile profile = destination.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            if (profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
+            }
+
+            if (profile.GetValue(ExifTag.PixelYDimension) != null)
+            {
+                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
             }
         }
     }

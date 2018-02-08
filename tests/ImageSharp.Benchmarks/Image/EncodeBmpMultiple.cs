@@ -3,16 +3,17 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System.Collections.Generic;
     using System.Drawing.Imaging;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Bmp;
 
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class EncodeBmpMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Bmp/", "Jpg/baseline" };

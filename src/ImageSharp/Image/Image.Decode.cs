@@ -1,16 +1,14 @@
-﻿// <copyright file="Image.Decode.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System.IO;
-    using System.Linq;
-    using Formats;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <content>
     /// Adds static methods allowing the decoding of new images.
     /// </content>
@@ -80,6 +78,20 @@ namespace ImageSharp
 
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
             return (img, format);
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="config">the configuration.</param>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        private static IImageInfo InternalIdentity(Stream stream, Configuration config)
+        {
+            var detector = DiscoverDecoder(stream, config, out IImageFormat _) as IImageInfoDetector;
+            return detector?.Identify(config, stream);
         }
     }
 }

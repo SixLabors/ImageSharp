@@ -2,7 +2,7 @@
 // Copyright (c) James Jackson-South and contributors.
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
-namespace ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System;
     using System.Runtime.CompilerServices;
@@ -10,7 +10,7 @@ namespace ImageSharp.Benchmarks.General
 
     using BenchmarkDotNet.Attributes;
     
-    [Config(typeof(Config.Short))]
+    [Config(typeof(Config.ShortClr))]
     public class ArrayCopy
     {
         [Params(10, 100, 1000, 10000)]

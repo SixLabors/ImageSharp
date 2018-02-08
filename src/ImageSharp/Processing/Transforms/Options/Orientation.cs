@@ -1,9 +1,7 @@
-﻿// <copyright file="Orientation.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// Enumerates the available orientation values supplied by EXIF metadata.

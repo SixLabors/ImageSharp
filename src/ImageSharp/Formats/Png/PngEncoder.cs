@@ -1,16 +1,12 @@
-﻿// <copyright file="PngEncoder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.IO;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers;
+
+namespace SixLabors.ImageSharp.Formats.Png
 {
-    using System.Collections.Generic;
-    using System.IO;
-
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Quantizers;
-
     /// <summary>
     /// Image encoder for writing image data to a stream in png format.
     /// </summary>
@@ -22,7 +18,7 @@ namespace ImageSharp.Formats
         public bool IgnoreMetadata { get; set; }
 
         /// <summary>
-        /// Gets or sets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
+        /// Gets or sets the size of the color palette to use. Set to zero to leave png encoding to use pixel data.
         /// </summary>
         public int PaletteSize { get; set; } = 0;
 

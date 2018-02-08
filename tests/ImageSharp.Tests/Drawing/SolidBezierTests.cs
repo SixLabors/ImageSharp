@@ -1,25 +1,20 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System.IO;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
-    using SixLabors.Shapes;
-
-    using Xunit;
-
     public class SolidBezierTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledBezier");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledBezier");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
@@ -28,10 +23,10 @@ namespace ImageSharp.Tests.Drawing
             };
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(Rgba32.HotPink, new Polygon(new CubicBezierLineSegment(simplePath)))
-                         .Save($"{path}/Simple.png");
+                image.Mutate(x => x
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(Rgba32.HotPink, new Polygon(new CubicBezierLineSegment(simplePath))));
+                image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -49,7 +44,7 @@ namespace ImageSharp.Tests.Drawing
         [Fact]
         public void ImageShouldBeOverlayedByFilledPolygonOpacity()
         {
-            string path = this.CreateOutputDirectory("Drawing", "FilledBezier");
+            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledBezier");
             SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
@@ -60,10 +55,10 @@ namespace ImageSharp.Tests.Drawing
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {
-                    image
-                        .BackgroundColor(Rgba32.Blue)
-                        .Fill(color, new Polygon(new CubicBezierLineSegment(simplePath)))
-                        .Save($"{path}/Opacity.png");
+                image.Mutate(x => x
+                    .BackgroundColor(Rgba32.Blue)
+                    .Fill(color, new Polygon(new CubicBezierLineSegment(simplePath))));
+                image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));

@@ -1,9 +1,7 @@
-﻿// <copyright file="IccDataType.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Enumerates the basic data types as defined in ICC.1:2010 version 4.3.0.0

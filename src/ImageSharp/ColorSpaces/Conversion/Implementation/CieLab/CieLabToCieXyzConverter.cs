@@ -1,14 +1,11 @@
-﻿// <copyright file="CieLabToCieXyzConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLab
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColorSapce
 {
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieXyz"/>.
     /// </summary>

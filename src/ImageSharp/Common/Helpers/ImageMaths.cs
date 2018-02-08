@@ -1,18 +1,15 @@
-﻿// <copyright file="ImageMaths.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Linq;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides common mathematical methods.
     /// </summary>
@@ -65,6 +62,27 @@ namespace ImageSharp
             float right = MathF.Exp(exponentNumerator / exponentDenominator);
 
             return left * right;
+        }
+
+        /// <summary>
+        /// Returns the result of a normalized sine cardinal function for the given value.
+        /// SinC(x) = sin(pi*x)/(pi*x).
+        /// </summary>
+        /// <param name="f">A single-precision floating-point number to calculate the result for.</param>
+        /// <returns>
+        /// The sine cardinal of <paramref name="f" />.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float SinC(float f)
+        {
+            if (MathF.Abs(f) > Constants.Epsilon)
+            {
+                f *= MathF.PI;
+                float result = MathF.Sin(f) / f;
+                return MathF.Abs(result) < Constants.Epsilon ? 0F : result;
+            }
+
+            return 1F;
         }
 
         /// <summary>
@@ -122,27 +140,6 @@ namespace ImageSharp
         }
 
         /// <summary>
-        /// Gets the bounding <see cref="Rectangle"/> from the given matrix.
-        /// </summary>
-        /// <param name="rectangle">The source rectangle.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        public static Rectangle GetBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
-        {
-            Vector2 leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
-            Vector2 rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
-            Vector2 leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
-            Vector2 rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
-
-            Vector2[] allCorners = { leftTop, rightTop, leftBottom, rightBottom };
-            float extentX = allCorners.Select(v => v.X).Max() - allCorners.Select(v => v.X).Min();
-            float extentY = allCorners.Select(v => v.Y).Max() - allCorners.Select(v => v.Y).Min();
-            return new Rectangle(0, 0, (int)extentX, (int)extentY);
-        }
-
-        /// <summary>
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>
@@ -153,7 +150,7 @@ namespace ImageSharp
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
-        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageBase<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
+        public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageFrame<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
             where TPixel : struct, IPixel<TPixel>
         {
             int width = bitmap.Width;
@@ -161,7 +158,7 @@ namespace ImageSharp
             var topLeft = default(Point);
             var bottomRight = default(Point);
 
-            Func<ImageBase<TPixel>, int, int, float, bool> delegateFunc;
+            Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc;
 
             // Determine which channel to check against
             switch (channel)
@@ -183,7 +180,7 @@ namespace ImageSharp
                     break;
             }
 
-            int GetMinY(ImageBase<TPixel> pixels)
+            int GetMinY(ImageFrame<TPixel> pixels)
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -199,7 +196,7 @@ namespace ImageSharp
                 return 0;
             }
 
-            int GetMaxY(ImageBase<TPixel> pixels)
+            int GetMaxY(ImageFrame<TPixel> pixels)
             {
                 for (int y = height - 1; y > -1; y--)
                 {
@@ -215,7 +212,7 @@ namespace ImageSharp
                 return height;
             }
 
-            int GetMinX(ImageBase<TPixel> pixels)
+            int GetMinX(ImageFrame<TPixel> pixels)
             {
                 for (int x = 0; x < width; x++)
                 {
@@ -231,7 +228,7 @@ namespace ImageSharp
                 return 0;
             }
 
-            int GetMaxX(ImageBase<TPixel> pixels)
+            int GetMaxX(ImageFrame<TPixel> pixels)
             {
                 for (int x = width - 1; x > -1; x--)
                 {

@@ -1,22 +1,19 @@
-﻿// <copyright file="ResamplingWeightedProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
     /// Adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract partial class ResamplingWeightedProcessor<TPixel> : ImageProcessor<TPixel>
+    internal abstract class ResamplingWeightedProcessor<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -46,19 +43,19 @@ namespace ImageSharp.Processing.Processors
         public IResampler Sampler { get; }
 
         /// <summary>
-        /// Gets the width.
+        /// Gets or sets the width.
         /// </summary>
-        public int Width { get; }
+        public int Width { get; protected set; }
 
         /// <summary>
-        /// Gets the height.
+        /// Gets or sets the height.
         /// </summary>
-        public int Height { get; }
+        public int Height { get; protected set; }
 
         /// <summary>
-        /// Gets the resize rectangle.
+        /// Gets or sets the resize rectangle.
         /// </summary>
-        public Rectangle ResizeRectangle { get; }
+        public Rectangle ResizeRectangle { get; protected set; }
 
         /// <summary>
         /// Gets or sets the horizontal weights.
@@ -140,7 +137,7 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
@@ -155,9 +152,9 @@ namespace ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc />
-        protected override void AfterApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void AfterApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
-            base.AfterApply(source, sourceRectangle);
+            base.AfterApply(source, destination, sourceRectangle, configuration);
             this.HorizontalWeights?.Dispose();
             this.HorizontalWeights = null;
             this.VerticalWeights?.Dispose();

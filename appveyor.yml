@@ -4,25 +4,27 @@ image: Visual Studio 2017
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
 
-init:
-  - ps: iex ((new-object net.webclient).DownloadString('https://gist.githubusercontent.com/PureKrome/0f79e25693d574807939/raw/8cf3160c9516ef1f4effc825c0a44acc918a0b5a/appveyor-build-info.ps'))
-
+before_build:
+  - git submodule -q update --init
+  - cmd: dotnet --version
+  
 build_script:
 - cmd: build.cmd
 
 test_script:
 - tests\CodeCoverage\CodeCoverage.cmd
 
-artifacts:
-- path: artifacts\bin\ImageSharp\**\*.nupkg
+after_test:
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%APPVEYOR_BUILD_VERSION%.nupkg"
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.Drawing.%APPVEYOR_BUILD_VERSION%.nupkg"
 
 deploy:
     # MyGet Deployment for builds & releases
- - provider: NuGet
-   server: https://www.myget.org/F/imagesharp/api/v2/package
-   symbol_server: https://www.myget.org/F/imagesharp/symbols/api/v2/package
-   api_key:
-     secure: fz0rUrt3B1HczUC1ZehwVsrFSWX9WZGDQoueDztLte9/+yQG+BBU7UrO+coE8lUf
-   artifact: /.*\.nupkg/
-   on:
-     branch: master
+  - provider: NuGet
+    server: https://www.myget.org/F/sixlabors/api/v2/package
+    symbol_server: https://www.myget.org/F/sixlabors/symbols/api/v2/package
+    api_key:
+      secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
+    artifact: /.*\.nupkg/
+    on:
+      branch: master

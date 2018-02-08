@@ -1,23 +1,22 @@
-﻿// <copyright file="JpegEncoderTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using ImageSharp.Formats;
-using Xunit;
-using Xunit.Abstractions;
+
+
 // ReSharper disable InconsistentNaming
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using ImageSharp.Formats.Jpg;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Processing;
+    using System.Collections.Generic;
+    using System.IO;
+
+    using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.Primitives;
+
+    using Xunit;
+    using Xunit.Abstractions;
 
     public class JpegEncoderTests : MeasureFixture
     {
@@ -36,8 +35,9 @@ namespace ImageSharp.Tests
         public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage().Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max }))
+            using (Image<TPixel> image = provider.GetImage(x => x.Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max })))
             {
+
                 image.MetaData.ExifProfile = null; // Reduce the size of the file
                 JpegEncoder options = new JpegEncoder { Subsample = subsample, Quality = quality };
 
@@ -62,8 +62,8 @@ namespace ImageSharp.Tests
                 {
                     image.Save(outputStream, new JpegEncoder()
                     {
-                      Subsample = subSample,
-                      Quality = quality
+                        Subsample = subSample,
+                        Quality = quality
                     });
                 }
             }
@@ -83,7 +83,7 @@ namespace ImageSharp.Tests
             {
                 using (MemoryStream memStream = new MemoryStream())
                 {
-                    input.Save(memStream,  options);
+                    input.Save(memStream, options);
 
                     memStream.Position = 0;
                     using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
@@ -116,6 +116,52 @@ namespace ImageSharp.Tests
                         Assert.Null(output.MetaData.ExifProfile);
                     }
                 }
+            }
+        }
+
+        [Fact]
+        public void Encode_Quality_0_And_1_Are_Identical()
+        {
+            var options = new JpegEncoder
+            {
+                Quality = 0
+            };
+
+            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
+
+            using (Image<Rgba32> input = testFile.CreateImage())
+            using (var memStream0 = new MemoryStream())
+            using (var memStream1 = new MemoryStream())
+            {
+                input.SaveAsJpeg(memStream0, options);
+
+                options.Quality = 1;
+                input.SaveAsJpeg(memStream1, options);
+
+                Assert.Equal(memStream0.ToArray(), memStream1.ToArray());
+            }
+        }
+
+        [Fact]
+        public void Encode_Quality_0_And_100_Are_Not_Identical()
+        {
+            var options = new JpegEncoder
+            {
+                Quality = 0
+            };
+
+            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora);
+
+            using (Image<Rgba32> input = testFile.CreateImage())
+            using (var memStream0 = new MemoryStream())
+            using (var memStream1 = new MemoryStream())
+            {
+                input.SaveAsJpeg(memStream0, options);
+
+                options.Quality = 100;
+                input.SaveAsJpeg(memStream1, options);
+
+                Assert.NotEqual(memStream0.ToArray(), memStream1.ToArray());
             }
         }
     }

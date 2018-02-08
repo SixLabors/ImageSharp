@@ -1,9 +1,12 @@
-﻿namespace ImageSharp.Tests
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Numerics;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+
+namespace SixLabors.ImageSharp.Tests
+{
     /// <summary>
     /// Allows the comparison of single-precision floating point values by precision.
     /// </summary>

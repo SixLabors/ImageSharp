@@ -1,19 +1,16 @@
-﻿// <copyright file="PixelAccessorTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
+using Moq;
+using Xunit;
+using SixLabors.ImageSharp.Advanced;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Formats;
-    using ImageSharp.IO;
-    using ImageSharp.PixelFormats;
-    using Moq;
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
@@ -44,7 +41,8 @@ namespace ImageSharp.Tests
 
             this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
 
-                .Callback<Configuration, Stream>((c, s) => {
+                .Callback<Configuration, Stream>((c, s) =>
+                {
                     using (var ms = new MemoryStream())
                     {
                         s.CopyTo(ms);
@@ -55,28 +53,28 @@ namespace ImageSharp.Tests
 
             this.fileSystem = new Mock<IFileSystem>();
 
-            this.LocalConfiguration = new Configuration()
+            this.LocalConfiguration = new Configuration
             {
                 FileSystem = this.fileSystem.Object
             };
             this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
             this.LocalConfiguration.SetDecoder(localImageFormatMock.Object, this.localDecoder.Object);
 
-            TestFormat.RegisterGloablTestFormat();
+            TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
             this.DataStream = TestFormat.GlobalTestFormat.CreateStream(this.Marker);
 
             this.FilePath = Guid.NewGuid().ToString();
             this.fileSystem.Setup(x => x.OpenRead(this.FilePath)).Returns(this.DataStream);
 
-            TestFileSystem.RegisterGloablTestFormat();
+            TestFileSystem.RegisterGlobalTestFormat();
             TestFileSystem.Global.AddFile(this.FilePath, this.DataStream);
         }
 
         [Fact]
         public void LoadFromStream()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
 
             Assert.NotNull(img);
 
@@ -87,12 +85,11 @@ namespace ImageSharp.Tests
         public void LoadFromNoneSeekableStream()
         {
             NoneSeekableStream stream = new NoneSeekableStream(this.DataStream);
-             Image<Rgba32> img = Image.Load<Rgba32>(stream);
+            Image<Rgba32> img = Image.Load<Rgba32>(stream);
 
             Assert.NotNull(img);
 
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]
@@ -104,20 +101,18 @@ namespace ImageSharp.Tests
             Assert.Equal(TestFormat.GlobalTestFormat.Sample<Rgba32>(), img);
 
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
-        
+
 
         [Fact]
         public void LoadFromStreamWithConfig()
         {
             Stream stream = new MemoryStream();
-             Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, stream);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, stream);
 
             Assert.NotNull(img);
 
             this.localDecoder.Verify(x => x.Decode<Rgba32>(this.LocalConfiguration, stream));
-
         }
 
         [Fact]
@@ -130,7 +125,6 @@ namespace ImageSharp.Tests
             Assert.Equal(this.returnImage, img);
 
             this.localDecoder.Verify(x => x.Decode<Rgba32>(this.LocalConfiguration, stream));
-
         }
 
 
@@ -138,7 +132,7 @@ namespace ImageSharp.Tests
         public void LoadFromStreamWithDecoder()
         {
             Stream stream = new MemoryStream();
-             Image<Rgba32> img = Image.Load<Rgba32>(stream, this.localDecoder.Object);
+            Image<Rgba32> img = Image.Load<Rgba32>(stream, this.localDecoder.Object);
 
             Assert.NotNull(img);
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, stream));
@@ -158,13 +152,11 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytes()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray());
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray());
 
             Assert.NotNull(img);
 
-
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]
@@ -182,7 +174,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithConfig()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.DataStream.ToArray());
+            Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.DataStream.ToArray());
 
             Assert.NotNull(img);
 
@@ -207,7 +199,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromBytesWithDecoder()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray(), this.localDecoder.Object);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream.ToArray(), this.localDecoder.Object);
 
             Assert.NotNull(img);
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, It.IsAny<Stream>()));
@@ -228,13 +220,11 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFile()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.DataStream);
 
             Assert.NotNull(img);
 
-
             TestFormat.GlobalTestFormat.VerifyDecodeCall(this.Marker, Configuration.Default);
-
         }
 
         [Fact]
@@ -251,12 +241,11 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithConfig()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.FilePath);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.LocalConfiguration, this.FilePath);
 
             Assert.NotNull(img);
 
             this.localDecoder.Verify(x => x.Decode<Rgba32>(this.LocalConfiguration, this.DataStream));
-
         }
 
         [Fact]
@@ -273,7 +262,7 @@ namespace ImageSharp.Tests
         [Fact]
         public void LoadFromFileWithDecoder()
         {
-             Image<Rgba32> img = Image.Load<Rgba32>(this.FilePath, this.localDecoder.Object);
+            Image<Rgba32> img = Image.Load<Rgba32>(this.FilePath, this.localDecoder.Object);
 
             Assert.NotNull(img);
             this.localDecoder.Verify(x => x.Decode<Rgba32>(Configuration.Default, this.DataStream));
@@ -305,7 +294,6 @@ namespace ImageSharp.Tests
 
                 Assert.Equal(Rgba32.White, px[1, 0]);
                 Assert.Equal(Rgba32.Black, px[1, 1]);
-
             }
         }
 
@@ -327,7 +315,18 @@ namespace ImageSharp.Tests
 
                 Assert.Equal(Rgba32.White, px[1, 0]);
                 Assert.Equal(Rgba32.Black, px[1, 1]);
+            }
+        }
 
+
+        [Fact]
+        public void LoadsImageWithoutThrowingCrcException()
+        {
+            var image1Provider = TestImageProvider<Rgba32>.File(TestImages.Png.VersioningImage1);
+
+            using (Image<Rgba32> img = image1Provider.GetImage())
+            {
+                Assert.Equal(166036, img.Frames.RootFrame.GetPixelSpan().Length);
             }
         }
 

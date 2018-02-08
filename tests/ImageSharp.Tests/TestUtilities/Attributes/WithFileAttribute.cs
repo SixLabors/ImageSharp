@@ -1,13 +1,11 @@
-﻿// <copyright file="WithFileAttribute.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Reflection;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Reflection;
-
     /// <summary>
     /// Triggers passing <see cref="TestImageProvider{TPixel}"/> instances which read an image from the given file
     /// One <see cref="TestImageProvider{TPixel}"/> instance will be passed for each the pixel format defined by the pixelTypes parameter

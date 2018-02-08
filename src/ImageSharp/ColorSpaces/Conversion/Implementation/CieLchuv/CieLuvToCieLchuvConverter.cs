@@ -1,14 +1,12 @@
-﻿// <copyright file="CieLuvToCieLchuvConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv
+using System;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce
 {
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieLch"/>.
     /// </summary>
@@ -25,7 +23,7 @@ namespace ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuv
             float l = input.L, a = input.U, b = input.V;
             float c = MathF.Sqrt((a * a) + (b * b));
             float hRadians = MathF.Atan2(b, a);
-            float hDegrees = MathF.RadianToDegree(hRadians);
+            float hDegrees = MathFExtensions.RadianToDegree(hRadians);
 
             // Wrap the angle round at 360.
             hDegrees = hDegrees % 360;

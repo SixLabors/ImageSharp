@@ -1,17 +1,18 @@
-﻿// <copyright file="ImageMetaData.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.MetaData
 {
-    using System.Collections.Generic;
-    using ImageSharp.Formats;
-
     /// <summary>
     /// Encapsulates the metadata of an image.
     /// </summary>
-    public sealed class ImageMetaData : IMetaData
+    public sealed class ImageMetaData
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
@@ -50,8 +51,6 @@ namespace ImageSharp
 
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
-            this.FrameDelay = other.FrameDelay;
-            this.DisposalMethod = other.DisposalMethod;
             this.RepeatCount = other.RepeatCount;
 
             foreach (ImageProperty property in other.Properties)
@@ -114,12 +113,6 @@ namespace ImageSharp
         /// </summary>
         public IccProfile IccProfile { get; set; }
 
-        /// <inheritdoc/>
-        public int FrameDelay { get; set; }
-
-        /// <inheritdoc/>
-        public DisposalMethod DisposalMethod { get; set; }
-
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
         /// </summary>
@@ -131,6 +124,15 @@ namespace ImageSharp
         /// <remarks>0 means to repeat indefinitely.</remarks>
         /// </summary>
         public ushort RepeatCount { get; set; }
+
+        /// <summary>
+        /// Clones this into a new instance
+        /// </summary>
+        /// <returns>The cloned metadata instance</returns>
+        public ImageMetaData Clone()
+        {
+            return new ImageMetaData(this);
+        }
 
         /// <summary>
         /// Synchronizes the profiles with the current meta data.

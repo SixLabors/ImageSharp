@@ -1,15 +1,13 @@
-﻿// <copyright file="BrushApplicator.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing.Processors
+using System;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
 {
-    using System;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// primitive that converts a point in to a color for discovering the fill color based on an implementation
     /// </summary>
@@ -23,7 +21,7 @@ namespace ImageSharp.Drawing.Processors
         /// </summary>
         /// <param name="target">The target.</param>
         /// <param name="options">The options.</param>
-        internal BrushApplicator(ImageBase<TPixel> target, GraphicsOptions options)
+        internal BrushApplicator(ImageFrame<TPixel> target, GraphicsOptions options)
         {
             this.Target = target;
 
@@ -40,7 +38,7 @@ namespace ImageSharp.Drawing.Processors
         /// <summary>
         /// Gets the destinaion
         /// </summary>
-        protected ImageBase<TPixel> Target { get; }
+        protected ImageFrame<TPixel> Target { get; }
 
         /// <summary>
         /// Gets the blend percentage
@@ -80,7 +78,7 @@ namespace ImageSharp.Drawing.Processors
                     overlay[i] = this[x + i, y];
                 }
 
-                Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                 this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
             }
         }

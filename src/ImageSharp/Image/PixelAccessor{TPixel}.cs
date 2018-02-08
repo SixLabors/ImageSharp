@@ -1,18 +1,15 @@
-﻿// <copyright file="PixelAccessor{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Diagnostics;
-    using System.Runtime.CompilerServices;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Provides per-pixel access to generic <see cref="Image{TPixel}"/> pixels.
     /// </summary>
@@ -25,6 +22,7 @@ namespace ImageSharp
         /// The <see cref="Buffer{T}"/> containing the pixel data.
         /// </summary>
         internal Buffer2D<TPixel> PixelBuffer;
+        private bool ownedBuffer;
 #pragma warning restore SA1401 // Fields must be private
 
         /// <summary>
@@ -42,14 +40,13 @@ namespace ImageSharp
         /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to provide pixel access for.</param>
-        public PixelAccessor(ImageBase<TPixel> image)
+        public PixelAccessor(IPixelSource<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
-            Guard.MustBeGreaterThan(image.Width, 0, "image width");
-            Guard.MustBeGreaterThan(image.Height, 0, "image height");
+            Guard.MustBeGreaterThan(image.PixelBuffer.Width, 0, "image width");
+            Guard.MustBeGreaterThan(image.PixelBuffer.Height, 0, "image height");
 
-            this.SetPixelBufferUnsafe(image.Width, image.Height, image.PixelBuffer);
-            this.ParallelOptions = image.Configuration.ParallelOptions;
+            this.SetPixelBufferUnsafe(image.PixelBuffer, false);
         }
 
         /// <summary>
@@ -58,7 +55,7 @@ namespace ImageSharp
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         public PixelAccessor(int width, int height)
-            : this(width, height, Buffer2D<TPixel>.CreateClean(width, height))
+            : this(width, height, Buffer2D<TPixel>.CreateClean(width, height), true)
         {
         }
 
@@ -68,15 +65,14 @@ namespace ImageSharp
         /// <param name="width">The width of the image represented by the pixel buffer.</param>
         /// <param name="height">The height of the image represented by the pixel buffer.</param>
         /// <param name="pixels">The pixel buffer.</param>
-        private PixelAccessor(int width, int height, Buffer2D<TPixel> pixels)
+        /// <param name="ownedBuffer">if set to <c>true</c> [owned buffer].</param>
+        private PixelAccessor(int width, int height, Buffer2D<TPixel> pixels, bool ownedBuffer)
         {
             Guard.NotNull(pixels, nameof(pixels));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.SetPixelBufferUnsafe(width, height, pixels);
-
-            this.ParallelOptions = Configuration.Default.ParallelOptions;
+            this.SetPixelBufferUnsafe(pixels, ownedBuffer);
         }
 
         /// <summary>
@@ -102,20 +98,11 @@ namespace ImageSharp
         /// </summary>
         public int RowStride { get; private set; }
 
-        /// <summary>
-        /// Gets the width of the image.
-        /// </summary>
+        /// <inheritdoc />
         public int Width { get; private set; }
 
-        /// <summary>
-        /// Gets the height of the image.
-        /// </summary>
+        /// <inheritdoc />
         public int Height { get; private set; }
-
-        /// <summary>
-        /// Gets the global parallel options for processing tasks in parallel.
-        /// </summary>
-        public ParallelOptions ParallelOptions { get; }
 
         /// <inheritdoc />
         Span<TPixel> IBuffer2D<TPixel>.Span => this.PixelBuffer;
@@ -145,12 +132,10 @@ namespace ImageSharp
             }
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
-            if (this.isDisposed)
+            if (this.isDisposed || !this.ownedBuffer)
             {
                 return;
             }
@@ -238,15 +223,13 @@ namespace ImageSharp
         /// <summary>
         /// Sets the pixel buffer in an unsafe manner. This should not be used unless you know what its doing!!!
         /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
         /// <param name="pixels">The pixels.</param>
         /// <returns>Returns the old pixel data thats has gust been replaced.</returns>
         /// <remarks>If <see cref="M:PixelAccessor.PooledMemory"/> is true then caller is responsible for ensuring <see cref="M:PixelDataPool.Return()"/> is called.</remarks>
-        internal TPixel[] ReturnCurrentColorsAndReplaceThemInternally(int width, int height, TPixel[] pixels)
+        internal Buffer2D<TPixel> SwapBufferOwnership(Buffer2D<TPixel> pixels)
         {
-            TPixel[] oldPixels = this.PixelBuffer.TakeArrayOwnership();
-            this.SetPixelBufferUnsafe(width, height, pixels);
+            Buffer2D<TPixel> oldPixels = this.PixelBuffer;
+            this.SetPixelBufferUnsafe(pixels, this.ownedBuffer);
             return oldPixels;
         }
 
@@ -414,23 +397,18 @@ namespace ImageSharp
             }
         }
 
-        private void SetPixelBufferUnsafe(int width, int height, TPixel[] pixels)
-        {
-            this.SetPixelBufferUnsafe(width, height, new Buffer2D<TPixel>(pixels, width, height));
-        }
-
         /// <summary>
         /// Sets the pixel buffer in an unsafe manor this should not be used unless you know what its doing!!!
         /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
         /// <param name="pixels">The pixel buffer</param>
-        private void SetPixelBufferUnsafe(int width, int height, Buffer2D<TPixel> pixels)
+        /// <param name="ownedBuffer">if set to <c>true</c> then this instance ownes the buffer and thus should dispose of it afterwards.</param>
+        private void SetPixelBufferUnsafe(Buffer2D<TPixel> pixels, bool ownedBuffer)
         {
             this.PixelBuffer = pixels;
+            this.ownedBuffer = ownedBuffer;
 
-            this.Width = width;
-            this.Height = height;
+            this.Width = pixels.Width;
+            this.Height = pixels.Height;
             this.PixelSize = Unsafe.SizeOf<TPixel>();
             this.RowStride = this.Width * this.PixelSize;
         }

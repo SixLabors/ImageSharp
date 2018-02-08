@@ -1,9 +1,7 @@
-﻿// <copyright file="GifLogicalScreenDescriptor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// The Logical Screen Descriptor contains the parameters
@@ -23,6 +21,11 @@ namespace ImageSharp.Formats
         /// rendered in the displaying device.
         /// </summary>
         public short Height { get; set; }
+
+        /// <summary>
+        /// Gets or sets the color depth, in number of bits per pixel.
+        /// </summary>
+        public int BitsPerPixel { get; set; }
 
         /// <summary>
         /// Gets or sets the index at the Global Color Table for the Background Color.

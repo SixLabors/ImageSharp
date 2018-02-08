@@ -1,12 +1,11 @@
-﻿// <copyright file="Crc32.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
-    using System;
-
     /// <summary>
     /// Generate a table for a byte-wise 32-bit CRC calculation on the polynomial:
     /// x^32+x^26+x^23+x^22+x^16+x^12+x^11+x^10+x^8+x^7+x^5+x^4+x^2+x+1.
@@ -110,18 +109,15 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public long Value
         {
-            get
-            {
-                return this.crc;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.crc;
 
-            set
-            {
-                this.crc = (uint)value;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => this.crc = (uint)value;
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Reset()
         {
             this.crc = 0;
@@ -131,6 +127,7 @@ namespace ImageSharp.Formats
         /// Updates the checksum with the given value.
         /// </summary>
         /// <param name="value">The byte is taken as the lower 8 bits of value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(int value)
         {
             this.crc ^= CrcSeed;
@@ -139,6 +136,7 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(byte[] buffer)
         {
             if (buffer == null)
@@ -150,22 +148,13 @@ namespace ImageSharp.Formats
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(byte[] buffer, int offset, int count)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
-            }
-
-            if (offset < 0 || offset + count > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset));
-            }
+            DebugGuard.NotNull(buffer, nameof(buffer));
+            DebugGuard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
+            DebugGuard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
+            DebugGuard.MustBeLessThanOrEqualTo(offset + count, buffer.Length, nameof(count));
 
             this.crc ^= CrcSeed;
 

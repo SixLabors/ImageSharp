@@ -1,12 +1,10 @@
-﻿// <copyright file="WuArrayPool.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Quantizers
+using System.Buffers;
+
+namespace SixLabors.ImageSharp.Quantizers
 {
-    using System.Buffers;
-
     /// <summary>
     /// Provides array pooling for the <see cref="WuQuantizer{TPixel}"/>.
     /// This is a separate class so that the pools can be shared accross multiple generic quantizer instaces.

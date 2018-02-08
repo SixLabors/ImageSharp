@@ -1,19 +1,45 @@
-﻿// <copyright file="Vector4Extensions.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Extension methods for the <see cref="Vector4"/> struct.
     /// </summary>
     internal static class Vector4Extensions
     {
+        /// <summary>
+        /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+        /// <returns>The <see cref="Vector4"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Premultiply(this Vector4 source)
+        {
+            float w = source.W;
+            Vector4 premultiplied = source * w;
+            premultiplied.W = w;
+            return premultiplied;
+        }
+
+        /// <summary>
+        /// Reverses the result of premultiplying a vector via <see cref="Premultiply(Vector4)"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+        /// <returns>The <see cref="Vector4"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 UnPremultiply(this Vector4 source)
+        {
+            float w = source.W;
+            Vector4 unpremultiplied = source / w;
+            unpremultiplied.W = w;
+            return unpremultiplied;
+        }
+
         /// <summary>
         /// Compresses a linear color signal to its sRGB equivalent.
         /// <see href="http://www.4p8.com/eric.brasseur/gamma.html#formulas"/>

@@ -1,10 +1,10 @@
 // ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class PackFromXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>

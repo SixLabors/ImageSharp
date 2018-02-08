@@ -1,14 +1,12 @@
-﻿// <copyright file="ComponentOrder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
     /// Enumerates the various component orders.
     /// </summary>
-    public enum ComponentOrder
+    internal enum ComponentOrder
     {
         /// <summary>
         /// Z-> Y-> X order. Equivalent to B-> G-> R in <see cref="Rgba32"/>

@@ -2,10 +2,10 @@
 <RuleSet Name="ImageSharp" ToolsVersion="15.0">
   <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
     <Rule Id="AD0001" Action="None" />
-    <Rule Id="SA1405" Action="None" />
     <Rule Id="SA1413" Action="None" />
-    <!-- temp remove the header requirement as stylecop is currently failing to read the stylecop.json file from 'dotnet build' -->
-    <Rule Id="SA1636" Action="None" />
+   <!-- <Rule Id="SA1405" Action="None" />
+     temp remove the header requirement as stylecop is currently failing to read the stylecop.json file from 'dotnet build' 
+    <Rule Id="SA1636" Action="None" />-->
     <Rule Id="SA1633" Action="None" />
   </Rules>
 </RuleSet>

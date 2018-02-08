@@ -1,12 +1,13 @@
-﻿namespace ImageSharp.Tests.Colorspaces
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System.Collections.Generic;
-
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion;
-
-    using Xunit;
-
     /// <summary>
     /// Tests <see cref="Rgb"/>-<see cref="YCbCr"/> conversions.
     /// </summary>

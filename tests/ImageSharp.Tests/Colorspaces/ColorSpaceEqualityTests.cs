@@ -1,38 +1,39 @@
-﻿// <copyright file="ColorEqualityTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Colorspaces
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using SixLabors.ImageSharp.ColorSpaces;
+using Xunit;
+
+// ReSharper disable InconsistentNaming
+namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
-    using System;
-    using System.Numerics;
-    using Xunit;
-
-    using ImageSharp.ColorSpaces;
-
     /// <summary>
     /// Test implementations of IEquatable and IAlmostEquatable in our colorspaces
     /// </summary>
     public class ColorSpaceEqualityTests
     {
-        public static readonly TheoryData<IColorVector> EmptyData =
-            new TheoryData<IColorVector>
+        internal static readonly Dictionary<string, IColorVector> EmptyDataLookup =
+            new Dictionary<string, IColorVector>
                 {
-                    CieLab.Empty,
-                    CieLch.Empty,
-                    CieLchuv.Empty,
-                    CieLuv.Empty,
-                    CieXyz.Empty,
-                    CieXyy.Empty,
-                    Hsl.Empty,
-                    Hsl.Empty,
-                    HunterLab.Empty,
-                    Lms.Empty,
-                    LinearRgb.Empty,
-                    Rgb.Empty,
-                    YCbCr.Empty
+                    {nameof( CieLab), CieLab.Empty },
+                    {nameof( CieLch), CieLch.Empty },
+                    {nameof( CieLchuv), CieLchuv.Empty },
+                    {nameof( CieLuv), CieLuv.Empty },
+                    {nameof( CieXyz), CieXyz.Empty },
+                    {nameof( CieXyy), CieXyy.Empty },
+                    {nameof( Hsl), Hsl.Empty },
+                    {nameof( HunterLab), HunterLab.Empty },
+                    {nameof( Lms), Lms.Empty },
+                    {nameof( LinearRgb), LinearRgb.Empty },
+                    {nameof( Rgb), Rgb.Empty },
+                    {nameof( YCbCr), YCbCr.Empty }
                 };
+
+        public static readonly IEnumerable<object[]> EmptyData = EmptyDataLookup.Select(x => new [] { x.Key });
 
         public static readonly TheoryData<object, object, Type> EqualityData =
            new TheoryData<object, object, Type>
@@ -141,10 +142,11 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EmptyData))]
-        public void Equality(IColorVector color)
+        public void Vector_Equals_WhenTrue(string color)
         {
+            IColorVector colorVector = EmptyDataLookup[color];
             // Act
-            bool equal = color.Vector.Equals(Vector3.Zero);
+            bool equal = colorVector.Vector.Equals(Vector3.Zero);
 
             // Assert
             Assert.True(equal);
@@ -152,7 +154,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void Equality(object first, object second, Type type)
+        public void Equals_WhenTrue(object first, object second, Type type)
         {
             // Act
             bool equal = first.Equals(second);
@@ -165,7 +167,7 @@ namespace ImageSharp.Tests.Colorspaces
         [MemberData(nameof(NotEqualityDataNulls))]
         [MemberData(nameof(NotEqualityDataDifferentObjects))]
         [MemberData(nameof(NotEqualityData))]
-        public void NotEquality(object first, object second, Type type)
+        public void Equals_WhenFalse(object first, object second, Type type)
         {
             // Act
             bool equal = first.Equals(second);
@@ -176,7 +178,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void HashCodeEqual(object first, object second, Type type)
+        public void GetHashCode_WhenEqual(object first, object second, Type type)
         {
             // Act
             bool equal = first.GetHashCode() == second.GetHashCode();
@@ -187,7 +189,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(NotEqualityDataDifferentObjects))]
-        public void HashCodeNotEqual(object first, object second, Type type)
+        public void GetHashCode_WhenNotEqual(object first, object second, Type type)
         {
             // Act
             bool equal = first.GetHashCode() == second.GetHashCode();
@@ -198,7 +200,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(EqualityData))]
-        public void EqualityObject(object first, object second, Type type)
+        public void GenericEquals_WhenTrue(object first, object second, Type type)
         {
             // Arrange
             // Cast to the known object types, this is so that we can hit the
@@ -216,7 +218,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(NotEqualityData))]
-        public void NotEqualityObject(object first, object second, Type type)
+        public void GenericEquals_WhenFalse(object first, object second, Type type)
         {
             // Arrange
             // Cast to the known object types, this is so that we can hit the
@@ -253,7 +255,7 @@ namespace ImageSharp.Tests.Colorspaces
 
         [Theory]
         [MemberData(nameof(NotEqualityData))]
-        public void NotEqualityOperator(object first, object second, Type type)
+        public void Operator_WhenTrue(object first, object second, Type type)
         {
             // Arrange
             // Cast to the known object types, this is so that we can hit the

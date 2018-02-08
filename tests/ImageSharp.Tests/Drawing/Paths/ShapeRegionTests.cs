@@ -1,22 +1,24 @@
-﻿
-namespace ImageSharp.Tests.Drawing.Paths
-{
-    using System;
-    using System.IO;
-    using ImageSharp;
-    using ImageSharp.Drawing.Brushes;
-    using ImageSharp.Processing;
-    using System.Collections.Generic;
-    using Xunit;
-    using ImageSharp.Drawing;
-    using System.Numerics;
-    using SixLabors.Shapes;
-    using ImageSharp.Drawing.Processors;
-    using ImageSharp.Drawing.Pens;
-    using Moq;
-    using System.Collections.Immutable;
-    using SixLabors.Primitives;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Drawing.Pens;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.Processing;
+using Moq;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing.Paths
+{
     public class ShapeRegionTests 
     {
         private readonly Mock<IPath> pathMock;
@@ -74,17 +76,17 @@ namespace ImageSharp.Tests.Drawing.Paths
             int yToScan = 10;
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            pathMock.Setup(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<Span<PointF>>()))
-                .Callback<PointF, PointF, Span<PointF>>((s, e, b) => {
+            pathMock.Setup(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()))
+                .Callback<PointF, PointF, PointF[], int>((s, e, b, o) => {
                     Assert.Equal(yToScan, s.Y);
                     Assert.Equal(yToScan, e.Y);
                     Assert.True(s.X < bounds.Left);
                     Assert.True(e.X > bounds.Right);
                 }).Returns(0);
 
-            int i = region.Scan(yToScan, new float[0]);
+            int i = region.Scan(yToScan, new float[0], 0);
 
-            pathMock.Verify(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<Span<PointF>>()), Times.Once);
+            pathMock.Verify(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()), Times.Once);
         }
 
         [Fact]
@@ -93,17 +95,17 @@ namespace ImageSharp.Tests.Drawing.Paths
             int yToScan = 10;
             ShapeRegion region = new ShapeRegion(pathMock.Object);
 
-            pathMock.Setup(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<Span<PointF>>()))
-                .Callback<PointF, PointF, Span<PointF>>((s, e, b) => {
+            pathMock.Setup(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()))
+                .Callback<PointF, PointF, PointF[], int>((s, e, b, o) => {
                     Assert.Equal(yToScan, s.Y);
                     Assert.Equal(yToScan, e.Y);
                     Assert.True(s.X < bounds.Left);
                     Assert.True(e.X > bounds.Right);
                 }).Returns(0);
 
-            int i = region.Scan(yToScan, new float[0]);
+            int i = region.Scan(yToScan, new float[0], 0);
 
-            pathMock.Verify(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<Span<PointF>>()), Times.Once);
+            pathMock.Verify(x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()), Times.Once);
         }
 
         [Fact]

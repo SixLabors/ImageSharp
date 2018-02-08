@@ -1,13 +1,11 @@
-﻿// <copyright file="IQuantizer{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Quantizers
+using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Quantizers
 {
-    using ImageSharp.Dithering;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Provides methods for for allowing quantization of images pixels with configurable dithering.
     /// </summary>
@@ -23,7 +21,7 @@ namespace ImageSharp.Quantizers
         /// <returns>
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors);
+        QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors);
     }
 
     /// <summary>

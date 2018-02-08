@@ -1,29 +1,26 @@
-﻿// <copyright file="ColorConversionTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Drawing;
+using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Drawing;
-    using ImageSharp.Drawing.Brushes;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using Xunit;
-
     public class FillPatternBrushTests : FileTestBase
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
-            string path = this.CreateOutputDirectory("Fill", "PatternBrush");
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "PatternBrush");
             using (Image<Rgba32> image = new Image<Rgba32>(20, 20))
             {
-                image
+                image.Mutate(x => x
                     .Fill(background)
-                    .Fill(brush);
+                    .Fill(brush));
 
                 image.Save($"{path}/{name}.png");
 
@@ -51,7 +48,8 @@ namespace ImageSharp.Tests.Drawing
                         }
                     }
                 }
-                image.Resize(80, 80).Save($"{path}/{name}x4.png");
+                image.Mutate(x => x.Resize(80, 80));
+                image.Save($"{path}/{name}x4.png");
             }
         }
 

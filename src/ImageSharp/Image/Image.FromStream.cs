@@ -1,18 +1,15 @@
-﻿// <copyright file="Image.FromStream.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using Formats;
-
-    using ImageSharp.PixelFormats;
-
     /// <content>
     /// Adds static methods allowing the creation of new image from a given stream.
     /// </content>
@@ -37,6 +34,37 @@ namespace ImageSharp
         public static IImageFormat DetectFormat(Configuration config, Stream stream)
         {
             return WithSeekableStream(stream, s => InternalDetectFormat(s, config ?? Configuration.Default));
+        }
+
+        /// <summary>
+        /// By reading the header on the provided stream this reads the raw image information.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(Stream stream)
+        {
+            return Identify(null, stream);
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration config, Stream stream)
+        {
+            return WithSeekableStream(stream, s => InternalIdentity(s, config ?? Configuration.Default));
         }
 
         /// <summary>

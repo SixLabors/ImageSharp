@@ -1,12 +1,12 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System;
     using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp.Memory;
 
     public unsafe class ClearBuffer
     {

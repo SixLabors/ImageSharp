@@ -1,0 +1,135 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.PixelFormats;
+
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
+{
+    public abstract class ImageComparer
+    {
+        public static ImageComparer Exact { get; } = Tolerant(0, 0);
+
+        /// <summary>
+        /// Returns an instance of <see cref="TolerantImageComparer"/>.
+        /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
+        /// </summary>
+        public static ImageComparer Tolerant(
+            float imageThreshold = TolerantImageComparer.DefaultImageThreshold,
+            int perPixelManhattanThreshold = 0)
+        {
+            return new TolerantImageComparer(imageThreshold, perPixelManhattanThreshold);
+        }
+
+        public abstract ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+            ImageFrame<TPixelA> expected,
+            ImageFrame<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>;
+    }
+
+    public static class ImageComparerExtensions
+    {
+        public static ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+        {
+            return comparer.CompareImagesOrFrames(expected.Frames.RootFrame, actual.Frames.RootFrame);
+        }
+
+        public static IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> CompareImages<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+        {
+            var result = new List<ImageSimilarityReport<TPixelA, TPixelB>>();
+
+            if (expected.Frames.Count != actual.Frames.Count)
+            {
+                throw new Exception("Frame count does not match!");
+            }
+            for (int i = 0; i < expected.Frames.Count; i++)
+            {
+                ImageSimilarityReport<TPixelA, TPixelB> report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
+                if (!report.IsEmpty)
+                {
+                    result.Add(report);
+                }
+            }
+
+            return result;
+        }
+
+        public static void VerifySimilarity<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual)
+            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+        {
+            if (expected.Size() != actual.Size())
+            {
+                throw new ImageDimensionsMismatchException(expected.Size(), actual.Size());
+            }
+
+            if (expected.Frames.Count != actual.Frames.Count)
+            {
+                throw new ImagesSimilarityException("Image frame count does not match!");
+            }
+
+            IEnumerable<ImageSimilarityReport> reports = comparer.CompareImages(expected, actual);
+            if (reports.Any())
+            {
+                throw new ImageDifferenceIsOverThresholdException(reports);
+            }
+        }
+
+        public static void VerifySimilarityIgnoreRegion<TPixelA, TPixelB>(
+            this ImageComparer comparer,
+            Image<TPixelA> expected,
+            Image<TPixelB> actual,
+            Rectangle ignoredRegion)
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
+        {
+            if (expected.Size() != actual.Size())
+            {
+                throw new ImageDimensionsMismatchException(expected.Size(), actual.Size());
+            }
+
+            if (expected.Frames.Count != actual.Frames.Count)
+            {
+                throw new ImagesSimilarityException("Image frame count does not match!");
+            }
+
+            IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> reports = comparer.CompareImages(expected, actual);
+            if (reports.Any())
+            {
+                List<ImageSimilarityReport<TPixelA, TPixelB>> cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
+                foreach (var r in reports)
+                {
+                    var outsideChanges = r.Differences.Where(x => !(
+                        ignoredRegion.X <= x.Position.X &&
+                        x.Position.X <= ignoredRegion.Right &&
+                        ignoredRegion.Y <= x.Position.Y &&
+                        x.Position.Y <= ignoredRegion.Bottom));
+                    if (outsideChanges.Any())
+                    {
+                        cleanedReports.Add(new ImageSimilarityReport<TPixelA, TPixelB>(r.ExpectedImage, r.ActualImage, outsideChanges, null));
+                    }
+                }
+
+                if (cleanedReports.Any())
+                {
+                    throw new ImageDifferenceIsOverThresholdException(cleanedReports);
+                }
+            }
+        }
+    }
+}

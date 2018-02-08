@@ -1,50 +1,52 @@
-// <copyright file="OilPaintTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
-    public class OilPaintTest : FileTestBase
+    public class OilPaintTest : BaseImageOperationsExtensionTest
     {
-        public static readonly TheoryData<int, int> OilPaintValues
-            = new TheoryData<int, int>
-            {
-                { 15, 10 },
-                { 6, 5 }
-            };
-
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), DefaultPixelType)]
-        public void ImageShouldApplyOilPaintFilter<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void OilPaint_OilPaintingProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.OilPaint(levels, brushSize)
-                    .DebugSave(provider, string.Join("-", levels, brushSize), Extensions.Bmp);
-            }
+            this.operations.OilPaint();
+            var processor = this.Verify<OilPaintingProcessor<Rgba32>>();
+
+            Assert.Equal(10, processor.Levels);
+            Assert.Equal(15, processor.BrushSize);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), nameof(OilPaintValues), DefaultPixelType)]
-        public void ImageShouldApplyOilPaintFilterInBox<TPixel>(TestImageProvider<TPixel> provider, int levels, int brushSize)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void OilPaint_rect_OilPaintingProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.OilPaint(this.rect);
+            var processor = this.Verify<OilPaintingProcessor<Rgba32>>(this.rect);
 
-                image.OilPaint(levels, brushSize, bounds)
-                    .DebugSave(provider, string.Join("-", levels, brushSize), Extensions.Bmp);
+            Assert.Equal(10, processor.Levels);
+            Assert.Equal(15, processor.BrushSize);
+        }
+        [Fact]
+        public void OilPaint_Levels_Brsuh_OilPaintingProcessorDefaultsSet()
+        {
+            this.operations.OilPaint(34, 65);
+            var processor = this.Verify<OilPaintingProcessor<Rgba32>>();
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds, 0.001F);
-            }
+            Assert.Equal(34, processor.Levels);
+            Assert.Equal(65, processor.BrushSize);
+        }
+
+        [Fact]
+        public void OilPaint_Levels_Brsuh_rect_OilPaintingProcessorDefaultsSet()
+        {
+            this.operations.OilPaint(54, 43, this.rect);
+            var processor = this.Verify<OilPaintingProcessor<Rgba32>>(this.rect);
+
+            Assert.Equal(54, processor.Levels);
+            Assert.Equal(43, processor.BrushSize);
         }
     }
 }

@@ -1,18 +1,17 @@
-﻿// <copyright file="PatternBrush{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing.Brushes
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Drawing.Brushes
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides an implementation of a pattern brush for painting patterns.
     /// </summary>
@@ -93,7 +92,7 @@ namespace ImageSharp.Drawing.Brushes
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             return new PatternBrushApplicator(source, this.pattern, this.patternVector, options);
         }
@@ -116,7 +115,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageBase<TPixel> source, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
                 : base(source, options)
             {
                 this.pattern = pattern;
@@ -164,7 +163,7 @@ namespace ImageSharp.Drawing.Brushes
                         overlay[i] = this.pattern[patternY, patternX];
                     }
 
-                    Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
+                    Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                     this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
                 }
             }

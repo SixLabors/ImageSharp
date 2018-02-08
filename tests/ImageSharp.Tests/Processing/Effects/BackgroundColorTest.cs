@@ -1,43 +1,53 @@
-﻿// <copyright file="BackgroundColorTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Effects
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
-    public class BackgroundColorTest : FileTestBase
+    public class BackgroundColorTest : BaseImageOperationsExtensionTest
     {
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyBackgroundColorFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void BackgroundColor_amount_BackgroundColorProcessorDefaultsSet()
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.BackgroundColor(NamedColors<TPixel>.HotPink)
-                    .DebugSave(provider, null, Extensions.Bmp);
-            }
+            this.operations.BackgroundColor(Rgba32.BlanchedAlmond);
+            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>();
+
+            Assert.Equal(GraphicsOptions.Default, processor.GraphicsOptions);
+            Assert.Equal(Rgba32.BlanchedAlmond, processor.Value);
         }
 
-        [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldApplyBackgroundColorFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [Fact]
+        public void BackgroundColor_amount_rect_BackgroundColorProcessorDefaultsSet()
         {
-            using (Image<TPixel> source = provider.GetImage())
-            using (var image = new Image<TPixel>(source))
-            {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            this.operations.BackgroundColor(Rgba32.BlanchedAlmond, this.rect);
+            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>(this.rect);
 
-                image.BackgroundColor(NamedColors<TPixel>.HotPink, bounds)
-                    .DebugSave(provider, null, Extensions.Bmp);
+            Assert.Equal(GraphicsOptions.Default, processor.GraphicsOptions);
+            Assert.Equal(Rgba32.BlanchedAlmond, processor.Value);
+        }
 
-                ImageComparer.EnsureProcessorChangesAreConstrained(source, image, bounds);
-            }
+        [Fact]
+        public void BackgroundColor_amount_options_BackgroundColorProcessorDefaultsSet()
+        {
+            this.operations.BackgroundColor(Rgba32.BlanchedAlmond, this.options);
+            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>();
+
+            Assert.Equal(this.options, processor.GraphicsOptions);
+            Assert.Equal(Rgba32.BlanchedAlmond, processor.Value);
+        }
+
+        [Fact]
+        public void BackgroundColor_amount_rect_options_BackgroundColorProcessorDefaultsSet()
+        {
+            this.operations.BackgroundColor(Rgba32.BlanchedAlmond, this.rect, this.options);
+            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>(this.rect);
+
+            Assert.Equal(this.options, processor.GraphicsOptions);
+            Assert.Equal(Rgba32.BlanchedAlmond, processor.Value);
         }
     }
 }

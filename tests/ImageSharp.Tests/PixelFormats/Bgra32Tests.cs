@@ -1,12 +1,12 @@
-// ReSharper disable InconsistentNaming
-namespace ImageSharp.Tests
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     public class Bgra32Tests
     {
         public static readonly TheoryData<byte, byte, byte, byte> ColorData =

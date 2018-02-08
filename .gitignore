@@ -26,6 +26,9 @@ bld/
 # Visual Studo 2015 cache/options directory
 .vs/
 
+# Jetbrains Rider cache/options directory
+.idea/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -158,7 +161,6 @@ AppPackages/
 # Others
 *.[Cc]ache
 ClientBin/
-[Ss]tyle[Cc]op.*
 ~$*
 *~
 *.dbmdl
@@ -202,7 +204,8 @@ FakesAssemblies/
 
 **/node_modules
 **/node_modules/*
-**/TestOutput
+**/Images/ActualOutput
+**/Images/ReferenceOutput
 
 # ASP.NET 5
 project.lock.json
@@ -218,3 +221,4 @@ artifacts/
 **/CodeCoverage/*
 docs/
 /samples/AvatarWithRoundedCorner/output
+/ImageSharp.Coverage.xml

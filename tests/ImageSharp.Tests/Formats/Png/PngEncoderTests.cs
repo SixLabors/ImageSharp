@@ -1,21 +1,18 @@
-﻿// <copyright file="PngEncoderTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-using ImageSharp.Formats;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
-namespace ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using ImageSharp.IO;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     public class PngEncoderTests : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
@@ -31,10 +28,10 @@ namespace ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                PngEncoder options = new PngEncoder()
-                                                {
-                                                    PngColorType = pngColorType
-                                                };
+                var options = new PngEncoder()
+                {
+                    PngColorType = pngColorType
+                };
                 provider.Utility.TestName += "_" + pngColorType;
 
                 provider.Utility.SaveTestOutputFile(image, "png", options);
@@ -47,7 +44,7 @@ namespace ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 image.Save(ms, new PngEncoder());
                 

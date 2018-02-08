@@ -1,8 +1,6 @@
-﻿// <copyright file="BmpInfoHeader.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
     /// This block of bytes tells the application detailed information
@@ -13,12 +11,27 @@ namespace ImageSharp.Formats
     internal sealed class BmpInfoHeader
     {
         /// <summary>
-        /// Defines of the data structure in the bitmap file.
+        /// Defines the size of the BITMAPINFOHEADER data structure in the bitmap file.
         /// </summary>
-        public const int Size = 40;
+        public const int BitmapInfoHeaderSize = 40;
 
         /// <summary>
-        /// Gets or sets the size of this header (40 bytes)
+        /// Defines the size of the BITMAPCOREHEADER data structure in the bitmap file.
+        /// </summary>
+        public const int BitmapCoreHeaderSize = 12;
+
+        /// <summary>
+        /// Defines the size of the biggest supported header data structure in the bitmap file.
+        /// </summary>
+        public const int MaxHeaderSize = BitmapInfoHeaderSize;
+
+        /// <summary>
+        /// Defines the size of the <see cref="HeaderSize"/> field.
+        /// </summary>
+        public const int HeaderSizeSize = 4;
+
+        /// <summary>
+        /// Gets or sets the size of this header
         /// </summary>
         public int HeaderSize { get; set; }
 

@@ -1,18 +1,15 @@
-// <copyright file="Rgba32.PixelOperations.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
     /// <content>
     /// Provides optimized overrides for bulk operations.
     /// </content>
@@ -53,10 +50,10 @@ namespace ImageSharp
                     nameof(count),
                     "Argument 'count' should divisible by Vector<uint>.Count!");
 
-                Vector<float> bVec = new Vector<float>(256.0f / 255.0f);
-                Vector<float> magicFloat = new Vector<float>(32768.0f);
-                Vector<uint> magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
-                Vector<uint> mask = new Vector<uint>(255);
+                var bVec = new Vector<float>(256.0f / 255.0f);
+                var magicFloat = new Vector<float>(32768.0f);
+                var magicInt = new Vector<uint>(1191182336); // reinterpreded value of 32768.0f
+                var mask = new Vector<uint>(255);
 
                 int unpackedRawCount = count * 4;
 
@@ -83,7 +80,7 @@ namespace ImageSharp
                     vi &= mask;
                     vi |= magicInt;
 
-                    Vector<float> vf = Vector.AsVectorSingle(vi);
+                    var vf = Vector.AsVectorSingle(vi);
                     vf = (vf - magicFloat) * bVec;
 
                     Unsafe.Add(ref destBaseAsFloat, i) = vf;
@@ -104,7 +101,6 @@ namespace ImageSharp
                 }
 
                 int remainder = count % Vector<uint>.Count;
-
                 int alignedCount = count - remainder;
 
                 if (alignedCount > 0)
@@ -117,6 +113,35 @@ namespace ImageSharp
                     sourceColors = sourceColors.Slice(alignedCount);
                     destVectors = destVectors.Slice(alignedCount);
                     base.ToVector4(sourceColors, destVectors, remainder);
+                }
+            }
+
+            internal override void PackFromVector4(Span<Vector4> sourceVectors, Span<Rgba32> destColors, int count)
+            {
+                GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
+
+                if (!SimdUtils.IsAvx2CompatibleArchitecture)
+                {
+                    base.PackFromVector4(sourceVectors, destColors, count);
+                    return;
+                }
+
+                int remainder = count % 2;
+                int alignedCount = count - remainder;
+
+                if (alignedCount > 0)
+                {
+                    Span<float> flatSrc = sourceVectors.Slice(0, alignedCount).NonPortableCast<Vector4, float>();
+                    Span<byte> flatDest = destColors.NonPortableCast<Rgba32, byte>();
+
+                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(flatSrc, flatDest);
+                }
+
+                if (remainder > 0)
+                {
+                    // actually: remainder == 1
+                    int lastIdx = count - 1;
+                    destColors[lastIdx].PackFromVector4(sourceVectors[lastIdx]);
                 }
             }
 

@@ -1,4 +1,4 @@
-namespace ImageSharp.Benchmarks.General.Vectorization
+namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
     using System.Numerics;
     using System.Runtime.InteropServices;

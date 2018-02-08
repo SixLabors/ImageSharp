@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
             : base(sampler)
         {
-            // Tansforms are inverted else the output is the opposite of the expected.
+            // Transforms are inverted else the output is the opposite of the expected.
             Matrix4x4.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
             this.targetRectangle = rectangle;
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     var vector = source[i, j].ToVector4();
 
                                     // Values are first premultiplied to prevent darkening of edge pixels
-                                    var mupltiplied = new Vector4(new Vector3(vector.X, vector.Y, vector.Z) * vector.W, vector.W);
+                                    Vector4 mupltiplied = vector.Premultiply();
                                     sum += mupltiplied * xWeight * yWeight;
                                 }
                             }
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             ref TPixel dest = ref destRow[x];
 
                             // Reverse the premultiplication
-                            dest.PackFromVector4(new Vector4(new Vector3(sum.X, sum.Y, sum.Z) / sum.W, sum.W));
+                            dest.PackFromVector4(sum.UnPremultiply());
                         }
                     });
             }

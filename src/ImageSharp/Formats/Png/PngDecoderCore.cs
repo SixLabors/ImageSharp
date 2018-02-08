@@ -14,7 +14,6 @@ using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.ComparableExtensions;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -589,7 +588,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 this.ProcessDefilteredScanline(this.scanline.Array, image);
 
-                Swap(ref this.scanline, ref this.previousScanline);
+                this.SwapBuffers();
                 this.currentRow++;
             }
         }
@@ -665,7 +664,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
                     this.ProcessInterlacedDefilteredScanline(this.scanline.Array, rowSpan, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
 
-                    Swap(ref this.scanline, ref this.previousScanline);
+                    this.SwapBuffers();
 
                     this.currentRow += Adam7RowIncrement[this.pass];
                 }
@@ -1347,6 +1346,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case 6: return width;
                 default: throw new ArgumentException($"Not a valid pass index: {passIndex}");
             }
+        }
+
+        private void SwapBuffers()
+        {
+            Buffer<byte> temp = this.previousScanline;
+            this.previousScanline = this.scanline;
+            this.scanline = temp;
         }
     }
 }

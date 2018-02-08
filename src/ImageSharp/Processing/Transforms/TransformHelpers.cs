@@ -3,6 +3,8 @@
 
 using System;
 using System.Numerics;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -12,6 +14,50 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal class TransformHelpers
     {
+        /// <summary>
+        /// Updates the dimensional metadata of a transformed image
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The image to update</param>
+        public static void UpdateDimensionalMetData<TPixel>(Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ExifProfile profile = image.MetaData.ExifProfile;
+            if (profile == null)
+            {
+                return;
+            }
+
+            // Removing the previously stored value allows us to set a value with our own data tag if required.
+            if (profile.GetValue(ExifTag.PixelXDimension) != null)
+            {
+                profile.RemoveValue(ExifTag.PixelXDimension);
+
+                if (image.Width <= ushort.MaxValue)
+                {
+                    profile.SetValue(ExifTag.PixelXDimension, (ushort)image.Width);
+                }
+                else
+                {
+                    profile.SetValue(ExifTag.PixelXDimension, (uint)image.Width);
+                }
+            }
+
+            if (profile.GetValue(ExifTag.PixelYDimension) != null)
+            {
+                profile.RemoveValue(ExifTag.PixelYDimension);
+
+                if (image.Height <= ushort.MaxValue)
+                {
+                    profile.SetValue(ExifTag.PixelYDimension, (ushort)image.Height);
+                }
+                else
+                {
+                    profile.SetValue(ExifTag.PixelYDimension, (uint)image.Height);
+                }
+            }
+        }
+
         /// <summary>
         /// Returns the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.
         /// </summary>

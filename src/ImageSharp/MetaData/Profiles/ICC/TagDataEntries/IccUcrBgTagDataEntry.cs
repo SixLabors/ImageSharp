@@ -1,13 +1,11 @@
-﻿// <copyright file="IccUcrBgTagDataEntry.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Linq;
+
+namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
-    using System;
-    using System.Linq;
-
     /// <summary>
     /// This type contains curves representing the under color removal and black generation
     /// and a text string which is a general description of the method used for the UCR and BG.

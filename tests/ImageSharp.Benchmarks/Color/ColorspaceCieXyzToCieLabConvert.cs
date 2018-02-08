@@ -1,12 +1,12 @@
-﻿namespace ImageSharp.Benchmarks.Color
+﻿namespace SixLabors.ImageSharp.Benchmarks.Color
 {
     using BenchmarkDotNet.Attributes;
 
     using Colourful;
     using Colourful.Conversion;
 
-    using ImageSharp.ColorSpaces;
-    using ImageSharp.ColorSpaces.Conversion;
+    using SixLabors.ImageSharp.ColorSpaces;
+    using SixLabors.ImageSharp.ColorSpaces.Conversion;
 
     public class ColorspaceCieXyzToCieLabConvert
     {

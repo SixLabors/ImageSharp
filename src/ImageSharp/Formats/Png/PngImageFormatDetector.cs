@@ -1,12 +1,10 @@
-﻿// <copyright file="PngImageFormatDetector.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+
+namespace SixLabors.ImageSharp.Formats.Png
 {
-    using System;
-
     /// <summary>
     /// Detects png file headers
     /// </summary>

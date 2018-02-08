@@ -1,10 +1,13 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.Text;
-using ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
 
-namespace ImageSharp.Tests.TestUtilities
+namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     public class TestPixel<TPixel> : IXunitSerializable
         where TPixel : struct, IPixel<TPixel>

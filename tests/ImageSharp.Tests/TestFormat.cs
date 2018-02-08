@@ -1,21 +1,18 @@
-﻿// <copyright file="TestImage.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
     /// <summary>
     /// A test image file.
     /// </summary>
@@ -23,15 +20,15 @@ namespace ImageSharp.Tests
     {
         public static TestFormat GlobalTestFormat { get; } = new TestFormat();
 
-        public static void RegisterGloablTestFormat()
+        public static void RegisterGlobalTestFormat()
         {
             Configuration.Default.Configure(GlobalTestFormat);
         }
 
         public TestFormat()
         {
-            this.Encoder = new TestEncoder(this); ;
-            this.Decoder = new TestDecoder(this); ;
+            this.Encoder = new TestEncoder(this);
+            this.Decoder = new TestDecoder(this);
         }
 
         public List<DecodeOperation> DecodeCalls { get; } = new List<DecodeOperation>();
@@ -200,7 +197,7 @@ namespace ImageSharp.Tests
                     config = config
                 });
 
-                // TODO record this happend so we an verify it.
+                // TODO record this happend so we can verify it.
                 return this.testFormat.Sample<TPixel>();
             }
 
@@ -222,7 +219,7 @@ namespace ImageSharp.Tests
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream) where TPixel : struct, IPixel<TPixel>
             {
-                // TODO record this happend so we an verify it.
+                // TODO record this happend so we can verify it.
             }
         }
     }

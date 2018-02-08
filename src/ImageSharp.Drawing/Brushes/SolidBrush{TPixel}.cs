@@ -1,18 +1,17 @@
-﻿// <copyright file="SolidBrush{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Drawing.Brushes
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Drawing.Brushes.Processors;
+using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Drawing.Brushes
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using Processors;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides an implementation of a solid brush for painting solid color areas.
     /// </summary>
@@ -43,7 +42,7 @@ namespace ImageSharp.Drawing.Brushes
         public TPixel Color => this.color;
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageBase<TPixel> source, RectangleF region, GraphicsOptions options)
+        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
             return new SolidBrushApplicator(source, this.color, options);
         }
@@ -59,7 +58,7 @@ namespace ImageSharp.Drawing.Brushes
             /// <param name="source">The source image.</param>
             /// <param name="color">The color.</param>
             /// <param name="options">The options</param>
-            public SolidBrushApplicator(ImageBase<TPixel> source, TPixel color, GraphicsOptions options)
+            public SolidBrushApplicator(ImageFrame<TPixel> source, TPixel color, GraphicsOptions options)
                 : base(source, options)
             {
                 this.Colors = new Buffer<TPixel>(source.Width);
@@ -93,16 +92,23 @@ namespace ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                Span<TPixel> destinationRow = this.Target.GetRowSpan(x, y).Slice(0, scanline.Length);
-
-                using (var amountBuffer = new Buffer<float>(scanline.Length))
+                try
                 {
-                    for (int i = 0; i < scanline.Length; i++)
-                    {
-                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
-                    }
+                    Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
+                    using (var amountBuffer = new Buffer<float>(scanline.Length))
+                    {
+                        for (int i = 0; i < scanline.Length; i++)
+                        {
+                            amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
+                        }
+
+                        this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
+                    }
+                }
+                catch (Exception)
+                {
+                    throw;
                 }
             }
         }

@@ -1,32 +1,27 @@
-﻿// <copyright file="OctreeQuantizer{TPixel}.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Quantizers
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers.Base;
+
+namespace SixLabors.ImageSharp.Quantizers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class OctreeQuantizer<TPixel> : Quantizer<TPixel>
+    public sealed class OctreeQuantizer<TPixel> : QuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// A lookup table for colors
         /// </summary>
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
-
-        /// <summary>
-        /// The pixel buffer, used to reduce allocations.
-        /// </summary>
-        private readonly byte[] pixelBuffer = new byte[4];
 
         /// <summary>
         /// Stores the tree
@@ -44,6 +39,11 @@ namespace ImageSharp.Quantizers
         private TPixel[] palette;
 
         /// <summary>
+        /// The transparent index
+        /// </summary>
+        private byte transparentIndex;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer{TPixel}"/> class.
         /// </summary>
         /// <remarks>
@@ -56,29 +56,31 @@ namespace ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TPixel> Quantize(ImageBase<TPixel> image, int maxColors)
+        public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             this.colors = (byte)maxColors.Clamp(1, 255);
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
             this.palette = null;
+            this.colorMap.Clear();
 
             return base.Quantize(image, this.colors);
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageBase<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
-            byte pixelValue = this.QuantizePixel(sourcePixel);
+            var rgba = default(Rgba32);
+            byte pixelValue = this.QuantizePixel(sourcePixel, ref rgba);
             TPixel[] colorPalette = this.GetPalette();
             TPixel transformedPixel = colorPalette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> row = source.GetRowSpan(y);
+                Span<TPixel> row = source.GetPixelRowSpan(y);
 
                 // And loop through each column
                 for (int x = 0; x < width; x++)
@@ -91,7 +93,7 @@ namespace ImageSharp.Quantizers
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         // Quantize the pixel
-                        pixelValue = this.QuantizePixel(sourcePixel);
+                        pixelValue = this.QuantizePixel(sourcePixel, ref rgba);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;
@@ -105,7 +107,7 @@ namespace ImageSharp.Quantizers
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, width, height, false);
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height, false);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;
@@ -117,24 +119,57 @@ namespace ImageSharp.Quantizers
         protected override void InitialQuantizePixel(TPixel pixel)
         {
             // Add the color to the Octree
-            this.octree.AddColor(pixel, this.pixelBuffer);
+            var rgba = default(Rgba32);
+            this.octree.AddColor(pixel, ref rgba);
         }
 
         /// <inheritdoc/>
         protected override TPixel[] GetPalette()
         {
-            return this.palette ?? (this.palette = this.octree.Palletize(Math.Max(this.colors, (byte)1)));
+            if (this.palette == null)
+            {
+                this.palette = this.octree.Palletize(Math.Max(this.colors, (byte)1));
+                this.transparentIndex = this.GetTransparentIndex();
+            }
+
+            return this.palette;
+        }
+
+        /// <summary>
+        /// Returns the index of the first instance of the transparent color in the palette.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="int"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private byte GetTransparentIndex()
+        {
+            // Transparent pixels are much more likely to be found at the end of a palette
+            int index = this.colors;
+            var trans = default(Rgba32);
+            for (int i = this.palette.Length - 1; i >= 0; i--)
+            {
+                this.palette[i].ToRgba32(ref trans);
+
+                if (trans.Equals(default(Rgba32)))
+                {
+                    index = i;
+                }
+            }
+
+            return (byte)index;
         }
 
         /// <summary>
         /// Process the pixel in the second pass of the algorithm
         /// </summary>
         /// <param name="pixel">The pixel to quantize</param>
+        /// <param name="rgba">The color to compare against</param>
         /// <returns>
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel)
+        private byte QuantizePixel(TPixel pixel, ref Rgba32 rgba)
         {
             if (this.Dither)
             {
@@ -143,13 +178,13 @@ namespace ImageSharp.Quantizers
                 return this.GetClosestPixel(pixel, this.palette, this.colorMap);
             }
 
-            pixel.ToXyzwBytes(this.pixelBuffer, 0);
-            if (this.pixelBuffer[3] == 0)
+            pixel.ToRgba32(ref rgba);
+            if (rgba.Equals(default(Rgba32)))
             {
-                return this.colors;
+                return this.transparentIndex;
             }
 
-            return (byte)this.octree.GetPaletteIndex(pixel, this.pixelBuffer);
+            return (byte)this.octree.GetPaletteIndex(pixel, ref rgba);
         }
 
         /// <summary>
@@ -232,8 +267,8 @@ namespace ImageSharp.Quantizers
             /// Add a given color value to the Octree
             /// </summary>
             /// <param name="pixel">The pixel data.</param>
-            /// <param name="buffer">The buffer array.</param>
-            public void AddColor(TPixel pixel, byte[] buffer)
+            /// <param name="rgba">The color.</param>
+            public void AddColor(TPixel pixel, ref Rgba32 rgba)
             {
                 // Check if this request is for the same color as the last
                 if (this.previousColor.Equals(pixel))
@@ -243,18 +278,18 @@ namespace ImageSharp.Quantizers
                     if (this.previousNode == null)
                     {
                         this.previousColor = pixel;
-                        this.root.AddColor(pixel, this.maxColorBits, 0, this, buffer);
+                        this.root.AddColor(pixel, this.maxColorBits, 0, this, ref rgba);
                     }
                     else
                     {
                         // Just update the previous node
-                        this.previousNode.Increment(pixel, buffer);
+                        this.previousNode.Increment(pixel, ref rgba);
                     }
                 }
                 else
                 {
                     this.previousColor = pixel;
-                    this.root.AddColor(pixel, this.maxColorBits, 0, this, buffer);
+                    this.root.AddColor(pixel, this.maxColorBits, 0, this, ref rgba);
                 }
             }
 
@@ -286,13 +321,13 @@ namespace ImageSharp.Quantizers
             /// Get the palette index for the passed color
             /// </summary>
             /// <param name="pixel">The pixel data.</param>
-            /// <param name="buffer">The buffer array.</param>
+            /// <param name="rgba">The color to map to.</param>
             /// <returns>
             /// The <see cref="int"/>.
             /// </returns>
-            public int GetPaletteIndex(TPixel pixel, byte[] buffer)
+            public int GetPaletteIndex(TPixel pixel, ref Rgba32 rgba)
             {
-                return this.root.GetPaletteIndex(pixel, 0, buffer);
+                return this.root.GetPaletteIndex(pixel, 0, ref rgba);
             }
 
             /// <summary>
@@ -414,17 +449,17 @@ namespace ImageSharp.Quantizers
                 /// <summary>
                 /// Add a color into the tree
                 /// </summary>
-                /// <param name="pixel">The color</param>
+                /// <param name="pixel">The pixel color</param>
                 /// <param name="colorBits">The number of significant color bits</param>
                 /// <param name="level">The level in the tree</param>
                 /// <param name="octree">The tree to which this node belongs</param>
-                /// <param name="buffer">The buffer array.</param>
-                public void AddColor(TPixel pixel, int colorBits, int level, Octree octree, byte[] buffer)
+                /// <param name="rgba">The color to map to.</param>
+                public void AddColor(TPixel pixel, int colorBits, int level, Octree octree, ref Rgba32 rgba)
                 {
                     // Update the color information if this is a leaf
                     if (this.leaf)
                     {
-                        this.Increment(pixel, buffer);
+                        this.Increment(pixel, ref rgba);
 
                         // Setup the previous node
                         octree.TrackPrevious(this);
@@ -433,11 +468,11 @@ namespace ImageSharp.Quantizers
                     {
                         // Go to the next level down in the tree
                         int shift = 7 - level;
-                        pixel.ToXyzwBytes(buffer, 0);
+                        pixel.ToRgba32(ref rgba);
 
-                        int index = ((buffer[2] & Mask[level]) >> (shift - 2)) |
-                                    ((buffer[1] & Mask[level]) >> (shift - 1)) |
-                                    ((buffer[0] & Mask[level]) >> shift);
+                        int index = ((rgba.B & Mask[level]) >> (shift - 2)) |
+                                    ((rgba.G & Mask[level]) >> (shift - 1)) |
+                                    ((rgba.R & Mask[level]) >> shift);
 
                         OctreeNode child = this.children[index];
 
@@ -449,7 +484,7 @@ namespace ImageSharp.Quantizers
                         }
 
                         // Add the color to the child node
-                        child.AddColor(pixel, colorBits, level + 1, octree, buffer);
+                        child.AddColor(pixel, colorBits, level + 1, octree, ref rgba);
                     }
                 }
 
@@ -523,26 +558,26 @@ namespace ImageSharp.Quantizers
                 /// </summary>
                 /// <param name="pixel">The pixel data.</param>
                 /// <param name="level">The level.</param>
-                /// <param name="buffer">The buffer array.</param>
+                /// <param name="rgba">The color to map to.</param>
                 /// <returns>
                 /// The <see cref="int"/> representing the index of the pixel in the palette.
                 /// </returns>
-                public int GetPaletteIndex(TPixel pixel, int level, byte[] buffer)
+                public int GetPaletteIndex(TPixel pixel, int level, ref Rgba32 rgba)
                 {
                     int index = this.paletteIndex;
 
                     if (!this.leaf)
                     {
                         int shift = 7 - level;
-                        pixel.ToXyzwBytes(buffer, 0);
+                        pixel.ToRgba32(ref rgba);
 
-                        int pixelIndex = ((buffer[2] & Mask[level]) >> (shift - 2)) |
-                                         ((buffer[1] & Mask[level]) >> (shift - 1)) |
-                                         ((buffer[0] & Mask[level]) >> shift);
+                        int pixelIndex = ((rgba.B & Mask[level]) >> (shift - 2)) |
+                                         ((rgba.G & Mask[level]) >> (shift - 1)) |
+                                         ((rgba.R & Mask[level]) >> shift);
 
                         if (this.children[pixelIndex] != null)
                         {
-                            index = this.children[pixelIndex].GetPaletteIndex(pixel, level + 1, buffer);
+                            index = this.children[pixelIndex].GetPaletteIndex(pixel, level + 1, ref rgba);
                         }
                         else
                         {
@@ -557,14 +592,14 @@ namespace ImageSharp.Quantizers
                 /// Increment the pixel count and add to the color information
                 /// </summary>
                 /// <param name="pixel">The pixel to add.</param>
-                /// <param name="buffer">The buffer array.</param>
-                public void Increment(TPixel pixel, byte[] buffer)
+                /// <param name="rgba">The color to map to.</param>
+                public void Increment(TPixel pixel, ref Rgba32 rgba)
                 {
-                    pixel.ToXyzwBytes(buffer, 0);
+                    pixel.ToRgba32(ref rgba);
                     this.pixelCount++;
-                    this.red += buffer[0];
-                    this.green += buffer[1];
-                    this.blue += buffer[2];
+                    this.red += rgba.R;
+                    this.green += rgba.G;
+                    this.blue += rgba.B;
                 }
             }
         }

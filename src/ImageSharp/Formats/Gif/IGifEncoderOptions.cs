@@ -1,17 +1,15 @@
-﻿// <copyright file="GifEncoder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers;
+
+namespace SixLabors.ImageSharp.Formats.Gif
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using ImageSharp.PixelFormats;
-    using ImageSharp.Quantizers;
-
     /// <summary>
     /// The configuration options used for encoding gifs
     /// </summary>

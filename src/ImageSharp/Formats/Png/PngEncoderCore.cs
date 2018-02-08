@@ -1,23 +1,19 @@
-﻿// <copyright file="PngEncoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Buffers;
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Png.Filters;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Quantizers;
+
+namespace SixLabors.ImageSharp.Formats.Png
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Linq;
-    using System.Runtime.CompilerServices;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
-    using Quantizers;
-
-    using static ComparableExtensions;
-
     /// <summary>
     /// Performs the png encoding operation.
     /// </summary>
@@ -151,7 +147,7 @@ namespace ImageSharp.Formats
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
-        /// <param name="options">The options for influancing the encoder</param>
+        /// <param name="options">The options for influencing the encoder</param>
         public PngEncoderCore(IPngEncoderOptions options)
         {
             this.ignoreMetadata = options.IgnoreMetadata;
@@ -168,7 +164,7 @@ namespace ImageSharp.Formats
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
@@ -235,19 +231,17 @@ namespace ImageSharp.Formats
             // Collect the indexed pixel data
             if (this.pngColorType == PngColorType.Palette)
             {
-                this.CollectIndexedBytes(image, stream, header);
+                this.CollectIndexedBytes(image.Frames.RootFrame, stream, header);
             }
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-            this.WriteDataChunks(image, stream);
+            this.WriteDataChunks(image.Frames.RootFrame, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
         }
 
-        /// <summary>
-        /// Disposes PngEncoderCore instance, disposing it's internal buffers.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
             this.previousScanline?.Dispose();
@@ -306,7 +300,7 @@ namespace ImageSharp.Formats
         /// <param name="image">The image to encode.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
-        private void CollectIndexedBytes<TPixel>(ImageBase<TPixel> image, Stream stream, PngHeader header)
+        private void CollectIndexedBytes<TPixel>(ImageFrame<TPixel> image, Stream stream, PngHeader header)
             where TPixel : struct, IPixel<TPixel>
         {
             // Quantize the image and get the pixels.
@@ -323,6 +317,7 @@ namespace ImageSharp.Formats
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
+            var rgba = default(Rgba32);
 
             // Copy the pixels across from the image.
             // Reuse the chunk type buffer.
@@ -331,8 +326,8 @@ namespace ImageSharp.Formats
                 // Convert the color to YCbCr and store the luminance
                 // Optionally store the original color alpha.
                 int offset = x * this.bytesPerPixel;
-                rowSpan[x].ToXyzwBytes(this.chunkTypeBuffer, 0);
-                byte luminance = (byte)((0.299F * this.chunkTypeBuffer[0]) + (0.587F * this.chunkTypeBuffer[1]) + (0.114F * this.chunkTypeBuffer[2]));
+                rowSpan[x].ToRgba32(ref rgba);
+                byte luminance = (byte)((0.299F * rgba.R) + (0.587F * rgba.G) + (0.114F * rgba.B));
 
                 for (int i = 0; i < this.bytesPerPixel; i++)
                 {
@@ -342,7 +337,7 @@ namespace ImageSharp.Formats
                     }
                     else
                     {
-                        rawScanlineArray[offset + i] = this.chunkTypeBuffer[3];
+                        rawScanlineArray[offset + i] = rgba.A;
                     }
                 }
             }
@@ -413,14 +408,12 @@ namespace ImageSharp.Formats
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
-            UpFilter.Encode(scanSpan, prevSpan, this.up);
+            UpFilter.Encode(scanSpan, prevSpan, this.up, out int currentSum);
 
-            int currentSum = this.CalculateTotalVariation(this.up, int.MaxValue);
             int lowestSum = currentSum;
             Buffer<byte> actualResult = this.up;
 
-            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.paeth, currentSum);
+            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -428,8 +421,7 @@ namespace ImageSharp.Formats
                 actualResult = this.paeth;
             }
 
-            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.sub, int.MaxValue);
+            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -437,8 +429,7 @@ namespace ImageSharp.Formats
                 actualResult = this.sub;
             }
 
-            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel);
-            currentSum = this.CalculateTotalVariation(this.average, currentSum);
+            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -446,34 +437,6 @@ namespace ImageSharp.Formats
             }
 
             return actualResult;
-        }
-
-        /// <summary>
-        /// Calculates the total variation of given byte array. Total variation is the sum of the absolute values of
-        /// neighbor differences.
-        /// </summary>
-        /// <param name="scanline">The scanline bytes</param>
-        /// <param name="lastSum">The last variation sum</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int CalculateTotalVariation(Span<byte> scanline, int lastSum)
-        {
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
-            int sum = 0;
-
-            for (int i = 1; i < this.bytesPerScanline; i++)
-            {
-                byte v = Unsafe.Add(ref scanBaseRef, i);
-                sum += v < 128 ? v : 256 - v;
-
-                // No point continuing if we are larger.
-                if (sum >= lastSum)
-                {
-                    break;
-                }
-            }
-
-            return sum;
         }
 
         /// <summary>
@@ -531,7 +494,7 @@ namespace ImageSharp.Formats
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
         /// <returns>The <see cref="QuantizedImage{TPixel}"/></returns>
-        private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageBase<TPixel> image)
+        private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.paletteSize > 256)
@@ -555,7 +518,7 @@ namespace ImageSharp.Formats
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
             byte[] alphaTable = ArrayPool<byte>.Shared.Rent(pixelCount);
-            byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
+            var rgba = default(Rgba32);
             bool anyAlpha = false;
             try
             {
@@ -564,13 +527,13 @@ namespace ImageSharp.Formats
                     if (quantized.Pixels.Contains(i))
                     {
                         int offset = i * 3;
-                        palette[i].ToXyzwBytes(bytes, 0);
+                        palette[i].ToRgba32(ref rgba);
 
-                        byte alpha = bytes[3];
+                        byte alpha = rgba.A;
 
-                        colorTable[offset] = bytes[0];
-                        colorTable[offset + 1] = bytes[1];
-                        colorTable[offset + 2] = bytes[2];
+                        colorTable[offset] = rgba.R;
+                        colorTable[offset + 1] = rgba.G;
+                        colorTable[offset + 2] = rgba.B;
 
                         if (alpha > this.threshold)
                         {
@@ -594,7 +557,6 @@ namespace ImageSharp.Formats
             {
                 ArrayPool<byte>.Shared.Return(colorTable);
                 ArrayPool<byte>.Shared.Return(alphaTable);
-                ArrayPool<byte>.Shared.Return(bytes);
             }
 
             return quantized;
@@ -651,7 +613,7 @@ namespace ImageSharp.Formats
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The image.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(Image<TPixel> pixels, Stream stream)
+        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             this.bytesPerScanline = this.width * this.bytesPerPixel;
@@ -679,10 +641,12 @@ namespace ImageSharp.Formats
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        Buffer<byte> r = this.EncodePixelRow(pixels.GetRowSpan(y), y);
+                        Buffer<byte> r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
-                        Swap(ref this.rawScanline, ref this.previousScanline);
+                        Buffer<byte> temp = this.rawScanline;
+                        this.rawScanline = this.previousScanline;
+                        this.previousScanline = temp;
                     }
                 }
 

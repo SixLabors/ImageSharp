@@ -1,17 +1,16 @@
-﻿// <copyright file="PixelateProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to pixelate the colors of an <see cref="Image{TPixel}"/>.
     /// </summary>
@@ -29,23 +28,28 @@ namespace ImageSharp.Processing.Processors
         public PixelateProcessor(int size)
         {
             Guard.MustBeGreaterThan(size, 0, nameof(size));
-            this.Value = size;
+            this.Size = size;
         }
 
         /// <summary>
         /// Gets or the pixel size.
         /// </summary>
-        public int Value { get; }
+        public int Size { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
+            if (this.Size <= 0 || this.Size > source.Height || this.Size > source.Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(this.Size));
+            }
+
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
-            int size = this.Value;
-            int offset = this.Value / 2;
+            int size = this.Size;
+            int offset = this.Size / 2;
 
             // Align start/end positions.
             int minX = Math.Max(0, startX);
@@ -69,7 +73,7 @@ namespace ImageSharp.Processing.Processors
 
             Parallel.ForEach(
                 range,
-                this.ParallelOptions,
+                configuration.ParallelOptions,
                 y =>
                     {
                         int offsetY = y - startY;
@@ -81,7 +85,7 @@ namespace ImageSharp.Processing.Processors
                             offsetPy--;
                         }
 
-                        Span<TPixel> row = source.GetRowSpan(offsetY + offsetPy);
+                        Span<TPixel> row = source.GetPixelRowSpan(offsetY + offsetPy);
 
                         for (int x = minX; x < maxX; x += size)
                         {

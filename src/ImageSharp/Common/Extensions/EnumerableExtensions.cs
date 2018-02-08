@@ -1,17 +1,15 @@
-﻿// <copyright file="EnumerableExtensions.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Collections.Generic;
+
+namespace SixLabors.ImageSharp.Common
 {
-    using System;
-    using System.Collections.Generic;
-
     /// <summary>
     /// Encapsulates a series of time saving extension methods to the <see cref="T:System.Collections.IEnumerable"/> interface.
     /// </summary>
-    public static class EnumerableExtensions
+    internal static class EnumerableExtensions
     {
         /// <summary>
         /// Generates a sequence of integral numbers within a specified range.

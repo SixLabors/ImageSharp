@@ -1,84 +1,49 @@
-﻿// <copyright file="SkewProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Provides methods that allow the skewing of images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class SkewProcessor<TPixel> : Matrix3x2Processor<TPixel>
+    internal class SkewProcessor<TPixel> : CenteredAffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// The transform matrix to apply.
+        /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
         /// </summary>
-        private Matrix3x2 processMatrix;
-
-        /// <summary>
-        /// Gets or sets the angle of rotation along the x-axis in degrees.
-        /// </summary>
-        public float AngleX { get; set; }
-
-        /// <summary>
-        /// Gets or sets the angle of rotation along the y-axis in degrees.
-        /// </summary>
-        public float AngleY { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to expand the canvas to fit the skewed image.
-        /// </summary>
-        public bool Expand { get; set; } = true;
-
-        /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
+        public SkewProcessor(float degreesX, float degreesY)
+            : this(degreesX, degreesY, KnownResamplers.Bicubic)
         {
-            int height = this.CanvasRectangle.Height;
-            int width = this.CanvasRectangle.Width;
-            Matrix3x2 matrix = this.GetCenteredMatrix(source, this.processMatrix);
-
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
-            {
-                Parallel.For(
-                    0,
-                    height,
-                    this.ParallelOptions,
-                    y =>
-                        {
-                            Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
-
-                            for (int x = 0; x < width; x++)
-                            {
-                                var transformedPoint = Point.Skew(new Point(x, y), matrix);
-
-                                if (source.Bounds.Contains(transformedPoint.X, transformedPoint.Y))
-                                {
-                                    targetRow[x] = source[transformedPoint.X, transformedPoint.Y];
-                                }
-                            }
-                        });
-
-                source.SwapPixelsBuffers(targetPixels);
-            }
         }
 
-        /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SkewProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
+        /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
+        /// <param name="sampler">The sampler to perform the skew operation.</param>
+        public SkewProcessor(float degreesX, float degreesY, IResampler sampler)
+            : base(Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty), sampler)
         {
-            this.processMatrix = Matrix3x2Extensions.CreateSkew(-this.AngleX, -this.AngleY, new Point(0, 0));
-            if (this.Expand)
-            {
-                this.CreateNewCanvas(sourceRectangle, this.processMatrix);
-            }
+            this.DegreesX = degreesX;
+            this.DegreesY = degreesY;
         }
+
+        /// <summary>
+        /// Gets the angle of rotation along the x-axis in degrees.
+        /// </summary>
+        public float DegreesX { get; }
+
+        /// <summary>
+        /// Gets the angle of rotation along the y-axis in degrees.
+        /// </summary>
+        public float DegreesY { get; }
     }
 }

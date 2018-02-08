@@ -1,36 +1,33 @@
-﻿// <copyright file="PixelAccessorTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Numerics;
-
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="PixelAccessor"/> class.
     /// </summary>
     public class PixelAccessorTests
     {
-        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+        public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            Image<TPixel> image = factory.CreateImage(10, 10);
+            var image = new Image<TPixel>(10, 10);
             using (PixelAccessor<TPixel> pixels = image.Lock())
             {
                 for (int i = 0; i < 10; i++)
                 {
                     for (int j = 0; j < 10; j++)
                     {
-                        Vector4 v = new Vector4(i, j, 0, 1);
+                        var v = new Vector4(i, j, 0, 1);
                         v /= 10;
 
-                        TPixel color = default(TPixel);
+                        var color = default(TPixel);
                         color.PackFromVector4(v);
 
                         pixels[i, j] = color;
@@ -45,7 +42,7 @@ namespace ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyx)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Xyzw)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.All, ComponentOrder.Zyxw)]
-        public void CopyTo_Then_CopyFrom_OnFullImageRect<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
+        internal void CopyTo_Then_CopyFrom_OnFullImageRect<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> src = provider.GetImage())
@@ -75,14 +72,14 @@ namespace ImageSharp.Tests
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyzw)]
         [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyxw)]
-        public void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
+        internal void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> destImage = new Image<TPixel>(8, 8))
             {
                 using (Image<TPixel> srcImage = provider.GetImage())
                 {
-                    srcImage.Fill(NamedColors<TPixel>.Red, new Rectangle(4, 4, 8, 8));
+                    srcImage.Mutate(x => x.Fill(NamedColors<TPixel>.Red, new Rectangle(4, 4, 8, 8)));
                     using (PixelAccessor<TPixel> srcPixels = srcImage.Lock())
                     {
                         using (PixelArea<TPixel> area = new PixelArea<TPixel>(8, 8, order))
@@ -100,8 +97,9 @@ namespace ImageSharp.Tests
                 provider.Utility.SourceFileOrDescription = order.ToString();
                 provider.Utility.SaveTestOutputFile(destImage, "bmp");
 
-                using (Image<TPixel> expectedImage = new Image<TPixel>(8, 8).Fill(NamedColors<TPixel>.Red))
+                using (Image<TPixel> expectedImage = new Image<TPixel>(8, 8))
                 {
+                    expectedImage.Mutate(x => x.Fill(NamedColors<TPixel>.Red));
                     Assert.True(destImage.IsEquivalentTo(expectedImage));
                 }
             }
@@ -113,7 +111,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyFromZYX(image);
+                CopyFromZYXImpl(image);
             }
         }
         
@@ -122,7 +120,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyFromZYXW(image);
+                CopyFromZYXWImpl(image);
             }
         }
         
@@ -131,7 +129,7 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyToZYX(image);
+                CopyToZYXImpl(image);
             }
         }
         
@@ -140,11 +138,11 @@ namespace ImageSharp.Tests
         {
             using (Image<Rgba32> image = new Image<Rgba32>(1, 1))
             {
-                CopyToZYXW(image);
+                CopyToZYXWImpl(image);
             }
         }
         
-        private static void CopyFromZYX<TPixel>(Image<TPixel> image)
+        private static void CopyFromZYXImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -171,7 +169,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyFromZYXW<TPixel>(Image<TPixel> image)
+        private static void CopyFromZYXWImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -199,7 +197,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYX<TPixel>(Image<TPixel> image)
+        private static void CopyToZYXImpl<TPixel>(Image<TPixel> image)
           where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())
@@ -221,7 +219,7 @@ namespace ImageSharp.Tests
             }
         }
 
-        private static void CopyToZYXW<TPixel>(Image<TPixel> image)
+        private static void CopyToZYXWImpl<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             using (PixelAccessor<TPixel> pixels = image.Lock())

@@ -1,12 +1,12 @@
-﻿namespace ImageSharp.Benchmarks
+﻿namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp;
-    using ImageSharp.Memory;
+    using SixLabors.ImageSharp;
+    using SixLabors.ImageSharp.Memory;
 
     /// <summary>
     /// Compares two implementation candidates for general BulkPixelOperations.ToVector4():

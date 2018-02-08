@@ -1,15 +1,13 @@
-﻿// <copyright file="Bgra32.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.PixelFormats
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in blue, green, red, and alpha order.

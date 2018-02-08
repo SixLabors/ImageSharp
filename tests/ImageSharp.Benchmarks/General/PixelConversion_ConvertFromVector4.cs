@@ -1,5 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
-namespace ImageSharp.Benchmarks.General
+namespace SixLabors.ImageSharp.Benchmarks.General
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
@@ -108,7 +108,7 @@ namespace ImageSharp.Benchmarks.General
         [Params(32)]
         public int Count { get; set; }
 
-        [Setup]
+        [GlobalSetup]
         public void Setup()
         {
             this.nonVectorRunner = new ConversionRunner<TestArgb>(this.Count);

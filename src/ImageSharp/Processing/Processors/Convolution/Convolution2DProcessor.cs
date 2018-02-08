@@ -1,18 +1,16 @@
-﻿// <copyright file="Convolution2DProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Defines a sampler that uses two one-dimensional matrices to perform convolution against an image.
     /// </summary>
@@ -42,7 +40,7 @@ namespace ImageSharp.Processing.Processors
         public Fast2DArray<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             int kernelYHeight = this.KernelY.Height;
             int kernelYWidth = this.KernelY.Width;
@@ -65,10 +63,10 @@ namespace ImageSharp.Processing.Processors
                 Parallel.For(
                     startY,
                     endY,
-                    this.ParallelOptions,
+                    configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> sourceRow = source.GetRowSpan(y);
+                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                         for (int x = startX; x < endX; x++)
@@ -87,7 +85,7 @@ namespace ImageSharp.Processing.Processors
                                 int offsetY = y + fyr;
 
                                 offsetY = offsetY.Clamp(0, maxY);
-                                Span<TPixel> sourceOffsetRow = source.GetRowSpan(offsetY);
+                                Span<TPixel> sourceOffsetRow = source.GetPixelRowSpan(offsetY);
 
                                 for (int fx = 0; fx < kernelXWidth; fx++)
                                 {
@@ -95,7 +93,7 @@ namespace ImageSharp.Processing.Processors
                                     int offsetX = x + fxr;
 
                                     offsetX = offsetX.Clamp(0, maxX);
-                                    var currentColor = sourceOffsetRow[offsetX].ToVector4();
+                                    Vector4 currentColor = sourceOffsetRow[offsetX].ToVector4().Premultiply();
 
                                     if (fy < kernelXHeight)
                                     {
@@ -120,7 +118,7 @@ namespace ImageSharp.Processing.Processors
                             float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
                             ref TPixel pixel = ref targetRow[x];
-                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
+                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W).UnPremultiply());
                         }
                     });
 

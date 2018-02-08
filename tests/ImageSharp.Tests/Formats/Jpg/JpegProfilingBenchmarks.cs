@@ -1,17 +1,18 @@
-// <copyright file="JpegProfilingBenchmarks.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+// ReSharper disable InconsistentNaming
+namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System;
     using System.IO;
     using System.Linq;
     using System.Numerics;
 
-    using ImageSharp.Formats;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Formats;
+    using SixLabors.ImageSharp.Formats.Jpeg;
+    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -29,14 +30,32 @@ namespace ImageSharp.Tests
             TestImages.Jpeg.Baseline.Ycck,
             TestImages.Jpeg.Baseline.Calliphora,
             TestImages.Jpeg.Baseline.Jpeg400,
-            TestImages.Jpeg.Baseline.Jpeg420,
+            TestImages.Jpeg.Baseline.Jpeg420Exif,
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
+        //[Theory] // Benchmark, enable manually
+        //[MemberData(nameof(DecodeJpegData))]
+        public void DecodeJpeg_Original(string fileName)
+        {
+            this.DecodeJpegBenchmarkImpl(fileName, new OrigJpegDecoder());
+        }
+
         // [Theory] // Benchmark, enable manually
         // [MemberData(nameof(DecodeJpegData))]
-        public void DecodeJpeg(string fileName)
+        public void DecodeJpeg_PdfJs(string fileName)
         {
+            this.DecodeJpegBenchmarkImpl(fileName, new PdfJsJpegDecoder());
+        }
+
+        private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
+        {
+            // do not run this on CI even by accident
+            if (TestEnvironment.RunsOnCI)
+            {
+                return;
+            }
+
             const int ExecutionCount = 30;
 
             if (!Vector.IsHardwareAccelerated)
@@ -44,18 +63,17 @@ namespace ImageSharp.Tests
                 throw new Exception("Vector.IsHardwareAccelerated == false! ('prefer32 bit' enabled?)");
             }
 
-            string path = TestFile.GetPath(fileName);
+            string path = TestFile.GetInputFileFullPath(fileName);
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(
                 ExecutionCount,
                 () =>
                     {
-                         Image<Rgba32> img = Image.Load<Rgba32>(bytes);
+                        Image<Rgba32> img = Image.Load<Rgba32>(bytes, decoder);
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
-
         }
 
         // Benchmark, enable manually!
@@ -66,6 +84,12 @@ namespace ImageSharp.Tests
         // [InlineData(30, 100, JpegSubsample.Ratio444)]
         public void EncodeJpeg(int executionCount, int quality, JpegSubsample subsample)
         {
+            // do not run this on CI even by accident
+            if (TestEnvironment.RunsOnCI)
+            {
+                return;
+            }
+
             string[] testFiles = TestImages.Bmp.All
                 .Concat(new[] { TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk })
                 .ToArray();

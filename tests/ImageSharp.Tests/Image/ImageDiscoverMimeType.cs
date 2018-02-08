@@ -1,19 +1,16 @@
-﻿// <copyright file="PixelAccessorTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.PixelFormats;
+using Moq;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.IO;
-
-    using ImageSharp.Formats;
-    using ImageSharp.IO;
-    using ImageSharp.PixelFormats;
-    using Moq;
-    using Xunit;
-
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
@@ -41,20 +38,20 @@ namespace ImageSharp.Tests
 
             this.fileSystem = new Mock<IFileSystem>();
 
-            this.LocalConfiguration = new Configuration()
+            this.LocalConfiguration = new Configuration
             {
                 FileSystem = this.fileSystem.Object
             };
             this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
 
-            TestFormat.RegisterGloablTestFormat();
+            TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
             this.DataStream = TestFormat.GlobalTestFormat.CreateStream(this.Marker);
 
             this.FilePath = Guid.NewGuid().ToString();
             this.fileSystem.Setup(x => x.OpenRead(this.FilePath)).Returns(this.DataStream);
 
-            TestFileSystem.RegisterGloablTestFormat();
+            TestFileSystem.RegisterGlobalTestFormat();
             TestFileSystem.Global.AddFile(this.FilePath, this.DataStream);
         }
 
@@ -85,7 +82,6 @@ namespace ImageSharp.Tests
             var type = Image.DetectFormat(this.LocalConfiguration, FilePath);
             Assert.Equal(localImageFormat, type);
         }
-
 
         [Fact]
         public void DiscoverImageFormatStream()

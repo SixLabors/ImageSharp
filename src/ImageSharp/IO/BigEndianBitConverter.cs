@@ -1,9 +1,7 @@
-﻿// <copyright file="BigEndianBitConverter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.IO
+namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
     /// Implementation of EndianBitConverter which converts to/from big-endian byte arrays.
@@ -80,7 +78,7 @@ namespace ImageSharp.IO
 
             long p1 = (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
             long p2 = (value[startIndex + 4] << 24) | (value[startIndex + 5] << 16) | (value[startIndex + 6] << 8) | value[startIndex + 7];
-            return p2 | (p1 << 32);
+            return (p2 & 0xFFFFFFFF) | (p1 << 32);
         }
     }
 }

@@ -1,16 +1,15 @@
-﻿// <copyright file="ErrorDiffusionDitherProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Dithering;
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-
-    using ImageSharp.Dithering;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> that dithers an image using error diffusion.
     /// </summary>
@@ -56,47 +55,29 @@ namespace ImageSharp.Processing.Processors
         public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+            new GrayscaleBt709Processor<TPixel>(1F).Apply(source, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            int startY = interest.Y;
+            int endY = interest.Bottom;
+            int startX = interest.X;
+            int endX = interest.Right;
 
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
+            for (int y = startY; y < endY; y++)
             {
-                startX = 0;
-            }
+                Span<TPixel> row = source.GetPixelRowSpan(y);
 
-            if (minY > 0)
-            {
-                startY = 0;
-            }
-
-            for (int y = minY; y < maxY; y++)
-            {
-                int offsetY = y - startY;
-                Span<TPixel> row = source.GetRowSpan(offsetY);
-
-                for (int x = minX; x < maxX; x++)
+                for (int x = startX; x < endX; x++)
                 {
-                    int offsetX = x - startX;
-                    TPixel sourceColor = row[offsetX];
+                    TPixel sourceColor = row[x];
                     TPixel transformedColor = sourceColor.ToVector4().X >= this.Threshold ? this.UpperColor : this.LowerColor;
-                    this.Diffuser.Dither(source, sourceColor, transformedColor, offsetX, offsetY, maxX, maxY);
+                    this.Diffuser.Dither(source, sourceColor, transformedColor, x, y, startX, startY, endX, endY);
                 }
             }
         }

@@ -1,3 +1,4 @@
 {
-  "methodDisplay": "method"
+  "methodDisplay": "method",
+  "diagnosticMessages": true
 }

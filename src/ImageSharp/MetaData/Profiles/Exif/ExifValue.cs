@@ -1,14 +1,12 @@
-﻿// <copyright file="ExifValue.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Globalization;
+using System.Text;
+
+namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
-    using System;
-    using System.Globalization;
-    using System.Text;
-
     /// <summary>
     /// Represent the value of the EXIF profile.
     /// </summary>

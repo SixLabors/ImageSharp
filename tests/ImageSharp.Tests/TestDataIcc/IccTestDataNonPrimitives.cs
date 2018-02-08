@@ -1,9 +1,13 @@
-﻿namespace ImageSharp.Tests
-{
-    using System;
-    using System.Globalization;
-    using System.Numerics;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Globalization;
+using System.Numerics;
+using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+
+namespace SixLabors.ImageSharp.Tests
+{
     internal static class IccTestDataNonPrimitives
     {
         #region DateTime

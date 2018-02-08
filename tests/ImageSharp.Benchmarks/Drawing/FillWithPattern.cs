@@ -3,7 +3,7 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
-namespace ImageSharp.Benchmarks
+namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
@@ -11,9 +11,9 @@ namespace ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
 
-    using ImageSharp.Drawing.Brushes;
+    using SixLabors.ImageSharp.Drawing.Brushes;
     using CoreBrushes = ImageSharp.Drawing.Brushes.Brushes;
-    using ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.PixelFormats;
 
     public class FillWithPattern
     {
@@ -40,7 +40,7 @@ namespace ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                image.Fill(CoreBrushes.BackwardDiagonal(Rgba32.HotPink));
+                image.Mutate(x => x.Fill(CoreBrushes.BackwardDiagonal(Rgba32.HotPink)));
 
                 using (MemoryStream ms = new MemoryStream())
                 {

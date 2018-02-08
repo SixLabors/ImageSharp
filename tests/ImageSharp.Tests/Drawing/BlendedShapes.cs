@@ -1,18 +1,16 @@
-﻿// <copyright file="DrawImageEffectTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Drawing
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.Linq;
-    using System.Collections.Generic;
-    using System.Text;
-    using ImageSharp.PixelFormats;
-    using Xunit;
-    using SixLabors.Primitives;
-
     public class BlendedShapes
     {
         public static IEnumerable<object[]> modes = ((PixelBlenderMode[])Enum.GetValues(typeof(PixelBlenderMode)))
@@ -27,11 +25,12 @@ namespace ImageSharp.Tests.Drawing
             {
                 var scaleX = (img.Width / 100);
                 var scaleY = (img.Height / 100);
-                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY));
-                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
-                {
-                    BlenderMode = mode
-                });
+                img.Mutate(x=>x
+                            .Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY))
+                            .Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
+                            {
+                                BlenderMode = mode
+                            }));
                 img.DebugSave(provider, new { mode });
             }
         }
@@ -45,15 +44,15 @@ namespace ImageSharp.Tests.Drawing
             {
                 var scaleX = (img.Width / 100);
                 var scaleY = (img.Height / 100);
-                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0* scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY));
-                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Mutate(x=>x.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0* scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)));
+                img.Mutate(x => x.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
-                });
-                img.Fill(NamedColors<TPixel>.Transparent, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                }));
+                img.Mutate(x => x.Fill(NamedColors<TPixel>.Transparent, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
-                });
+                }));
                 img.DebugSave(provider, new { mode });
             }
         }
@@ -67,20 +66,20 @@ namespace ImageSharp.Tests.Drawing
             {
                 var scaleX = (img.Width / 100);
                 var scaleY = (img.Height / 100);
-                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40, 100 * scaleX, 20* scaleY));
-                img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Mutate(x=>x.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40, 100 * scaleX, 20* scaleY)));
+                img.Mutate(x => x.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
-                });
+                }));
                 var c = NamedColors<TPixel>.Red.ToVector4();
                 c.W *= 0.5f;
                 TPixel pixel = default(TPixel);
                 pixel.PackFromVector4(c);
 
-                img.Fill(pixel, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Mutate(x => x.Fill(pixel, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
-                });
+                }));
                 img.DebugSave(provider, new { mode });
             }
         }
@@ -96,16 +95,11 @@ namespace ImageSharp.Tests.Drawing
             {
                 var scaleX = (img.Width / 100);
                 var scaleY = (img.Height / 100);
-                img.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40* scaleY, 100 * scaleX, 20 * scaleY));
-                //img.Fill(NamedColors<TPixel>.HotPink, new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY), new ImageSharp.GraphicsOptions(true)
-                //{
-                //    BlenderMode = mode
-                //});
-                
-                img.Fill(NamedColors<TPixel>.Black, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
+                img.Mutate(x => x.Fill(NamedColors<TPixel>.DarkBlue, new Rectangle(0 * scaleX, 40* scaleY, 100 * scaleX, 20 * scaleY)));
+                img.Mutate(x => x.Fill(NamedColors<TPixel>.Black, new SixLabors.Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY), new ImageSharp.GraphicsOptions(true)
                 {
                     BlenderMode = mode
-                });
+                }));
                 img.DebugSave(provider, new { mode });
             }
         }

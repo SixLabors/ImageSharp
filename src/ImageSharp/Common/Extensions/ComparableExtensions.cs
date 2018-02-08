@@ -1,13 +1,11 @@
-﻿// <copyright file="ComparableExtensions.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp
+using System;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Extension methods for classes that implement <see cref="IComparable{T}"/>.
     /// </summary>
@@ -170,20 +168,6 @@ namespace ImageSharp
         public static byte ToByte(this double value)
         {
             return (byte)value.Clamp(0, 255);
-        }
-
-        /// <summary>
-        /// Swaps the references to two objects in memory.
-        /// </summary>
-        /// <param name="first">The first reference.</param>
-        /// <param name="second">The second reference.</param>
-        /// <typeparam name="T">The type of object.</typeparam>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Swap<T>(ref T first, ref T second)
-        {
-            T temp = second;
-            second = first;
-            first = temp;
         }
     }
 }

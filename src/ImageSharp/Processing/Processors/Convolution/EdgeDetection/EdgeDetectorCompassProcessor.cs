@@ -1,18 +1,16 @@
-﻿// <copyright file="EdgeDetectorCompassProcessor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Processing.Processors
+using System;
+using System.Numerics;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using System;
-    using System.Numerics;
-    using System.Threading.Tasks;
-
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-
     /// <summary>
     /// Defines a sampler that detects edges within an image using a eight two dimensional matrices.
     /// </summary>
@@ -64,16 +62,16 @@ namespace ImageSharp.Processing.Processors
         public bool Grayscale { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.Grayscale)
             {
-                new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle);
+                new GrayscaleBt709Processor<TPixel>(1F).Apply(source, sourceRectangle, configuration);
             }
         }
 
         /// <inheritdoc />
-        protected override void OnApply(ImageBase<TPixel> source, Rectangle sourceRectangle)
+        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Fast2DArray<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
@@ -89,9 +87,9 @@ namespace ImageSharp.Processing.Processors
             int maxY = Math.Min(source.Height, endY);
 
             // we need a clean copy for each pass to start from
-            using (ImageBase<TPixel> cleanCopy = new Image<TPixel>(source))
+            using (ImageFrame<TPixel> cleanCopy = source.Clone())
             {
-                new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle);
+                new ConvolutionProcessor<TPixel>(kernels[0]).Apply(source, sourceRectangle, configuration);
 
                 if (kernels.Length == 1)
                 {
@@ -116,9 +114,9 @@ namespace ImageSharp.Processing.Processors
                 // ReSharper disable once ForCanBeConvertedToForeach
                 for (int i = 1; i < kernels.Length; i++)
                 {
-                    using (ImageBase<TPixel> pass = new Image<TPixel>(cleanCopy))
+                    using (ImageFrame<TPixel> pass = cleanCopy.Clone())
                     {
-                        new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle);
+                        new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle, configuration);
 
                         using (PixelAccessor<TPixel> passPixels = pass.Lock())
                         using (PixelAccessor<TPixel> targetPixels = source.Lock())
@@ -126,7 +124,7 @@ namespace ImageSharp.Processing.Processors
                             Parallel.For(
                                 minY,
                                 maxY,
-                                this.ParallelOptions,
+                                configuration.ParallelOptions,
                                 y =>
                                 {
                                     int offsetY = y - shiftY;

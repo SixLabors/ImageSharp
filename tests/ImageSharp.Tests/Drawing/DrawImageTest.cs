@@ -1,15 +1,16 @@
-﻿// <copyright file="BlendTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System.IO;
+using System.Linq;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-    using System.Linq;
-    using ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
-    using Xunit;
+    using System;
+    using System.Numerics;
 
     public class DrawImageTest : FileTestBase
     {
@@ -40,8 +41,71 @@ namespace ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
-                image.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4))
-                     .DebugSave(provider, new { mode });
+                image.Mutate(x => x.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4)));
+                image.DebugSave(provider, new { mode });
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Normal)]
+        public void ImageShouldDrawTransformedImage<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
+            {
+                Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(45F);
+                Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.25F, .25F));
+
+                blend.Mutate(x => x.Transform(rotate * scale));
+
+                var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
+                image.Mutate(x => x.DrawImage(blend, mode, .75F, new Size(blend.Width, blend.Height), position));
+                image.DebugSave(provider, new[] { "Transformed" });
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
+        public void ImageShouldHandleNegativeLocation(TestImageProvider<Rgba32> provider)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(x => x.Fill(Rgba32.Black));
+
+                int xy = -25;
+                Rgba32 backgroundPixel = background[0, 0];
+                Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
+
+                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Size(overlay.Width, overlay.Height), new Point(xy, xy)));
+
+                Assert.Equal(Rgba32.White, backgroundPixel);
+                Assert.Equal(overlayPixel, background[0, 0]);
+
+                background.DebugSave(provider, new[] { "Negative" });
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32)]
+        public void ImageShouldHandlePositiveLocation(TestImageProvider<Rgba32> provider)
+        {
+            using (Image<Rgba32> background = provider.GetImage())
+            using (var overlay = new Image<Rgba32>(50, 50))
+            {
+                overlay.Mutate(x => x.Fill(Rgba32.Black));
+
+                int xy = 25;
+                Rgba32 backgroundPixel = background[xy - 1, xy - 1];
+                Rgba32 overlayPixel = overlay[0, 0];
+
+                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Size(overlay.Width, overlay.Height), new Point(xy, xy)));
+
+                Assert.Equal(Rgba32.White, backgroundPixel);
+                Assert.Equal(overlayPixel, background[xy, xy]);
+
+                background.DebugSave(provider, new[] { "Positive" });
             }
         }
     }

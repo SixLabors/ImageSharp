@@ -1,26 +1,37 @@
-﻿// <copyright file="CropTest.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.Processing.Transforms
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Primitives;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-
-    public class CropTest : FileTestBase
+    public class CropTest : BaseImageOperationsExtensionTest
     {
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
-        public void ImageShouldCrop<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [InlineData(10, 10)]
+        [InlineData(12, 123)]
+        public void Crop_Width_height_CropProcessorWithRectangleSet(int width, int height)
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Crop(image.Width / 2, image.Height / 2)
-                    .DebugSave(provider, null, Extensions.Bmp);
-            }
+            this.operations.Crop(width, height);
+            var processor = this.Verify<CropProcessor<Rgba32>>();
+
+            Assert.Equal(new Rectangle(0, 0, width, height), processor.CropRectangle);
+        }
+
+        [Theory]
+        [InlineData(10, 10, 2, 6)]
+        [InlineData(12, 123, 6, 2)]
+        public void Crop_Rectangle_CropProcessorWithRectangleSet(int x, int y, int width, int height)
+        {
+            var rect = new Rectangle(x, y, width, height);
+            this.operations.Crop(rect);
+            var processor = this.Verify<CropProcessor<Rgba32>>();
+
+            Assert.Equal(rect, processor.CropRectangle);
         }
     }
 }

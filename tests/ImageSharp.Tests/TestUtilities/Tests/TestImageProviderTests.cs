@@ -1,17 +1,18 @@
-﻿// <copyright file="TestImageFactoryTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests
+using System;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
+using Xunit.Abstractions;
+
+using System.Collections.Concurrent;
+using System.IO;
+
+using SixLabors.ImageSharp.Formats;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-
-    using ImageSharp.PixelFormats;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class TestImageProviderTests
     {
         public TestImageProviderTests(ITestOutputHelper output)
@@ -20,6 +21,14 @@ namespace ImageSharp.Tests
         }
 
         private ITestOutputHelper Output { get; }
+
+        [Theory]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
+        public void NoOutputSubfolderIsPresentByDefault<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Empty(provider.Utility.OutputSubfolderName);
+        }
 
         [Theory]
         [WithBlankImages(42, 666, PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
@@ -50,23 +59,11 @@ namespace ImageSharp.Tests
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
         [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
-        [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
+        [WithBlankImages(1, 1, PixelTypes.Argb32, PixelTypes.Argb32)]
         public void PixelType_PropertyValueIsCorrect<TPixel>(TestImageProvider<TPixel> provider, PixelTypes expected)
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.Equal(expected, provider.PixelType);
-        }
-
-        [Theory]
-        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
-        public void PixelTypes_ColorWithDefaultImageClass_TriggersCreatingTheNonGenericDerivedImageClass<TPixel>(
-            TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Image<TPixel> img = provider.GetImage();
-
-            Assert.IsType<Image<Rgba32>>(img);
         }
 
         [Theory]
@@ -84,6 +81,155 @@ namespace ImageSharp.Tests
             string fn = provider.Utility.GetTestOutputFileName("jpg");
             this.Output.WriteLine(fn);
         }
+
+        private class TestDecoder : IImageDecoder
+        {
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                invocationCounts[this.callerName]++;
+                return new Image<TPixel>(42, 42);
+            }
+
+            // Couldn't make xUnit happy without this hackery:
+
+            private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
+
+            private string callerName = null;
+
+            internal void InitCaller(string name)
+            {
+                this.callerName = name;
+                invocationCounts[name] = 0;
+            }
+
+            internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
+
+            private static readonly object Monitor = new object();
+
+            public static void DoTestThreadSafe(Action action)
+            {
+                lock (Monitor)
+                {
+                    action();
+                }
+            }
+        }
+
+
+        [Theory]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
+        public void GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.NotNull(provider.Utility.SourceFileOrDescription);
+
+            TestDecoder.DoTestThreadSafe(
+                () =>
+                    {
+                        string testName = nameof(this.GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache);
+
+                        var decoder = new TestDecoder();
+                        decoder.InitCaller(testName);
+
+                        provider.GetImage(decoder);
+                        Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
+
+                        provider.GetImage(decoder);
+                        Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
+                    });
+        }
+
+        private class TestDecoderWithParameters : IImageDecoder
+        {
+            public string Param1 { get; set; }
+
+            public int Param2 { get; set; }
+
+            public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                invocationCounts[this.callerName]++;
+                return new Image<TPixel>(42, 42);
+            }
+
+            private static ConcurrentDictionary<string, int> invocationCounts = new ConcurrentDictionary<string, int>();
+
+            private string callerName = null;
+
+            internal void InitCaller(string name)
+            {
+                this.callerName = name;
+                invocationCounts[name] = 0;
+            }
+
+            internal static int GetInvocationCount(string callerName) => invocationCounts[callerName];
+
+            private static readonly object Monitor = new object();
+
+            public static void DoTestThreadSafe(Action action)
+            {
+                lock (Monitor)
+                {
+                    action();
+                }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
+        public void GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.NotNull(provider.Utility.SourceFileOrDescription);
+
+            TestDecoderWithParameters.DoTestThreadSafe(
+                () =>
+                    {
+                        string testName =
+                            nameof(this.GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
+
+                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        decoder1.InitCaller(testName);
+
+                        var decoder2 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                        decoder2.InitCaller(testName);
+
+                        provider.GetImage(decoder1);
+                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+
+                        provider.GetImage(decoder2);
+                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+                    });
+        }
+
+        [Theory]
+        [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
+        public void GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.NotNull(provider.Utility.SourceFileOrDescription);
+
+            TestDecoderWithParameters.DoTestThreadSafe(
+                () =>
+                    {
+                        string testName =
+                            nameof(this.GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
+
+                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 42 };
+                        decoder1.InitCaller(testName);
+
+                        var decoder2 = new TestDecoderWithParameters() { Param1 = "LoL", Param2 = 42 };
+                        decoder2.InitCaller(testName);
+
+                        provider.GetImage(decoder1);
+                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+
+                        provider.GetImage(decoder2);
+                        Assert.Equal(2, TestDecoderWithParameters.GetInvocationCount(testName));
+                    });
+        }
+
 
         public static string[] AllBmpFiles => TestImages.Bmp.All;
 
@@ -106,7 +252,7 @@ namespace ImageSharp.Tests
             Assert.Equal(10, img.Width);
             Assert.Equal(20, img.Height);
 
-            byte[] colors = new byte[4];
+            var rgba = default(Rgba32);
 
             using (PixelAccessor<TPixel> pixels = img.Lock())
             {
@@ -114,12 +260,12 @@ namespace ImageSharp.Tests
                 {
                     for (int x = 0; x < pixels.Width; x++)
                     {
-                        pixels[x, y].ToXyzwBytes(colors, 0);
+                        pixels[x, y].ToRgba32(ref rgba);
 
-                        Assert.Equal(255, colors[0]);
-                        Assert.Equal(100, colors[1]);
-                        Assert.Equal(50, colors[2]);
-                        Assert.Equal(200, colors[3]);
+                        Assert.Equal(255, rgba.R);
+                        Assert.Equal(100, rgba.G);
+                        Assert.Equal(50, rgba.B);
+                        Assert.Equal(200, rgba.A);
                     }
                 }
             }
@@ -131,10 +277,10 @@ namespace ImageSharp.Tests
         /// <typeparam name="TPixel"></typeparam>
         /// <param name="factory"></param>
         /// <returns></returns>
-        public static Image<TPixel> CreateTestImage<TPixel>(GenericFactory<TPixel> factory)
+        public static Image<TPixel> CreateTestImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            return factory.CreateImage(3, 3);
+            return new Image<TPixel>(3, 3);
         }
 
         [Theory]
@@ -152,12 +298,12 @@ namespace ImageSharp.Tests
         }
 
         public static readonly TheoryData<object> BasicData = new TheoryData<object>()
-                                                                             {
-                                                                                 TestImageProvider<Rgba32>.Blank(10, 20),
-                                                                                 TestImageProvider<HalfVector4>.Blank(
-                                                                                     10,
-                                                                                     20),
-                                                                             };
+        {
+            TestImageProvider<Rgba32>.Blank(10, 20),
+            TestImageProvider<HalfVector4>.Blank(
+                10,
+                20),
+        };
 
         [Theory]
         [MemberData(nameof(BasicData))]
@@ -170,12 +316,10 @@ namespace ImageSharp.Tests
         }
 
         public static readonly TheoryData<object> FileData = new TheoryData<object>()
-                                                                            {
-                                                                                TestImageProvider<Rgba32>.File(
-                                                                                    TestImages.Bmp.Car),
-                                                                                TestImageProvider<HalfVector4>.File(
-                                                                                    TestImages.Bmp.F)
-                                                                            };
+        {
+            TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
+            TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
+        };
 
         [Theory]
         [MemberData(nameof(FileData))]

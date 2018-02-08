@@ -1,4 +1,4 @@
-﻿namespace ImageSharp.Benchmarks
+﻿namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Numerics;
 

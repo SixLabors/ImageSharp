@@ -1,14 +1,12 @@
-﻿// <copyright file="LittleEndianBitConverter.ToTypeTests.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Tests.IO
+using System;
+using SixLabors.ImageSharp.IO;
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.IO
 {
-    using System;
-    using ImageSharp.IO;
-    using Xunit;
-
     /// <summary>
     /// The <see cref="LittleEndianBitConverter"/> tests.
     /// </summary>
@@ -164,6 +162,8 @@ namespace ImageSharp.Tests.IO
             Assert.Equal(1099511627776L * 256 * 256, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }, 0));
             Assert.Equal(-1L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }, 0));
             Assert.Equal(257L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 1, 1, 0, 0, 0, 0, 0, 0 }, 0));
+            Assert.Equal(4294967295L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 255, 255, 255, 255, 0, 0, 0, 0 }, 0));
+            Assert.Equal(-4294967296L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 0, 0, 0, 255, 255, 255, 255 }, 0));
 
             Assert.Equal(0L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 }, 1));
             Assert.Equal(1L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0, 0 }, 1));
@@ -176,6 +176,8 @@ namespace ImageSharp.Tests.IO
             Assert.Equal(1099511627776L * 256 * 256, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0, 1 }, 1));
             Assert.Equal(-1L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 255, 255, 255, 255, 255, 255, 255, 255 }, 1));
             Assert.Equal(257L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 1, 1, 0, 0, 0, 0, 0, 0 }, 1));
+            Assert.Equal(4294967295L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 255, 255, 255, 255, 0, 0, 0, 0 }, 1));
+            Assert.Equal(-4294967296L, EndianBitConverter.LittleEndianConverter.ToInt64(new byte[] { 0, 0, 0, 0, 0, 255, 255, 255, 255 }, 1));
         }
 
         /// <summary>

@@ -191,25 +191,5 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     });
             }
         }
-
-        /// <inheritdoc/>
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
-        {
-            ExifProfile profile = destination.MetaData.ExifProfile;
-            if (profile == null)
-            {
-                return;
-            }
-
-            if (profile.GetValue(ExifTag.PixelXDimension) != null)
-            {
-                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
-            }
-
-            if (profile.GetValue(ExifTag.PixelYDimension) != null)
-            {
-                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
-            }
-        }
     }
 }

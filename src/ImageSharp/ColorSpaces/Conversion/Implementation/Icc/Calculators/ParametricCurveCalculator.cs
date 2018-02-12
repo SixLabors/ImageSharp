@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateGamma(float value)
         {
-            return (float)Math.Pow(value, this.curve.G);
+            return MathF.Pow(value, this.curve.G);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         {
             if (value >= -this.curve.B / this.curve.A)
             {
-                return (float)Math.Pow((this.curve.A * value) + this.curve.B, this.curve.G);
+                return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G);
             }
             else
             {
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         {
             if (value >= -this.curve.B / this.curve.A)
             {
-                return (float)Math.Pow((this.curve.A * value) + this.curve.B, this.curve.G) + this.curve.C;
+                return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G) + this.curve.C;
             }
             else
             {
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         {
             if (value >= this.curve.D)
             {
-                return (float)Math.Pow((this.curve.A * value) + this.curve.B, this.curve.G);
+                return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G);
             }
             else
             {
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         {
             if (value >= this.curve.D)
             {
-                return (float)Math.Pow((this.curve.A * value) + this.curve.B, this.curve.G) + this.curve.E;
+                return MathF.Pow((this.curve.A * value) + this.curve.B, this.curve.G) + this.curve.E;
             }
             else
             {
@@ -117,13 +117,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateInvertedGamma(float value)
         {
-            return (float)Math.Pow(value, 1 / this.curve.G);
+            return MathF.Pow(value, 1 / this.curve.G);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateInvertedCie122(float value)
         {
-            return ((float)Math.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
+            return (MathF.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         {
             if (value >= this.curve.C)
             {
-                return ((float)Math.Pow(value - this.curve.C, 1 / this.curve.G) - this.curve.B) / this.curve.A;
+                return (MathF.Pow(value - this.curve.C, 1 / this.curve.G) - this.curve.B) / this.curve.A;
             }
             else
             {
@@ -142,9 +142,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float CalculateInvertedSRgb(float value)
         {
-            if (value >= Math.Pow((this.curve.A * this.curve.D) + this.curve.B, this.curve.G))
+            if (value >= MathF.Pow((this.curve.A * this.curve.D) + this.curve.B, this.curve.G))
             {
-                return ((float)Math.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
+                return (MathF.Pow(value, 1 / this.curve.G) - this.curve.B) / this.curve.A;
             }
             else
             {
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
         {
             if (value >= (this.curve.C * this.curve.D) + this.curve.F)
             {
-                return ((float)Math.Pow(value - this.curve.E, 1 / this.curve.G) - this.curve.B) / this.curve.A;
+                return (MathF.Pow(value - this.curve.E, 1 / this.curve.G) - this.curve.B) / this.curve.A;
             }
             else
             {

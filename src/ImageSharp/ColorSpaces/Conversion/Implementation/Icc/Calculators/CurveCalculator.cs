@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
                     return value;
 
                 case CalculationType.Gamma:
-                    return (float)Math.Pow(value, this.gamma);
+                    return MathF.Pow(value, this.gamma);
 
                 case CalculationType.Lut:
                     return this.lutCalculator.Calculate(value);

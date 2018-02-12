@@ -3,9 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
@@ -13,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// The base class for performing interpolated affine and non-affine transforms.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class InterpolatedTransformProcessorBase<TPixel> : CloningImageProcessor<TPixel>
+    internal abstract class InterpolatedTransformProcessorBase<TPixel> : TransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -114,26 +112,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             return (MathF.Ceiling(scale * this.Sampler.Radius), scale, ratio);
-        }
-
-        /// <inheritdoc/>
-        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
-        {
-            ExifProfile profile = destination.MetaData.ExifProfile;
-            if (profile == null)
-            {
-                return;
-            }
-
-            if (profile.GetValue(ExifTag.PixelXDimension) != null)
-            {
-                profile.SetValue(ExifTag.PixelXDimension, destination.Width);
-            }
-
-            if (profile.GetValue(ExifTag.PixelYDimension) != null)
-            {
-                profile.SetValue(ExifTag.PixelYDimension, destination.Height);
-            }
         }
     }
 }

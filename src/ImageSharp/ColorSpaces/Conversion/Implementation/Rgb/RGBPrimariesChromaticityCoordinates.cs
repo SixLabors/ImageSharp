@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbPrimariesChromaticityCoordinates"/> struct.
         /// </summary>
-        /// <param name="r">The chromaticity coordinates of the red channel.</param>
-        /// <param name="g">The chromaticity coordinates of the green channel.</param>
-        /// <param name="b">The chromaticity coordinates of the blue channel.</param>
+        /// <param name="r">The chomaticity coordinates of the red channel.</param>
+        /// <param name="g">The chomaticity coordinates of the green channel.</param>
+        /// <param name="b">The chomaticity coordinates of the blue channel.</param>
         public RgbPrimariesChromaticityCoordinates(CieXyChromaticityCoordinates r, CieXyChromaticityCoordinates g, CieXyChromaticityCoordinates b)
         {
             this.R = r;
@@ -25,17 +25,17 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         }
 
         /// <summary>
-        /// Gets the chromaticity coordinates of the red channel.
+        /// Gets the chomaticity coordinates of the red channel.
         /// </summary>
         public CieXyChromaticityCoordinates R { get; }
 
         /// <summary>
-        /// Gets the chromaticity coordinates of the green channel.
+        /// Gets the chomaticity coordinates of the green channel.
         /// </summary>
         public CieXyChromaticityCoordinates G { get; }
 
         /// <summary>
-        /// Gets the chromaticity coordinates of the blue channel.
+        /// Gets the chomaticity coordinates of the blue channel.
         /// </summary>
         public CieXyChromaticityCoordinates B { get; }
 
@@ -76,19 +76,18 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is RgbPrimariesChromaticityCoordinates coordinates && this.Equals(coordinates);
+            if (obj is RgbPrimariesChromaticityCoordinates)
+            {
+                return this.Equals((RgbPrimariesChromaticityCoordinates)obj);
+            }
+
+            return false;
         }
 
         /// <inheritdoc/>
         public bool Equals(RgbPrimariesChromaticityCoordinates other)
         {
             return this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
-        }
-
-        /// <inheritdoc />
-        public override string ToString()
-        {
-            return $"RgbPrimariesChromaticityCoordinates [ R={this.R}, G={this.G}, B={this.B}]";
         }
 
         /// <inheritdoc />

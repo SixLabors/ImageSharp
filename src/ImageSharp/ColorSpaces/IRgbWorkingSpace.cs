@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Encapsulates the RGB working color space
+    /// Encasulates the RGB working color space
     /// </summary>
     internal interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {
@@ -22,25 +22,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 
         /// <summary>
-        /// Expands a compressed channel to its linear equivalent with respect to the energy.
-        /// </summary>
-        /// <remarks>
-        /// For more info see:
+        /// Gets the companding function associated with the RGB color system. Used for conversion to XYZ and backwards.
         /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
-        /// </remarks>
-        /// <param name="channel">The channel value</param>
-        /// <returns>The linear channel value</returns>
-        float Expand(float channel);
-
-        /// <summary>
-        /// Compresses an expanded channel (linear) to its nonlinear equivalent (depends on the RGB color system).
-        /// </summary>
-        /// <remarks>
-        /// For more info see:
         /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
-        /// </remarks>
-        /// <param name="channel">The channel value</param>
-        /// <returns>The nonlinear channel value</returns>
-        float Compress(float channel);
+        /// </summary>
+        ICompanding Companding { get; }
     }
 }

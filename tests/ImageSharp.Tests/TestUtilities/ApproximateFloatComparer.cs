@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public bool Equals(IRgbWorkingSpace x, IRgbWorkingSpace y)
         {
-            if (x is RgbGammaWorkingSpace g1 && y is RgbGammaWorkingSpace g2)
+            if (x is IRgbWorkingSpace g1 && y is IRgbWorkingSpace g2)
             {
                 return this.Equals(g1.WhitePoint, g2.WhitePoint)
                     && this.Equals(g1.ChromaticityCoordinates, g2.ChromaticityCoordinates);

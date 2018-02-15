@@ -181,7 +181,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             Guard.NotNull(color, nameof(color));
 
             // Conversion
-            return YCbCrAndRgbConverter.Convert(color);
+            Rgb rgb = YCbCrAndRgbConverter.Convert(color);
+
+            // Adaptation
+            return this.Adapt(rgb);
         }
     }
 }

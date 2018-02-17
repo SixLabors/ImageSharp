@@ -31,6 +31,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         public const int MaxTq = 3;
 
+        /// <summary>
+        /// The only supported precision
+        /// </summary>
+        public const int SupportedPrecision = 8;
+
         // Complex value type field + mutable + available to other classes = the field MUST NOT be private :P
 #pragma warning disable SA1401 // FieldsMustBePrivate
 
@@ -123,6 +128,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
 
         /// <summary>
+        /// Gets the color depth, in number of bits per pixel.
+        /// </summary>
+        public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
+
+        /// <summary>
         /// Gets the image height
         /// </summary>
         public int ImageHeight => this.ImageSizeInPixels.Height;
@@ -173,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public ImageMetaData MetaData { get; private set; }
 
         /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/>  and sets
+        /// Decodes the image from the specified <see cref="Stream"/> and sets
         /// the data to image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -185,6 +195,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.ParseStream(stream);
 
             return this.PostProcessIntoImage<TPixel>();
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public IImageInfo Identify(Stream stream)
+        {
+            this.ParseStream(stream, true);
+
+            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
         /// <inheritdoc />
@@ -622,7 +643,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputProcessor.ReadFull(this.Temp, 0, remaining);
 
             // We only support 8-bit precision.
-            if (this.Temp[0] != 8)
+            if (this.Temp[0] != SupportedPrecision)
             {
                 throw new ImageFormatException("Only 8-Bit precision supported.");
             }

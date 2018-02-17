@@ -140,27 +140,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the bounding <see cref="Rectangle"/> from the given matrix.
-        /// </summary>
-        /// <param name="rectangle">The source rectangle.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        public static Rectangle GetBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
-        {
-            var leftTop = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
-            var rightTop = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
-            var leftBottom = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
-            var rightBottom = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
-
-            Vector2[] allCorners = { leftTop, rightTop, leftBottom, rightBottom };
-            float extentX = allCorners.Select(v => v.X).Max() - allCorners.Select(v => v.X).Min();
-            float extentY = allCorners.Select(v => v.Y).Max() - allCorners.Select(v => v.Y).Min();
-            return new Rectangle(0, 0, (int)extentX, (int)extentY);
-        }
-
-        /// <summary>
         /// Finds the bounding rectangle based on the first instance of any color component other
         /// than the given one.
         /// </summary>

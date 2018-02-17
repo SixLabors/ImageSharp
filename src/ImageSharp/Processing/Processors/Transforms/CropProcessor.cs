@@ -60,5 +60,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
                 source.SwapPixelsBuffers(targetPixels);
             }
         }
+
+        /// <inheritdoc/>
+        protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
+            => TransformHelpers.UpdateDimensionalMetData(source);
     }
 }

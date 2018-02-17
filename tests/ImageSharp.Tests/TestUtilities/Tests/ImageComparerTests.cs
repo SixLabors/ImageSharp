@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         private ITestOutputHelper Output { get; }
-
+        
         [Theory]
         [WithTestPatternImages(100,100,PixelTypes.Rgba32, 0.0001f, 1)]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0, 0)]
@@ -68,7 +68,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, 2);
+                    byte perChannelChange = 2;
+                    ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, perChannelChange);
 
                     var comparer = ImageComparer.Tolerant();
 

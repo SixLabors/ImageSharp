@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
-using static SixLabors.ImageSharp.ComparableExtensions;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -151,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
-        /// <param name="options">The options for influancing the encoder</param>
+        /// <param name="options">The options for influencing the encoder</param>
         public PngEncoderCore(MemoryManager memoryManager, IPngEncoderOptions options)
         {
             this.memoryManager = memoryManager;
@@ -643,7 +642,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Buffer<byte> r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
-                        Swap(ref this.rawScanline, ref this.previousScanline);
+                        Buffer<byte> temp = this.rawScanline;
+                        this.rawScanline = this.previousScanline;
+                        this.previousScanline = temp;
                     }
                 }
 

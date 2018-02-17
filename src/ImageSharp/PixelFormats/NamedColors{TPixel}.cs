@@ -13,6 +13,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
+        /// Thread-safe backing field for <see cref="WebSafePalette"/>.
+        /// </summary>
+        private static readonly Lazy<TPixel[]> WebSafePaletteLazy = new Lazy<TPixel[]>(GetWebSafePalette, true);
+
+        /// <summary>
         /// Represents a <see paramref="TPixel"/> matching the W3C definition that has an hex value of #F0F8FF.
         /// </summary>
         public static readonly TPixel AliceBlue = ColorBuilder<TPixel>.FromRGBA(240, 248, 255, 255);
@@ -723,9 +728,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static readonly TPixel YellowGreen = ColorBuilder<TPixel>.FromRGBA(154, 205, 50, 255);
 
         /// <summary>
-        /// Represents a <see cref="T:TPixel[]"/> matching the W3C definition of web safe colors.
+        /// Gets a <see cref="T:TPixel[]"/> matching the W3C definition of web safe colors.
         /// </summary>
-        public static readonly TPixel[] WebSafePalette = GetWebSafePalette();
+        public static TPixel[] WebSafePalette => WebSafePaletteLazy.Value;
 
         private static TPixel[] GetWebSafePalette()
         {

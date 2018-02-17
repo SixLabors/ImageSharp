@@ -23,6 +23,14 @@ namespace SixLabors.ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         [Theory]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
+        public void NoOutputSubfolderIsPresentByDefault<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Empty(provider.Utility.OutputSubfolderName);
+        }
+
+        [Theory]
         [WithBlankImages(42, 666, PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
         public void Use_WithEmptyImageAttribute<TPixel>(TestImageProvider<TPixel> provider, string message)
             where TPixel : struct, IPixel<TPixel>

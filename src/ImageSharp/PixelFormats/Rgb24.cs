@@ -126,5 +126,11 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.B = this.B;
             dest.A = 255;
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"({this.R},{this.G},{this.B})";
+        }
     }
 }

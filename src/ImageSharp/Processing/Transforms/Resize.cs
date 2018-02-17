@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Resize(source, size.Width, size.Height, new BicubicResampler(), false);
+            return Resize(source, size.Width, size.Height, KnownResamplers.Bicubic, false);
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Resize(source, size.Width, size.Height, new BicubicResampler(), compand);
+            return Resize(source, size.Width, size.Height, KnownResamplers.Bicubic, compand);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Resize(source, width, height, new BicubicResampler(), false);
+            return Resize(source, width, height, KnownResamplers.Bicubic, false);
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Resize(source, width, height, new BicubicResampler(), compand);
+            return Resize(source, width, height, KnownResamplers.Bicubic, compand);
         }
 
         /// <summary>

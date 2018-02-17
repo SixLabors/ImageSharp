@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     int offsetX = x + fxr;
 
                                     offsetX = offsetX.Clamp(0, maxX);
-                                    var currentColor = sourceOffsetRow[offsetX].ToVector4();
+                                    Vector4 currentColor = sourceOffsetRow[offsetX].ToVector4().Premultiply();
 
                                     if (fy < kernelXHeight)
                                     {
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
                             ref TPixel pixel = ref targetRow[x];
-                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
+                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W).UnPremultiply());
                         }
                     });
 

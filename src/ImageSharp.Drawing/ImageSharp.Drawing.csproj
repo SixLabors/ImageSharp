@@ -36,9 +36,9 @@
         <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0004" />
-        <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0003" />
-        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0003" />
+        <PackageReference Include="SixLabors.Core" Version="1.0.0-ci0005" />
+        <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-ci0005" />
+        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-ci0005" />
         <AdditionalFiles Include="..\..\stylecop.json" />
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
             <PrivateAssets>All</PrivateAssets>

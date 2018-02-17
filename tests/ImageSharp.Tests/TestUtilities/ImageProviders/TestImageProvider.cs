@@ -11,7 +11,9 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
- 	public interface ITestImageProvider
+    using Castle.Core.Internal;
+
+    public interface ITestImageProvider
     {
         PixelTypes PixelType { get; }
         ImagingTestCaseUtility Utility { get; }
@@ -34,6 +36,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public string TypeName { get; private set; }
         public string MethodName { get; private set; }
+        public string OutputSubfolderName { get; private set; }
 
         public static TestImageProvider<TPixel> TestPattern(
                 int width,
@@ -101,8 +104,9 @@ namespace SixLabors.ImageSharp.Tests
             PixelTypes pixelType = info.GetValue<PixelTypes>("PixelType");
             string typeName = info.GetValue<string>("TypeName");
             string methodName = info.GetValue<string>("MethodName");
+            string outputSubfolderName = info.GetValue<string>("OutputSubfolderName");
 
-            this.Init(typeName, methodName, pixelType);
+            this.Init(typeName, methodName, outputSubfolderName, pixelType);
         }
 
         public virtual void Serialize(IXunitSerializationInfo info)
@@ -110,9 +114,14 @@ namespace SixLabors.ImageSharp.Tests
             info.AddValue("PixelType", this.PixelType);
             info.AddValue("TypeName", this.TypeName);
             info.AddValue("MethodName", this.MethodName);
+            info.AddValue("OutputSubfolderName", this.OutputSubfolderName);
         }
 
-        protected TestImageProvider<TPixel> Init(string typeName, string methodName, PixelTypes pixelTypeOverride)
+        protected TestImageProvider<TPixel> Init(
+            string typeName,
+            string methodName,
+            string outputSubfolerName,
+            PixelTypes pixelTypeOverride)
         {
             if (pixelTypeOverride != PixelTypes.Undefined)
             {
@@ -120,7 +129,8 @@ namespace SixLabors.ImageSharp.Tests
             }
             this.TypeName = typeName;
             this.MethodName = methodName;
-            
+            this.OutputSubfolderName = outputSubfolerName;
+
             this.Utility = new ImagingTestCaseUtility
             {
                 SourceFileOrDescription = this.SourceFileOrDescription,
@@ -129,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests
 
             if (methodName != null)
             {
-                this.Utility.Init(typeName, methodName);
+                this.Utility.Init(typeName, methodName, outputSubfolerName);
             }
 
             return this;
@@ -137,7 +147,9 @@ namespace SixLabors.ImageSharp.Tests
 
         protected TestImageProvider<TPixel> Init(MethodInfo testMethod, PixelTypes pixelTypeOverride)
         {
-            return Init(testMethod?.DeclaringType.Name, testMethod?.Name, pixelTypeOverride);
+            string subfolder = testMethod?.DeclaringType.GetAttribute<GroupOutputAttribute>()?.Subfolder
+                               ?? string.Empty;
+            return this.Init(testMethod?.DeclaringType.Name, testMethod?.Name, subfolder, pixelTypeOverride);
         }
 
         public override string ToString()

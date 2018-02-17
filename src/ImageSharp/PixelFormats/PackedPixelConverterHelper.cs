@@ -290,9 +290,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>The <see cref="bool"/></returns>
         private static bool IsStandardNormalizedType(Type type)
         {
-            return type == typeof(Rgba32)
+            return
+                type == typeof(Alpha8)
                 || type == typeof(Argb32)
-                || type == typeof(Alpha8)
+                || type == typeof(Bgr24)
+                || type == typeof(Bgra32)
                 || type == typeof(Bgr565)
                 || type == typeof(Bgra4444)
                 || type == typeof(Bgra5551)
@@ -300,8 +302,10 @@ namespace SixLabors.ImageSharp.PixelFormats
                 || type == typeof(HalfVector2)
                 || type == typeof(HalfVector4)
                 || type == typeof(Rg32)
-                || type == typeof(Rgba1010102)
-                || type == typeof(Rgba64);
+                || type == typeof(Rgb24)
+                || type == typeof(Rgba32)
+                || type == typeof(Rgba64)
+                || type == typeof(Rgba1010102);
         }
 
         /// <summary>

@@ -8,13 +8,15 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using System;
+    using System.Reflection;
+
     public class RotateTests : FileTestBase
     {
-        public static readonly TheoryData<float> RotateFloatValues
+        public static readonly TheoryData<float> RotateAngles
             = new TheoryData<float>
         {
-             170,
-            -170
+            50, -50, 170, -170
         };
 
         public static readonly TheoryData<RotateType> RotateEnumValues
@@ -25,11 +27,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             RotateType.Rotate180,
             RotateType.Rotate270
         };
-
+        
         [Theory]
-        [WithTestPatternImages(nameof(RotateFloatValues), 100, 50, DefaultPixelType)]
-        [WithTestPatternImages(nameof(RotateFloatValues), 50, 100, DefaultPixelType)]
-        public void Rotate<TPixel>(TestImageProvider<TPixel> provider, float value)
+        [WithTestPatternImages(nameof(RotateAngles), 100, 50, DefaultPixelType)]
+        [WithTestPatternImages(nameof(RotateAngles), 50, 100, DefaultPixelType)]
+        public void Rotate_WithAngle<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -38,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.DebugSave(provider, value);
             }
         }
-
+        
         [Theory]
         [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]

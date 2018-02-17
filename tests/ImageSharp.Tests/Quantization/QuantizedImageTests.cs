@@ -7,6 +7,18 @@
 
     public class QuantizedImageTests
     {
+        [Fact]
+        public void QuantizersDitherByDefault()
+        {
+            var palette = new PaletteQuantizer<Rgba32>();
+            var octree = new OctreeQuantizer<Rgba32>();
+            var wu = new WuQuantizer<Rgba32>();
+
+            Assert.True(palette.Dither);
+            Assert.True(octree.Dither);
+            Assert.True(wu.Dither);
+        }
+
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]

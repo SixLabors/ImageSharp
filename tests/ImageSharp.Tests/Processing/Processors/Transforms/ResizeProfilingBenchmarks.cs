@@ -38,13 +38,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         // [Fact]
         public void PrintWeightsData()
         {
+            var proc = new ResizeProcessor<Rgba32>(KnownResamplers.Bicubic, 200, 200);
             var proc = new ResizeProcessor<Rgba32>(Configuration.Default.MemoryManager, new BicubicResampler(), 200, 200);
 
-            ResamplingWeightedProcessor<Rgba32>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
+            WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
 
             var bld = new StringBuilder();
 
-            foreach (ResamplingWeightedProcessor<Rgba32>.WeightsWindow window in weights.Weights)
+            foreach (WeightsWindow window in weights.Weights)
             {
                 Span<float> span = window.GetWindowSpan();
                 for (int i = 0; i < window.Length; i++)

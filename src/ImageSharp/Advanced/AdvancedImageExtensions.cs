@@ -89,6 +89,14 @@ namespace SixLabors.ImageSharp.Advanced
             => source.Frames.RootFrame.GetPixelRowSpan(row);
 
         /// <summary>
+        /// Gets the <see cref="MemoryManager"/> assigned to 'source'.
+        /// </summary>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the configuration.</returns>
+        internal static MemoryManager GetMemoryManager(this IConfigurable source)
+            => GetConfiguration(source).MemoryManager;
+
+        /// <summary>
         /// Gets the span to the backing buffer.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>

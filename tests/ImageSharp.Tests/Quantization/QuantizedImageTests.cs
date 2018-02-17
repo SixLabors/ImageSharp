@@ -12,7 +12,7 @@
         {
             var palette = new PaletteQuantizer<Rgba32>();
             var octree = new OctreeQuantizer<Rgba32>();
-            var wu = new WuQuantizer<Rgba32>();
+            var wu = new WuQuantizer<Rgba32>(Configuration.Default.MemoryManager);
 
             Assert.True(palette.Dither);
             Assert.True(octree.Dither);

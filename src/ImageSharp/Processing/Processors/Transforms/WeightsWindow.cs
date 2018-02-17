@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             this.flatStartIndex = (index * buffer.Width) + left;
             this.Left = left;
-            this.buffer = buffer;
+            this.buffer = buffer.Buffer;
             this.Length = length;
         }
 

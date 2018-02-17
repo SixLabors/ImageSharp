@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metaData, nameof(metaData));
 
             this.MemoryManager = memoryManager;
-            this.pixelBuffer = memoryManager.Allocate2D<TPixel>(width, height, true);
+            this.pixelBuffer = memoryManager.AllocateClean2D<TPixel>(width, height);
             this.MetaData = metaData;
         }
 

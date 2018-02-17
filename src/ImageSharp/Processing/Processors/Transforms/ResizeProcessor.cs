@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (var firstPassPixels = this.MemoryManager.Allocate2D<Vector4>(width, source.Height))
+            using (Buffer2D<Vector4> firstPassPixels = this.MemoryManager.Allocate2D<Vector4>(width, source.Height))
             {
                 firstPassPixels.Buffer.Clear();
 

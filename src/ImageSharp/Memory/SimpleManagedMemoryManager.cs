@@ -3,14 +3,8 @@
     /// <summary>
     /// Implements <see cref="MemoryManager"/> by allocating new buffers on every call.
     /// </summary>
-    public class NullMemoryManager : MemoryManager
+    public class SimpleManagedMemoryManager : MemoryManager
     {
-        /// <inheritdoc />
-        internal override Buffer<T> Allocate<T>(int size)
-        {
-            return new Buffer<T>(new T[size], size);
-        }
-
         /// <inheritdoc />
         internal override Buffer<T> Allocate<T>(int size, bool clear)
         {

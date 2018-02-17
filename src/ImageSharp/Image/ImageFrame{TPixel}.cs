@@ -61,16 +61,18 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="size">The <see cref="Size"/> of the frame.</param>
         /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(Size size, ImageFrameMetaData metaData)
-            : this(size.Width, size.Height, metaData)
+        internal ImageFrame(MemoryManager memoryManager, Size size, ImageFrameMetaData metaData)
+            : this(memoryManager, size.Width, size.Height, metaData)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="source">The source.</param>
         internal ImageFrame(MemoryManager memoryManager, ImageFrame<TPixel> source)
         {

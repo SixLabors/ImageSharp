@@ -190,6 +190,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
+        
+        private MemoryManager MemoryManager => this.configuration.MemoryManager;
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -297,17 +299,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                         switch (currentChunk.Type)
                         {
                             case PngChunkTypes.Header:
-                                this.ReadHeaderChunk(currentChunk.Data);
+                                this.ReadHeaderChunk(currentChunk.Data.Array);
                                 this.ValidateHeader();
                                 break;
                             case PngChunkTypes.Physical:
-                                this.ReadPhysicalChunk(metadata, currentChunk.Data);
+                                this.ReadPhysicalChunk(metadata, currentChunk.Data.Array);
                                 break;
                             case PngChunkTypes.Data:
                                 this.SkipChunkDataAndCrc(currentChunk);
                                 break;
                             case PngChunkTypes.Text:
-                                this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
+                                this.ReadTextChunk(metadata, currentChunk.Data.Array, currentChunk.Length);
                                 break;
                             case PngChunkTypes.End:
                                 this.isEndChunkReached = true;
@@ -319,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         // Data is rented in ReadChunkData()
                         if (currentChunk.Data != null)
                         {
-                            ArrayPool<byte>.Shared.Return(currentChunk.Data);
+                            ArrayPool<byte>.Shared.Return(currentChunk.Data.Array);
                         }
                     }
                 }
@@ -435,9 +437,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = this.configuration.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
+            this.previousScanline = this.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
             this.scanline = this.configuration.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
         }
+
 
         /// <summary>
         /// Calculates the correct number of bits per pixel for the given color type.

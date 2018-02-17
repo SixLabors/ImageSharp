@@ -92,6 +92,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public FrameDecodingMode DecodingMode { get; }
 
+        private MemoryManager MemoryManager => this.configuration.MemoryManager;
+
         /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
@@ -148,7 +150,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     {
                         break;
                     }
-                    this.globalColorTable = this.configuration.MemoryManager.Allocate<byte>(this.globalColorTableLength, true);
+
+                    this.globalColorTable = this.MemoryManager.Allocate<byte>(this.globalColorTableLength, true);
 
                     nextFlag = stream.ReadByte();
                     if (nextFlag == -1)
@@ -334,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     continue;
                 }
 
-                using (Buffer<byte> commentsBuffer = this.configuration.MemoryManager.Allocate<byte>(length))
+                using (Buffer<byte> commentsBuffer = this.MemoryManager.Allocate<byte>(length))
                 {
                     this.currentStream.Read(commentsBuffer.Array, 0, length);
                     string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
@@ -601,7 +604,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {
                 this.globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
-                this.globalColorTable = Buffer<byte>.CreateClean(this.globalColorTableLength);
+
+                this.globalColorTable = this.MemoryManager.Allocate<byte>(this.globalColorTableLength, true);
 
                 // Read the global color table from the stream
                 stream.Read(this.globalColorTable.Array, 0, this.globalColorTableLength);

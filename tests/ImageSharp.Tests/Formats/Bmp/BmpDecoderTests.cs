@@ -10,7 +10,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    
     using static TestImages.Bmp;
 
     public class BmpDecoderTests

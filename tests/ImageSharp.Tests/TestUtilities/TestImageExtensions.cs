@@ -227,6 +227,33 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        /// <summary>
+        /// Loads the expected image with a reference decoder + compares it to <paramref name="image"/>.
+        /// Also performs a debug save using <see cref="ImagingTestCaseUtility.SaveTestOutputFile{TPixel}"/>.
+        /// </summary>
+        internal static void VerifyEncoder<TPixel>(this Image<TPixel> image,
+                                                   ITestImageProvider provider,
+                                                   string extension,
+                                                   object testOutputDetails,
+                                                   IImageEncoder encoder,
+                                                   ImageComparer customComparer = null,
+                                                   bool appendPixelTypeToFileName = true
+                                                   )
+            where TPixel : struct, IPixel<TPixel>
+        {
+
+            string path = provider.Utility.SaveTestOutputFile(image, extension, encoder, testOutputDetails, appendPixelTypeToFileName);
+            
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
+            
+            using (var encodedImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
+            {
+                ImageComparer comparer = customComparer ?? ImageComparer.Exact;
+                comparer.CompareImagesOrFrames(image, encodedImage);
+            }
+        }
+
         internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
         {
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
@@ -242,5 +269,6 @@ namespace SixLabors.ImageSharp.Tests
 
             return image;
         }
+
     }
 }

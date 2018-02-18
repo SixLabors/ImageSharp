@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Tests
     using System.Numerics;
     using SixLabors.ImageSharp.Advanced;
     using SixLabors.ImageSharp.Memory;
+    using SixLabors.ImageSharp.MetaData;
 
     using Xunit;
 
@@ -45,6 +46,28 @@ namespace SixLabors.ImageSharp.Tests
 
             // We are running locally then we want to save it out
             provider.Utility.SaveTestOutputFile(
+                image,
+                extension,
+                testOutputDetails: testOutputDetails,
+                appendPixelTypeToFileName: appendPixelTypeToFileName);
+            return image;
+        }
+
+        public static Image<TPixel> DebugSaveMultiFrame<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (TestEnvironment.RunsOnCI)
+            {
+                return image;
+            }
+
+            // We are running locally then we want to save it out
+            provider.Utility.SaveTestOutputFileMultiFrame(
                 image,
                 extension,
                 testOutputDetails: testOutputDetails,
@@ -118,6 +141,29 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        public static Image<TPixel> CompareToReferenceOutputMultiFrame<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            ImageComparer comparer,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> referenceImage = GetReferenceOutputImageMultiFrame<TPixel>(
+                provider,
+                image.Frames.Count,
+                testOutputDetails,
+                extension,
+                appendPixelTypeToFileName))
+            {
+                comparer.VerifySimilarity(referenceImage, image);
+            }
+
+            return image;
+        }
+
         public static Image<TPixel> GetReferenceOutputImage<TPixel>(this ITestImageProvider provider,
                                                                     object testOutputDetails = null,
                                                                     string extension = "png",
@@ -134,6 +180,47 @@ namespace SixLabors.ImageSharp.Tests
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(referenceOutputFile);
 
             return Image.Load<TPixel>(referenceOutputFile, decoder);
+        }
+
+        public static Image<TPixel> GetReferenceOutputImageMultiFrame<TPixel>(this ITestImageProvider provider,
+                                                                             int frameCount,
+                                                                    object testOutputDetails = null,
+                                                                    string extension = "png",
+                                                                    bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            string[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
+                frameCount,
+                extension,
+                testOutputDetails,
+                appendPixelTypeToFileName);
+
+            var temporalFrameImages = new List<Image<TPixel>>();
+
+            IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
+
+            foreach (string path in frameFiles)
+            {
+                if (!File.Exists(path))
+                {
+                    throw new Exception("Reference output file missing: " + path);
+                }
+
+                var tempImage = Image.Load<TPixel>(path, decoder);
+                temporalFrameImages.Add(tempImage);
+            }
+            
+            var result = new Image<TPixel>(
+                Configuration.Default,
+                new ImageMetaData(),
+                temporalFrameImages.Select(fi => fi.Frames.RootFrame));
+
+            foreach (Image<TPixel> fi in temporalFrameImages)
+            {
+                fi.Dispose();
+            }
+
+            return result;
         }
 
         public static IEnumerable<ImageSimilarityReport> GetReferenceOutputSimilarityReports<TPixel>(

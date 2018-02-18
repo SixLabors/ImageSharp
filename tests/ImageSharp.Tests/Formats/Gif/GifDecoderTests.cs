@@ -6,23 +6,52 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 using Xunit;
+using System.IO;
+using SixLabors.ImageSharp.Advanced;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-    using SixLabors.ImageSharp.Advanced;
-
     public class GifDecoderTests
     {
-        private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+        private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
-        public static readonly string[] TestFiles = { TestImages.Gif.Giphy, TestImages.Gif.Rings, TestImages.Gif.Trans };
+        public static readonly string[] TestFiles =
+            {
+                TestImages.Gif.Giphy, TestImages.Gif.Rings, TestImages.Gif.Trans, TestImages.Gif.Kumin
+            };
+
+        public static readonly string[] MultiFrameTestFiles =
+            {
+                TestImages.Gif.Giphy, TestImages.Gif.Kumin
+            };
 
         public static readonly string[] BadAppExtFiles = { TestImages.Gif.Issues.BadAppExtLength, TestImages.Gif.Issues.BadAppExtLength_2 };
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes)]
+        [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
+        public void AllFramesDecoded<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSaveMultiFrame(provider);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Trans, TestPixelTypes)]
+        public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSave(provider);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestFiles), TestPixelTypes)]
         public void DecodeAndReSave<TPixel>(TestImageProvider<TPixel> imageProvider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -34,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes)]
+        [WithFileCollection(nameof(TestFiles), TestPixelTypes)]
         public void DecodeResizeAndSave<TPixel>(TestImageProvider<TPixel> imageProvider)
             where TPixel : struct, IPixel<TPixel>
         {

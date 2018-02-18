@@ -141,6 +141,32 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        public static Image<TPixel> CompareFirstFrameToReferenceOutput<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            ImageComparer comparer,
+            object testOutputDetails = null,
+            string extension = "png",
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
+            using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
+                provider,
+                testOutputDetails,
+                extension,
+                appendPixelTypeToFileName))
+            {
+                firstFrameOnlyImage.Frames.AddFrame(image.Frames.RootFrame);
+                firstFrameOnlyImage.Frames.RemoveFrame(0);
+
+                comparer.VerifySimilarity(referenceImage, firstFrameOnlyImage);
+            }
+
+            return image;
+        }
+
         public static Image<TPixel> CompareToReferenceOutputMultiFrame<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
@@ -209,17 +235,19 @@ namespace SixLabors.ImageSharp.Tests
                 var tempImage = Image.Load<TPixel>(path, decoder);
                 temporalFrameImages.Add(tempImage);
             }
+
+            Image<TPixel> firstTemp = temporalFrameImages[0];
             
-            var result = new Image<TPixel>(
-                Configuration.Default,
-                new ImageMetaData(),
-                temporalFrameImages.Select(fi => fi.Frames.RootFrame));
+            var result = new Image<TPixel>(firstTemp.Width, firstTemp.Height);
 
             foreach (Image<TPixel> fi in temporalFrameImages)
             {
+                result.Frames.AddFrame(fi.Frames.RootFrame);
                 fi.Dispose();
             }
 
+            // remove the initial empty frame:
+            result.Frames.RemoveFrame(0);
             return result;
         }
 

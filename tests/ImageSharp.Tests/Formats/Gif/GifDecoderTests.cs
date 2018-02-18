@@ -12,6 +12,10 @@ using SixLabors.ImageSharp.Advanced;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
+    using System.Collections.Generic;
+
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
@@ -26,56 +30,70 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Gif.Giphy, TestImages.Gif.Kumin
             };
 
+        public static readonly string[] BasicVerificationFiles =
+            {
+                TestImages.Gif.Cheers,
+                TestImages.Gif.Rings,
+
+                // previously DecodeBadApplicationExtensionLength:
+                TestImages.Gif.Issues.BadAppExtLength,
+                TestImages.Gif.Issues.BadAppExtLength_2,
+
+                // previously DecodeBadDescriptorDimensionsLength:
+                TestImages.Gif.Issues.BadDescriptorWidth
+            };
+
+        private static readonly Dictionary<string, int> BasicVerificationFrameCount =
+            new Dictionary<string, int>
+                {
+                    [TestImages.Gif.Cheers] = 93,
+                    [TestImages.Gif.Issues.BadDescriptorWidth] = 36,
+            };
+
         public static readonly string[] BadAppExtFiles = { TestImages.Gif.Issues.BadAppExtLength, TestImages.Gif.Issues.BadAppExtLength_2 };
 
         [Theory]
         [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
-        public void AllFramesDecoded<TPixel>(TestImageProvider<TPixel> provider)
+        public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.DebugSaveMultiFrame(provider);
+                image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
             }
         }
 
         [Theory]
         [WithFile(TestImages.Gif.Trans, TestPixelTypes)]
-        public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+        public void GifDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.DebugSave(provider);
+                image.CompareFirstFrameToReferenceOutput(provider, ImageComparer.Exact);
             }
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), TestPixelTypes)]
-        public void DecodeAndReSave<TPixel>(TestImageProvider<TPixel> imageProvider)
+        [WithFileCollection(nameof(BasicVerificationFiles), PixelTypes.Rgba32)]
+        public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = imageProvider.GetImage())
+            if (!BasicVerificationFrameCount.TryGetValue(provider.SourceFileOrDescription, out int expectedFrameCount))
             {
-                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
-                imageProvider.Utility.SaveTestOutputFile(image, "gif");
+                expectedFrameCount = 1;
+            }
+
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                Assert.Equal(expectedFrameCount, image.Frames.Count);
+                image.DebugSave(provider);
+                image.CompareFirstFrameToReferenceOutput(provider, ImageComparer.Exact);
             }
         }
-
-        [Theory]
-        [WithFileCollection(nameof(TestFiles), TestPixelTypes)]
-        public void DecodeResizeAndSave<TPixel>(TestImageProvider<TPixel> imageProvider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = imageProvider.GetImage())
-            {
-                image.Mutate(x => x.Resize(new Size(image.Width / 2, image.Height / 2)));
-
-                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
-                imageProvider.Utility.SaveTestOutputFile(image, "gif");
-            }
-        }
-
+        
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
         {
@@ -176,28 +194,6 @@ namespace SixLabors.ImageSharp.Tests
                     ImageFrame<Rgba32> second = kumin2.Frames[i];
                     first.ComparePixelBufferTo(second.GetPixelSpan());
                 }
-            }
-        }
-
-        [Theory]
-        [WithFileCollection(nameof(BadAppExtFiles), PixelTypes.Rgba32)]
-        public void DecodeBadApplicationExtensionLength<TPixel>(TestImageProvider<TPixel> imageProvider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = imageProvider.GetImage())
-            {
-                imageProvider.Utility.SaveTestOutputFile(image, "bmp");
-            }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32)]
-        public void DecodeBadDescriptorDimensionsLength<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                provider.Utility.SaveTestOutputFile(image, "bmp");
             }
         }
     }

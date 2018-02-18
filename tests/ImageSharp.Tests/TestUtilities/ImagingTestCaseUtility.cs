@@ -157,14 +157,75 @@ namespace SixLabors.ImageSharp.Tests
             return path;
         }
 
+        public IEnumerable<string> GetTestOutputFileNamesMultiFrame(
+            int frameCount,
+            string extension = null,
+            object testOutputDetails = null,
+            bool appendPixelTypeToFileName = true)
+        {
+            string baseDir = this.GetTestOutputFileName("", testOutputDetails, appendPixelTypeToFileName);
+
+            if (!Directory.Exists(baseDir))
+            {
+                Directory.CreateDirectory(baseDir);
+            }
+            
+            for (int i = 0; i < frameCount; i++)
+            {
+                string filePath = $"{baseDir}/{i:D2}.{extension}";
+                yield return filePath;
+            }
+        }
+
+        public string[] SaveTestOutputFileMultiFrame<TPixel>(
+            Image<TPixel> image,
+            string extension = "png",
+            IImageEncoder encoder = null,
+            object testOutputDetails = null,
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            encoder = encoder ?? TestEnvironment.GetReferenceEncoder($"foo.{extension}");
+
+            string[] files = this.GetTestOutputFileNamesMultiFrame(
+                image.Frames.Count,
+                extension,
+                testOutputDetails,
+                appendPixelTypeToFileName).ToArray();
+
+            for (int i = 0; i < image.Frames.Count; i++)
+            {
+                using (Image<TPixel> frameImage = image.Frames.CloneFrame(i))
+                {
+                    string filePath = files[i];
+                    using (FileStream stream = File.OpenWrite(filePath))
+                    {
+                        frameImage.Save(stream, encoder);
+                    }
+                }
+            }
+
+            return files;
+        }
+
         internal string GetReferenceOutputFileName(
             string extension,
-            object settings,
+            object testOutputDetails,
             bool appendPixelTypeToFileName)
         {
             return TestEnvironment.GetReferenceOutputFileName(
-                this.GetTestOutputFileName(extension, settings, appendPixelTypeToFileName)
+                this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName)
                 );
+        }
+
+        public string[] GetReferenceOutputFileNamesMultiFrame(
+            int frameCount,
+            string extension,
+            object testOutputDetails,
+            bool appendPixelTypeToFileName = true)
+        {
+            return this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails)
+                .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
         }
 
         internal void Init(string typeName, string methodName, string outputSubfolderName)

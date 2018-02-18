@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
@@ -12,22 +9,16 @@ namespace SixLabors.ImageSharp.PixelFormats
     public static class ColorConstants
     {
         /// <summary>
-        /// Provides a lazy, one time method of returning the colors.
-        /// </summary>
-        private static readonly Lazy<Rgba32[]> SafeColors = new Lazy<Rgba32[]>(GetWebSafeColors);
-
-        /// <summary>
         /// Gets a collection of named, web safe, colors as defined in the CSS Color Module Level 4.
         /// </summary>
-        public static Rgba32[] WebSafeColors => SafeColors.Value;
+        public static readonly Rgba32[] WebSafeColors = GetWebSafeColors();
 
         /// <summary>
         /// Returns an array of web safe colors.
         /// </summary>
         /// <returns>The <see cref="T:Color[]"/></returns>
         private static Rgba32[] GetWebSafeColors()
-        {
-            return new List<Rgba32>
+            => new Rgba32[]
             {
                 Rgba32.AliceBlue,
                 Rgba32.AntiqueWhite,
@@ -171,7 +162,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Rgba32.WhiteSmoke,
                 Rgba32.Yellow,
                 Rgba32.YellowGreen
-            }.ToArray();
-        }
+            };
     }
 }

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Applies a greyscale filter matrix using the given amount and the formula as specified by ITU-R Recommendation BT.709
+    /// Applies a grayscale filter matrix using the given amount and the formula as specified by ITU-R Recommendation BT.709
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class GrayscaleBt709Processor<TPixel> : FilterProcessor<TPixel>

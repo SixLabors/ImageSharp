@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -31,36 +32,37 @@ namespace SixLabors.ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         [Theory]
-        [WithTestPatternImages(nameof(BitsPerPixel), 48, 24, PixelTypesToTest)]
-        [WithTestPatternImages(nameof(BitsPerPixel), 47, 8, PixelTypesToTest)]
-        [WithTestPatternImages(nameof(BitsPerPixel), 49, 7, PixelTypesToTest)]
-        [WithSolidFilledImages(nameof(BitsPerPixel), 1, 1, 255, 100, 50, 255, PixelTypesToTest)]
-        [WithTestPatternImages(nameof(BitsPerPixel), 7, 5, PixelTypesToTest)]
-        public void Encode<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+        [WithTestPatternImages(nameof(BitsPerPixel), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
+        public void Encode_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>
         {
-            
+            TestBmpEncoderCore(provider, bitsPerPixel);
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(BitsPerPixel), 48, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel), 47, 8, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel), 49, 7, PixelTypes.Rgba32)]
+        [WithSolidFilledImages(nameof(BitsPerPixel), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel), 7, 5, PixelTypes.Rgba32)]
+        public void Encode_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TestBmpEncoderCore(provider, bitsPerPixel);
+        }
+
+        private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
             using (Image<TPixel> image = provider.GetImage())
             {
                 // there is no alpha in bmp!
-                image.Mutate(
-                    c => c.Opacity(1)
-                    );
-                
+                image.Mutate(c => c.Opacity(1));
+
                 var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel };
-                string path = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, testOutputDetails:bitsPerPixel);
 
-                this.Output.WriteLine(path);
-
-                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
-                string referenceOutputFile = provider.Utility.GetReferenceOutputFileName("bmp", bitsPerPixel, true);
-
-                this.Output.WriteLine(referenceOutputFile);
-
-                //using (var encodedImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
-                //{
-                //    ImageComparer.Exact.CompareImagesOrFrames(image, encodedImage);
-                //}
+                // Does DebugSave & load reference CompareToReferenceInput():
+                image.VerifyEncoder(provider, "bmp", bitsPerPixel, encoder);
             }
         }
     }

@@ -1,19 +1,28 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats;
+using System.IO;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
+    
+    using static TestImages.Bmp;
 
-    using SixLabors.ImageSharp.Formats.Bmp;
-
-    public class BmpDecoderTests : FileTestBase
+    public class BmpDecoderTests
     {
+        public const PixelTypes CommonNonDefaultPixelTypes =
+            PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
+
+        public static readonly string[] AllBmpFiles =
+            {
+                Car, F, NegHeight, CoreHeader, V5Header, RLE, RLEInverted, Bit8, Bit8Inverted, Bit16, Bit16Inverted
+            };
+
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32)]
         public void DecodeBmp<TPixel>(TestImageProvider<TPixel> provider)
@@ -27,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFile(TestImages.Bmp.F, CommonNonDefaultPixelTypes)]
+        [WithFile(F, CommonNonDefaultPixelTypes)]
         public void BmpDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -39,14 +48,14 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(TestImages.Bmp.Car, 24)]
-        [InlineData(TestImages.Bmp.F, 24)]
-        [InlineData(TestImages.Bmp.NegHeight, 24)]
-        [InlineData(TestImages.Bmp.Bit8, 8)]
-        [InlineData(TestImages.Bmp.Bit8Inverted, 8)]
+        [InlineData(Car, 24)]
+        [InlineData(F, 24)]
+        [InlineData(NegHeight, 24)]
+        [InlineData(Bit8, 8)]
+        [InlineData(Bit8Inverted, 8)]
         public void DetectPixelSize(string imagePath, int expectedPixelSize)
         {
-            TestFile testFile = TestFile.Create(imagePath);
+            var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);

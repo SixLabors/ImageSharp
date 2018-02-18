@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering; 
+using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -11,8 +11,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
-    using System.Linq;
-
     public class DitherTests : FileTestBase
     {
         public static readonly string[] CommonTestImages =
@@ -22,26 +20,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>
         {
-            { "Ordered", new OrderedDither() },
-            { "Bayer", new BayerDither() }
+            { "Bayer8x8", KnownDitherers.BayerDither8x8 },
+            { "Bayer4x4", KnownDitherers.BayerDither4x4 },
+            { "Ordered3x3", KnownDitherers.OrderedDither3x3 },
+            { "Bayer2x2", KnownDitherers.BayerDither2x2 }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
         {
-            { "Atkinson", new AtkinsonDiffuser() },
-            { "Burks", new BurksDiffuser() },
-            { "FloydSteinberg", new FloydSteinbergDiffuser() },
-            { "JarvisJudiceNinke", new JarvisJudiceNinkeDiffuser() },
-            { "Sierra2", new Sierra2Diffuser() },
-            { "Sierra3", new Sierra3Diffuser() },
-            { "SierraLite", new SierraLiteDiffuser() },
-            { "Stucki", new StuckiDiffuser() },
+            { "Atkinson", KnownDiffusers.Atkinson },
+            { "Burks", KnownDiffusers.Burks },
+            { "FloydSteinberg", KnownDiffusers.FloydSteinberg },
+            { "JarvisJudiceNinke", KnownDiffusers.JarvisJudiceNinke },
+            { "Sierra2", KnownDiffusers.Sierra2 },
+            { "Sierra3", KnownDiffusers.Sierra3 },
+            { "SierraLite", KnownDiffusers.SierraLite },
+            { "StevensonArce", KnownDiffusers.StevensonArce },
+            { "Stucki", KnownDiffusers.Stucki },
         };
 
 
-        private static IOrderedDither DefaultDitherer => new OrderedDither();
+        private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
-        private static IErrorDiffuser DefaultErrorDiffuser => new AtkinsonDiffuser();
+        private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(Ditherers), DefaultPixelType)]
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Dither(diffuser, .5F));
+                image.Mutate(x => x.Diffuse(diffuser, .5F));
                 image.DebugSave(provider, name);
             }
         }
@@ -80,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 image.DebugSave(provider);
             }
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.Bike, CommonNonDefaultPixelTypes)]
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
@@ -88,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Dither(DefaultErrorDiffuser, 0.5f));
+                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, 0.5f));
                 image.DebugSave(provider);
             }
         }
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Dither(DefaultErrorDiffuser, .5F, bounds));
+                image.Mutate(x => x.Diffuse(DefaultErrorDiffuser, .5F, bounds));
                 image.DebugSave(provider);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

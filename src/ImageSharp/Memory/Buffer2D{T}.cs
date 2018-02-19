@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="wrappedBuffer">The buffer to wrap</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(Buffer<T> wrappedBuffer, int width, int height)
+        public Buffer2D(IBuffer<T> wrappedBuffer, int width, int height)
         {
             this.Buffer = wrappedBuffer;
             this.Width = width;
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public Span<T> Span => this.Buffer.Span;
 
-        public Buffer<T> Buffer { get; }
+        public IBuffer<T> Buffer { get; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.

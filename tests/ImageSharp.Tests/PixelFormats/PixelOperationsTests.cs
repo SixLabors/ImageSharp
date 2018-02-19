@@ -333,25 +333,23 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             where TSource : struct
             where TDest : struct
         {
-            public Buffer<TSource> SourceBuffer { get; }
+            public TSource[] SourceBuffer { get; }
             public Buffer<TDest> ActualDestBuffer { get; }
-            public Buffer<TDest> ExpectedDestBuffer { get; }
+            public TDest[] ExpectedDestBuffer { get; }
 
             public Span<TSource> Source => this.SourceBuffer;
             public Span<TDest> ActualDest => this.ActualDestBuffer;
 
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
-                this.SourceBuffer = new Buffer<TSource>(source);
-                this.ExpectedDestBuffer = new Buffer<TDest>(expectedDest);
+                this.SourceBuffer = source;
+                this.ExpectedDestBuffer = expectedDest;
                 this.ActualDestBuffer = Configuration.Default.MemoryManager.Allocate<TDest>(expectedDest.Length);
             }
 
             public void Dispose()
             {
-                this.SourceBuffer.Dispose();
                 this.ActualDestBuffer.Dispose();
-                this.ExpectedDestBuffer.Dispose();
             }
 
             private const float Tolerance = 0.0001f;
@@ -363,7 +361,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 if (typeof(TDest) == typeof(Vector4))
                 {
                     
-                    Span<Vector4> expected = this.ExpectedDestBuffer.Span.NonPortableCast<TDest, Vector4>();
+                    Span<Vector4> expected = this.ExpectedDestBuffer.AsSpan().NonPortableCast<TDest, Vector4>();
                     Span<Vector4> actual = this.ActualDestBuffer.Span.NonPortableCast<TDest, Vector4>();
 
                     for (int i = 0; i < count; i++)
@@ -375,7 +373,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 }
                 else
                 {
-                    Span<TDest> expected = this.ExpectedDestBuffer.Span;
+                    Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
                     Span<TDest> actual = this.ActualDestBuffer.Span;
                     for (int i = 0; i < count; i++)
                     {
@@ -388,7 +386,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<Buffer<TSource>, Buffer<TDest>> action)
+            Action<TSource[], Buffer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {

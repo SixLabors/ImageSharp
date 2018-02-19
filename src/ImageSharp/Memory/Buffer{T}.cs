@@ -18,16 +18,6 @@ namespace SixLabors.ImageSharp.Memory
     {
         private MemoryManager memoryManager;
 
-        /// <summary>
-        /// A pointer to the first element of <see cref="array"/> when pinned.
-        /// </summary>
-        private IntPtr pointer;
-
-        /// <summary>
-        /// A handle that allows to access the managed <see cref="array"/> as an unmanaged memory by pinning.
-        /// </summary>
-        private GCHandle handle;
-
         // why is there such a rule? :S Protected should be fine for a field!
 #pragma warning disable SA1401 // Fields should be private
         /// <summary>
@@ -36,22 +26,7 @@ namespace SixLabors.ImageSharp.Memory
         protected T[] array;
 #pragma warning restore SA1401 // Fields should be private
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Buffer{T}"/> class.
-        /// </summary>
-        /// <param name="array">The array to pin.</param>
-        public Buffer(T[] array)
-        {
-            this.Length = array.Length;
-            this.array = array;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Buffer{T}"/> class.
-        /// </summary>
-        /// <param name="array">The array to pin.</param>
-        /// <param name="length">The count of "relevant" elements in 'array'.</param>
-        public Buffer(T[] array, int length)
+        internal Buffer(T[] array, int length, MemoryManager memoryManager)
         {
             if (array.Length < length)
             {
@@ -60,20 +35,7 @@ namespace SixLabors.ImageSharp.Memory
 
             this.Length = length;
             this.array = array;
-        }
-
-        internal Buffer(T[] array, int length, MemoryManager memoryManager)
-            : this(array, length)
-        {
             this.memoryManager = memoryManager;
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="Buffer{T}"/> class.
-        /// </summary>
-        ~Buffer()
-        {
-            this.UnPin();
         }
 
         /// <summary>
@@ -140,7 +102,6 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             this.IsDisposedOrLostArrayOwnership = true;
-            this.UnPin();
 
             this.memoryManager?.Release(this);
 
@@ -166,33 +127,10 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             this.IsDisposedOrLostArrayOwnership = true;
-            this.UnPin();
-            T[] array = this.array;
+            T[] a = this.array;
             this.array = null;
             this.memoryManager = null;
-            return array;
-        }
-
-        /// <summary>
-        /// Pins <see cref="array"/>.
-        /// </summary>
-        /// <returns>The pinned pointer</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IntPtr Pin()
-        {
-            if (this.IsDisposedOrLostArrayOwnership)
-            {
-                throw new InvalidOperationException(
-                    "Pin() is invalid on a buffer with IsDisposedOrLostArrayOwnership == true!");
-            }
-
-            if (this.pointer == IntPtr.Zero)
-            {
-                this.handle = GCHandle.Alloc(this.array, GCHandleType.Pinned);
-                this.pointer = this.handle.AddrOfPinnedObject();
-            }
-
-            return this.pointer;
+            return a;
         }
 
         /// <summary>
@@ -201,21 +139,6 @@ namespace SixLabors.ImageSharp.Memory
         internal T[] GetArray()
         {
             return this.array;
-        }
-
-        /// <summary>
-        /// Unpins <see cref="array"/>.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UnPin()
-        {
-            if (this.pointer == IntPtr.Zero || !this.handle.IsAllocated)
-            {
-                return;
-            }
-
-            this.handle.Free();
-            this.pointer = IntPtr.Zero;
         }
     }
 }

@@ -12,14 +12,14 @@ namespace SixLabors.ImageSharp.Memory
     public abstract class MemoryManager
     {
         /// <summary>
-        /// Allocates a <see cref="Buffer{T}"/> of size <paramref name="size"/>, optionally
+        /// Allocates a <see cref="Buffer{T}"/> of size <paramref name="length"/>, optionally
         /// clearing the buffer before it gets returned.
         /// </summary>
         /// <typeparam name="T">Type of the data stored in the buffer</typeparam>
-        /// <param name="size">Size of the buffer to allocate</param>
+        /// <param name="length">Size of the buffer to allocate</param>
         /// <param name="clear">True to clear the backing memory of the buffer</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
-        internal abstract Buffer<T> Allocate<T>(int size, bool clear)
+        internal abstract Buffer<T> Allocate<T>(int length, bool clear)
             where T : struct;
 
         /// <summary>
@@ -30,5 +30,15 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="buffer">The buffer to release</param>
         internal abstract void Release<T>(Buffer<T> buffer)
             where T : struct;
+
+        /// <summary>
+        /// Temporal workaround. A method providing a "Buffer" based on a generic array without the 'Unsafe.As()' hackery.
+        /// Should be replaced with 'Allocate()' as soon as SixLabors.Shapes has Span-based API-s!
+        /// </summary>
+        internal FakeBuffer<T> AllocateFake<T>(int length)
+            where T : struct
+        {
+            return new FakeBuffer<T>(new T[length]);
+        }
     }
 }

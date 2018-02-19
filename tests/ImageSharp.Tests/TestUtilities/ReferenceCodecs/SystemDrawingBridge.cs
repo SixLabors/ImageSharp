@@ -96,18 +96,20 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (var workBuffer = Configuration.Default.MemoryManager.Allocate<Argb32>(w))
+            using (IBuffer<Argb32> workBuffer = Configuration.Default.MemoryManager.Allocate<Argb32>(w))
             {
-                var destPtr = (Argb32*)workBuffer.Pin();
-                for (int y = 0; y < h; y++)
+                fixed (Argb32* destPtr = &workBuffer.DangerousGetPinnableReference())
                 {
-                    Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                    for (int y = 0; y < h; y++)
+                    {
+                        Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
 
-                    byte* sourcePtr = sourcePtrBase + data.Stride * y;
+                        byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
-                    Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                        Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
 
-                    FromArgb32(workBuffer, row);
+                        FromArgb32(workBuffer.Span, row);
+                    }
                 }
             }
 
@@ -138,18 +140,20 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (var workBuffer = Configuration.Default.MemoryManager.Allocate<Rgb24>(w))
+            using (IBuffer<Rgb24> workBuffer = Configuration.Default.MemoryManager.Allocate<Rgb24>(w))
             {
-                var destPtr = (Rgb24*)workBuffer.Pin();
-                for (int y = 0; y < h; y++)
+                fixed (Rgb24* destPtr = &workBuffer.DangerousGetPinnableReference())
                 {
-                    Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                    for (int y = 0; y < h; y++)
+                    {
+                        Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
 
-                    byte* sourcePtr = sourcePtrBase + data.Stride * y;
+                        byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
-                    Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                        Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
 
-                    FromRgb24(workBuffer, row);
+                        FromRgb24(workBuffer.Span, row);
+                    }
                 }
             }
 
@@ -170,17 +174,19 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             long destRowByteCount = data.Stride;
             long sourceRowByteCount = w * sizeof(Argb32);
 
-            using (var workBuffer = Configuration.Default.MemoryManager.Allocate<Argb32>(w))
+            using (IBuffer<Argb32> workBuffer = image.GetConfiguration().MemoryManager.Allocate<Argb32>(w))
             {
-                var sourcePtr = (Argb32*)workBuffer.Pin();
-
-                for (int y = 0; y < h; y++)
+                fixed (Argb32* sourcePtr = &workBuffer.DangerousGetPinnableReference())
                 {
-                    Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
-                    ToArgb32(row, workBuffer);
-                    byte* destPtr = destPtrBase + data.Stride * y;
 
-                    Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                    for (int y = 0; y < h; y++)
+                    {
+                        Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
+                        ToArgb32(row, workBuffer.Span);
+                        byte* destPtr = destPtrBase + data.Stride * y;
+
+                        Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
+                    }
                 }
             }
 

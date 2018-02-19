@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
+            using (var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
             using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
                 provider,
                 testOutputDetails,
@@ -378,9 +378,11 @@ namespace SixLabors.ImageSharp.Tests
 
             Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
-            for (int i = 0; i < buffer.Buffer.Length; i++)
+            Span<float> bufferSpan = buffer.Span;
+
+            for (int i = 0; i < bufferSpan.Length; i++)
             {
-                float value = buffer.Buffer[i] * scale;
+                float value = bufferSpan[i] * scale;
                 var v = new Vector4(value, value, value, 1f);
                 pixels[i].PackFromVector4(v);
             }

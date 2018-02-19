@@ -8,7 +8,7 @@
         /// <inheritdoc />
         internal override Buffer<T> Allocate<T>(int length, bool clear)
         {
-            return new Buffer<T>(new T[length], length);
+            return new Buffer<T>(new T[length], length, this);
         }
 
         internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)

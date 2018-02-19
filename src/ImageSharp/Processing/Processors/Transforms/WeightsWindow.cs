@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// The buffer containing the weights values.
         /// </summary>
-        private readonly Buffer<float> buffer;
+        private readonly IBuffer<float> buffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -57,7 +57,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref float GetStartReference()
         {
-            return ref this.buffer[this.flatStartIndex];
+            Span<float> span = this.buffer.Span;
+            return ref span[this.flatStartIndex];
         }
 
         /// <summary>

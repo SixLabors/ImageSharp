@@ -16,11 +16,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
         {
-            public static void SpanPointsTo<T>(Span<T> span, Buffer<T> buffer, int bufferOffset = 0)
+            public static void SpanPointsTo<T>(Span<T> span, IBuffer<T> buffer, int bufferOffset = 0)
                 where T : struct
             {
                 ref T actual = ref span.DangerousGetPinnableReference();
-                ref T expected = ref Unsafe.Add(ref buffer[0], bufferOffset);
+                ref T expected = ref Unsafe.Add(ref buffer.DangerousGetPinnableReference(), bufferOffset);
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
             }
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.Buffer.Length);
+                Assert.Equal(width * height, buffer.Buffer.Length());
             }
         }
 
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 using (Buffer2D<int> buffer = Configuration.Default.MemoryManager.Allocate2D<int>(42, 42, true))
                 {
                     Span<int> span = buffer.Span;
-                    for (int j = 0; j < buffer.Buffer.Length; j++)
+                    for (int j = 0; j < span.Length; j++)
                     {
                         Assert.Equal(0, span[j]);
                         span[j] = 666;

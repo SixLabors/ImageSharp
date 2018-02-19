@@ -45,7 +45,13 @@ namespace SixLabors.ImageSharp.Tests
                                                                       30, 55, 100, 201, 255
                                                                   };
 
+        public static readonly TheoryData<int> PaletteLargeOnly = new TheoryData<int>()
+                                                                  {
+                                                                      80, 100, 120, 230
+                                                                  };
+
         [Theory]
+        [WithFile(TestImages.Png.Palette8Bpp, nameof(PngColorTypes), PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(PngColorTypes), 48, 24, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(PngColorTypes), 47, 8, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(PngColorTypes), 49, 7, PixelTypes.Rgba32)]
@@ -56,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             TestPngEncoderCore(provider, pngColorType, appendPngColorType: true);
         }
-
+        
         [Theory]
         [WithTestPatternImages(nameof(PngColorTypes), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
@@ -71,6 +77,16 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             TestPngEncoderCore(provider, PngColorType.RgbWithAlpha, compressionLevel, appendCompressionLevel: true);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
+        public void PaletteColorType_WuQuantizer_File<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int paletteSize)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            this.PaletteColorType_WuQuantizer(provider, paletteSize);
         }
 
         [Theory]

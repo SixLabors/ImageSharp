@@ -20,11 +20,6 @@ namespace SixLabors.ImageSharp.Tests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
-        public static readonly string[] TestFiles =
-            {
-                TestImages.Gif.Giphy, TestImages.Gif.Rings, TestImages.Gif.Trans, TestImages.Gif.Kumin
-            };
-
         public static readonly string[] MultiFrameTestFiles =
             {
                 TestImages.Gif.Giphy, TestImages.Gif.Kumin

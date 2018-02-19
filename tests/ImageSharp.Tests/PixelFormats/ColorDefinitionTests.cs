@@ -16,7 +16,8 @@ namespace SixLabors.ImageSharp.Tests
             get
             {
                 var result = new TheoryData<string>();
-                foreach (string name in typeof(NamedColors<Rgba32>).GetTypeInfo().GetFields().Select(x =>  x.Name ))
+                foreach (string name in typeof(NamedColors<Rgba32>).GetTypeInfo()
+                    .GetFields().Where(x => x.Name != nameof(NamedColors<Rgba32>.WebSafePalette)).Select(x => x.Name))
                 {
                     result.Add(name);
                 }

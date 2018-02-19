@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
@@ -14,17 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
-        private readonly MemoryManager memoryManager;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PngEncoder"/> class.
-        /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
-        public PngEncoder(MemoryManager memoryManager)
-        {
-            this.memoryManager = memoryManager;
-        }
-
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
         /// </summary>
@@ -79,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(this.memoryManager, this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryManager(), this))
             {
                 encoder.Encode(image, stream);
             }

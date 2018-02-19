@@ -508,7 +508,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.quantizer == null)
             {
-                this.quantizer = new WuQuantizer<TPixel>(this.memoryManager);
+                this.quantizer = new WuQuantizer<TPixel>();
             }
 
             // Quantize the image returning a palette. This boxing is icky.

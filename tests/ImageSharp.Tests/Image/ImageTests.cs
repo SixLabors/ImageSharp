@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<Rgba32> image = new Image<Rgba32>(10, 10))
             {
-                image.Save(file, new PngEncoder(Configuration.Default.MemoryManager));
+                image.Save(file, new PngEncoder());
             }
             using (Image<Rgba32> img = Image.Load(file, out var mime))
             {

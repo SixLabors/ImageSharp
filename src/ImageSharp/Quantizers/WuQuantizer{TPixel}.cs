@@ -36,8 +36,6 @@ namespace SixLabors.ImageSharp.Quantizers
     public class WuQuantizer<TPixel> : QuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly MemoryManager memoryManager;
-
         /// <summary>
         /// The index bits.
         /// </summary>
@@ -121,15 +119,13 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <summary>
         /// Initializes a new instance of the <see cref="WuQuantizer{TPixel}"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuQuantizer(MemoryManager memoryManager)
+        public WuQuantizer()
             : base(false)
         {
-            this.memoryManager = memoryManager;
         }
 
         /// <inheritdoc/>
@@ -141,15 +137,17 @@ namespace SixLabors.ImageSharp.Quantizers
             this.palette = null;
             this.colorMap.Clear();
 
+            MemoryManager memoryManager = image.MemoryManager;
+
             try
             {
-                this.vwt = this.memoryManager.Allocate<long>(TableLength, true);
-                this.vmr = this.memoryManager.Allocate<long>(TableLength, true);
-                this.vmg = this.memoryManager.Allocate<long>(TableLength, true);
-                this.vmb = this.memoryManager.Allocate<long>(TableLength, true);
-                this.vma = this.memoryManager.Allocate<long>(TableLength, true);
-                this.m2 = this.memoryManager.Allocate<float>(TableLength, true);
-                this.tag = this.memoryManager.Allocate<byte>(TableLength, true);
+                this.vwt = memoryManager.AllocateClean<long>(TableLength);
+                this.vmr = memoryManager.AllocateClean<long>(TableLength);
+                this.vmg = memoryManager.AllocateClean<long>(TableLength);
+                this.vmb = memoryManager.AllocateClean<long>(TableLength);
+                this.vma = memoryManager.AllocateClean<long>(TableLength);
+                this.m2 = memoryManager.AllocateClean<float>(TableLength);
+                this.tag = memoryManager.AllocateClean<byte>(TableLength);
 
                 return base.Quantize(image, this.colors);
             }
@@ -240,7 +238,7 @@ namespace SixLabors.ImageSharp.Quantizers
                 }
             }
 
-            this.Get3DMoments();
+            this.Get3DMoments(source.MemoryManager);
             this.BuildCube();
         }
 
@@ -458,21 +456,21 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <summary>
         /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
         /// </summary>
-        private void Get3DMoments()
+        private void Get3DMoments(MemoryManager memoryManager)
         {
-            using (Buffer<long> volume = this.memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeR = this.memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeG = this.memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeB = this.memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeA = this.memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<float> volume2 = this.memoryManager.Allocate<float>(IndexCount * IndexAlphaCount))
+            using (Buffer<long> volume = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (Buffer<long> volumeR = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (Buffer<long> volumeG = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (Buffer<long> volumeB = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (Buffer<long> volumeA = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (Buffer<float> volume2 = memoryManager.Allocate<float>(IndexCount * IndexAlphaCount))
 
-            using (Buffer<long> area = this.memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaR = this.memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaG = this.memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaB = this.memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaA = this.memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<float> area2 = this.memoryManager.Allocate<float>(IndexAlphaCount))
+            using (Buffer<long> area = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (Buffer<long> areaR = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (Buffer<long> areaG = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (Buffer<long> areaB = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (Buffer<long> areaA = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (Buffer<float> area2 = memoryManager.Allocate<float>(IndexAlphaCount))
             {
                 for (int r = 1; r < IndexCount; r++)
                 {

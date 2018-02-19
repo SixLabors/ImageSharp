@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     internal abstract class LinearRgbAndCieXyzConverterBase
     {
         /// <summary>
-        /// Geturns the correct matrix to convert between the Rgb and CieXyz color space.
+        /// Returns the correct matrix to convert between the Rgb and CieXyz color space.
         /// </summary>
         /// <param name="workingSpace">The Rgb working space.</param>
         /// <returns>The <see cref="Matrix4x4"/> based on the chromaticity and working space.</returns>
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 
             var vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 
-            // Use transposed Rows/Coloumns
+            // Use transposed Rows/Columns
             // TODO: Is there a built in method for this multiplication?
             return new Matrix4x4
             {

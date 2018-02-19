@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.ComponentCount = components.Length;
                 this.Components = components;
             }
-            
+
             public static SpectralData LoadFromImageSharpDecoder(PdfJsJpegDecoderCore decoder)
             {
                 PdfJsFrameComponent[] srcComponents = decoder.Frame.Components;
@@ -137,12 +137,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static bool operator ==(SpectralData left, SpectralData right)
             {
-                return Object.Equals(left, right);
+                if (ReferenceEquals(left, right))
+                {
+                    return true;
+                }
+
+                return left.Equals(right);
             }
 
             public static bool operator !=(SpectralData left, SpectralData right)
             {
-                return !Object.Equals(left, right);
+                return !(left == right);
             }
         }
     }

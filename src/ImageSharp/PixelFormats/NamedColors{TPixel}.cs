@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
@@ -10,6 +12,11 @@ namespace SixLabors.ImageSharp.PixelFormats
     public static class NamedColors<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Thread-safe backing field for <see cref="WebSafePalette"/>.
+        /// </summary>
+        private static readonly Lazy<TPixel[]> WebSafePaletteLazy = new Lazy<TPixel[]>(GetWebSafePalette, true);
+
         /// <summary>
         /// Represents a <see paramref="TPixel"/> matching the W3C definition that has an hex value of #F0F8FF.
         /// </summary>
@@ -719,5 +726,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Represents a <see paramref="TPixel"/> matching the W3C definition that has an hex value of #9ACD32.
         /// </summary>
         public static readonly TPixel YellowGreen = ColorBuilder<TPixel>.FromRGBA(154, 205, 50, 255);
+
+        /// <summary>
+        /// Gets a <see cref="T:TPixel[]"/> matching the W3C definition of web safe colors.
+        /// </summary>
+        public static TPixel[] WebSafePalette => WebSafePaletteLazy.Value;
+
+        private static TPixel[] GetWebSafePalette()
+        {
+            Rgba32[] constants = ColorConstants.WebSafeColors;
+            TPixel[] safe = new TPixel[constants.Length + 1];
+
+            Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
+            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, safe, constants.Length);
+            return safe;
+        }
     }
 }

@@ -151,8 +151,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         break;
                     }
 
-                    this.globalColorTable = this.MemoryManager.AllocateManagedByteBuffer(this.globalColorTableLength, true);
-
                     nextFlag = stream.ReadByte();
                     if (nextFlag == -1)
                     {

@@ -180,14 +180,14 @@ namespace SixLabors.ImageSharp.Quantizers
                 {
                     this.Mark(ref this.colorCube[k], (byte)k);
 
-                    float weight = Volume(ref this.colorCube[k], this.vwt.Array);
+                    float weight = Volume(ref this.colorCube[k], this.vwt.Span);
 
                     if (MathF.Abs(weight) > Constants.Epsilon)
                     {
-                        float r = Volume(ref this.colorCube[k], this.vmr.Array);
-                        float g = Volume(ref this.colorCube[k], this.vmg.Array);
-                        float b = Volume(ref this.colorCube[k], this.vmb.Array);
-                        float a = Volume(ref this.colorCube[k], this.vma.Array);
+                        float r = Volume(ref this.colorCube[k], this.vmr.Span);
+                        float g = Volume(ref this.colorCube[k], this.vmg.Span);
+                        float b = Volume(ref this.colorCube[k], this.vmb.Span);
+                        float a = Volume(ref this.colorCube[k], this.vma.Span);
 
                         ref TPixel color = ref this.palette[k];
                         color.PackFromVector4(new Vector4(r, g, b, a) / weight / 255F);
@@ -312,7 +312,7 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <param name="cube">The cube.</param>
         /// <param name="moment">The moment.</param>
         /// <returns>The result.</returns>
-        private static float Volume(ref Box cube, long[] moment)
+        private static float Volume(ref Box cube, Span<long> moment)
         {
             return moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
                    - moment[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
@@ -339,7 +339,7 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <param name="direction">The direction.</param>
         /// <param name="moment">The moment.</param>
         /// <returns>The result.</returns>
-        private static long Bottom(ref Box cube, int direction, long[] moment)
+        private static long Bottom(ref Box cube, int direction, Span<long> moment)
         {
             switch (direction)
             {
@@ -400,7 +400,7 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <param name="position">The position.</param>
         /// <param name="moment">The moment.</param>
         /// <returns>The result.</returns>
-        private static long Top(ref Box cube, int direction, int position, long[] moment)
+        private static long Top(ref Box cube, int direction, int position, Span<long> moment)
         {
             switch (direction)
             {
@@ -548,10 +548,10 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <returns>The <see cref="float"/>.</returns>
         private float Variance(ref Box cube)
         {
-            float dr = Volume(ref cube, this.vmr.Array);
-            float dg = Volume(ref cube, this.vmg.Array);
-            float db = Volume(ref cube, this.vmb.Array);
-            float da = Volume(ref cube, this.vma.Array);
+            float dr = Volume(ref cube, this.vmr.Span);
+            float dg = Volume(ref cube, this.vmg.Span);
+            float db = Volume(ref cube, this.vmb.Span);
+            float da = Volume(ref cube, this.vma.Span);
 
             float xx =
                 this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
@@ -572,7 +572,7 @@ namespace SixLabors.ImageSharp.Quantizers
                 + this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
             var vector = new Vector4(dr, dg, db, da);
-            return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.Array));
+            return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.Span));
         }
 
         /// <summary>
@@ -595,22 +595,22 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <returns>The <see cref="float"/>.</returns>
         private float Maximize(ref Box cube, int direction, int first, int last, out int cut, float wholeR, float wholeG, float wholeB, float wholeA, float wholeW)
         {
-            long baseR = Bottom(ref cube, direction, this.vmr.Array);
-            long baseG = Bottom(ref cube, direction, this.vmg.Array);
-            long baseB = Bottom(ref cube, direction, this.vmb.Array);
-            long baseA = Bottom(ref cube, direction, this.vma.Array);
-            long baseW = Bottom(ref cube, direction, this.vwt.Array);
+            long baseR = Bottom(ref cube, direction, this.vmr.Span);
+            long baseG = Bottom(ref cube, direction, this.vmg.Span);
+            long baseB = Bottom(ref cube, direction, this.vmb.Span);
+            long baseA = Bottom(ref cube, direction, this.vma.Span);
+            long baseW = Bottom(ref cube, direction, this.vwt.Span);
 
             float max = 0F;
             cut = -1;
 
             for (int i = first; i < last; i++)
             {
-                float halfR = baseR + Top(ref cube, direction, i, this.vmr.Array);
-                float halfG = baseG + Top(ref cube, direction, i, this.vmg.Array);
-                float halfB = baseB + Top(ref cube, direction, i, this.vmb.Array);
-                float halfA = baseA + Top(ref cube, direction, i, this.vma.Array);
-                float halfW = baseW + Top(ref cube, direction, i, this.vwt.Array);
+                float halfR = baseR + Top(ref cube, direction, i, this.vmr.Span);
+                float halfG = baseG + Top(ref cube, direction, i, this.vmg.Span);
+                float halfB = baseB + Top(ref cube, direction, i, this.vmb.Span);
+                float halfA = baseA + Top(ref cube, direction, i, this.vma.Span);
+                float halfW = baseW + Top(ref cube, direction, i, this.vwt.Span);
 
                 if (MathF.Abs(halfW) < Constants.Epsilon)
                 {
@@ -654,11 +654,11 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <returns>Returns a value indicating whether the box has been split.</returns>
         private bool Cut(ref Box set1, ref Box set2)
         {
-            float wholeR = Volume(ref set1, this.vmr.Array);
-            float wholeG = Volume(ref set1, this.vmg.Array);
-            float wholeB = Volume(ref set1, this.vmb.Array);
-            float wholeA = Volume(ref set1, this.vma.Array);
-            float wholeW = Volume(ref set1, this.vwt.Array);
+            float wholeR = Volume(ref set1, this.vmr.Span);
+            float wholeG = Volume(ref set1, this.vmg.Span);
+            float wholeB = Volume(ref set1, this.vmb.Span);
+            float wholeA = Volume(ref set1, this.vma.Span);
+            float wholeW = Volume(ref set1, this.vwt.Span);
 
             float maxr = this.Maximize(ref set1, 3, set1.R0 + 1, set1.R1, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
             float maxg = this.Maximize(ref set1, 2, set1.G0 + 1, set1.G1, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);

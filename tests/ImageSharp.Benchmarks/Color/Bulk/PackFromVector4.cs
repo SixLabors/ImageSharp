@@ -2,6 +2,7 @@
 namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
 
@@ -36,12 +37,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Vector4[] s = this.source.Array;
-            TPixel[] d = this.destination.Array;
+            ref Vector4 s = ref this.source.Span.DangerousGetPinnableReference();
+            ref TPixel d = ref this.destination.Span.DangerousGetPinnableReference();
             
             for (int i = 0; i < this.Count; i++)
             {
-                d[i].PackFromVector4(s[i]);
+                Unsafe.Add(ref d, i).PackFromVector4(Unsafe.Add(ref s, i));
             }
         }
 

@@ -30,44 +30,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// The underlying buffer containing the raw pixel data.
         /// </summary>
-        private readonly Buffer<byte> byteBuffer;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="bytes">The bytes.</param>
-        /// <param name="componentOrder">The component order.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if <paramref name="bytes"></paramref> is the incorrect length.
-        /// </exception>
-        public PixelArea(int width, byte[] bytes, ComponentOrder componentOrder)
-            : this(width, 1, bytes, componentOrder)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
-        /// </summary>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
-        /// <param name="bytes">The bytes.</param>
-        /// <param name="componentOrder">The component order.</param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if <paramref name="bytes"></paramref> is the incorrect length.
-        /// </exception>
-        public PixelArea(int width, int height, byte[] bytes, ComponentOrder componentOrder)
-        {
-            this.CheckBytesLength(width, height, bytes, componentOrder);
-
-            this.Width = width;
-            this.Height = height;
-            this.ComponentOrder = componentOrder;
-            this.RowStride = width * GetComponentCount(componentOrder);
-            this.Length = bytes.Length; // TODO: Is this the right value for Length?
-
-            this.byteBuffer = new Buffer<byte>(bytes);
-        }
+        private readonly IManagedByteBuffer byteBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelArea{TPixel}"/> class.
@@ -116,7 +79,7 @@ namespace SixLabors.ImageSharp
             this.RowStride = (width * GetComponentCount(componentOrder)) + padding;
             this.Length = this.RowStride * height;
 
-            this.byteBuffer = Configuration.Default.MemoryManager.Allocate<byte>(this.Length, true);
+            this.byteBuffer = Configuration.Default.MemoryManager.AllocateCleanManagedByteBuffer(this.Length);
         }
 
         /// <summary>

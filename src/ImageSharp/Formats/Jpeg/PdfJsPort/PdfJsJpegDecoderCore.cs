@@ -673,23 +673,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (var huffmanData = this.configuration.MemoryManager.Allocate<byte>(256, true))
+            using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
             {
+                Span<byte> huffmanSpan = huffmanData.Span;
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (var codeLengths = this.configuration.MemoryManager.Allocate<byte>(17, true))
+                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
                     {
+                        Span<byte> codeLengthsSpan = codeLengths.Span;
                         int codeLengthSum = 0;
 
                         for (int j = 1; j < 17; j++)
                         {
-                            codeLengthSum += codeLengths[j] = huffmanData[j - 1];
+                            codeLengthSum += codeLengthsSpan[j] = huffmanSpan[j - 1];
                         }
 
-                        using (var huffmanValues = this.configuration.MemoryManager.Allocate<byte>(256, true))
+                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -784,8 +786,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
-            using (var computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
-            using (var multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
+            using (Buffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
+            using (Buffer<short> multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             {
                 Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
                 Span<short> computationBufferSpan = computationBuffer;

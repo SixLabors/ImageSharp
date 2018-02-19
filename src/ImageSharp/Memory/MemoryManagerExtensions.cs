@@ -26,6 +26,11 @@
             return memoryManager.Allocate<T>(length, true);
         }
 
+        public static IManagedByteBuffer AllocateManagedByteBuffer(this MemoryManager memoryManager, int length)
+        {
+            return memoryManager.AllocateManagedByteBuffer(length, false);
+        }
+
         public static IManagedByteBuffer AllocateCleanManagedByteBuffer(this MemoryManager memoryManager, int length)
         {
             return memoryManager.AllocateManagedByteBuffer(length, true);

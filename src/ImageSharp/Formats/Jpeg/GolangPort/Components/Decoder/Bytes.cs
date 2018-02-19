@@ -26,8 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Gets or sets the buffer.
         /// buffer[i:j] are the buffered bytes read from the underlying
         /// stream that haven't yet been passed further on.
+        /// TODO: Do we really need buffer here? Might be an optimiziation opportunity.
         /// </summary>
-        public Buffer<byte> Buffer;
+        public IManagedByteBuffer Buffer;
 
         /// <summary>
         /// Values of <see cref="Buffer"/> converted to <see cref="int"/>-s
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             return new Bytes
             {
-                Buffer = memoryManager.Allocate<byte>(BufferSize),
+                Buffer = memoryManager.AllocateManagedByteBuffer(BufferSize),
                 BufferAsInt = memoryManager.Allocate<int>(BufferSize)
             };
         }
@@ -169,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
             }
 
-            result = this.Buffer[this.I];
+            result = this.Buffer.Span[this.I];
             this.I++;
             this.UnreadableBytes = 0;
             return errorCode;
@@ -229,18 +230,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 DecoderThrowHelper.ThrowImageFormatException.FillCalledWhenUnreadBytesExist();
             }
 
+            Span<byte> bufferSpan = this.Buffer.Span;
+
             // Move the last 2 bytes to the start of the buffer, in case we need
             // to call UnreadByteStuffedByte.
             if (this.J > 2)
             {
-                this.Buffer[0] = this.Buffer[this.J - 2];
-                this.Buffer[1] = this.Buffer[this.J - 1];
+                bufferSpan[0] = bufferSpan[this.J - 2];
+                bufferSpan[1] = bufferSpan[this.J - 1];
                 this.I = 2;
                 this.J = 2;
             }
 
             // Fill in the rest of the buffer.
-            int n = inputStream.Read(this.Buffer.Array, this.J, this.Buffer.Length - this.J);
+            int n = inputStream.Read(this.Buffer.Array, this.J, bufferSpan.Length - this.J);
             if (n == 0)
             {
                 return OrigDecoderErrorCode.UnexpectedEndOfStream;
@@ -248,9 +251,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             this.J += n;
 
-            for (int i = 0; i < this.Buffer.Length; i++)
+            for (int i = 0; i < bufferSpan.Length; i++)
             {
-                this.BufferAsInt[i] = this.Buffer[i];
+                this.BufferAsInt[i] = bufferSpan[i];
             }
 
             return OrigDecoderErrorCode.NoError;

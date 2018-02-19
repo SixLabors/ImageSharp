@@ -343,15 +343,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
-            using (var row = this.configuration.MemoryManager.Allocate<byte>(arrayWidth + padding, true))
+            using (IManagedByteBuffer row = this.configuration.MemoryManager.AllocateManagedByteBuffer(arrayWidth + padding, true))
             {
                 var color = default(TPixel);
                 var rgba = new Rgba32(0, 0, 0, 255);
 
+                Span<byte> rowSpan = row.Span;
+
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
-                    this.currentStream.Read(row.Array, 0, row.Length);
+                    this.currentStream.Read(row.Array, 0, row.Length());
                     int offset = 0;
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
@@ -362,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                         for (int shift = 0; shift < ppb && (x + shift) < width; shift++)
                         {
-                            int colorIndex = ((row[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
+                            int colorIndex = ((rowSpan[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
                             int newX = colOffset + shift;
 
                             // Stored in b-> g-> r order.
@@ -393,7 +395,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (var buffer = this.configuration.MemoryManager.Allocate<byte>(stride))
+            using (var buffer = this.configuration.MemoryManager.AllocateManagedByteBuffer(stride))
             {
                 for (int y = 0; y < height; y++)
                 {

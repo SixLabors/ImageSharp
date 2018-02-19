@@ -74,37 +74,37 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The previous scanline.
         /// </summary>
-        private Buffer<byte> previousScanline;
+        private IManagedByteBuffer previousScanline;
 
         /// <summary>
         /// The raw scanline.
         /// </summary>
-        private Buffer<byte> rawScanline;
+        private IManagedByteBuffer rawScanline;
 
         /// <summary>
         /// The filtered scanline result.
         /// </summary>
-        private Buffer<byte> result;
+        private IManagedByteBuffer result;
 
         /// <summary>
         /// The buffer for the sub filter
         /// </summary>
-        private Buffer<byte> sub;
+        private IManagedByteBuffer sub;
 
         /// <summary>
         /// The buffer for the up filter
         /// </summary>
-        private Buffer<byte> up;
+        private IManagedByteBuffer up;
 
         /// <summary>
         /// The buffer for the average filter
         /// </summary>
-        private Buffer<byte> average;
+        private IManagedByteBuffer average;
 
         /// <summary>
         /// The buffer for the paeth filter
         /// </summary>
-        private Buffer<byte> paeth;
+        private IManagedByteBuffer paeth;
 
         /// <summary>
         /// The png color type.
@@ -357,11 +357,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (this.bytesPerPixel == 4)
             {
-                PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, this.rawScanline, this.width);
+                PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, this.rawScanline.Span, this.width);
             }
             else
             {
-                PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, this.rawScanline, this.width);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, this.rawScanline.Span, this.width);
             }
         }
 
@@ -373,13 +373,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="rowSpan">The row span.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private Buffer<byte> EncodePixelRow<TPixel>(Span<TPixel> rowSpan, int row)
+        private IManagedByteBuffer EncodePixelRow<TPixel>(Span<TPixel> rowSpan, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
             {
                 case PngColorType.Palette:
-                    Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length, this.rawScanline.Array, 0, this.rawScanline.Length);
+                    // TODO: Use Span copy!
+                    Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length(), this.rawScanline.Array, 0, this.rawScanline.Length());
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:
@@ -398,7 +399,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// to be most compressible, using lowest total variation as proxy for compressibility.
         /// </summary>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private Buffer<byte> GetOptimalFilteredScanline()
+        private IManagedByteBuffer GetOptimalFilteredScanline()
         {
             Span<byte> scanSpan = this.rawScanline.Span;
             Span<byte> prevSpan = this.previousScanline.Span;
@@ -406,18 +407,18 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Palette images don't compress well with adaptive filtering.
             if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
             {
-                NoneFilter.Encode(this.rawScanline, this.result);
+                NoneFilter.Encode(this.rawScanline.Span, this.result.Span);
                 return this.result;
             }
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.
-            UpFilter.Encode(scanSpan, prevSpan, this.up, out int currentSum);
+            UpFilter.Encode(scanSpan, prevSpan, this.up.Span, out int currentSum);
 
             int lowestSum = currentSum;
-            Buffer<byte> actualResult = this.up;
+            IManagedByteBuffer actualResult = this.up;
 
-            PaethFilter.Encode(scanSpan, prevSpan, this.paeth, this.bytesPerPixel, out currentSum);
+            PaethFilter.Encode(scanSpan, prevSpan, this.paeth.Span, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -425,7 +426,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 actualResult = this.paeth;
             }
 
-            SubFilter.Encode(scanSpan, this.sub, this.bytesPerPixel, out currentSum);
+            SubFilter.Encode(scanSpan, this.sub.Span, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -433,7 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 actualResult = this.sub;
             }
 
-            AverageFilter.Encode(scanSpan, prevSpan, this.average, this.bytesPerPixel, out currentSum);
+            AverageFilter.Encode(scanSpan, prevSpan, this.average.Span, this.bytesPerPixel, out currentSum);
 
             if (currentSum < lowestSum)
             {
@@ -522,9 +523,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
             var rgba = default(Rgba32);
             bool anyAlpha = false;
-            using (Buffer<byte> colorTable = this.memoryManager.Allocate<byte>(colorTableLength))
-            using (Buffer<byte> alphaTable = this.memoryManager.Allocate<byte>(pixelCount))
+
+            using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
+            using (IManagedByteBuffer alphaTable = this.memoryManager.AllocateManagedByteBuffer(pixelCount))
             {
+                Span<byte> colorTableSpan = colorTable.Span;
+                Span<byte> alphaTableSpan = alphaTable.Span;
+
                 for (byte i = 0; i < pixelCount; i++)
                 {
                     if (quantized.Pixels.Contains(i))
@@ -534,9 +539,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                         byte alpha = rgba.A;
 
-                        colorTable[offset] = rgba.R;
-                        colorTable[offset + 1] = rgba.G;
-                        colorTable[offset + 2] = rgba.B;
+                        colorTableSpan[offset] = rgba.R;
+                        colorTableSpan[offset + 1] = rgba.G;
+                        colorTableSpan[offset + 2] = rgba.B;
 
                         if (alpha > this.threshold)
                         {
@@ -544,7 +549,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         }
 
                         anyAlpha = anyAlpha || alpha < 255;
-                        alphaTable[i] = alpha;
+                        alphaTableSpan[i] = alpha;
                     }
                 }
 
@@ -617,16 +622,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = this.memoryManager.Allocate<byte>(this.bytesPerScanline, true);
-            this.rawScanline = this.memoryManager.Allocate<byte>(this.bytesPerScanline, true);
-            this.result = this.memoryManager.Allocate<byte>(resultLength, true);
+            this.previousScanline = this.memoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.rawScanline = this.memoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.result = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
 
             if (this.pngColorType != PngColorType.Palette)
             {
-                this.sub = this.memoryManager.Allocate<byte>(resultLength, true);
-                this.up = this.memoryManager.Allocate<byte>(resultLength, true);
-                this.average = this.memoryManager.Allocate<byte>(resultLength, true);
-                this.paeth = this.memoryManager.Allocate<byte>(resultLength, true);
+                this.sub = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
+                this.up = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
+                this.average = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
+                this.paeth = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
             }
 
             byte[] buffer;
@@ -639,10 +644,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        Buffer<byte> r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
+                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
-                        Buffer<byte> temp = this.rawScanline;
+                        IManagedByteBuffer temp = this.rawScanline;
                         this.rawScanline = this.previousScanline;
                         this.previousScanline = temp;
                     }

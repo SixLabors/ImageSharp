@@ -375,8 +375,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 }
                 else
                 {
-                    TDest[] expected = this.ExpectedDestBuffer.Array;
-                    TDest[] actual = this.ActualDestBuffer.Array;
+                    Span<TDest> expected = this.ExpectedDestBuffer.Span;
+                    Span<TDest> actual = this.ActualDestBuffer.Span;
                     for (int i = 0; i < count; i++)
                     {
                         Assert.Equal(expected[i], actual[i]);
@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static Vector4[] CreateVector4TestData(int length)
         {
             Vector4[] result = new Vector4[length];
-            Random rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
@@ -415,7 +415,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] result = new TPixel[length];
 
-            Random rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
@@ -429,7 +429,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static byte[] CreateByteTestData(int length)
         {
             byte[] result = new byte[length];
-            Random rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {

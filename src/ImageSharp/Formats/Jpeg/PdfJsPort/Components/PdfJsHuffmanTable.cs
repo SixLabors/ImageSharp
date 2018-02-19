@@ -12,10 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsHuffmanTable : IDisposable
     {
-        private Buffer<short> lookahead;
-        private Buffer<short> valOffset;
-        private Buffer<long> maxcode;
-        private Buffer<byte> huffval;
+        private FakeBuffer<short> lookahead;
+        private FakeBuffer<short> valOffset;
+        private FakeBuffer<long> maxcode;
+        private IManagedByteBuffer huffval;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
@@ -25,12 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="values">The huffman values</param>
         public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)
         {
-            this.lookahead = memoryManager.Allocate<short>(256, true);
-            this.valOffset = memoryManager.Allocate<short>(18, true);
-            this.maxcode = memoryManager.Allocate<long>(18, true);
+            // TODO: Replace FakeBuffer<T> usages with standard or array orfixed-sized arrays
+            this.lookahead = memoryManager.AllocateFake<short>(256);
+            this.valOffset = memoryManager.AllocateFake<short>(18);
+            this.maxcode = memoryManager.AllocateFake<long>(18);
 
-            using (var huffsize = memoryManager.Allocate<short>(257, true))
-            using (var huffcode = memoryManager.Allocate<short>(257, true))
+            using (FakeBuffer<short> huffsize = memoryManager.AllocateFake<short>(257))
+            using (FakeBuffer<short> huffcode = memoryManager.AllocateFake<short>(257))
             {
                 GenerateSizeTable(lengths, huffsize);
                 GenerateCodeTable(huffsize, huffcode);
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 GenerateLookaheadTables(lengths, values, this.lookahead);
             }
 
-            this.huffval = memoryManager.Allocate<byte>(values.Length, true);
+            this.huffval = memoryManager.AllocateManagedByteBuffer(values.Length, true);
             Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
 
             this.MaxCode = this.maxcode.Array;

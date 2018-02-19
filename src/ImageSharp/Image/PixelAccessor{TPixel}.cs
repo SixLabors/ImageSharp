@@ -85,11 +85,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets the pixel buffer array.
-        /// </summary>
-        public TPixel[] PixelArray => this.PixelBuffer.Buffer.Array;
-
-        /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
         /// </summary>
         public int PixelSize { get; private set; }
@@ -106,7 +101,7 @@ namespace SixLabors.ImageSharp
         public int Height { get; private set; }
 
         /// <inheritdoc />
-        Span<TPixel> IBuffer2D<TPixel>.Span => this.PixelBuffer.Span;
+        public Span<TPixel> Span => this.PixelBuffer.Span;
 
         private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
 
@@ -122,14 +117,15 @@ namespace SixLabors.ImageSharp
             get
             {
                 this.CheckCoordinates(x, y);
-                return this.PixelArray[(y * this.Width) + x];
+                return this.Span[(y * this.Width) + x];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.CheckCoordinates(x, y);
-                this.PixelArray[(y * this.Width) + x] = value;
+                Span<TPixel> span = this.Span;
+                span[(y * this.Width) + x] = value;
             }
         }
 

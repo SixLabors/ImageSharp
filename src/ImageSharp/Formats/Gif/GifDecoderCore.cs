@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The global color table.
         /// </summary>
-        private Buffer<byte> globalColorTable;
+        private IManagedByteBuffer globalColorTable;
 
         /// <summary>
         /// The global color table length
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         break;
                     }
 
-                    this.globalColorTable = this.MemoryManager.Allocate<byte>(this.globalColorTableLength, true);
+                    this.globalColorTable = this.MemoryManager.AllocateManagedByteBuffer(this.globalColorTableLength, true);
 
                     nextFlag = stream.ReadByte();
                     if (nextFlag == -1)
@@ -337,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     continue;
                 }
 
-                using (Buffer<byte> commentsBuffer = this.MemoryManager.Allocate<byte>(length))
+                using (IManagedByteBuffer commentsBuffer = this.MemoryManager.AllocateManagedByteBuffer(length))
                 {
                     this.currentStream.Read(commentsBuffer.Array, 0, length);
                     string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
@@ -357,22 +357,23 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             GifImageDescriptor imageDescriptor = this.ReadImageDescriptor();
 
-            Buffer<byte> localColorTable = null;
-            Buffer<byte> indices = null;
+            IManagedByteBuffer localColorTable = null;
+            IManagedByteBuffer indices = null;
             try
             {
                 // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
                 if (imageDescriptor.LocalColorTableFlag)
                 {
                     int length = imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = this.configuration.MemoryManager.Allocate<byte>(length, true);
+                    localColorTable = this.configuration.MemoryManager.AllocateManagedByteBuffer(length, true);
                     this.currentStream.Read(localColorTable.Array, 0, length);
                 }
 
-                indices = this.configuration.MemoryManager.Allocate<byte>(imageDescriptor.Width * imageDescriptor.Height, true);
+                indices = this.configuration.MemoryManager.AllocateManagedByteBuffer(imageDescriptor.Width * imageDescriptor.Height, true);
 
-                this.ReadFrameIndices(imageDescriptor, indices);
-                this.ReadFrameColors(ref image, ref previousFrame, indices, localColorTable ?? this.globalColorTable, imageDescriptor);
+                this.ReadFrameIndices(imageDescriptor, indices.Span);
+                IManagedByteBuffer colorTable = localColorTable ?? this.globalColorTable;
+                this.ReadFrameColors(ref image, ref previousFrame, indices.Span, colorTable.Span, imageDescriptor);
 
                 // Skip any remaining blocks
                 this.Skip(0);
@@ -605,7 +606,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 this.globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
 
-                this.globalColorTable = this.MemoryManager.Allocate<byte>(this.globalColorTableLength, true);
+                this.globalColorTable = this.MemoryManager.AllocateManagedByteBuffer(this.globalColorTableLength, true);
 
                 // Read the global color table from the stream
                 stream.Read(this.globalColorTable.Array, 0, this.globalColorTableLength);

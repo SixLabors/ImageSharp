@@ -19,14 +19,22 @@ namespace SixLabors.ImageSharp.Memory
         private MemoryManager memoryManager;
 
         /// <summary>
-        /// A pointer to the first element of <see cref="Array"/> when pinned.
+        /// A pointer to the first element of <see cref="array"/> when pinned.
         /// </summary>
         private IntPtr pointer;
 
         /// <summary>
-        /// A handle that allows to access the managed <see cref="Array"/> as an unmanaged memory by pinning.
+        /// A handle that allows to access the managed <see cref="array"/> as an unmanaged memory by pinning.
         /// </summary>
         private GCHandle handle;
+
+        // why is there such a rule? :S Protected should be fine for a field!
+#pragma warning disable SA1401 // Fields should be private
+        /// <summary>
+        /// The backing array.
+        /// </summary>
+        protected T[] array;
+#pragma warning restore SA1401 // Fields should be private
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer{T}"/> class.
@@ -35,7 +43,7 @@ namespace SixLabors.ImageSharp.Memory
         public Buffer(T[] array)
         {
             this.Length = array.Length;
-            this.Array = array;
+            this.array = array;
         }
 
         /// <summary>
@@ -51,7 +59,7 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             this.Length = length;
-            this.Array = array;
+            this.array = array;
         }
 
         internal Buffer(T[] array, int length, MemoryManager memoryManager)
@@ -69,19 +77,14 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="Buffer{T}"/> instance is disposed, or has lost ownership of <see cref="Array"/>.
+        /// Gets a value indicating whether this <see cref="Buffer{T}"/> instance is disposed, or has lost ownership of <see cref="array"/>.
         /// </summary>
         public bool IsDisposedOrLostArrayOwnership { get; private set; }
 
         /// <summary>
-        /// Gets the count of "relevant" elements. It's usually smaller than 'Array.Length' when <see cref="Array"/> is pooled.
+        /// Gets the count of "relevant" elements. It's usually smaller than 'Array.Length' when <see cref="array"/> is pooled.
         /// </summary>
         public int Length { get; private set; }
-
-        /// <summary>
-        /// Gets the backing pinned array.
-        /// </summary>
-        public T[] Array { get; private set; }
 
         /// <summary>
         /// Gets a <see cref="Span{T}"/> to the backing buffer.
@@ -112,7 +115,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator ReadOnlySpan<T>(Buffer<T> buffer)
         {
-            return new ReadOnlySpan<T>(buffer.Array, 0, buffer.Length);
+            return new ReadOnlySpan<T>(buffer.array, 0, buffer.Length);
         }
 
         /// <summary>
@@ -122,30 +125,7 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Span<T>(Buffer<T> buffer)
         {
-            return new Span<T>(buffer.Array, 0, buffer.Length);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to an offseted position inside the buffer.
-        /// </summary>
-        /// <param name="start">The start</param>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> Slice(int start)
-        {
-            return new Span<T>(this.Array, start, this.Length - start);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to an offsetted position inside the buffer.
-        /// </summary>
-        /// <param name="start">The start</param>
-        /// <param name="length">The length of the slice</param>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> Slice(int start, int length)
-        {
-            return new Span<T>(this.Array, start, length);
+            return new Span<T>(buffer.array, 0, buffer.Length);
         }
 
         /// <summary>
@@ -165,17 +145,17 @@ namespace SixLabors.ImageSharp.Memory
             this.memoryManager?.Release(this);
 
             this.memoryManager = null;
-            this.Array = null;
+            this.array = null;
             this.Length = 0;
 
             GC.SuppressFinalize(this);
         }
 
         /// <summary>
-        /// Unpins <see cref="Array"/> and makes the object "quasi-disposed" so the array is no longer owned by this object.
-        /// If <see cref="Array"/> is rented, it's the callers responsibility to return it to it's pool.
+        /// Unpins <see cref="array"/> and makes the object "quasi-disposed" so the array is no longer owned by this object.
+        /// If <see cref="array"/> is rented, it's the callers responsibility to return it to it's pool.
         /// </summary>
-        /// <returns>The unpinned <see cref="Array"/></returns>
+        /// <returns>The unpinned <see cref="array"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T[] TakeArrayOwnership()
         {
@@ -187,23 +167,14 @@ namespace SixLabors.ImageSharp.Memory
 
             this.IsDisposedOrLostArrayOwnership = true;
             this.UnPin();
-            T[] array = this.Array;
-            this.Array = null;
+            T[] array = this.array;
+            this.array = null;
             this.memoryManager = null;
             return array;
         }
 
         /// <summary>
-        /// Clears the contents of this buffer.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            this.Span.Clear();
-        }
-
-        /// <summary>
-        /// Pins <see cref="Array"/>.
+        /// Pins <see cref="array"/>.
         /// </summary>
         /// <returns>The pinned pointer</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -217,7 +188,7 @@ namespace SixLabors.ImageSharp.Memory
 
             if (this.pointer == IntPtr.Zero)
             {
-                this.handle = GCHandle.Alloc(this.Array, GCHandleType.Pinned);
+                this.handle = GCHandle.Alloc(this.array, GCHandleType.Pinned);
                 this.pointer = this.handle.AddrOfPinnedObject();
             }
 
@@ -225,7 +196,15 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Unpins <see cref="Array"/>.
+        /// TODO: Refactor this
+        /// </summary>
+        internal T[] GetArray()
+        {
+            return this.array;
+        }
+
+        /// <summary>
+        /// Unpins <see cref="array"/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UnPin()

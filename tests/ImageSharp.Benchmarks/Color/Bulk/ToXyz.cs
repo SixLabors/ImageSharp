@@ -1,6 +1,9 @@
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
+    using System;
+    using System.Numerics;
+
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Memory;
@@ -33,8 +36,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TPixel[] s = this.source.Array;
-            byte[] d = this.destination.Array;
+            Span<TPixel> s = this.source.Span;
+            Span<byte> d = this.destination.Span;
+
             var rgb = default(Rgb24);
 
             for (int i = 0; i < this.Count; i++)

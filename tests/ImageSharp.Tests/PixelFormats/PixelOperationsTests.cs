@@ -388,13 +388,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<Span<TSource>, Buffer<TDest>> action)
+            Action<Buffer<TSource>, Buffer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {
-            using (TestBuffers<TSource, TDest> buffers = new TestBuffers<TSource, TDest>(source, expected))
+            using (var buffers = new TestBuffers<TSource, TDest>(source, expected))
             {
-                action(buffers.Source, buffers.ActualDestBuffer);
+                action(buffers.SourceBuffer, buffers.ActualDestBuffer);
                 buffers.Verify();
             }
         }

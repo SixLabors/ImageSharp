@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height, false);
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;

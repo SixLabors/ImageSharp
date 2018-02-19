@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
+    using SixLabors.ImageSharp.Memory;
+
     /// <summary>
     /// Performs the inverse Descrete Cosine Transform on each frame component.
     /// </summary>

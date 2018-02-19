@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         internal override void Release<T>(Buffer<T> buffer)
         {
-            byte[] byteBuffer = Unsafe.As<byte[]>(buffer.Array);
+            byte[] byteBuffer = Unsafe.As<byte[]>(buffer.GetArray());
             this.pool.Return(byteBuffer);
         }
     }

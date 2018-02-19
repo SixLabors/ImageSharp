@@ -6,5 +6,7 @@ namespace SixLabors.ImageSharp.Memory
             : base(array, length, memoryManager)
         {
         }
+
+        public byte[] Array => this.array;
     }
 }

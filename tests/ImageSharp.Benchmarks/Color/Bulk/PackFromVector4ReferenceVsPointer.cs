@@ -61,8 +61,8 @@
         [Benchmark]
         public void PackUsingReferences()
         {
-            ref Vector4 sp = ref this.source.Array[0];
-            ref Rgba32 dp = ref this.destination.Array[0];
+            ref Vector4 sp = ref this.source.DangerousGetPinnableReference();
+            ref Rgba32 dp = ref this.destination.DangerousGetPinnableReference();
             int count = this.Count;
 
             for (int i = 0; i < count; i++)

@@ -38,8 +38,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TPixel[] s = this.source.Array;
-            byte[] d = this.destination.Array;
+            Span<TPixel> s = this.source.Span;
+            Span<byte> d = this.destination.Span;
+
             var rgba = default(Rgba32);
 
             for (int i = 0; i < this.Count; i++)

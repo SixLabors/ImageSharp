@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (var buffer = config.MemoryManager.Allocate<byte>(maxHeaderSize))
+            using (IManagedByteBuffer buffer = config.MemoryManager.AllocateManagedByteBuffer(maxHeaderSize))
             {
                 long startPosition = stream.Position;
                 stream.Read(buffer.Array, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                return config.FormatDetectors.Select(x => x.DetectFormat(buffer)).LastOrDefault(x => x != null);
+                return config.FormatDetectors.Select(x => x.DetectFormat(buffer.Span)).LastOrDefault(x => x != null);
             }
         }
 

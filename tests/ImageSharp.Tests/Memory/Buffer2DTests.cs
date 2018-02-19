@@ -46,10 +46,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 using (Buffer2D<int> buffer = Configuration.Default.MemoryManager.Allocate2D<int>(42, 42, true))
                 {
+                    Span<int> span = buffer.Span;
                     for (int j = 0; j < buffer.Buffer.Length; j++)
                     {
-                        Assert.Equal(0, buffer.Buffer.Array[j]);
-                        buffer.Buffer.Array[j] = 666;
+                        Assert.Equal(0, span[j]);
+                        span[j] = 666;
                     }
                 }
             }
@@ -95,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
             {
-                TestStructs.Foo[] array = buffer.Buffer.Array;
+                Span<TestStructs.Foo> array = buffer.Buffer.Span;
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 

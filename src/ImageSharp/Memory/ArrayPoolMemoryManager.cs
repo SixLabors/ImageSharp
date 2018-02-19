@@ -53,6 +53,18 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
+        internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
+        {
+            byte[] array = this.pool.Rent(length);
+            var buffer = new ManagedByteBuffer(array, length, this);
+            if (clear)
+            {
+                buffer.Clear();
+            }
+
+            return buffer;
+        }
+
         /// <inheritdoc />
         internal override void Release<T>(Buffer<T> buffer)
         {

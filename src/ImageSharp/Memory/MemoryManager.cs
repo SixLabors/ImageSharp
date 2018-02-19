@@ -22,6 +22,8 @@ namespace SixLabors.ImageSharp.Memory
         internal abstract Buffer<T> Allocate<T>(int length, bool clear)
             where T : struct;
 
+        internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear);
+
         /// <summary>
         /// Releases the memory allocated for <paramref name="buffer"/>. After this, the buffer
         /// is no longer usable.

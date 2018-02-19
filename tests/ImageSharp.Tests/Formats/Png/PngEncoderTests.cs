@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.Quantizers;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
-    public class PngEncoderTests : FileTestBase
+    public class PngEncoderTests
     {
         private const float ToleranceThresholdForPaletteEncoder = 0.01f / 100;
 

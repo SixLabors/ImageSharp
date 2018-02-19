@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Tests
 
     public class PngEncoderTests : FileTestBase
     {
+        private const float ToleranceThresholdForPaletteEncoder = 0.01f / 100;
+
         /// <summary>
         /// All types except Palette
         /// </summary>
@@ -123,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests
             
                 using (var encodedImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
                 {
-                    ImageComparer comparer = null ?? ImageComparer.Exact;
+                    ImageComparer comparer = pngColorType== PngColorType.Palette ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder) : ImageComparer.Exact;
                     comparer.CompareImagesOrFrames(image, encodedImage);
                 }
             }

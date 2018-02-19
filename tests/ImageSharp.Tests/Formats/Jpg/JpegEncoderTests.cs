@@ -10,117 +10,126 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using System.Collections.Generic;
     using System.IO;
 
+    using SixLabors.ImageSharp.Formats.Bmp;
     using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.Primitives;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
     using Xunit;
     using Xunit.Abstractions;
 
-    public class JpegEncoderTests : MeasureFixture
+    public class JpegEncoderTests
     {
-        public static IEnumerable<string> AllBmpFiles => TestImages.Bmp.All;
+        public static readonly TheoryData<JpegSubsample, int> BitsPerPixel_Quality =
+            new TheoryData<JpegSubsample, int>
+                {
+                    { JpegSubsample.Ratio420, 40 },
+                    { JpegSubsample.Ratio420, 60 },
+                    { JpegSubsample.Ratio420, 100 },
 
-        public JpegEncoderTests(ITestOutputHelper output)
-            : base(output)
+                    { JpegSubsample.Ratio444, 40 },
+                    { JpegSubsample.Ratio444, 60 },
+                    { JpegSubsample.Ratio444, 100 },
+                };
+
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 73, 71, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 24, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 46, 8, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
+        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
+        public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
+            where TPixel : struct, IPixel<TPixel>
         {
+            TestJpegEncoderCore(provider, subsample, quality);
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio420)]
-        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio420)]
-        [WithFile(TestImages.Jpeg.Baseline.Snake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio444)]
-        [WithFile(TestImages.Jpeg.Baseline.Lake, PixelTypes.Rgba32, 75, JpegSubsample.Ratio444)]
-        public void LoadResizeSave<TPixel>(TestImageProvider<TPixel> provider, int quality, JpegSubsample subsample)
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
+        public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(x => x.Resize(new ResizeOptions { Size = new Size(150, 100), Mode = ResizeMode.Max })))
+            TestJpegEncoderCore(provider, subsample, quality);
+        }
+
+        private static ImageComparer GetComparer(int quality)
+        {
+            if (quality > 90)
             {
-
-                image.MetaData.ExifProfile = null; // Reduce the size of the file
-                JpegEncoder options = new JpegEncoder { Subsample = subsample, Quality = quality };
-
-                provider.Utility.TestName += $"{subsample}_Q{quality}";
-                provider.Utility.SaveTestOutputFile(image, "png");
-                provider.Utility.SaveTestOutputFile(image, "jpg", options);
+                return ImageComparer.Tolerant(0.0005f / 100);
+            }
+            else if (quality > 50)
+            {
+                return ImageComparer.Tolerant(0.005f / 100);
+            }
+            else
+            {
+                return ImageComparer.Tolerant(0.01f / 100);
             }
         }
 
-        [Theory]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32, JpegSubsample.Ratio420, 75)]
-        [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Rgba32 | PixelTypes.Argb32, JpegSubsample.Ratio444, 75)]
-        public void OpenBmp_SaveJpeg<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subSample, int quality)
-           where TPixel : struct, IPixel<TPixel>
+        private static void TestJpegEncoderCore<TPixel>(
+            TestImageProvider<TPixel> provider,
+            JpegSubsample subsample,
+            int quality = 100)
+            where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                ImagingTestCaseUtility utility = provider.Utility;
-                utility.TestName += "_" + subSample + "_Q" + quality;
+                // There is no alpha in Jpeg!
+                image.Mutate(c => c.Opacity(1));
 
-                using (FileStream outputStream = File.OpenWrite(utility.GetTestOutputFileName("jpg")))
-                {
-                    image.Save(outputStream, new JpegEncoder()
-                    {
-                        Subsample = subSample,
-                        Quality = quality
-                    });
-                }
+                var encoder = new JpegEncoder()
+                                  {
+                                      Subsample = subsample,
+                                      Quality = quality
+                                  };
+                string info = $"{subsample}-Q{quality}";
+                ImageComparer comparer = GetComparer(quality);
+
+                // Does DebugSave & load reference CompareToReferenceInput():
+                image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
             }
         }
+        
 
-        [Fact]
-        public void Encode_IgnoreMetadataIsFalse_ExifProfileIsWritten()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void IgnoreMetadata_ControlsIfExifProfileIsWritten(bool ignoreMetaData)
         {
-            JpegEncoder options = new JpegEncoder()
+            var encoder = new JpegEncoder()
             {
-                IgnoreMetadata = false
+                IgnoreMetadata = ignoreMetaData
             };
-
-            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
-
-            using (Image<Rgba32> input = testFile.CreateImage())
+            
+            using (Image<Rgba32> input = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
-                using (MemoryStream memStream = new MemoryStream())
+                using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, encoder);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
+                    using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        Assert.NotNull(output.MetaData.ExifProfile);
+                        if (ignoreMetaData)
+                        {
+                            Assert.Null(output.MetaData.ExifProfile);
+                        }
+                        else
+                        {
+                            Assert.NotNull(output.MetaData.ExifProfile);
+                        }
                     }
                 }
             }
         }
-
+        
         [Fact]
-        public void Encode_IgnoreMetadataIsTrue_ExifProfileIgnored()
-        {
-            JpegEncoder options = new JpegEncoder()
-            {
-                IgnoreMetadata = true
-            };
-
-            TestFile testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
-
-            using (Image<Rgba32> input = testFile.CreateImage())
-            {
-                using (MemoryStream memStream = new MemoryStream())
-                {
-                    input.SaveAsJpeg(memStream, options);
-
-                    memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
-                    {
-                        Assert.Null(output.MetaData.ExifProfile);
-                    }
-                }
-            }
-        }
-
-        [Fact]
-        public void Encode_Quality_0_And_1_Are_Identical()
+        public void Quality_0_And_1_Are_Identical()
         {
             var options = new JpegEncoder
             {
@@ -143,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void Encode_Quality_0_And_100_Are_Not_Identical()
+        public void Quality_0_And_100_Are_Not_Identical()
         {
             var options = new JpegEncoder
             {

@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             using (var ms = new MemoryStream())
             {
-                image.Save(ms, new PngEncoder(Configuration.Default.MemoryManager));
+                image.Save(ms, new PngEncoder());
                 
                 byte[] data = ms.ToArray().Take(8).ToArray(); 
                 byte[] expected = {

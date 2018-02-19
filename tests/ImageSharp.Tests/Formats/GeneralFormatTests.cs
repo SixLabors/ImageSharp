@@ -14,9 +14,6 @@ namespace SixLabors.ImageSharp.Tests
 {
     using System;
 
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Memory;
-
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]
@@ -179,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (var memoryStream = new MemoryStream())
                 {
-                    image.Save(memoryStream, GetEncoder(image.GetMemoryManager(), format));
+                    image.Save(memoryStream, GetEncoder(format));
                     memoryStream.Position = 0;
 
                     var imageInfo = Image.Identify(memoryStream);
@@ -190,12 +187,12 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        private static IImageEncoder GetEncoder(MemoryManager memoryManager, string format)
+        private static IImageEncoder GetEncoder(string format)
         {
             switch (format)
             {
                 case "png":
-                    return new PngEncoder(memoryManager);
+                    return new PngEncoder();
                 case "gif":
                     return new GifEncoder();
                 case "bmp":

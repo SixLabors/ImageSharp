@@ -11,6 +11,11 @@
             return new Buffer<T>(new T[length], length);
         }
 
+        internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
+        {
+            return new ManagedByteBuffer(new byte[length], length, this);
+        }
+
         /// <inheritdoc />
         internal override void Release<T>(Buffer<T> buffer)
         {

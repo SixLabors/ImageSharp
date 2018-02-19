@@ -352,16 +352,19 @@ namespace SixLabors.ImageSharp.Tests
                                                    object testOutputDetails,
                                                    IImageEncoder encoder,
                                                    ImageComparer customComparer = null,
-                                                   bool appendPixelTypeToFileName = true
+                                                   bool appendPixelTypeToFileName = true,
+                                                   string referenceImageExtension = null
                                                    )
             where TPixel : struct, IPixel<TPixel>
         {
 
-            string path = provider.Utility.SaveTestOutputFile(image, extension, encoder, testOutputDetails, appendPixelTypeToFileName);
+            provider.Utility.SaveTestOutputFile(image, extension, encoder, testOutputDetails, appendPixelTypeToFileName);
             
-            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
-            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
-            
+            referenceImageExtension = referenceImageExtension ?? extension;
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(referenceImageExtension, testOutputDetails, appendPixelTypeToFileName);
+
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(referenceOutputFile);
+
             using (var encodedImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
             {
                 ImageComparer comparer = customComparer ?? ImageComparer.Exact;

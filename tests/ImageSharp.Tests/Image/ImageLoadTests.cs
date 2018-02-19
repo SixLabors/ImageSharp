@@ -14,13 +14,13 @@ namespace SixLabors.ImageSharp.Tests
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
-    public class ImageLoadTests : IDisposable
+    public partial class ImageLoadTests : IDisposable
     {
         private readonly Mock<IFileSystem> fileSystem;
         private Image<Rgba32> returnImage;
         private Mock<IImageDecoder> localDecoder;
         private readonly string FilePath;
-        private readonly Mock<IImageFormatDetector> localMimeTypeDetector;
+        private readonly IImageFormatDetector localMimeTypeDetector;
         private readonly Mock<IImageFormat> localImageFormatMock;
 
         public Configuration LocalConfiguration { get; private set; }
@@ -35,10 +35,7 @@ namespace SixLabors.ImageSharp.Tests
             this.localImageFormatMock = new Mock<IImageFormat>();
 
             this.localDecoder = new Mock<IImageDecoder>();
-            this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
-            this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<ReadOnlySpan<byte>>())).Returns(localImageFormatMock.Object);
-
+            this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
             this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
 
                 .Callback<Configuration, Stream>((c, s) =>
@@ -57,8 +54,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
-            this.LocalConfiguration.SetDecoder(localImageFormatMock.Object, this.localDecoder.Object);
+            this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector);
+            this.LocalConfiguration.SetDecoder(this.localImageFormatMock.Object, this.localDecoder.Object);
 
             TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();

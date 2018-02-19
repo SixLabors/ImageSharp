@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>The <see cref="bool"/></returns>
         public static bool operator ==(Rational left, Rational right)
         {
-            return Rational.Equals(left, right);
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>The <see cref="bool"/></returns>
         public static bool operator !=(Rational left, Rational right)
         {
-            return !Rational.Equals(left, right);
+            return !left.Equals(right);
         }
 
         /// <summary>

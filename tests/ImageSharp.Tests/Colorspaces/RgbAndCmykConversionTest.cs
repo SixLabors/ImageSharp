@@ -22,6 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
 
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
+        private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
+
         /// <summary>
         /// Tests conversion from <see cref="Cmyk"/> to <see cref="Rgb"/>.
         /// </summary>
@@ -38,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var output = Converter.ToRgb(input);
 
             // Assert
-            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace);
+            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
             Assert.Equal(r, output.R, FloatRoundingComparer);
             Assert.Equal(g, output.G, FloatRoundingComparer);
             Assert.Equal(b, output.B, FloatRoundingComparer);

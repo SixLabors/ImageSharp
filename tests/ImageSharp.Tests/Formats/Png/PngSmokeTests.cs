@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
 
-                image.Save(ms, new PngEncoder(Configuration.Default.MemoryManager));
+                image.Save(ms, new PngEncoder());
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 image.Mutate(x => x.Resize(100, 100));
                 // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
 
-                image.Save(ms, new PngEncoder(Configuration.Default.MemoryManager));
+                image.Save(ms, new PngEncoder());
                 ms.Position = 0;
                 using (Image<Rgba32> img2 = Image.Load<Rgba32>(ms, new PngDecoder()))
                 {

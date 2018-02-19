@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, IPath path, GraphicsOptions options)
           where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(brush, new ShapeRegion(source.GetMemoryManager(), path), options);
+            return source.Fill(brush, new ShapeRegion(path), options);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, IPath path)
           where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(brush, new ShapeRegion(source.GetMemoryManager(), path), GraphicsOptions.Default);
+            return source.Fill(brush, new ShapeRegion(path), GraphicsOptions.Default);
         }
 
         /// <summary>

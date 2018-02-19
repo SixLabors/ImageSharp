@@ -15,16 +15,12 @@ namespace SixLabors.ImageSharp.Drawing
     /// </summary>
     internal class ShapeRegion : Region
     {
-        private readonly MemoryManager memoryManager;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ShapeRegion"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="shape">The shape.</param>
-        public ShapeRegion(MemoryManager memoryManager, IPath shape)
+        public ShapeRegion(IPath shape)
         {
-            this.memoryManager = memoryManager;
             this.Shape = shape.AsClosedPath();
             int left = (int)MathF.Floor(shape.Bounds.Left);
             int top = (int)MathF.Floor(shape.Bounds.Top);
@@ -50,18 +46,17 @@ namespace SixLabors.ImageSharp.Drawing
         {
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
-            using (var innerBuffer = this.memoryManager.Allocate<PointF>(buffer.Length))
+
+            // TODO: This is a temporal workaround because of the lack of Span<T> API-s on IPath. We should use MemoryManager.Allocate() here!
+            PointF[] innerBuffer = new PointF[buffer.Length];
+            int count = this.Shape.FindIntersections(start, end, innerBuffer, 0);
+
+            for (int i = 0; i < count; i++)
             {
-                PointF[] array = innerBuffer.Array;
-                int count = this.Shape.FindIntersections(start, end, array, 0);
-
-                for (int i = 0; i < count; i++)
-                {
-                    buffer[i + offset] = array[i].X;
-                }
-
-                return count;
+                buffer[i + offset] = innerBuffer[i].X;
             }
+
+            return count;
         }
     }
 }

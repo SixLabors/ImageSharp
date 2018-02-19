@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.textEncoding = options.TextEncoding ?? PngConstants.DefaultEncoding;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
-        
+
         private MemoryManager MemoryManager => this.configuration.MemoryManager;
 
         /// <summary>
@@ -440,7 +440,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.previousScanline = this.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
             this.scanline = this.configuration.MemoryManager.Allocate<byte>(this.bytesPerScanline, true);
         }
-
 
         /// <summary>
         /// Calculates the correct number of bits per pixel for the given color type.

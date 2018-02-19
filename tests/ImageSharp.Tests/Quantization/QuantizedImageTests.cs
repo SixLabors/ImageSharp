@@ -12,7 +12,7 @@
         {
             var palette = new PaletteQuantizer<Rgba32>();
             var octree = new OctreeQuantizer<Rgba32>();
-            var wu = new WuQuantizer<Rgba32>(Configuration.Default.MemoryManager);
+            var wu = new WuQuantizer<Rgba32>();
 
             Assert.True(palette.Dither);
             Assert.True(octree.Dither);
@@ -73,7 +73,7 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new WuQuantizer<TPixel>(Configuration.Default.MemoryManager) { Dither = dither };
+                IQuantizer<TPixel> quantizer = new WuQuantizer<TPixel>() { Dither = dither };
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {

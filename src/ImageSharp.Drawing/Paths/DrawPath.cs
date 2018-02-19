@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, IPath path, GraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
-            return source.Fill(pen.StrokeFill, new ShapePath(source.GetMemoryManager(), path, pen), options);
+            return source.Fill(pen.StrokeFill, new ShapePath(path, pen), options);
         }
 
         /// <summary>

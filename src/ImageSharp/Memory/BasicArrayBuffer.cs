@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Memory
                 return ref span[index];
             }
         }
-        
+
         public void Dispose()
         {
         }

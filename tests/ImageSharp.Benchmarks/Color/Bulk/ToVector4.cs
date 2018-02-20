@@ -49,13 +49,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToVector4(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().ToVector4(this.source.Span, this.destination.Span, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToVector4(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.ToVector4(this.source.Span, this.destination.Span, this.Count);
         }
     }
 

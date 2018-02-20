@@ -106,10 +106,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 using (Buffer<TPixel> rowColors = Configuration.Default.MemoryManager.Allocate<TPixel>(width))
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
-                    for (int i = 0; i < width; i++)
-                    {
-                        rowColors[i] = glowColor;
-                    }
+                    rowColors.Span.Fill(glowColor);
 
                     Parallel.For(
                         minY,

@@ -144,22 +144,25 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                using (var amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
-                using (var overlay = this.Target.MemoryManager.Allocate<TPixel>(scanline.Length))
+                using (Buffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
+                using (Buffer<TPixel> overlay = this.Target.MemoryManager.Allocate<TPixel>(scanline.Length))
                 {
+                    Span<float> amountSpan = amountBuffer.Span;
+                    Span<TPixel> overlaySpan = overlay.Span;
+
                     for (int i = 0; i < scanline.Length; i++)
                     {
-                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
+                        amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
 
                         int offsetX = x + i;
 
                         // no doubt this one can be optermised further but I can't imagine its
                         // actually being used and can probably be removed/interalised for now
-                        overlay[i] = this[offsetX, y];
+                        overlaySpan[i] = this[offsetX, y];
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                    this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
+                    this.Blender.Blend(destinationRow, destinationRow, overlaySpan, amountSpan);
                 }
             }
         }

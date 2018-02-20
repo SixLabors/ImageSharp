@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the block data
         /// </summary>
-        public Buffer<short> BlockData { get; private set; }
+        public IBuffer<short> BlockData { get; private set; }
 
         /// <inheritdoc />
         public int Index { get; }

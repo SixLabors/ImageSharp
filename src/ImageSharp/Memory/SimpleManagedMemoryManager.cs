@@ -6,7 +6,7 @@
     public class SimpleManagedMemoryManager : MemoryManager
     {
         /// <inheritdoc />
-        internal override Buffer<T> Allocate<T>(int length, bool clear)
+        internal override IBuffer<T> Allocate<T>(int length, bool clear)
         {
             return new Buffer<T>(new T[length], length, this);
         }

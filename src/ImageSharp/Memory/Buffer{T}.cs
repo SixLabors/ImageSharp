@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Memory
     /// The backing array is either pooled or comes from the outside.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer<T> : IBuffer<T>
+    internal class Buffer<T> : IBuffer<T>, IGetArray<T>
         where T : struct
     {
         private MemoryManager memoryManager;
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// TODO: Refactor this
         /// </summary>
-        internal T[] GetArray()
+        T[] IGetArray<T>.GetArray()
         {
             return this.array;
         }

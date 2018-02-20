@@ -71,12 +71,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The hash table.
         /// </summary>
-        private readonly Buffer<int> hashTable;
+        private readonly IBuffer<int> hashTable;
 
         /// <summary>
         /// The code table.
         /// </summary>
-        private readonly Buffer<int> codeTable;
+        private readonly IBuffer<int> codeTable;
 
         /// <summary>
         /// Define the storage for the packet accumulator.

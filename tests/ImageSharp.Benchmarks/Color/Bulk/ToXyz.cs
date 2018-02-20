@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class ToXyz<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TPixel> source;
+        private IBuffer<TPixel> source;
 
-        private Buffer<byte> destination;
+        private IBuffer<byte> destination;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }

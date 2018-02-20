@@ -14,13 +14,13 @@
         /// <param name="memoryManager">The <see cref="MemoryManager"/></param>
         /// <param name="length">Size of the buffer to allocate</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
-        public static Buffer<T> Allocate<T>(this MemoryManager memoryManager, int length)
+        public static IBuffer<T> Allocate<T>(this MemoryManager memoryManager, int length)
             where T : struct
         {
             return memoryManager.Allocate<T>(length, false);
         }
 
-        public static Buffer<T> AllocateClean<T>(this MemoryManager memoryManager, int length)
+        public static IBuffer<T> AllocateClean<T>(this MemoryManager memoryManager, int length)
             where T : struct
         {
             return memoryManager.Allocate<T>(length, true);
@@ -39,7 +39,7 @@
         public static Buffer2D<T> Allocate2D<T>(this MemoryManager memoryManager, int width, int height, bool clear)
             where T : struct
         {
-            Buffer<T> buffer = memoryManager.Allocate<T>(width * height, clear);
+            IBuffer<T> buffer = memoryManager.Allocate<T>(width * height, clear);
 
             return new Buffer2D<T>(buffer, width, height);
         }

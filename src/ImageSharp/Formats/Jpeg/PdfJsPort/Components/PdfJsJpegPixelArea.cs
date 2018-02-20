@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         private readonly int imageHeight;
 
-        private Buffer<byte> componentData;
+        private IBuffer<byte> componentData;
 
         private int rowStride;
 

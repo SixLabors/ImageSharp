@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// Temporal buffer to store a row of colors.
         /// </summary>
-        private readonly Buffer<Vector4> rgbaBuffer;
+        private readonly IBuffer<Vector4> rgbaBuffer;
 
         /// <summary>
         /// The <see cref="ColorConverters.JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.

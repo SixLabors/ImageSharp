@@ -43,13 +43,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void OverlayByFilledPolygonOpacity<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledBezier");
-            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
+            Primitives.PointF[] simplePath = {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),
                         new Vector2(300, 400)
             };
+
             Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
             using (var image = provider.GetImage() as Image<Rgba32>)

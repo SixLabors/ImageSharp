@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class PackFromVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<Vector4> source;
+        private IBuffer<Vector4> source;
 
-        private Buffer<TPixel> destination;
+        private IBuffer<TPixel> destination;
 
         [Params(16, 128, 512)]
         public int Count { get; set; }

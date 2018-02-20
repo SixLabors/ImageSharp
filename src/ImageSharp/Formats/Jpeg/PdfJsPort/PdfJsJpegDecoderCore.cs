@@ -786,8 +786,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
-            using (Buffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
-            using (Buffer<short> multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
+            using (IBuffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
+            using (IBuffer<short> multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             {
                 Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
                 Span<short> computationBufferSpan = computationBuffer.Span;

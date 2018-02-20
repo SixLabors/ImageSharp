@@ -473,19 +473,19 @@ namespace SixLabors.ImageSharp.Quantizers
             Span<long> vmaSpan = this.vma.Span;
             Span<float> m2Span = this.m2.Span;
 
-            using (Buffer<long> volume = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeR = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeG = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeB = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<long> volumeA = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (Buffer<float> volume2 = memoryManager.Allocate<float>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volume = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeR = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeG = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeB = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeA = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<float> volume2 = memoryManager.Allocate<float>(IndexCount * IndexAlphaCount))
 
-            using (Buffer<long> area = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaR = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaG = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaB = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<long> areaA = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (Buffer<float> area2 = memoryManager.Allocate<float>(IndexAlphaCount))
+            using (IBuffer<long> area = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaR = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaG = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaB = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaA = memoryManager.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<float> area2 = memoryManager.Allocate<float>(IndexAlphaCount))
             {
                 Span<long> volumeSpan = volume.Span;
                 Span<long> volumeRSpan = volumeR.Span;

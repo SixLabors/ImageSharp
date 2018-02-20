@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class ToVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TPixel> source;
+        private IBuffer<TPixel> source;
 
-        private Buffer<Vector4> destination;
+        private IBuffer<Vector4> destination;
 
         [Params(64, 300, 1024)]
         public int Count { get; set; }

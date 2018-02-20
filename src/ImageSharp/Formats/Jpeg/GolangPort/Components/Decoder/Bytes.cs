@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// Bytes is a byte buffer, similar to a stream, except that it
     /// has to be able to unread more than 1 byte, due to byte stuffing.
     /// Byte stuffing is specified in section F.1.2.3.
+    /// TODO: Optimize buffer management inside this class!
     /// </summary>
     internal struct Bytes : IDisposable
     {
@@ -26,7 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Gets or sets the buffer.
         /// buffer[i:j] are the buffered bytes read from the underlying
         /// stream that haven't yet been passed further on.
-        /// TODO: Do we really need buffer here? Might be an optimiziation opportunity.
         /// </summary>
         public IManagedByteBuffer Buffer;
 
@@ -88,7 +88,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             // Take the fast path if bytes.buf contains at least two bytes.
             if (this.I + 2 <= this.J)
             {
-                x = this.BufferAsInt[this.I];
+                Span<int> bufferSpan = this.BufferAsInt.Span;
+                x = bufferSpan[this.I];
                 this.I++;
                 this.UnreadableBytes = 1;
                 if (x != OrigJpegConstants.Markers.XFFInt)
@@ -96,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     return OrigDecoderErrorCode.NoError;
                 }
 
-                if (this.BufferAsInt[this.I] != 0x00)
+                if (bufferSpan[this.I] != 0x00)
                 {
                     return OrigDecoderErrorCode.MissingFF00;
                 }
@@ -196,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
             }
 
-            result = this.BufferAsInt[this.I];
+            result = this.BufferAsInt.Span[this.I];
             this.I++;
             this.UnreadableBytes = 0;
             return errorCode;
@@ -230,20 +231,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 DecoderThrowHelper.ThrowImageFormatException.FillCalledWhenUnreadBytesExist();
             }
 
-            Span<byte> bufferSpan = this.Buffer.Span;
+            Span<byte> byteSpan = this.Buffer.Span;
 
             // Move the last 2 bytes to the start of the buffer, in case we need
             // to call UnreadByteStuffedByte.
             if (this.J > 2)
             {
-                bufferSpan[0] = bufferSpan[this.J - 2];
-                bufferSpan[1] = bufferSpan[this.J - 1];
+                byteSpan[0] = byteSpan[this.J - 2];
+                byteSpan[1] = byteSpan[this.J - 1];
                 this.I = 2;
                 this.J = 2;
             }
 
             // Fill in the rest of the buffer.
-            int n = inputStream.Read(this.Buffer.Array, this.J, bufferSpan.Length - this.J);
+            int n = inputStream.Read(this.Buffer.Array, this.J, byteSpan.Length - this.J);
             if (n == 0)
             {
                 return OrigDecoderErrorCode.UnexpectedEndOfStream;
@@ -251,9 +252,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
             this.J += n;
 
-            for (int i = 0; i < bufferSpan.Length; i++)
+            Span<int> intSpan = this.BufferAsInt.Span;
+            for (int i = 0; i < byteSpan.Length; i++)
             {
-                this.BufferAsInt[i] = bufferSpan[i];
+                intSpan[i] = byteSpan[i];
             }
 
             return OrigDecoderErrorCode.NoError;

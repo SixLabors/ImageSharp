@@ -59,21 +59,20 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                Buffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width);
-
-                for (int x = 0; x < image.Width; x++)
+                using (Buffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width))
                 {
-                    amounts[x] = 1;
-                }
-                using (PixelAccessor<Rgba32> pixels = image.Lock())
-                {
-                    for (int y = 0; y < image.Height; y++)
+                    amounts.Span.Fill(1);
+                    
+                    using (PixelAccessor<Rgba32> pixels = image.Lock())
                     {
-                        Span<Rgba32> span = pixels.GetRowSpan(y);
-                        BulkVectorConvert(span, span, span, amounts);
+                        for (int y = 0; y < image.Height; y++)
+                        {
+                            Span<Rgba32> span = pixels.GetRowSpan(y);
+                            this.BulkVectorConvert(span, span, span, amounts.Span);
+                        }
                     }
+                    return new CoreSize(image.Width, image.Height);
                 }
-                return new CoreSize(image.Width, image.Height);
             }
         }
 
@@ -82,21 +81,20 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
-                Buffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width);
-
-                for (int x = 0; x < image.Width; x++)
+                using (Buffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width))
                 {
-                    amounts[x] = 1;
-                }
-                using (PixelAccessor<Rgba32> pixels = image.Lock())
-                {
-                    for (int y = 0; y < image.Height; y++)
+                    amounts.Span.Fill(1);
+                    using (PixelAccessor<Rgba32> pixels = image.Lock())
                     {
-                        Span<Rgba32> span = pixels.GetRowSpan(y);
-                        BulkPixelConvert(span, span, span, amounts);
+                        for (int y = 0; y < image.Height; y++)
+                        {
+                            Span<Rgba32> span = pixels.GetRowSpan(y);
+                            this.BulkPixelConvert(span, span, span, amounts.Span);
+                        }
                     }
+
+                    return new CoreSize(image.Width, image.Height);
                 }
-                return new CoreSize(image.Width, image.Height);
             }
         }
     }

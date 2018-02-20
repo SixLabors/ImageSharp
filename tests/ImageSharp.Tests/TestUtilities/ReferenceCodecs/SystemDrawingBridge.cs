@@ -19,13 +19,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (var rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
+            using (Buffer<Rgba32> rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
             {
-                PixelOperations<TPixel>.Instance.ToRgba32(source, rgbaBuffer, length);
+                Span<Rgba32> rgbaSpan = rgbaBuffer.Span;
+                PixelOperations<TPixel>.Instance.ToRgba32(source, rgbaSpan, length);
 
                 for (int i = 0; i < length; i++)
                 {
-                    ref Rgba32 s = ref rgbaBuffer[i];
+                    ref Rgba32 s = ref rgbaSpan[i];
                     ref Argb32 d = ref dest[i];
 
                     d.PackFromRgba32(s);
@@ -39,13 +40,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (var rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
+            using (Buffer<Rgba32> rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
             {
-                PixelOperations<Argb32>.Instance.ToRgba32(source, rgbaBuffer, length);
+                Span<Rgba32> rgbaSpan = rgbaBuffer.Span;
+                PixelOperations<Argb32>.Instance.ToRgba32(source, rgbaSpan, length);
 
                 for (int i = 0; i < length; i++)
                 {
-                    ref Rgba32 s = ref rgbaBuffer[i];
+                    ref Rgba32 s = ref rgbaSpan[i];
                     ref TPixel d = ref dest[i];
 
                     d.PackFromRgba32(s);
@@ -59,13 +61,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (var rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgb24>(length))
+            using (Buffer<Rgb24> rgbBuffer = Configuration.Default.MemoryManager.Allocate<Rgb24>(length))
             {
-                PixelOperations<Rgb24>.Instance.ToRgb24(source, rgbaBuffer, length);
+                Span<Rgb24> rgbSpan = rgbBuffer.Span;
+                PixelOperations<Rgb24>.Instance.ToRgb24(source, rgbSpan, length);
 
                 for (int i = 0; i < length; i++)
                 {
-                    ref Rgb24 s = ref rgbaBuffer[i];
+                    ref Rgb24 s = ref rgbSpan[i];
                     ref TPixel d = ref dest[i];
                     var rgba = default(Rgba32);
                     s.ToRgba32(ref rgba);

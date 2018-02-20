@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsHuffmanTable : IDisposable
     {
-        private FakeBuffer<short> lookahead;
-        private FakeBuffer<short> valOffset;
-        private FakeBuffer<long> maxcode;
+        private BasicArrayBuffer<short> lookahead;
+        private BasicArrayBuffer<short> valOffset;
+        private BasicArrayBuffer<long> maxcode;
         private IManagedByteBuffer huffval;
 
         /// <summary>
@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.valOffset = memoryManager.AllocateFake<short>(18);
             this.maxcode = memoryManager.AllocateFake<long>(18);
 
-            using (FakeBuffer<short> huffsize = memoryManager.AllocateFake<short>(257))
-            using (FakeBuffer<short> huffcode = memoryManager.AllocateFake<short>(257))
+            using (BasicArrayBuffer<short> huffsize = memoryManager.AllocateFake<short>(257))
+            using (BasicArrayBuffer<short> huffcode = memoryManager.AllocateFake<short>(257))
             {
                 GenerateSizeTable(lengths, huffsize);
                 GenerateCodeTable(huffsize, huffcode);

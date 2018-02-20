@@ -66,25 +66,25 @@ namespace SixLabors.ImageSharp.Drawing.Processors
 
             int width = maxX - minX;
 
-            using (var amount = source.MemoryManager.Allocate<float>(width))
-            using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(source, sourceRectangle, this.options))
+            using (Buffer<float> amount = source.MemoryManager.Allocate<float>(width))
+            using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
+                source,
+                sourceRectangle,
+                this.options))
             {
-                    for (int i = 0; i < width; i++)
-                    {
-                        amount[i] = this.options.BlendPercentage;
-                    }
+                amount.Span.Fill(this.options.BlendPercentage);
 
-                    Parallel.For(
+                Parallel.For(
                     minY,
                     maxY,
                     configuration.ParallelOptions,
                     y =>
-                    {
-                        int offsetY = y - startY;
-                        int offsetX = minX - startX;
+                        {
+                            int offsetY = y - startY;
+                            int offsetX = minX - startX;
 
-                        applicator.Apply(amount, offsetX, offsetY);
-                    });
+                            applicator.Apply(amount.Span, offsetX, offsetY);
+                        });
             }
         }
     }

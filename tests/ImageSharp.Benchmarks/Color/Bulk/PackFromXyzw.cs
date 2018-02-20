@@ -50,13 +50,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source, this.destination, this.Count);
+           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
         }
     }
 

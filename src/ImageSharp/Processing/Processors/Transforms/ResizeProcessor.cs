@@ -135,18 +135,18 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     y =>
                         {
                             // TODO: Without Parallel.For() this buffer object could be reused:
-                            using (var tempRowBuffer = this.MemoryManager.Allocate<Vector4>(source.Width))
+                            using (IBuffer<Vector4> tempRowBuffer = this.MemoryManager.Allocate<Vector4>(source.Width))
                             {
                                 Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
                                 Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
+                                PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer.Span, sourceRow.Length);
 
                                 if (this.Compand)
                                 {
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                        firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
+                                        firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer.Span, sourceX);
                                     }
                                 }
                                 else
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                        firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
+                                        firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer.Span, sourceX);
                                     }
                                 }
                             }

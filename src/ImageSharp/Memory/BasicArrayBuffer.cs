@@ -4,12 +4,12 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Temporal workaround providing a "Buffer" based on a generic array without the 'Unsafe.As()' hackery.
+    /// Exposes an array through the <see cref="IBuffer{T}"/> interface.
     /// </summary>
-    internal class FakeBuffer<T> : IBuffer<T>
+    internal class BasicArrayBuffer<T> : IBuffer<T>
         where T : struct
     {
-        public FakeBuffer(T[] array)
+        public BasicArrayBuffer(T[] array)
         {
             this.Array = array;
         }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator ReadOnlySpan<T>(FakeBuffer<T> buffer)
+        public static implicit operator ReadOnlySpan<T>(BasicArrayBuffer<T> buffer)
         {
             return new ReadOnlySpan<T>(buffer.Array, 0, buffer.Length);
         }
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Span<T>(FakeBuffer<T> buffer)
+        public static implicit operator Span<T>(BasicArrayBuffer<T> buffer)
         {
             return new Span<T>(buffer.Array, 0, buffer.Length);
         }

@@ -84,12 +84,9 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                 maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
 
                 int width = maxX - minX;
-                using (var amount = this.Image.GetConfiguration().MemoryManager.Allocate<float>(width))
+                using (Buffer<float> amount = this.Image.GetConfiguration().MemoryManager.Allocate<float>(width))
                 {
-                    for (int i = 0; i < width; i++)
-                    {
-                        amount[i] = this.Alpha;
-                    }
+                    amount.Span.Fill(this.Alpha);
 
                     Parallel.For(
                         minY,
@@ -99,7 +96,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                             {
                                 Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
                                 Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - this.Location.Y).Slice(targetX, width);
-                                this.blender.Blend(background, background, foreground, amount);
+                                this.blender.Blend(background, background, foreground, amount.Span);
                             });
                 }
             }

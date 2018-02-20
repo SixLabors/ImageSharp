@@ -74,18 +74,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             var scale = new Vector2(this.imageWidth / (float)width, this.imageHeight / (float)height);
 
             this.componentData = this.memoryManager.Allocate<byte>(width * height * numberOfComponents);
-            Span<byte> componentDataSpan = this.componentData;
+            Span<byte> componentDataSpan = this.componentData.Span;
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
-            using (var xScaleBlockOffset = this.memoryManager.Allocate<int>(width))
+            using (IBuffer<int> xScaleBlockOffset = this.memoryManager.Allocate<int>(width))
             {
-                Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
+                Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset.Span;
                 for (int i = 0; i < numberOfComponents; i++)
                 {
                     ref PdfJsComponent component = ref components.Components[i];
                     Vector2 componentScale = component.Scale * scale;
                     int offset = i;
-                    Span<short> output = component.Output;
+                    Span<short> output = component.Output.Span;
                     int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
 
                     // Precalculate the xScaleBlockOffset

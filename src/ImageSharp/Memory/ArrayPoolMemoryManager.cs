@@ -12,17 +12,6 @@ namespace SixLabors.ImageSharp.Memory
     public partial class ArrayPoolMemoryManager : MemoryManager
     {
         /// <summary>
-        /// The default value for: maximum size of pooled arrays in bytes.
-        /// Currently set to 32MB, which is equivalent to 8 megapixels of raw <see cref="Rgba32"/> data.
-        /// </summary>
-        internal const int DefaultMaxPooledBufferSizeInBytes = 32 * 1024 * 1024;
-
-        /// <summary>
-        /// The value for: The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.
-        /// </summary>
-        private const int DefaultLargeBufferThresholdInBytes = 8 * 1024 * 1024;
-
-        /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
         /// </summary>
         private ArrayPool<byte> normalArrayPool;
@@ -40,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
         /// </summary>
         public ArrayPoolMemoryManager()
-            : this(DefaultMaxPooledBufferSizeInBytes, DefaultLargeBufferThresholdInBytes)
+            : this(DefaultMaxPooledBufferSizeInBytes, DefaultBufferSelectorThresholdInBytes)
         {
         }
 

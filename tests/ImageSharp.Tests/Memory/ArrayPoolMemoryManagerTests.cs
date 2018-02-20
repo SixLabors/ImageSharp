@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         private const int PoolSelectorThresholdInBytes = MaxPooledBufferSizeInBytes / 2;
 
-        private MemoryManager MemoryManager { get; } = new ArrayPoolMemoryManager(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
+        private MemoryManager MemoryManager { get; set; } = new ArrayPoolMemoryManager(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
         
         /// <summary>
         /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location
@@ -160,6 +160,32 @@ namespace SixLabors.ImageSharp.Tests.Memory
             IBuffer<int> large = this.MemoryManager.Allocate<int>(arrayLengthThreshold + 1);
             
             Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.DangerousGetPinnableReference()));
+        }
+
+        [Fact]
+        public void CreateWithAggressivePooling()
+        {
+            this.MemoryManager = ArrayPoolMemoryManager.CreateWithAggressivePooling();
+
+            Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(4096 * 4096));
+        }
+
+        [Fact]
+        public void CreateWithNormalPooling()
+        {
+            this.MemoryManager = ArrayPoolMemoryManager.CreateWithNormalPooling();
+
+            Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2 * 4096 * 4096));
+            Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(2048 * 2048));
+        }
+
+        [Fact]
+        public void CreateWithModeratePooling()
+        {
+            this.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
+            Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2048 * 2048));
+            Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(1024 * 16));
         }
     }
 }

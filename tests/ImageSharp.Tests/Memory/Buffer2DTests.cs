@@ -26,12 +26,38 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
+        private MemoryManager MemoryManager { get; } = new MockMemoryManager();
+
+        private class MockMemoryManager : MemoryManager
+        {
+            internal override IBuffer<T> Allocate<T>(int length, bool clear)
+            {
+                T[] array = new T[length + 42];
+
+                if (!clear)
+                {
+                    Span<byte> data = array.AsSpan().NonPortableCast<T, byte>();
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        data[i] = 42;
+                    }
+                }
+
+                return new BasicArrayBuffer<T>(array, length);
+            }
+
+            internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         [Theory]
         [InlineData(7, 42)]
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -42,16 +68,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateClean()
         {
-            for (int i = 0; i < 100; i++)
+            using (Buffer2D<int> buffer = this.MemoryManager.Allocate2D<int>(42, 42, true))
             {
-                using (Buffer2D<int> buffer = Configuration.Default.MemoryManager.Allocate2D<int>(42, 42, true))
+                Span<int> span = buffer.Span;
+                for (int j = 0; j < span.Length; j++)
                 {
-                    Span<int> span = buffer.Span;
-                    for (int j = 0; j < span.Length; j++)
-                    {
-                        Assert.Equal(0, span[j]);
-                        span[j] = 666;
-                    }
+                    Assert.Equal(0, span[j]);
                 }
             }
         }
@@ -62,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
@@ -78,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(x, y);
 
@@ -94,13 +116,13 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = Configuration.Default.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> array = buffer.Buffer.Span;
+                Span<TestStructs.Foo> span = buffer.Buffer.Span;
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 
-                ref TestStructs.Foo expected = ref array[y * width + x];
+                ref TestStructs.Foo expected = ref span[y * width + x];
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }

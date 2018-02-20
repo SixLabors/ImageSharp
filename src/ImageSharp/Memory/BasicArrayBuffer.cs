@@ -9,16 +9,23 @@ namespace SixLabors.ImageSharp.Memory
     internal class BasicArrayBuffer<T> : IBuffer<T>
         where T : struct
     {
-        public BasicArrayBuffer(T[] array)
+        public BasicArrayBuffer(T[] array, int length)
         {
+            DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
             this.Array = array;
+            this.Length = length;
+        }
+
+        public BasicArrayBuffer(T[] array)
+            : this(array, array.Length)
+        {
         }
 
         public T[] Array { get; }
 
-        public Span<T> Span => this.Array;
+        public int Length { get; }
 
-        public int Length => this.Array.Length;
+        public Span<T> Span => this.Array.AsSpan().Slice(0, this.Length);
 
         /// <summary>
         /// Returns a reference to specified element of the buffer.

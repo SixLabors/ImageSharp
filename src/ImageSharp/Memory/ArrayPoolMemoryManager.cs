@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
-    using Guard = SixLabors.Guard;
-
     /// <summary>
     /// Implements <see cref="MemoryManager"/> by allocating memory from <see cref="ArrayPool{T}"/>.
     /// </summary>
@@ -27,14 +23,18 @@ namespace SixLabors.ImageSharp.Memory
         private const int DefaultLargeBufferThresholdInBytes = 8 * 1024 * 1024;
 
         /// <summary>
+        /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
+        /// </summary>
+        private ArrayPool<byte> normalArrayPool;
+
+        /// <summary>
         /// The <see cref="ArrayPool{T}"/> for huge buffers, which is not kept clean.
         /// </summary>
         private ArrayPool<byte> largeArrayPool;
 
-        /// <summary>
-        /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
-        /// </summary>
-        private ArrayPool<byte> normalArrayPool;
+        private readonly int maxArraysPerBucketNormalPool;
+
+        private readonly int maxArraysPerBucketLargePool;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
@@ -57,14 +57,28 @@ namespace SixLabors.ImageSharp.Memory
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
         /// </summary>
         /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
-        /// <param name="largeBufferThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
-        public ArrayPoolMemoryManager(int maxPoolSizeInBytes, int largeBufferThresholdInBytes)
+        /// <param name="poolSelectorThresholdInBytes">Arrays over this threshold will be pooled in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
+        public ArrayPoolMemoryManager(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes)
+            : this(maxPoolSizeInBytes, poolSelectorThresholdInBytes, 8, 24)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
+        /// </summary>
+        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
+        /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
+        /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool</param>
+        /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool</param>
+        public ArrayPoolMemoryManager(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes, int maxArraysPerBucketLargePool, int maxArraysPerBucketNormalPool)
         {
             Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));
-            Guard.MustBeLessThanOrEqualTo(largeBufferThresholdInBytes, maxPoolSizeInBytes, nameof(largeBufferThresholdInBytes));
+            Guard.MustBeLessThanOrEqualTo(poolSelectorThresholdInBytes, maxPoolSizeInBytes, nameof(poolSelectorThresholdInBytes));
 
             this.MaxPoolSizeInBytes = maxPoolSizeInBytes;
-            this.LargeBufferThresholdInBytes = largeBufferThresholdInBytes;
+            this.PoolSelectorThresholdInBytes = poolSelectorThresholdInBytes;
+            this.maxArraysPerBucketLargePool = maxArraysPerBucketLargePool;
+            this.maxArraysPerBucketNormalPool = maxArraysPerBucketNormalPool;
 
             this.InitArrayPools();
         }
@@ -77,7 +91,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Gets the threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.
         /// </summary>
-        public int LargeBufferThresholdInBytes { get; }
+        public int PoolSelectorThresholdInBytes { get; }
 
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
@@ -124,13 +138,13 @@ namespace SixLabors.ImageSharp.Memory
 
         private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
         {
-            return bufferSizeInBytes <= this.LargeBufferThresholdInBytes ? this.normalArrayPool : this.largeArrayPool;
+            return bufferSizeInBytes <= this.PoolSelectorThresholdInBytes ? this.normalArrayPool : this.largeArrayPool;
         }
 
         private void InitArrayPools()
         {
-            this.largeArrayPool = ArrayPool<byte>.Create(this.MaxPoolSizeInBytes, 8);
-            this.normalArrayPool = ArrayPool<byte>.Create(this.LargeBufferThresholdInBytes, 24);
+            this.largeArrayPool = ArrayPool<byte>.Create(this.MaxPoolSizeInBytes, this.maxArraysPerBucketLargePool);
+            this.normalArrayPool = ArrayPool<byte>.Create(this.PoolSelectorThresholdInBytes, this.maxArraysPerBucketNormalPool);
         }
     }
 }

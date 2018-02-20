@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int width = maxX - minX;
 
-            using (Buffer<TPixel> colors = this.memoryManager.Allocate<TPixel>(width))
-            using (Buffer<float> amount = this.memoryManager.Allocate<float>(width))
+            using (IBuffer<TPixel> colors = this.memoryManager.Allocate<TPixel>(width))
+            using (IBuffer<float> amount = this.memoryManager.Allocate<float>(width))
             {
                 // Be careful! Do not capture colorSpan & amountSpan in the lambda below!
                 Span<TPixel> colorSpan = colors.Span;

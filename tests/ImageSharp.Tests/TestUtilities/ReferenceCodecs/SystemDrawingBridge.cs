@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (Buffer<Rgba32> rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
+            using (IBuffer<Rgba32> rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
             {
                 Span<Rgba32> rgbaSpan = rgbaBuffer.Span;
                 PixelOperations<TPixel>.Instance.ToRgba32(source, rgbaSpan, length);
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (Buffer<Rgba32> rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
+            using (IBuffer<Rgba32> rgbaBuffer = Configuration.Default.MemoryManager.Allocate<Rgba32>(length))
             {
                 Span<Rgba32> rgbaSpan = rgbaBuffer.Span;
                 PixelOperations<Argb32>.Instance.ToRgba32(source, rgbaSpan, length);
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             int length = source.Length;
             Guard.MustBeSizedAtLeast(dest, length, nameof(dest));
 
-            using (Buffer<Rgb24> rgbBuffer = Configuration.Default.MemoryManager.Allocate<Rgb24>(length))
+            using (IBuffer<Rgb24> rgbBuffer = Configuration.Default.MemoryManager.Allocate<Rgb24>(length))
             {
                 Span<Rgb24> rgbSpan = rgbBuffer.Span;
                 PixelOperations<Rgb24>.Instance.ToRgb24(source, rgbSpan, length);

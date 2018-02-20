@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <summary>
             /// Gets the colors.
             /// </summary>
-            protected Buffer<TPixel> Colors { get; }
+            protected IBuffer<TPixel> Colors { get; }
 
             /// <summary>
             /// Gets the color for a single pixel.
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                 {
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    using (Buffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
+                    using (IBuffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
                     {
                         Span<float> amountSpan = amountBuffer.Span;
 

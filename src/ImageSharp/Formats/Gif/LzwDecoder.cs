@@ -32,17 +32,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The prefix buffer.
         /// </summary>
-        private readonly Buffer<int> prefix;
+        private readonly IBuffer<int> prefix;
 
         /// <summary>
         /// The suffix buffer.
         /// </summary>
-        private readonly Buffer<int> suffix;
+        private readonly IBuffer<int> suffix;
 
         /// <summary>
         /// The pixel stack buffer.
         /// </summary>
-        private readonly Buffer<int> pixelStack;
+        private readonly IBuffer<int> pixelStack;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.

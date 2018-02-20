@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
 
             int width = maxX - minX;
 
-            using (Buffer<float> amount = source.MemoryManager.Allocate<float>(width))
+            using (IBuffer<float> amount = source.MemoryManager.Allocate<float>(width))
             using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
                 source,
                 sourceRectangle,

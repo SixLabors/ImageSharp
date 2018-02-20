@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Values of <see cref="Buffer"/> converted to <see cref="int"/>-s
         /// </summary>
-        public Buffer<int> BufferAsInt;
+        public IBuffer<int> BufferAsInt;
 
         /// <summary>
         /// Start of bytes read

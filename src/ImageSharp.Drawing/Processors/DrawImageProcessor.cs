@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                 maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
 
                 int width = maxX - minX;
-                using (Buffer<float> amount = this.Image.GetConfiguration().MemoryManager.Allocate<float>(width))
+                using (IBuffer<float> amount = this.Image.GetConfiguration().MemoryManager.Allocate<float>(width))
                 {
                     amount.Span.Fill(this.Alpha);
 

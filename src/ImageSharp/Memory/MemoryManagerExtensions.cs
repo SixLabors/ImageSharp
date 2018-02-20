@@ -6,7 +6,7 @@
     internal static class MemoryManagerExtensions
     {
         /// <summary>
-        /// Allocates a <see cref="Buffer{T}"/> of size <paramref name="length"/>.
+        /// Allocates a <see cref="IBuffer{T}"/> of size <paramref name="length"/>.
         /// Note: Depending on the implementation, the buffer may not cleared before
         /// returning, so it may contain data from an earlier use.
         /// </summary>

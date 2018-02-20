@@ -5,8 +5,8 @@ using System;
 using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-// ReSharper disable CompareOfFloatsByEqualityOperator
 
+// ReSharper disable CompareOfFloatsByEqualityOperator
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>

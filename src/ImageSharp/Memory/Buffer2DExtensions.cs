@@ -12,7 +12,6 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     internal static class Buffer2DExtensions
     {
-        
         /// <summary>
         /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
         /// </summary>

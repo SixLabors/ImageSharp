@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Memory
     public abstract class MemoryManager
     {
         /// <summary>
-        /// Allocates a <see cref="Buffer{T}"/> of size <paramref name="length"/>, optionally
+        /// Allocates an <see cref="IBuffer{T}"/> of size <paramref name="length"/>, optionally
         /// clearing the buffer before it gets returned.
         /// </summary>
         /// <typeparam name="T">Type of the data stored in the buffer</typeparam>
@@ -23,15 +23,6 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct;
 
         internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear);
-
-        /// <summary>
-        /// Releases the memory allocated for <paramref name="buffer"/>. After this, the buffer
-        /// is no longer usable.
-        /// </summary>
-        /// <typeparam name="T">Type of the data stored in the buffer</typeparam>
-        /// <param name="buffer">The buffer to release</param>
-        internal abstract void Release<T>(Buffer<T> buffer)
-            where T : struct;
 
         /// <summary>
         /// Temporal workaround. A method providing a "Buffer" based on a generic array without the 'Unsafe.As()' hackery.

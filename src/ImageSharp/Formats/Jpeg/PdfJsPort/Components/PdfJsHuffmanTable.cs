@@ -30,13 +30,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.valOffset = memoryManager.AllocateFake<short>(18);
             this.maxcode = memoryManager.AllocateFake<long>(18);
 
-            using (BasicArrayBuffer<short> huffsize = memoryManager.AllocateFake<short>(257))
-            using (BasicArrayBuffer<short> huffcode = memoryManager.AllocateFake<short>(257))
+            using (IBuffer<short> huffsize = memoryManager.Allocate<short>(257))
+            using (IBuffer<short> huffcode = memoryManager.Allocate<short>(257))
             {
-                GenerateSizeTable(lengths, huffsize);
-                GenerateCodeTable(huffsize, huffcode);
-                GenerateDecoderTables(lengths, huffcode, this.valOffset, this.maxcode);
-                GenerateLookaheadTables(lengths, values, this.lookahead);
+                GenerateSizeTable(lengths, huffsize.Span);
+                GenerateCodeTable(huffsize.Span, huffcode.Span);
+                GenerateDecoderTables(lengths, huffcode.Span, this.valOffset.Span, this.maxcode.Span);
+                GenerateLookaheadTables(lengths, values, this.lookahead.Span);
             }
 
             this.huffval = memoryManager.AllocateManagedByteBuffer(values.Length, true);

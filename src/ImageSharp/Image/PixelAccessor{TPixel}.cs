@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp
     {
 #pragma warning disable SA1401 // Fields must be private
         /// <summary>
-        /// The <see cref="Buffer{T}"/> containing the pixel data.
+        /// The <see cref="Buffer2D{T}"/> containing the pixel data.
         /// </summary>
         internal Buffer2D<TPixel> PixelBuffer;
         private bool ownedBuffer;

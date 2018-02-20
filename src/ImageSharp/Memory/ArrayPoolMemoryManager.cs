@@ -1,5 +1,4 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -8,7 +7,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Implements <see cref="MemoryManager"/> by allocating memory from <see cref="ArrayPool{T}"/>.
     /// </summary>
-    public class ArrayPoolMemoryManager : MemoryManager
+    public partial class ArrayPoolMemoryManager : MemoryManager
     {
         /// <summary>
         /// Defines the default maximum size of pooled arrays.
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Memory
             int bufferSizeInBytes = length * itemSizeBytes;
 
             byte[] byteBuffer = this.pool.Rent(bufferSizeInBytes);
-            var buffer = new Buffer<T>(Unsafe.As<T[]>(byteBuffer), length, this);
+            var buffer = new Buffer<T>(byteBuffer, length, this);
             if (clear)
             {
                 buffer.Clear();
@@ -63,20 +62,6 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             return buffer;
-        }
-
-        /// <inheritdoc />
-        internal override void Release<T>(Buffer<T> buffer)
-        {
-            T[] array = (buffer as IGetArray<T>)?.GetArray();
-            if (array == null)
-            {
-                return;
-            }
-
-            // TODO: OMG Do not do this!
-            byte[] byteBuffer = Unsafe.As<byte[]>(array);
-            this.pool.Return(byteBuffer);
         }
     }
 }

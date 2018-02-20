@@ -58,9 +58,7 @@ namespace SixLabors.ImageSharp.Memory
             {
                 return;
             }
-
-            this.memoryManager?.Release(this);
-
+            
             this.memoryManager = null;
             this.array = null;
             this.Length = 0;

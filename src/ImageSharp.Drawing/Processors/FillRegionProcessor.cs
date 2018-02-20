@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
                                 }
                             }
 
-                            applicator.Apply(scanline, minX, y);
+                            applicator.Apply(scanline.Span, minX, y);
                         }
                     }
                 }

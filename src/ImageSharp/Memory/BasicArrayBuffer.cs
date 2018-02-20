@@ -36,27 +36,7 @@ namespace SixLabors.ImageSharp.Memory
                 return ref span[index];
             }
         }
-
-        /// <summary>
-        /// Converts <see cref="Buffer{T}"/> to an <see cref="ReadOnlySpan{T}"/>.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator ReadOnlySpan<T>(BasicArrayBuffer<T> buffer)
-        {
-            return new ReadOnlySpan<T>(buffer.Array, 0, buffer.Length);
-        }
-
-        /// <summary>
-        /// Converts <see cref="Buffer{T}"/> to an <see cref="Span{T}"/>.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer{T}"/> to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator Span<T>(BasicArrayBuffer<T> buffer)
-        {
-            return new Span<T>(buffer.Array, 0, buffer.Length);
-        }
-
+        
         public void Dispose()
         {
         }

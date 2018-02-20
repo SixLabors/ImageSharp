@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="length">Size of the buffer to allocate</param>
         /// <param name="clear">True to clear the backing memory of the buffer</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
-        internal abstract Buffer<T> Allocate<T>(int length, bool clear)
+        internal abstract IBuffer<T> Allocate<T>(int length, bool clear)
             where T : struct;
 
         internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear);

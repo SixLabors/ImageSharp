@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <inheritdoc />
-        internal override Buffer<T> Allocate<T>(int length, bool clear)
+        internal override IBuffer<T> Allocate<T>(int length, bool clear)
         {
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
@@ -68,7 +68,14 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         internal override void Release<T>(Buffer<T> buffer)
         {
-            byte[] byteBuffer = Unsafe.As<byte[]>(buffer.GetArray());
+            T[] array = (buffer as IGetArray<T>)?.GetArray();
+            if (array == null)
+            {
+                return;
+            }
+
+            // TODO: OMG Do not do this!
+            byte[] byteBuffer = Unsafe.As<byte[]>(array);
             this.pool.Return(byteBuffer);
         }
     }

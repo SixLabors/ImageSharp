@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class PackFromXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TPixel> destination;
+        private IBuffer<TPixel> destination;
 
-        private Buffer<byte> source;
+        private IBuffer<byte> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }

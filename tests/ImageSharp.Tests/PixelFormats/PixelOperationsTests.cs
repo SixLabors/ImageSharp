@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.Rgba32.PixelOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => ImageSharp.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.Span, 64)
                 );
             }
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                         times,
                         () =>
                             {
-                                PixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source, dest, count);
+                                PixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source.Span, dest.Span, count);
                             });
                 }
             }
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromVector4(s, d, count)
+                (s, d) => Operations.PackFromVector4(s, d.Span, count)
             );
         }
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(s, d, count)
+                (s, d) => Operations.ToVector4(s, d.Span, count)
             );
         }
 
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgb24Bytes(s, d, count)
+                (s, d) => Operations.PackFromRgb24Bytes(s, d.Span, count)
             );
         }
 
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgb24Bytes(s, d, count)
+                (s, d) => Operations.ToRgb24Bytes(s, d.Span, count)
             );
         }
 
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgba32Bytes(s, d, count)
+                (s, d) => Operations.PackFromRgba32Bytes(s, d.Span, count)
             );
         }
 
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgba32Bytes(s, d, count)
+                (s, d) => Operations.ToRgba32Bytes(s, d.Span, count)
             );
         }
 
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgr24Bytes(s, d, count)
+                (s, d) => Operations.PackFromBgr24Bytes(s, d.Span, count)
             );
         }
 
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgr24Bytes(s, d, count)
+                (s, d) => Operations.ToBgr24Bytes(s, d.Span, count)
             );
         }
 
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgra32Bytes(s, d, count)
+                (s, d) => Operations.PackFromBgra32Bytes(s, d.Span, count)
             );
         }
 
@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgra32Bytes(s, d, count)
+                (s, d) => Operations.ToBgra32Bytes(s, d.Span, count)
             );
         }
 
@@ -336,10 +336,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             public TSource[] SourceBuffer { get; }
             public Buffer<TDest> ActualDestBuffer { get; }
             public TDest[] ExpectedDestBuffer { get; }
-
-            public Span<TSource> Source => this.SourceBuffer;
-            public Span<TDest> ActualDest => this.ActualDestBuffer;
-
+            
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
                 this.SourceBuffer = source;
@@ -386,7 +383,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<TSource[], Buffer<TDest>> action)
+            Action<TSource[], IBuffer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {

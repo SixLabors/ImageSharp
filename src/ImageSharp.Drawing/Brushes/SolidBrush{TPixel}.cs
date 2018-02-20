@@ -62,10 +62,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                 : base(source, options)
             {
                 this.Colors = source.MemoryManager.Allocate<TPixel>(source.Width);
-                for (int i = 0; i < this.Colors.Length; i++)
-                {
-                    this.Colors[i] = color;
-                }
+                this.Colors.Span.Fill(color);
             }
 
             /// <summary>
@@ -81,7 +78,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            internal override TPixel this[int x, int y] => this.Colors[x];
+            internal override TPixel this[int x, int y] => this.Colors.Span[x];
 
             /// <inheritdoc />
             public override void Dispose()
@@ -96,14 +93,16 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                 {
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    using (var amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
+                    using (Buffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
                     {
+                        Span<float> amountSpan = amountBuffer.Span;
+
                         for (int i = 0; i < scanline.Length; i++)
                         {
-                            amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
+                            amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                         }
 
-                        this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
+                        this.Blender.Blend(destinationRow, destinationRow, this.Colors.Span, amountSpan);
                     }
                 }
                 catch (Exception)

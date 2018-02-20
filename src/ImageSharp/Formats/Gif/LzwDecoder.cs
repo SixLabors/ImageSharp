@@ -115,10 +115,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int data = 0;
             int first = 0;
 
+            Span<int> prefixSpan = this.prefix.Span;
+            Span<int> suffixSpan = this.suffix.Span;
+            Span<int> pixelStackSpan = this.pixelStack.Span;
+
             for (code = 0; code < clearCode; code++)
             {
-                this.prefix[code] = 0;
-                this.suffix[code] = (byte)code;
+                prefixSpan[code] = 0;
+                suffixSpan[code] = (byte)code;
             }
 
             byte[] buffer = new byte[255];
@@ -172,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                     if (oldCode == NullCode)
                     {
-                        this.pixelStack[top++] = this.suffix[code];
+                        pixelStackSpan[top++] = suffixSpan[code];
                         oldCode = code;
                         first = code;
                         continue;
@@ -181,27 +185,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     int inCode = code;
                     if (code == availableCode)
                     {
-                        this.pixelStack[top++] = (byte)first;
+                        pixelStackSpan[top++] = (byte)first;
 
                         code = oldCode;
                     }
 
                     while (code > clearCode)
                     {
-                        this.pixelStack[top++] = this.suffix[code];
-                        code = this.prefix[code];
+                        pixelStackSpan[top++] = suffixSpan[code];
+                        code = prefixSpan[code];
                     }
 
-                    first = this.suffix[code];
+                    first = suffixSpan[code];
 
-                    this.pixelStack[top++] = this.suffix[code];
+                    pixelStackSpan[top++] = suffixSpan[code];
 
                     // Fix for Gifs that have "deferred clear code" as per here :
                     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {
-                        this.prefix[availableCode] = oldCode;
-                        this.suffix[availableCode] = first;
+                        prefixSpan[availableCode] = oldCode;
+                        suffixSpan[availableCode] = first;
                         availableCode++;
                         if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                         {
@@ -217,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 top--;
 
                 // Clear missing pixels
-                pixels[xyz++] = (byte)this.pixelStack[top];
+                pixels[xyz++] = (byte)pixelStackSpan[top];
             }
         }
 

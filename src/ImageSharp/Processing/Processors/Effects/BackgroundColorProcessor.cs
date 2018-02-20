@@ -71,13 +71,17 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int width = maxX - minX;
 
-            using (var colors = this.memoryManager.Allocate<TPixel>(width))
-            using (var amount = this.memoryManager.Allocate<float>(width))
+            using (Buffer<TPixel> colors = this.memoryManager.Allocate<TPixel>(width))
+            using (Buffer<float> amount = this.memoryManager.Allocate<float>(width))
             {
+                // Be careful! Do not capture colorSpan & amountSpan in the lambda below!
+                Span<TPixel> colorSpan = colors.Span;
+                Span<float> amountSpan = amount.Span;
+
                 for (int i = 0; i < width; i++)
                 {
-                    colors[i] = this.Value;
-                    amount[i] = this.options.BlendPercentage;
+                    colorSpan[i] = this.Value;
+                    amountSpan[i] = this.options.BlendPercentage;
                 }
 
                 PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.options.BlenderMode);
@@ -90,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
 
                         // This switched color & destination in the 2nd and 3rd places because we are applying the target colour under the current one
-                        blender.Blend(destination, colors, destination, amount);
+                        blender.Blend(destination, colors.Span, destination, amount.Span);
                     });
             }
         }

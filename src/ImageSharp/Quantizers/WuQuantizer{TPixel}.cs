@@ -36,6 +36,14 @@ namespace SixLabors.ImageSharp.Quantizers
     public class WuQuantizer<TPixel> : QuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        // TODO: The WuQuantizer<TPixel> code is rising several questions:
+        // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes )
+        // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
+        //   (T, R, G, B, A, M2) could be grouped together!
+        // - There are per-pixel virtual calls in InitialQuantizePixel, why not do it on a per-row basis?
+        // - It's a frequently used class, we need tests! (So we can optimize safely.) There are tests in the original!!! We should just adopt them!
+        //   https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant/blob/master/JeremyAnsel.ColorQuant/JeremyAnsel.ColorQuant.Tests/WuColorQuantizerTests.cs
+
         /// <summary>
         /// The index bits.
         /// </summary>
@@ -69,37 +77,37 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <summary>
         /// Moment of <c>P(c)</c>.
         /// </summary>
-        private Buffer<long> vwt;
+        private IBuffer<long> vwt;
 
         /// <summary>
         /// Moment of <c>r*P(c)</c>.
         /// </summary>
-        private Buffer<long> vmr;
+        private IBuffer<long> vmr;
 
         /// <summary>
         /// Moment of <c>g*P(c)</c>.
         /// </summary>
-        private Buffer<long> vmg;
+        private IBuffer<long> vmg;
 
         /// <summary>
         /// Moment of <c>b*P(c)</c>.
         /// </summary>
-        private Buffer<long> vmb;
+        private IBuffer<long> vmb;
 
         /// <summary>
         /// Moment of <c>a*P(c)</c>.
         /// </summary>
-        private Buffer<long> vma;
+        private IBuffer<long> vma;
 
         /// <summary>
         /// Moment of <c>c^2*P(c)</c>.
         /// </summary>
-        private Buffer<float> m2;
+        private IBuffer<float> m2;
 
         /// <summary>
         /// Color space tag.
         /// </summary>
-        private Buffer<byte> tag;
+        private IBuffer<byte> tag;
 
         /// <summary>
         /// Maximum allowed color depth
@@ -153,21 +161,14 @@ namespace SixLabors.ImageSharp.Quantizers
             }
             finally
             {
-                this.DisposeBuffer(ref this.vwt);
-                this.DisposeBuffer(ref this.vmr);
-                this.DisposeBuffer(ref this.vmg);
-                this.DisposeBuffer(ref this.vmb);
-                this.DisposeBuffer(ref this.vma);
-                this.DisposeBuffer(ref this.m2);
-                this.DisposeBuffer(ref this.tag);
+                this.vwt.Dispose();
+                this.vmr.Dispose();
+                this.vmg.Dispose();
+                this.vmb.Dispose();
+                this.vma.Dispose();
+                this.m2.Dispose();
+                this.tag.Dispose();
             }
-        }
-
-        private void DisposeBuffer<T>(ref Buffer<T> buffer)
-            where T : struct
-        {
-            buffer?.Dispose();
-            buffer = null;
         }
 
         /// <inheritdoc/>
@@ -213,14 +214,21 @@ namespace SixLabors.ImageSharp.Quantizers
 
             int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
 
-            this.vwt[index]++;
-            this.vmr[index] += rgba.R;
-            this.vmg[index] += rgba.G;
-            this.vmb[index] += rgba.B;
-            this.vma[index] += rgba.A;
+            Span<long> vwtSpan = this.vwt.Span;
+            Span<long> vmrSpan = this.vmr.Span;
+            Span<long> vmgSpan = this.vmg.Span;
+            Span<long> vmbSpan = this.vmb.Span;
+            Span<long> vmaSpan = this.vma.Span;
+            Span<float> m2Span = this.m2.Span;
+
+            vwtSpan[index]++;
+            vmrSpan[index] += rgba.R;
+            vmgSpan[index] += rgba.G;
+            vmbSpan[index] += rgba.B;
+            vmaSpan[index] += rgba.A;
 
             var vector = new Vector4(rgba.R, rgba.G, rgba.B, rgba.A);
-            this.m2[index] += Vector4.Dot(vector, vector);
+            m2Span[index] += Vector4.Dot(vector, vector);
         }
 
         /// <inheritdoc/>
@@ -458,6 +466,13 @@ namespace SixLabors.ImageSharp.Quantizers
         /// </summary>
         private void Get3DMoments(MemoryManager memoryManager)
         {
+            Span<long> vwtSpan = this.vwt.Span;
+            Span<long> vmrSpan = this.vmr.Span;
+            Span<long> vmgSpan = this.vmg.Span;
+            Span<long> vmbSpan = this.vmb.Span;
+            Span<long> vmaSpan = this.vma.Span;
+            Span<float> m2Span = this.m2.Span;
+
             using (Buffer<long> volume = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
             using (Buffer<long> volumeR = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
             using (Buffer<long> volumeG = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
@@ -472,6 +487,20 @@ namespace SixLabors.ImageSharp.Quantizers
             using (Buffer<long> areaA = memoryManager.Allocate<long>(IndexAlphaCount))
             using (Buffer<float> area2 = memoryManager.Allocate<float>(IndexAlphaCount))
             {
+                Span<long> volumeSpan = volume.Span;
+                Span<long> volumeRSpan = volumeR.Span;
+                Span<long> volumeGSpan = volumeG.Span;
+                Span<long> volumeBSpan = volumeB.Span;
+                Span<long> volumeASpan = volumeA.Span;
+                Span<float> volume2Span = volume2.Span;
+
+                Span<long> areaSpan = area.Span;
+                Span<long> areaRSpan = areaR.Span;
+                Span<long> areaGSpan = areaG.Span;
+                Span<long> areaBSpan = areaB.Span;
+                Span<long> areaASpan = areaA.Span;
+                Span<float> area2Span = area2.Span;
+
                 for (int r = 1; r < IndexCount; r++)
                 {
                     volume.Clear();
@@ -503,37 +532,37 @@ namespace SixLabors.ImageSharp.Quantizers
                             {
                                 int ind1 = GetPaletteIndex(r, g, b, a);
 
-                                line += this.vwt[ind1];
-                                lineR += this.vmr[ind1];
-                                lineG += this.vmg[ind1];
-                                lineB += this.vmb[ind1];
-                                lineA += this.vma[ind1];
-                                line2 += this.m2[ind1];
+                                line += vwtSpan[ind1];
+                                lineR += vmrSpan[ind1];
+                                lineG += vmgSpan[ind1];
+                                lineB += vmbSpan[ind1];
+                                lineA += vmaSpan[ind1];
+                                line2 += m2Span[ind1];
 
-                                area[a] += line;
-                                areaR[a] += lineR;
-                                areaG[a] += lineG;
-                                areaB[a] += lineB;
-                                areaA[a] += lineA;
-                                area2[a] += line2;
+                                areaSpan[a] += line;
+                                areaRSpan[a] += lineR;
+                                areaGSpan[a] += lineG;
+                                areaBSpan[a] += lineB;
+                                areaASpan[a] += lineA;
+                                area2Span[a] += line2;
 
                                 int inv = (b * IndexAlphaCount) + a;
 
-                                volume[inv] += area[a];
-                                volumeR[inv] += areaR[a];
-                                volumeG[inv] += areaG[a];
-                                volumeB[inv] += areaB[a];
-                                volumeA[inv] += areaA[a];
-                                volume2[inv] += area2[a];
+                                volumeSpan[inv] += areaSpan[a];
+                                volumeRSpan[inv] += areaRSpan[a];
+                                volumeGSpan[inv] += areaGSpan[a];
+                                volumeBSpan[inv] += areaBSpan[a];
+                                volumeASpan[inv] += areaASpan[a];
+                                volume2Span[inv] += area2Span[a];
 
                                 int ind2 = ind1 - GetPaletteIndex(1, 0, 0, 0);
 
-                                this.vwt[ind1] = this.vwt[ind2] + volume[inv];
-                                this.vmr[ind1] = this.vmr[ind2] + volumeR[inv];
-                                this.vmg[ind1] = this.vmg[ind2] + volumeG[inv];
-                                this.vmb[ind1] = this.vmb[ind2] + volumeB[inv];
-                                this.vma[ind1] = this.vma[ind2] + volumeA[inv];
-                                this.m2[ind1] = this.m2[ind2] + volume2[inv];
+                                vwtSpan[ind1] = vwtSpan[ind2] + volumeSpan[inv];
+                                vmrSpan[ind1] = vmrSpan[ind2] + volumeRSpan[inv];
+                                vmgSpan[ind1] = vmgSpan[ind2] + volumeGSpan[inv];
+                                vmbSpan[ind1] = vmbSpan[ind2] + volumeBSpan[inv];
+                                vmaSpan[ind1] = vmaSpan[ind2] + volumeASpan[inv];
+                                m2Span[ind1] = m2Span[ind2] + volume2Span[inv];
                             }
                         }
                     }
@@ -553,23 +582,25 @@ namespace SixLabors.ImageSharp.Quantizers
             float db = Volume(ref cube, this.vmb.Span);
             float da = Volume(ref cube, this.vma.Span);
 
+            Span<float> m2Span = this.m2.Span;
+
             float xx =
-                this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
-                + this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
-                - this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
-                + this.m2[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
+                m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
+                - m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A0)]
+                - m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A1)]
+                + m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B0, cube.A0)]
+                - m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A1)]
+                + m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B1, cube.A0)]
+                + m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A1)]
+                - m2Span[GetPaletteIndex(cube.R1, cube.G0, cube.B0, cube.A0)]
+                - m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A1)]
+                + m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B1, cube.A0)]
+                + m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A1)]
+                - m2Span[GetPaletteIndex(cube.R0, cube.G1, cube.B0, cube.A0)]
+                + m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A1)]
+                - m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B1, cube.A0)]
+                - m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A1)]
+                + m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
             var vector = new Vector4(dr, dg, db, da);
             return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.Span));
@@ -742,6 +773,8 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <param name="label">A label.</param>
         private void Mark(ref Box cube, byte label)
         {
+            Span<byte> tagSpan = this.tag.Span;
+
             for (int r = cube.R0 + 1; r <= cube.R1; r++)
             {
                 for (int g = cube.G0 + 1; g <= cube.G1; g++)
@@ -750,7 +783,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     {
                         for (int a = cube.A0 + 1; a <= cube.A1; a++)
                         {
-                            this.tag[GetPaletteIndex(r, g, b, a)] = label;
+                            tagSpan[GetPaletteIndex(r, g, b, a)] = label;
                         }
                     }
                 }
@@ -833,7 +866,9 @@ namespace SixLabors.ImageSharp.Quantizers
             int b = rgba.B >> (8 - IndexBits);
             int a = rgba.A >> (8 - IndexAlphaBits);
 
-            return this.tag[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+            Span<byte> tagSpan = this.tag.Span;
+
+            return tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }
     }
 }

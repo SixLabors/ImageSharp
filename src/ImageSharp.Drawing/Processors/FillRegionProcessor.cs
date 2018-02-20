@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Drawing.Processors
             using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
             {
                 int scanlineWidth = maxX - minX;
-                using (FakeBuffer<float> buffer = source.MemoryManager.AllocateFake<float>(maxIntersections))
-                using (FakeBuffer<float> scanline = source.MemoryManager.AllocateFake<float>(scanlineWidth))
+                using (BasicArrayBuffer<float> buffer = source.MemoryManager.AllocateFake<float>(maxIntersections))
+                using (BasicArrayBuffer<float> scanline = source.MemoryManager.AllocateFake<float>(scanlineWidth))
                 {
                     bool scanlineDirty = true;
                     for (int y = minY; y < maxY; y++)

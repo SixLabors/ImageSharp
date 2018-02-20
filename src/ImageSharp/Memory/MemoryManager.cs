@@ -30,5 +30,13 @@ namespace SixLabors.ImageSharp.Memory
         {
             return new BasicArrayBuffer<T>(new T[length]);
         }
+
+        /// <summary>
+        /// Releases all retained resources not being in use.
+        /// Eg: by resetting array pools and letting GC to free the arrays.
+        /// </summary>
+        public virtual void ReleaseRetainedResources()
+        {
+        }
     }
 }

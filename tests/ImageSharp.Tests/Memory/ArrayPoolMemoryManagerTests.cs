@@ -4,6 +4,7 @@
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
+    using System;
     using System.Linq;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
@@ -15,8 +16,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
     public class ArrayPoolMemoryManagerTests
     {
         private const int MaxPooledBufferSizeInBytes = 2048;
-        
-        private MemoryManager MemoryManager { get; } = new ArrayPoolMemoryManager(MaxPooledBufferSizeInBytes);
+
+        private const int LargeBufferThresholdInBytes = MaxPooledBufferSizeInBytes / 2;
+
+        private MemoryManager MemoryManager { get; } = new ArrayPoolMemoryManager(MaxPooledBufferSizeInBytes, LargeBufferThresholdInBytes);
         
         /// <summary>
         /// Rent a buffer -> return it -> re-rent -> verify if it's span points to the previous location
@@ -38,8 +41,33 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public class BufferTests : BufferTestSuite
         {
             public BufferTests()
-                : base(new ArrayPoolMemoryManager(MaxPooledBufferSizeInBytes))
+                : base(new ArrayPoolMemoryManager(MaxPooledBufferSizeInBytes, LargeBufferThresholdInBytes))
             {
+            }
+        }
+
+        public class Constructor
+        {
+            [Fact]
+            public void WhenBothParametersPassedByUser()
+            {
+                var mgr = new ArrayPoolMemoryManager(1111, 666);
+                Assert.Equal(1111, mgr.MaxPoolSizeInBytes);
+                Assert.Equal(666, mgr.LargeBufferThresholdInBytes);
+            }
+
+            [Fact]
+            public void WhenPassedOnly_MaxPooledBufferSizeInBytes_SmallerThresholdIsAutoCalculated()
+            {
+                var mgr = new ArrayPoolMemoryManager(5000);
+                Assert.Equal(5000, mgr.MaxPoolSizeInBytes);
+                Assert.True(mgr.LargeBufferThresholdInBytes < mgr.MaxPoolSizeInBytes);
+            }
+
+            [Fact]
+            public void When_LargeBufferThresholdInBytes_IsGreaterThan_MaxPooledBufferSizeInBytes_Throws()
+            {
+                Assert.ThrowsAny<Exception>(() => { new ArrayPoolMemoryManager(100, 200); });
             }
         }
 
@@ -97,6 +125,41 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int expected = clean ? 0 : 666;
                 Assert.Equal(expected, secondAlloc.Span[0]);
             }
+        }
+
+        [Fact]
+        public void ReleaseRetainedResources_ReplacesInnerArrayPool()
+        {
+            IBuffer<int> buffer = this.MemoryManager.Allocate<int>(32);
+            ref int ptrToPrev0 = ref buffer.Span.DangerousGetPinnableReference();
+            buffer.Dispose();
+
+            this.MemoryManager.ReleaseRetainedResources();
+            buffer = this.MemoryManager.Allocate<int>(32);
+
+            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.DangerousGetPinnableReference()));
+        }
+
+        [Fact]
+        public void ReleaseRetainedResources_DisposingPreviouslyAllocatedBuffer_IsAllowed()
+        {
+            IBuffer<int> buffer = this.MemoryManager.Allocate<int>(32);
+            this.MemoryManager.ReleaseRetainedResources();
+            buffer.Dispose();
+        }
+
+        [Fact]
+        public void AllocationOverLargeArrayThreshold_UsesDifferentPool()
+        {
+            int arrayLengthThreshold = LargeBufferThresholdInBytes / sizeof(int);
+
+            IBuffer<int> small = this.MemoryManager.Allocate<int>(arrayLengthThreshold - 1);
+            ref int ptr2Small = ref small.DangerousGetPinnableReference();
+            small.Dispose();
+
+            IBuffer<int> large = this.MemoryManager.Allocate<int>(arrayLengthThreshold + 1);
+            
+            Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.DangerousGetPinnableReference()));
         }
     }
 }

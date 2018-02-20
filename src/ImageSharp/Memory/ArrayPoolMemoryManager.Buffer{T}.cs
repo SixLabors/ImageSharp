@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Buffers;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -10,15 +14,15 @@ namespace SixLabors.ImageSharp.Memory
         private class Buffer<T> : IBuffer<T>
             where T : struct
         {
-            private readonly ArrayPoolMemoryManager memoryManager;
-
             private readonly int length;
 
-            public Buffer(byte[] data, int length, ArrayPoolMemoryManager memoryManager)
+            private readonly ArrayPool<byte> sourcePool;
+
+            public Buffer(byte[] data, int length, ArrayPool<byte> sourcePool)
             {
-                this.memoryManager = memoryManager;
                 this.Data = data;
                 this.length = length;
+                this.sourcePool = sourcePool;
             }
 
             protected byte[] Data { get; private set; }
@@ -32,15 +36,15 @@ namespace SixLabors.ImageSharp.Memory
                     return;
                 }
 
-                this.memoryManager.pool.Return(this.Data);
+                this.sourcePool.Return(this.Data);
                 this.Data = null;
             }
         }
 
         private class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
         {
-            public ManagedByteBuffer(byte[] data, int length, ArrayPoolMemoryManager memoryManager)
-                : base(data, length, memoryManager)
+            public ManagedByteBuffer(byte[] data, int length, ArrayPool<byte> sourcePool)
+                : base(data, length, sourcePool)
             {
             }
 

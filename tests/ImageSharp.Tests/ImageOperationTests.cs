@@ -37,6 +37,15 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
+        public void Save_ShouldThrowExceptionIfImageHasBeenDisposed()
+        {
+            image.Dispose();
+            Action saveAction = () => image.Save(new MemoryStream(), Configuration.FindEncoder(ImageFormats.Png));
+
+            Assert.Throws<ObjectDisposedException>(saveAction);
+        }
+
+        [Fact]
         public void MutateCallsImageOperationsProvider_Func_OriginalImage()
         {
             this.image.Mutate(x => x.ApplyProcessor(this.processor));

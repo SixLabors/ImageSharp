@@ -105,6 +105,11 @@ namespace SixLabors.ImageSharp
         public IImageFrameCollection<TPixel> Frames => this.frames;
 
         /// <summary>
+        /// Gets a value indicating whether this object has yet been disposed.
+        /// </summary>
+        public bool Disposed { get; private set; }
+
+        /// <summary>
         /// Gets the root frame.
         /// </summary>
         private IPixelSource<TPixel> PixelSource => this.frames?.RootFrame ?? throw new ObjectDisposedException(nameof(Image<TPixel>));
@@ -132,6 +137,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
+            Guard.NotDisposed(this, this.Disposed);
 
             encoder.Encode(this, stream);
         }
@@ -172,6 +178,7 @@ namespace SixLabors.ImageSharp
         public void Dispose()
         {
             this.frames.Dispose();
+            this.Disposed = true;
         }
 
         /// <summary>

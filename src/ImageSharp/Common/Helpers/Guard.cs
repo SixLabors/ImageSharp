@@ -85,6 +85,24 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Verifies that the provided reference is not yet disposed
+        /// and throws an exception if it is.
+        /// </summary>
+        /// <param name="t">The target value, which should be validated.</param>
+        /// <param name="disposed">A boolean value indicating whether the T has been disposed. </param>
+        /// <typeparam name="T">The type of the value.</typeparam>
+        /// <exception cref="ObjectDisposedException">
+        /// <paramref name="t"/> is disposed.
+        /// </exception>
+        public static void NotDisposed<T>(this T t, bool disposed)
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(t.GetType().Name);
+            }
+        }
+
+        /// <summary>
         /// Verifies that the specified value is less than a maximum value
         /// and throws an exception if it is not.
         /// </summary>

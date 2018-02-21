@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(source.GetMemoryManager(), color, options));
+        => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(source.MemoryManager, color, options));
 
         /// <summary>
         /// Replaces the background color of image with the given one.
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(source.GetMemoryManager(), color, options), rectangle);
+        => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(source.MemoryManager, color, options), rectangle);
 
         /// <summary>
         /// Replaces the background color of image with the given one.

@@ -144,8 +144,10 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                using (IBuffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
-                using (IBuffer<TPixel> overlay = this.Target.MemoryManager.Allocate<TPixel>(scanline.Length))
+                MemoryManager memoryManager = this.Target.MemoryManager;
+
+                using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
+                using (IBuffer<TPixel> overlay = memoryManager.Allocate<TPixel>(scanline.Length))
                 {
                     Span<float> amountSpan = amountBuffer.Span;
                     Span<TPixel> overlaySpan = overlay.Span;
@@ -162,7 +164,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                    this.Blender.Blend(destinationRow, destinationRow, overlaySpan, amountSpan);
+                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, overlaySpan, amountSpan);
                 }
             }
         }

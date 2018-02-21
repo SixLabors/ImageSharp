@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
                 return this;
             }
 
-            public MemoryManager GetMemoryManager() => this.source.GetConfiguration().MemoryManager;
+            public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
 
             public struct AppliedOpperation
             {

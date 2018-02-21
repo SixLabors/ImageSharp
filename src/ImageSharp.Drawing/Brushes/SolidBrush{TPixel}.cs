@@ -93,7 +93,9 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                 {
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    using (IBuffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
+                    MemoryManager memoryManager = this.Target.MemoryManager;
+
+                    using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
                     {
                         Span<float> amountSpan = amountBuffer.Span;
 
@@ -102,11 +104,12 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                             amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                         }
 
-                        this.Blender.Blend(destinationRow, destinationRow, this.Colors.Span, amountSpan);
+                        this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
                     }
                 }
                 catch (Exception)
                 {
+                    // TODO: Why are we catching exceptions here silently ???
                     throw;
                 }
             }

@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp
                 QuantizedImage<TPixel> quantized = quantizer.Quantize(img.Frames.RootFrame, maxColors);
                 int palleteCount = quantized.Palette.Length - 1;
 
-                using (var pixels = new PixelAccessor<TPixel>(source.GetMemoryManager(), quantized.Width, quantized.Height))
+                using (var pixels = new PixelAccessor<TPixel>(source.MemoryManager, quantized.Width, quantized.Height))
                 {
                     Parallel.For(
                         0,

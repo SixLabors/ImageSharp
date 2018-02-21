@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
                             Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
 
-                            this.blender.Blend(destination, destination, rowColors.Span, amountsSpan);
+                            this.blender.Blend(this.memoryManager, destination, destination, rowColors.Span, amountsSpan);
                         }
                     });
             }

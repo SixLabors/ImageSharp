@@ -86,9 +86,10 @@ namespace SixLabors.ImageSharp.Tests
                                      NamedColors<TPixel>.HotPink,
                                      NamedColors<TPixel>.Blue
                                  };
-                int p = 0;
+                
                 for (int y = top; y < bottom; y++)
                 {
+                    int p = 0;
                     for (int x = left; x < right; x++)
                     {
                         if (x % stride == 0)

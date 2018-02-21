@@ -26,7 +26,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
             internal class Normal : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -39,13 +38,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -63,9 +62,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Multiply : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -78,13 +77,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -102,9 +101,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Add : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -117,13 +116,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -141,9 +140,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Substract : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -156,13 +155,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -180,9 +179,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Screen : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -195,13 +194,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -219,9 +218,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Darken : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -234,13 +233,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -258,9 +257,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Lighten : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -273,13 +272,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -297,9 +296,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Overlay : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -312,13 +311,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -336,9 +335,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class HardLight : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -351,13 +350,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -375,9 +374,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Src : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -390,13 +389,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -414,9 +413,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Atop : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -429,13 +428,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -453,9 +452,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Over : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -468,13 +467,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -492,9 +491,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class In : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -507,13 +506,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -531,9 +530,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Out : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -546,13 +545,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -570,9 +569,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Dest : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -585,13 +584,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -609,9 +608,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class DestAtop : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -624,13 +623,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -648,9 +647,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class DestOver : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -663,13 +662,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -687,9 +686,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class DestIn : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -702,13 +701,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -726,9 +725,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class DestOut : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -741,13 +740,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -765,9 +764,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Clear : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -780,13 +779,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -804,9 +803,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
             internal class Xor : PixelBlender<TPixel>
             {
-                
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
@@ -819,13 +818,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -843,5 +842,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     }
                 }
             }
+
     }
 }

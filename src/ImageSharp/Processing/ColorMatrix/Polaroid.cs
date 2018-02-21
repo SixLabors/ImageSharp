@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new PolaroidProcessor<TPixel>(source.GetMemoryManager(), options));
+            source.ApplyProcessor(new PolaroidProcessor<TPixel>(source.MemoryManager, options));
             return source;
         }
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Polaroid<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new PolaroidProcessor<TPixel>(source.GetMemoryManager(), options), rectangle);
+            source.ApplyProcessor(new PolaroidProcessor<TPixel>(source.MemoryManager, options), rectangle);
             return source;
         }
     }

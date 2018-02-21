@@ -16,6 +16,12 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
+        /// Gets a reference to the <see cref="MemoryManager" /> used to allocate buffers
+        /// for this context.
+        /// </summary>
+        MemoryManager MemoryManager { get; }
+
+        /// <summary>
         /// Adds the processor to the current set of image operations to be applied.
         /// </summary>
         /// <param name="processor">The processor to apply</param>
@@ -29,13 +35,6 @@ namespace SixLabors.ImageSharp
         /// <param name="processor">The processor to apply</param>
         /// <returns>The current operations class to allow chaining of operations.</returns>
         IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor);
-
-        /// <summary>
-        /// Returns a reference to the <see cref="MemoryManager" /> used to allocate buffers
-        /// for this context.
-        /// </summary>
-        /// <returns>A <see cref="MemoryManager"/> to use for buffer allocations.</returns>
-        MemoryManager GetMemoryManager();
     }
 
     /// <summary>

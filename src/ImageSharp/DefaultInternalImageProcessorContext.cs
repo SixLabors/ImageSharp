@@ -75,6 +75,6 @@ namespace SixLabors.ImageSharp
             return this.ApplyProcessor(processor, this.source.Bounds());
         }
 
-        public MemoryManager GetMemoryManager() => this.source.GetConfiguration().MemoryManager;
+        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
     }
 }

@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                    this.Blender.Blend(destinationRow, destinationRow, overlaySpan, amountSpan);
+                    this.Blender.Blend(this.source.MemoryManager, destinationRow, destinationRow, overlaySpan, amountSpan);
                 }
             }
         }

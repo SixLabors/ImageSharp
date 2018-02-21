@@ -7,15 +7,16 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
     public class GifEncoderTests
     {
-        private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+        private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
         [Theory]
-        [WithTestPatternImages(100, 100, PixelTypes)]
+        [WithTestPatternImages(100, 100, TestPixelTypes)]
         public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -78,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void Encode_CommentIsToLong_CommentIsTrimmed()
+        public void Encode_WhenCommentIsTooLong_CommentIsTrimmed()
         {
             using (Image<Rgba32> input = new Image<Rgba32>(1, 1))
             {

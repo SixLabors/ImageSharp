@@ -75,8 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
                     c.B,
                     ref Unsafe.Add(ref yBlockStart, i),
                     ref Unsafe.Add(ref cbBlockStart, i),
-                    ref Unsafe.Add(ref crBlockStart, i)
-                );
+                    ref Unsafe.Add(ref crBlockStart, i));
             }
         }
     }

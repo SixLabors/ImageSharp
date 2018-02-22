@@ -232,10 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the image data.
-            using (PixelAccessor<TPixel> pixels = image.Lock())
-            {
-                this.WriteStartOfScan(pixels);
-            }
+            this.WriteStartOfScan(image);
 
             // Write the End Of Image marker.
             this.buffer[0] = OrigJpegConstants.Markers.XFF;
@@ -439,14 +436,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode444<TPixel>(PixelAccessor<TPixel> pixels)
+        private void Encode444<TPixel>(Image<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            Block8x8F b = default(Block8x8F);
-            Block8x8F cb = default(Block8x8F);
-            Block8x8F cr = default(Block8x8F);
-
+            // (Partially done with YCbCrForwardConverter<TPixel>)
             Block8x8F temp1 = default(Block8x8F);
             Block8x8F temp2 = default(Block8x8F);
 
@@ -460,42 +454,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             YCbCrForwardConverter<TPixel> pixelConverter = YCbCrForwardConverter<TPixel>.Create();
 
-            fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
+            for (int y = 0; y < pixels.Height; y += 8)
             {
-                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+                for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    for (int y = 0; y < pixels.Height; y += 8)
-                    {
-                        for (int x = 0; x < pixels.Width; x += 8)
-                        {
-                            ToYCbCr(pixels, tables, x, y, ref b, ref cb, ref cr, rgbBytes);
+                    pixelConverter.Convert(pixels.Frames.RootFrame, x, y);
 
-                            prevDCY = this.WriteBlock(
-                                QuantIndex.Luminance,
-                                prevDCY,
-                                &b,
-                                &temp1,
-                                &temp2,
-                                &onStackLuminanceQuantTable,
-                                unzig.Data);
-                            prevDCCb = this.WriteBlock(
-                                QuantIndex.Chrominance,
-                                prevDCCb,
-                                &cb,
-                                &temp1,
-                                &temp2,
-                                &onStackChrominanceQuantTable,
-                                unzig.Data);
-                            prevDCCr = this.WriteBlock(
-                                QuantIndex.Chrominance,
-                                prevDCCr,
-                                &cr,
-                                &temp1,
-                                &temp2,
-                                &onStackChrominanceQuantTable,
-                                unzig.Data);
-                        }
-                    }
+                    prevDCY = this.WriteBlock(
+                        QuantIndex.Luminance,
+                        prevDCY,
+                        &pixelConverter.Y,
+                        &temp1,
+                        &temp2,
+                        &onStackLuminanceQuantTable,
+                        unzig.Data);
+                    prevDCCb = this.WriteBlock(
+                        QuantIndex.Chrominance,
+                        prevDCCb,
+                        &pixelConverter.Cb,
+                        &temp1,
+                        &temp2,
+                        &onStackChrominanceQuantTable,
+                        unzig.Data);
+                    prevDCCr = this.WriteBlock(
+                        QuantIndex.Chrominance,
+                        prevDCCr,
+                        &pixelConverter.Cr,
+                        &temp1,
+                        &temp2,
+                        &onStackChrominanceQuantTable,
+                        unzig.Data);
                 }
             }
         }
@@ -866,8 +854,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Writes the StartOfScan marker.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void WriteStartOfScan<TPixel>(PixelAccessor<TPixel> pixels)
+        /// <param name="image">The pixel accessor providing access to the image pixels.</param>
+        private void WriteStartOfScan<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -877,10 +865,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    this.Encode444(pixels);
+                    this.Encode444(image);
                     break;
                 case JpegSubsample.Ratio420:
-                    this.Encode420(pixels);
+                    using (var pixels = image.Lock())
+                    {
+                        this.Encode420(pixels);
+                    }
+                    
                     break;
             }
 

@@ -2,15 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 {
-    using System;
-
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
@@ -101,27 +97,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
         /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
         /// </summary>
-        /// <param name="tables">The reference to the tables instance.</param>
-        /// <param name="yBlockRaw">The The luminance block.</param>
-        /// <param name="cbBlockRaw">The red chroma block.</param>
-        /// <param name="crBlockRaw">The blue chroma block.</param>
-        /// <param name="index">The current index.</param>
-        /// <param name="r">The red value.</param>
-        /// <param name="g">The green value.</param>
-        /// <param name="b">The blue value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Rgb2YCbCr(RgbToYCbCrTables* tables, float* yBlockRaw, float* cbBlockRaw, float* crBlockRaw, int index, int r, int g, int b)
-        {
-            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
-            yBlockRaw[index] = (tables->YRTable[r] + tables->YGTable[g] + tables->YBTable[b]) >> ScaleBits;
-
-            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
-            cbBlockRaw[index] = (tables->CbRTable[r] + tables->CbGTable[g] + tables->CbBTable[b]) >> ScaleBits;
-
-            // float b = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
-            crBlockRaw[index] = (tables->CbBTable[r] + tables->CrGTable[g] + tables->CrBTable[b]) >> ScaleBits;
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ConvertPixelInto(int r, int g, int b, ref float yResult, ref float cbResult, ref float crResult)
         {
@@ -153,57 +128,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         private static int RightShift(int x)
         {
             return x >> ScaleBits;
-        }
-    }
-
-    // TODO!
-    internal struct YCbCrForwardConverter<TPixel>
-        where TPixel : struct, IPixel<TPixel>
-    {
-        public Block8x8F Y;
-
-        public Block8x8F Cb;
-
-        public Block8x8F Cr;
-
-        private RgbToYCbCrTables colorTables;
-
-        private GenericBlock8x8<TPixel> pixelBlock;
-
-        private GenericBlock8x8<Rgb24> rgbBlock;
-
-        public static YCbCrForwardConverter<TPixel> Create()
-        {
-            var result = default(YCbCrForwardConverter<TPixel>);
-            result.colorTables = RgbToYCbCrTables.Create();
-            return result;
-        }
-
-        public void Convert(IPixelSource<TPixel> pixels, int x, int y)
-        {
-            this.pixelBlock.LoadAndStretchEdges(pixels, x, y);
-
-            Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToRgb24(this.pixelBlock.AsSpanUnsafe(), rgbSpan, 64);
-
-            ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Y);
-            ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cb);
-            ref float crBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cr);
-            ref Rgb24 rgbStart = ref rgbSpan[0];
-
-            for (int i = 0; i < 64; i++)
-            {
-                ref Rgb24 c = ref Unsafe.Add(ref rgbStart, i);
-
-                this.colorTables.ConvertPixelInto(
-                    c.R,
-                    c.G,
-                    c.B,
-                    ref Unsafe.Add(ref yBlockStart, i),
-                    ref Unsafe.Add(ref cbBlockStart, i),
-                    ref Unsafe.Add(ref crBlockStart, i)
-                    );
-            }
         }
     }
 }

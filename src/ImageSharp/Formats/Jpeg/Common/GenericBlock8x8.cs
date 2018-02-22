@@ -7,9 +7,12 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
+    using System.Runtime.InteropServices;
+
     /// <summary>
     /// A generic 8x8 block implementation, useful for manipulating custom 8x8 pixel data.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     // ReSharper disable once InconsistentNaming
     internal unsafe partial struct GenericBlock8x8<T>
         where T : struct
@@ -87,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         /// <summary>
-        /// ONLY FOR GenericBlock instances living on the stack!
+        /// Only for on-stack instances!
         /// </summary>
         public Span<T> AsSpanUnsafe() => new Span<T>(Unsafe.AsPointer(ref this), Size);
 

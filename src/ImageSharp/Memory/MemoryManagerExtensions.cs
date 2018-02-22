@@ -51,5 +51,23 @@
         public static Buffer2D<T> AllocateClean2D<T>(this MemoryManager memoryManager, int width, int height)
             where T : struct =>
             Allocate2D<T>(memoryManager, width, height, true);
+
+        /// <summary>
+        /// Allocates padded buffers for BMP encoder/decoder. (Replacing old PixelRow/PixelArea)
+        /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/></param>
+        /// <param name="width">Pixel count in the row</param>
+        /// <param name="pixelSizeInBytes">The pixel size in bytes, eg. 3 for RGB</param>
+        /// <param name="paddingInBytes">The padding</param>
+        /// <returns>A <see cref="IManagedByteBuffer"/></returns>
+        public static IManagedByteBuffer AllocatePaddedPixelRowBuffer(
+            this MemoryManager memoryManager,
+            int width,
+            int pixelSizeInBytes,
+            int paddingInBytes)
+        {
+            int length = (width * pixelSizeInBytes) + paddingInBytes;
+            return memoryManager.AllocateManagedByteBuffer(length);
+        }
     }
 }

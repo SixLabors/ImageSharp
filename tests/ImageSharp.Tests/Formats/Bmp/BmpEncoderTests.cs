@@ -51,13 +51,15 @@ namespace SixLabors.ImageSharp.Tests
             TestBmpEncoderCore(provider, bitsPerPixel);
         }
 
+        
+
         private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>
-        {
+        {   
             using (Image<TPixel> image = provider.GetImage())
             {
                 // there is no alpha in bmp!
-                image.Mutate(c => c.Opacity(1));
+                image.Mutate(c => c.MakeOpaque());
 
                 var encoder = new BmpEncoder { BitsPerPixel = bitsPerPixel };
 

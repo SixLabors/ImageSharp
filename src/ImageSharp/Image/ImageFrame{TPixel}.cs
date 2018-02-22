@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// The image pixels. Not private as Buffer2D requires an array in its constructor.
-        /// </summary>
-        private Buffer2D<TPixel> pixelBuffer;
-
         private bool isDisposed;
 
         /// <summary>
@@ -54,7 +49,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metaData, nameof(metaData));
 
             this.MemoryManager = memoryManager;
-            this.pixelBuffer = memoryManager.AllocateClean2D<TPixel>(width, height);
+            this.PixelBuffer = memoryManager.AllocateClean2D<TPixel>(width, height);
             this.MetaData = metaData;
         }
 
@@ -77,8 +72,8 @@ namespace SixLabors.ImageSharp
         internal ImageFrame(MemoryManager memoryManager, ImageFrame<TPixel> source)
         {
             this.MemoryManager = memoryManager;
-            this.pixelBuffer = memoryManager.Allocate2D<TPixel>(source.pixelBuffer.Width, source.pixelBuffer.Height);
-            source.pixelBuffer.Span.CopyTo(this.pixelBuffer.Span);
+            this.PixelBuffer = memoryManager.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            source.PixelBuffer.Span.CopyTo(this.PixelBuffer.Span);
             this.MetaData = source.MetaData.Clone();
         }
 
@@ -87,18 +82,23 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public MemoryManager MemoryManager { get; }
 
+        /// <summary>
+        /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
+        /// </summary>
+        internal Buffer2D<TPixel> PixelBuffer { get; private set; }
+
         /// <inheritdoc/>
-        Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.pixelBuffer;
+        Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.PixelBuffer;
 
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width => this.pixelBuffer.Width;
+        public int Width => this.PixelBuffer.Width;
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height => this.pixelBuffer.Height;
+        public int Height => this.PixelBuffer.Height;
 
         /// <summary>
         /// Gets the meta data of the frame.
@@ -116,13 +116,13 @@ namespace SixLabors.ImageSharp
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return this.pixelBuffer[x, y];
+                return this.PixelBuffer[x, y];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                this.pixelBuffer[x, y] = value;
+                this.PixelBuffer[x, y] = value;
             }
         }
 
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ref TPixel GetPixelReference(int x, int y)
         {
-            return ref this.pixelBuffer[x, y];
+            return ref this.PixelBuffer[x, y];
         }
 
         /// <summary>
@@ -168,8 +168,8 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
             // Push my memory into the accessor (which in turn unpins the old buffer ready for the images use)
-            Buffer2D<TPixel> newPixels = pixelSource.SwapBufferOwnership(this.pixelBuffer);
-            this.pixelBuffer = newPixels;
+            Buffer2D<TPixel> newPixels = pixelSource.SwapBufferOwnership(this.PixelBuffer);
+            this.PixelBuffer = newPixels;
         }
 
         /// <summary>
@@ -180,9 +180,9 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            Buffer2D<TPixel> temp = this.pixelBuffer;
-            this.pixelBuffer = pixelSource.pixelBuffer;
-            pixelSource.pixelBuffer = temp;
+            Buffer2D<TPixel> temp = this.PixelBuffer;
+            this.PixelBuffer = pixelSource.PixelBuffer;
+            pixelSource.PixelBuffer = temp;
         }
 
         /// <summary>
@@ -195,8 +195,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.pixelBuffer?.Dispose();
-            this.pixelBuffer = null;
+            this.PixelBuffer?.Dispose();
+            this.PixelBuffer = null;
 
             // Note disposing is done.
             this.isDisposed = true;

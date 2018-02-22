@@ -46,9 +46,24 @@ namespace SixLabors.ImageSharp.Memory
         public Size Size => this.Rectangle.Size;
 
         /// <summary>
+        /// Gets the width
+        /// </summary>
+        public int Width => this.Rectangle.Width;
+
+        /// <summary>
+        /// Gets the height
+        /// </summary>
+        public int Height => this.Rectangle.Height;
+
+        /// <summary>
         /// Gets the pixel stride which is equal to the width of <see cref="DestinationBuffer"/>.
         /// </summary>
         public int Stride => this.DestinationBuffer.Width;
+
+        /// <summary>
+        /// Gets a value indicating whether the area refers to the entire <see cref="DestinationBuffer"/>
+        /// </summary>
+        public bool IsFullBufferArea => this.Size == this.DestinationBuffer.Size();
 
         /// <summary>
         /// Gets or sets a value at the given index.
@@ -125,6 +140,22 @@ namespace SixLabors.ImageSharp.Memory
         private int GetRowIndex(int y)
         {
             return (y + this.Rectangle.Y) * this.DestinationBuffer.Width;
+        }
+
+        public void Clear()
+        {
+            // Optimization for when the size of the area is the same as the buffer size.
+            if (this.IsFullBufferArea)
+            {
+                this.DestinationBuffer.Span.Clear();
+                return;
+            }
+
+            for (int y = 0; y < this.Rectangle.Height; y++)
+            {
+                Span<T> row = this.GetRowSpan(y);
+                row.Clear();
+            }
         }
     }
 }

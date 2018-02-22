@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
+    /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
     /// </summary>
     internal unsafe struct RgbToYCbCrTables
     {
@@ -91,6 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         }
 
         /// <summary>
+        /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
         /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
         /// </summary>
         /// <param name="yBlockRaw">The The luminance block.</param>
@@ -102,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         /// <param name="g">The green value.</param>
         /// <param name="b">The blue value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Allocate(ref float* yBlockRaw, ref float* cbBlockRaw, ref float* crBlockRaw, ref RgbToYCbCrTables* tables, int index, int r, int g, int b)
+        public static void Rgb2YCbCr(float* yBlockRaw, float* cbBlockRaw, float* crBlockRaw, ref RgbToYCbCrTables* tables, int index, int r, int g, int b)
         {
             // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
             yBlockRaw[index] = (tables->YRTable[r] + tables->YGTable[g] + tables->YBTable[b]) >> ScaleBits;

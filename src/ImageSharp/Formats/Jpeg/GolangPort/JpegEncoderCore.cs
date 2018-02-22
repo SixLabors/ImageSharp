@@ -313,11 +313,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref cbBlock);
             ref float crBlockStart = ref Unsafe.As<Block8x8F, float>(ref crBlock);
 
-            float* yBlockRaw = (float*) Unsafe.AsPointer(ref yBlock);
-            float* cbBlockRaw = (float*)Unsafe.AsPointer(ref cbBlock);
-            float* crBlockRaw = (float*)Unsafe.AsPointer(ref crBlock);
-
-            rgbBytes.Reset();
             pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
 
             ref byte data0 = ref rgbBytes.Bytes[0];
@@ -335,14 +330,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                     int index = j8 + i;
 
-                    RgbToYCbCrTables.Rgb2YCbCr(tables, yBlockRaw, cbBlockRaw, crBlockRaw, index, r, g, b);
-                    //tables->ConvertPixelInto(
-                    //    r,
-                    //    g,
-                    //    b,
-                    //    ref Unsafe.Add(ref yBlockRaw, index),
-                    //    ref Unsafe.Add(ref cbBlockRaw, index),
-                    //    ref Unsafe.Add(ref crBlockRaw, index));
+                    // RgbToYCbCrTables.Rgb2YCbCr(tables, yBlockRaw, cbBlockRaw, crBlockRaw, index, r, g, b);
+                    tables->ConvertPixelInto(
+                        r,
+                        g,
+                        b,
+                        ref Unsafe.Add(ref yBlockStart, index),
+                        ref Unsafe.Add(ref cbBlockStart, index),
+                        ref Unsafe.Add(ref crBlockStart, index));
 
                     dataIdx += 3;
                 }
@@ -462,6 +457,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+
+            YCbCrForwardConverter<TPixel> pixelConverter = YCbCrForwardConverter<TPixel>.Create();
 
             fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
             {

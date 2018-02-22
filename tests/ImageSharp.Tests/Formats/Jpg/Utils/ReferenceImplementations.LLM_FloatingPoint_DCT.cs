@@ -6,7 +6,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     using System.Runtime.CompilerServices;
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
 
     using Xunit.Abstractions;
 

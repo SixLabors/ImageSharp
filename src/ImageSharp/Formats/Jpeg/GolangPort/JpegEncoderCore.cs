@@ -868,11 +868,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.Encode444(image);
                     break;
                 case JpegSubsample.Ratio420:
-                    using (var pixels = image.Lock())
-                    {
-                        this.Encode420(pixels);
-                    }
-                    
+                    this.Encode420(image);
                     break;
             }
 
@@ -886,7 +882,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode420<TPixel>(PixelAccessor<TPixel> pixels)
+        private void Encode420<TPixel>(Image<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -905,62 +901,54 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             ZigZag unzig = ZigZag.CreateUnzigTable();
 
+            var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
+
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
-            fixed (RgbToYCbCrTables* tables = &rgbToYCbCrTables)
+
+            for (int y = 0; y < pixels.Height; y += 16)
             {
-                using (PixelArea<TPixel> rgbBytes = new PixelArea<TPixel>(8, 8, ComponentOrder.Xyz))
+                for (int x = 0; x < pixels.Width; x += 16)
                 {
-                    for (int y = 0; y < pixels.Height; y += 16)
+                    for (int i = 0; i < 4; i++)
                     {
-                        for (int x = 0; x < pixels.Width; x += 16)
-                        {
-                            for (int i = 0; i < 4; i++)
-                            {
-                                int xOff = (i & 1) * 8;
-                                int yOff = (i & 2) * 4;
+                        int xOff = (i & 1) * 8;
+                        int yOff = (i & 2) * 4;
 
-                                ToYCbCr(
-                                    pixels,
-                                    tables,
-                                    x + xOff,
-                                    y + yOff,
-                                    ref b,
-                                    ref Unsafe.AsRef<Block8x8F>(cbPtr + i),
-                                    ref Unsafe.AsRef<Block8x8F>(crPtr + i),
-                                    rgbBytes);
+                        pixelConverter.Convert(pixels.Frames.RootFrame, x + xOff, y + yOff);
 
-                                prevDCY = this.WriteBlock(
-                                    QuantIndex.Luminance,
-                                    prevDCY,
-                                    &b,
-                                    &temp1,
-                                    &temp2,
-                                    &onStackLuminanceQuantTable,
-                                    unzig.Data);
-                            }
+                        cbPtr[i] = pixelConverter.Cb;
+                        crPtr[i] = pixelConverter.Cr;
 
-                            Block8x8F.Scale16X16To8X8(&b, cbPtr);
-                            prevDCCb = this.WriteBlock(
-                                QuantIndex.Chrominance,
-                                prevDCCb,
-                                &b,
-                                &temp1,
-                                &temp2,
-                                &onStackChrominanceQuantTable,
-                                unzig.Data);
-
-                            Block8x8F.Scale16X16To8X8(&b, crPtr);
-                            prevDCCr = this.WriteBlock(
-                                QuantIndex.Chrominance,
-                                prevDCCr,
-                                &b,
-                                &temp1,
-                                &temp2,
-                                &onStackChrominanceQuantTable,
-                                unzig.Data);
-                        }
+                        prevDCY = this.WriteBlock(
+                            QuantIndex.Luminance,
+                            prevDCY,
+                            &pixelConverter.Y,
+                            &temp1,
+                            &temp2,
+                            &onStackLuminanceQuantTable,
+                            unzig.Data);
                     }
+
+                    Block8x8F.Scale16X16To8X8(&b, cbPtr);
+                    prevDCCb = this.WriteBlock(
+                        QuantIndex.Chrominance,
+                        prevDCCb,
+                        &b,
+                        &temp1,
+                        &temp2,
+                        &onStackChrominanceQuantTable,
+                        unzig.Data);
+
+                    Block8x8F.Scale16X16To8X8(&b, crPtr);
+                    prevDCCr = this.WriteBlock(
+                        QuantIndex.Chrominance,
+                        prevDCCr,
+                        &b,
+                        &temp1,
+                        &temp2,
+                        &onStackChrominanceQuantTable,
+                        unzig.Data);
                 }
             }
         }

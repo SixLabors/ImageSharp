@@ -303,15 +303,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             RgbToYCbCrTables* tables,
             int x,
             int y,
-            Block8x8F* yBlock,
-            Block8x8F* cbBlock,
-            Block8x8F* crBlock,
+            ref Block8x8F yBlock,
+            ref Block8x8F cbBlock,
+            ref Block8x8F crBlock,
             PixelArea<TPixel> rgbBytes)
             where TPixel : struct, IPixel<TPixel>
         {
-            float* yBlockRaw = (float*)yBlock;
-            float* cbBlockRaw = (float*)cbBlock;
-            float* crBlockRaw = (float*)crBlock;
+            ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref yBlock);
+            ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref cbBlock);
+            ref float crBlockStart = ref Unsafe.As<Block8x8F, float>(ref crBlock);
+
+            float* yBlockRaw = (float*) Unsafe.AsPointer(ref yBlock);
+            float* cbBlockRaw = (float*)Unsafe.AsPointer(ref cbBlock);
+            float* crBlockRaw = (float*)Unsafe.AsPointer(ref crBlock);
 
             rgbBytes.Reset();
             pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
@@ -331,7 +335,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                     int index = j8 + i;
 
-                    RgbToYCbCrTables.Rgb2YCbCr(yBlockRaw, cbBlockRaw, crBlockRaw, ref tables, index, r, g, b);
+                    RgbToYCbCrTables.Rgb2YCbCr(tables, yBlockRaw, cbBlockRaw, crBlockRaw, index, r, g, b);
+                    //tables->ConvertPixelInto(
+                    //    r,
+                    //    g,
+                    //    b,
+                    //    ref Unsafe.Add(ref yBlockRaw, index),
+                    //    ref Unsafe.Add(ref cbBlockRaw, index),
+                    //    ref Unsafe.Add(ref crBlockRaw, index));
 
                     dataIdx += 3;
                 }
@@ -460,7 +471,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     {
                         for (int x = 0; x < pixels.Width; x += 8)
                         {
-                            ToYCbCr(pixels, tables, x, y, &b, &cb, &cr, rgbBytes);
+                            ToYCbCr(pixels, tables, x, y, ref b, ref cb, ref cr, rgbBytes);
 
                             prevDCY = this.WriteBlock(
                                 QuantIndex.Luminance,
@@ -920,7 +931,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                                 int xOff = (i & 1) * 8;
                                 int yOff = (i & 2) * 4;
 
-                                ToYCbCr(pixels, tables, x + xOff, y + yOff, &b, cbPtr + i, crPtr + i, rgbBytes);
+                                ToYCbCr(
+                                    pixels,
+                                    tables,
+                                    x + xOff,
+                                    y + yOff,
+                                    ref b,
+                                    ref Unsafe.AsRef<Block8x8F>(cbPtr + i),
+                                    ref Unsafe.AsRef<Block8x8F>(crPtr + i),
+                                    rgbBytes);
 
                                 prevDCY = this.WriteBlock(
                                     QuantIndex.Luminance,

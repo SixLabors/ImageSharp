@@ -7,11 +7,22 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
     /// <summary>
     /// Jpeg specific utilities and extension methods
     /// </summary>
     internal static class OrigJpegUtils
     {
+        /// <summary>
+        /// Stack only TPixel -> Rgb24 conversion method on 8x8 blocks.
+        /// </summary>
+        public static void ConvertToRgbUnsafe<TPixel>(ref GenericBlock8x8<TPixel> source, ref GenericBlock8x8<Rgb24> dest)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            PixelOperations<TPixel>.Instance.ToRgb24(source.AsSpanUnsafe(), dest.AsSpanUnsafe(), 64);
+        }
+
         /// <summary>
         /// Copy a region of an image into dest. De "outlier" area will be stretched out with pixels on the right and bottom of the image.
         /// </summary>

@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (Image<TPixel> image = provider.GetImage())
             {
                 // There is no alpha in Jpeg!
-                image.Mutate(c => c.Opacity(1));
+                image.Mutate(c => c.MakeOpaque());
 
                 var encoder = new JpegEncoder()
                                   {

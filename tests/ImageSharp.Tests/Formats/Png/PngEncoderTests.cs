@@ -123,26 +123,27 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (!HasAlpha(pngColorType))
                 {
-                    image.Mutate(c => c.Opacity(1));
+                    image.Mutate(c => c.MakeOpaque());
                 }
 
                 var encoder = new PngEncoder { PngColorType = pngColorType, CompressionLevel = compressionLevel};
 
-                string pngColorTypeInfo = appendPixelType ? pngColorType.ToString() : "";
+                string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : "";
                 string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : "";
                 string debugInfo = $"{pngColorTypeInfo}{compressionLevelInfo}";
-                string referenceInfo = $"{pngColorTypeInfo}";
-
+                
                 // Does DebugSave & load reference CompareToReferenceInput():
-                string path = ((ITestImageProvider)provider).Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
+                string actualOutputFile = ((ITestImageProvider)provider).Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
             
-                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
-                string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", referenceInfo, appendPixelType);
+                IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
             
-                using (var encodedImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
+                using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 {
-                    ImageComparer comparer = pngColorType== PngColorType.Palette ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder) : ImageComparer.Exact;
-                    comparer.CompareImagesOrFrames(image, encodedImage);
+                    ImageComparer comparer = pngColorType == PngColorType.Palette
+                                                 ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder)
+                                                 : ImageComparer.Exact;
+
+                    comparer.VerifySimilarity(image, actualImage);
                 }
             }
         }

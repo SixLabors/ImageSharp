@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+    using SixLabors.Primitives;
 
     using Xunit;
     using Xunit.Abstractions;
@@ -55,20 +56,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestJpegEncoderCore(provider, subsample, quality);
         }
 
-        private static ImageComparer GetComparer(int quality)
+        /// <summary>
+        /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
+        /// </summary>
+        private static ImageComparer GetComparer(int quality, JpegSubsample subsample)
         {
-            if (quality > 90)
+            float tolerance = 0.015f; // ~1.5%
+
+            if (quality < 50)
             {
-                return ImageComparer.Tolerant(0.0005f / 100);
+                tolerance *= 10f;
             }
-            else if (quality > 50)
+            else if (quality < 75 || subsample == JpegSubsample.Ratio420)
             {
-                return ImageComparer.Tolerant(0.005f / 100);
+                tolerance *= 5f;
+                if (subsample == JpegSubsample.Ratio420)
+                {
+                    tolerance *= 2f;
+                }
             }
-            else
-            {
-                return ImageComparer.Tolerant(0.01f / 100);
-            }
+
+            return ImageComparer.Tolerant(tolerance);
         }
 
         private static void TestJpegEncoderCore<TPixel>(
@@ -88,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                                       Quality = quality
                                   };
                 string info = $"{subsample}-Q{quality}";
-                ImageComparer comparer = GetComparer(quality);
+                ImageComparer comparer = GetComparer(quality, subsample);
 
                 // Does DebugSave & load reference CompareToReferenceInput():
                 image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");

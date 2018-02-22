@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(provider, pngColorType, appendPixelType: true);
+            TestPngEncoderCore(provider, pngColorType, appendPixelType: true, appendPngColorType: true);
         }
 
         [Theory]
@@ -78,33 +78,13 @@ namespace SixLabors.ImageSharp.Tests
         {
             TestPngEncoderCore(provider, PngColorType.RgbWithAlpha, compressionLevel, appendCompressionLevel: true);
         }
-
+        
         [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
-        public void PaletteColorType_WuQuantizer_File<TPixel>(
-            TestImageProvider<TPixel> provider,
-            int paletteSize)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            this.PaletteColorType_WuQuantizer(provider, paletteSize);
-        }
-
-        [Theory]
-        [WithTestPatternImages(nameof(PaletteSizes), 72, 72, PixelTypes.Rgba32)]
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var encoder = new PngEncoder
-                                  {
-                                      PngColorType = PngColorType.Palette,
-                                      PaletteSize = paletteSize,
-                                      Quantizer = new WuQuantizer<TPixel>()
-                                  };
-
-                image.VerifyEncoder(provider, "png", $"PaletteSize-{paletteSize}", encoder, appendPixelTypeToFileName: false);
-            }
+            TestPngEncoderCore(provider, PngColorType.Palette, paletteSize: paletteSize, appendPaletteSize: true);
         }
 
         private static bool HasAlpha(PngColorType pngColorType) =>
@@ -114,9 +94,11 @@ namespace SixLabors.ImageSharp.Tests
             TestImageProvider<TPixel> provider,
             PngColorType pngColorType,
             int compressionLevel = 6,
+            int paletteSize = 0,
             bool appendPngColorType = false,
             bool appendPixelType = false,
-            bool appendCompressionLevel = false)
+            bool appendCompressionLevel = false,
+            bool appendPaletteSize = false)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -126,24 +108,33 @@ namespace SixLabors.ImageSharp.Tests
                     image.Mutate(c => c.MakeOpaque());
                 }
 
-                var encoder = new PngEncoder { PngColorType = pngColorType, CompressionLevel = compressionLevel};
+                var encoder = new PngEncoder
+                                  {
+                                      PngColorType = pngColorType,
+                                      CompressionLevel = compressionLevel,
+                                      PaletteSize = paletteSize
+                                  };
 
                 string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : "";
                 string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : "";
-                string debugInfo = $"{pngColorTypeInfo}{compressionLevelInfo}";
-                
+                string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : "";
+                string debugInfo = $"{pngColorTypeInfo}{compressionLevelInfo}{paletteSizeInfo}";
+                //string referenceInfo = $"{pngColorTypeInfo}";
+
                 // Does DebugSave & load reference CompareToReferenceInput():
                 string actualOutputFile = ((ITestImageProvider)provider).Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
             
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+                string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", debugInfo, appendPixelType);
             
                 using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
+                using (var referenceImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
                 {
                     ImageComparer comparer = pngColorType == PngColorType.Palette
                                                  ? ImageComparer.Tolerant(ToleranceThresholdForPaletteEncoder)
                                                  : ImageComparer.Exact;
 
-                    comparer.VerifySimilarity(image, actualImage);
+                    comparer.VerifySimilarity(referenceImage, actualImage);
                 }
             }
         }

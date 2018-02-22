@@ -127,4 +127,7 @@
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Formats\Jpeg\GolangPort\Utils\" />
+  </ItemGroup>
 </Project>

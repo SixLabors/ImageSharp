@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
@@ -280,64 +279,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 }
 
                 quant[j] = x;
-            }
-        }
-
-        /// <summary>
-        /// Converts the 8x8 region of the image whose top-left corner is x,y to its YCbCr values.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The pixel accessor.</param>
-        /// <param name="tables">The reference to the tables instance.</param>
-        /// <param name="x">The x-position within the image.</param>
-        /// <param name="y">The y-position within the image.</param>
-        /// <param name="yBlock">The luminance block.</param>
-        /// <param name="cbBlock">The red chroma block.</param>
-        /// <param name="crBlock">The blue chroma block.</param>
-        /// <param name="rgbBytes">Temporal <see cref="PixelArea{TPixel}"/> provided by the caller</param>
-        private static void ToYCbCr<TPixel>(
-            PixelAccessor<TPixel> pixels,
-            RgbToYCbCrTables* tables,
-            int x,
-            int y,
-            ref Block8x8F yBlock,
-            ref Block8x8F cbBlock,
-            ref Block8x8F crBlock,
-            PixelArea<TPixel> rgbBytes)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref yBlock);
-            ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref cbBlock);
-            ref float crBlockStart = ref Unsafe.As<Block8x8F, float>(ref crBlock);
-
-            pixels.CopyRGBBytesStretchedTo(rgbBytes, y, x);
-
-            ref byte data0 = ref rgbBytes.Bytes[0];
-            int dataIdx = 0;
-
-            for (int j = 0; j < 8; j++)
-            {
-                int j8 = j * 8;
-                for (int i = 0; i < 8; i++)
-                {
-                    // Convert returned bytes into the YCbCr color space. Assume RGBA
-                    int r = Unsafe.Add(ref data0, dataIdx);
-                    int g = Unsafe.Add(ref data0, dataIdx + 1);
-                    int b = Unsafe.Add(ref data0, dataIdx + 2);
-
-                    int index = j8 + i;
-
-                    // RgbToYCbCrTables.Rgb2YCbCr(tables, yBlockRaw, cbBlockRaw, crBlockRaw, index, r, g, b);
-                    tables->ConvertPixelInto(
-                        r,
-                        g,
-                        b,
-                        ref Unsafe.Add(ref yBlockStart, index),
-                        ref Unsafe.Add(ref cbBlockStart, index),
-                        ref Unsafe.Add(ref crBlockStart, index));
-
-                    dataIdx += 3;
-                }
             }
         }
 

@@ -24,15 +24,25 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <param name="image">
+        /// The image to blend with the currently processing image.
+        /// If the image dimensions do not match the given <paramref name="size"/> then the image will be resized to match.
+        /// </param>
         /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="options">The opacity of the image to blend. Between 0 and 100.</param>
         public DrawImageProcessor(Image<TPixel> image, Size size, Point location, GraphicsOptions options)
         {
             Guard.MustBeBetweenOrEqualTo(options.BlendPercentage, 0, 1, nameof(options.BlendPercentage));
-            this.Image = image;
+
             this.Size = size;
+
+            if (image.Size() != size)
+            {
+                image.Mutate(x => x.Resize(size.Width, size.Height));
+            }
+
+            this.Image = image;
             this.Alpha = options.BlendPercentage;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
             this.Location = location;
@@ -61,51 +71,38 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            Image<TPixel> disposableImage = null;
             Image<TPixel> targetImage = this.Image;
 
-            try
+            // Align start/end positions.
+            Rectangle bounds = targetImage.Bounds();
+            int minX = Math.Max(this.Location.X, sourceRectangle.X);
+            int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
+            maxX = Math.Min(this.Location.X + this.Size.Width, maxX);
+            int targetX = minX - this.Location.X;
+
+            int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
+            int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
+
+            maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
+
+            int width = maxX - minX;
+            using (var amount = new Buffer<float>(width))
             {
-                if (targetImage.Size() != this.Size)
+                for (int i = 0; i < width; i++)
                 {
-                    targetImage = disposableImage = this.Image.Clone(x => x.Resize(this.Size.Width, this.Size.Height));
+                    amount[i] = this.Alpha;
                 }
 
-                // Align start/end positions.
-                Rectangle bounds = targetImage.Bounds();
-                int minX = Math.Max(this.Location.X, sourceRectangle.X);
-                int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Width);
-                maxX = Math.Min(this.Location.X + this.Size.Width, maxX);
-                int targetX = minX - this.Location.X;
-
-                int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
-                int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
-
-                maxY = Math.Min(this.Location.Y + this.Size.Height, maxY);
-
-                int width = maxX - minX;
-                using (var amount = new Buffer<float>(width))
-                {
-                    for (int i = 0; i < width; i++)
-                    {
-                        amount[i] = this.Alpha;
-                    }
-
-                    Parallel.For(
-                        minY,
-                        maxY,
-                        configuration.ParallelOptions,
-                        y =>
-                            {
-                                Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                                Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - this.Location.Y).Slice(targetX, width);
-                                this.blender.Blend(background, background, foreground, amount);
-                            });
-                }
-            }
-            finally
-            {
-                disposableImage?.Dispose();
+                Parallel.For(
+                    minY,
+                    maxY,
+                    configuration.ParallelOptions,
+                    y =>
+                        {
+                            Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
+                            Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - this.Location.Y).Slice(targetX, width);
+                            this.blender.Blend(background, background, foreground, amount);
+                        });
             }
         }
     }

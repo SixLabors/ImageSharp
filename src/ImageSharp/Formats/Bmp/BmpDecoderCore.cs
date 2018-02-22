@@ -446,17 +446,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.Span, pixelSpan, width);
                 }
             }
-
-            //using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
-            //{
-            //    for (int y = 0; y < height; y++)
-            //    {
-            //        row.Read(this.currentStream);
-
-            //        int newY = Invert(y, height, inverted);
-            //        pixels.CopyFrom(row, newY);
-            //    }
-            //}
         }
 
         /// <summary>
@@ -471,14 +460,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
-            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyxw, padding))
+
+            using (IManagedByteBuffer row = this.memoryManager.AllocatePaddedPixelRowBuffer(width, 4, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
-                    row.Read(this.currentStream);
-
+                    this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    pixels.CopyFrom(row, newY);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.Span, pixelSpan, width);
                 }
             }
         }

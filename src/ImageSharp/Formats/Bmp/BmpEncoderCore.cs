@@ -151,6 +151,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
+        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
+        {
+            return this.memoryManager.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+        }
+
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
@@ -160,12 +165,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write32Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyxw, this.padding))
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    pixels.CopyTo(row, y);
-                    writer.Write(row.Bytes, 0, row.Length);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.Span, pixelSpan.Length);
+                    writer.Write(row.Array, 0, row.Length());
                 }
             }
         }
@@ -179,8 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write24Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row =
-                this.memoryManager.AllocatePaddedPixelRowBuffer(pixels.Width, 3, this.padding))
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -189,15 +194,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     writer.Write(row.Array, 0, row.Length());
                 }
             }
-
-            //using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyx, this.padding))
-            //{
-            //    for (int y = pixels.Height - 1; y >= 0; y--)
-            //    {
-            //        pixels.CopyTo(row, y);
-            //        writer.Write(row.Bytes, 0, row.Length);
-            //    }
-            //}
         }
     }
 }

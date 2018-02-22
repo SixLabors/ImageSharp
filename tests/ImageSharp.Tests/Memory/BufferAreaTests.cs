@@ -110,5 +110,38 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.Equal(expected, r);
             }
         }
+
+        [Fact]
+        public void Clear_FullArea()
+        {
+            using (Buffer2D<int> buffer = CreateTestBuffer(22, 13))
+            {
+                buffer.GetArea().Clear();
+                Span<int> fullSpan = buffer.Span;
+                Assert.True(fullSpan.SequenceEqual(new int[fullSpan.Length]));
+            }
+        }
+
+        [Fact]
+        public void Clear_SubArea()
+        {
+            using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
+            {
+                BufferArea<int> area = buffer.GetArea(5, 5, 10, 10);
+                area.Clear();
+
+                Assert.NotEqual(0, buffer[4, 4]);
+                Assert.NotEqual(0, buffer[15, 15]);
+
+                Assert.Equal(0, buffer[5, 5]);
+                Assert.Equal(0, buffer[14, 14]);
+
+                for (int y = area.Rectangle.Y; y < area.Rectangle.Bottom; y++)
+                {
+                    Span<int> span = buffer.GetRowSpan(y).Slice(area.Rectangle.X, area.Width);
+                    Assert.True(span.SequenceEqual(new int[area.Width]));
+                }
+            }
+        }
     }
 }

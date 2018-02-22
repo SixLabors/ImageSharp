@@ -542,28 +542,31 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            // Optimization for when the size of the frame is the same as the image size.
-            if (this.restoreArea.Value.Width == imageWidth &&
-                this.restoreArea.Value.Height == imageHeight)
-            {
-                using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
-                {
-                    pixelAccessor.Reset();
-                }
-            }
-            else
-            {
-                using (var emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
-                {
-                    using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
-                    {
-                        for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
-                        {
-                            pixelAccessor.CopyFrom(emptyRow, y, this.restoreArea.Value.Left);
-                        }
-                    }
-                }
-            }
+            BufferArea<TPixel> pixelArea = frame.PixelBuffer.GetArea(this.restoreArea.Value);
+            pixelArea.Clear();
+
+            //if (this.restoreArea.Value.Width == imageWidth &&
+            //    this.restoreArea.Value.Height == imageHeight)
+            //{
+            //    using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
+            //    {
+            //        pixelAccessor.Reset();
+            //    }
+            //}
+            //else
+            //{
+
+            //    using (var emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
+            //    {
+            //        using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
+            //        {
+            //            for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
+            //            {
+            //                pixelAccessor.CopyFrom(emptyRow, y, this.restoreArea.Value.Left);
+            //            }
+            //        }
+            //    }
+            //}
 
             this.restoreArea = null;
         }

@@ -23,6 +23,38 @@ namespace SixLabors.ImageSharp.Tests
     public static class TestImageExtensions
     {
         /// <summary>
+        /// TODO: This should be a common processing method! The image.Opacity(val) multiplies the alpha channel!
+        /// </summary>
+        /// <typeparam name="TPixel"></typeparam>
+        /// <param name="ctx"></param>
+        public static void MakeOpaque<TPixel>(this IImageProcessingContext<TPixel> ctx)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ctx.Apply(
+                img =>
+                    {
+                        using (var temp = new Buffer2D<Vector4>(img.Width, img.Height))
+                        {
+                            Span<Vector4> tempSpan = temp.Span;
+                            foreach (ImageFrame<TPixel> frame in img.Frames)
+                            {
+                                Span<TPixel> pixelSpan = frame.GetPixelSpan();
+
+                                PixelOperations<TPixel>.Instance.ToVector4(pixelSpan, tempSpan, pixelSpan.Length);
+
+                                for (int i = 0; i < tempSpan.Length; i++)
+                                {
+                                    ref Vector4 v = ref tempSpan[i];
+                                    v.W = 1.0f;
+                                }
+
+                                PixelOperations<TPixel>.Instance.PackFromVector4(tempSpan, pixelSpan, pixelSpan.Length);
+                            }
+                        }
+                    });
+        }
+
+        /// <summary>
         /// Saves the image only when not running in the CI server.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format</typeparam>
@@ -357,18 +389,13 @@ namespace SixLabors.ImageSharp.Tests
                                                    )
             where TPixel : struct, IPixel<TPixel>
         {
+            string actualOutputFile = provider.Utility.SaveTestOutputFile(image, extension, encoder, testOutputDetails, appendPixelTypeToFileName);
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
-            provider.Utility.SaveTestOutputFile(image, extension, encoder, testOutputDetails, appendPixelTypeToFileName);
-            
-            referenceImageExtension = referenceImageExtension ?? extension;
-            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(referenceImageExtension, testOutputDetails, appendPixelTypeToFileName);
-
-            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(referenceOutputFile);
-
-            using (var encodedImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
+            using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
             {
                 ImageComparer comparer = customComparer ?? ImageComparer.Exact;
-                comparer.CompareImagesOrFrames(image, encodedImage);
+                comparer.VerifySimilarity(actualImage, image);
             }
         }
 

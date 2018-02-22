@@ -69,7 +69,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private BmpInfoHeader infoHeader;
 
-        private Configuration configuration;
+        private readonly Configuration configuration;
+
+        private readonly MemoryManager memoryManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
@@ -79,6 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
             this.configuration = configuration;
+            this.memoryManager = configuration.MemoryManager;
         }
 
         /// <summary>
@@ -432,16 +435,28 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
-            using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
+
+            using (IManagedByteBuffer row = this.memoryManager.AllocatePaddedPixelRowBuffer(width, 3, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
-                    row.Read(this.currentStream);
-
+                    this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    pixels.CopyFrom(row, newY);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.Span, pixelSpan, width);
                 }
             }
+
+            //using (var row = new PixelArea<TPixel>(width, ComponentOrder.Zyx, padding))
+            //{
+            //    for (int y = 0; y < height; y++)
+            //    {
+            //        row.Read(this.currentStream);
+
+            //        int newY = Invert(y, height, inverted);
+            //        pixels.CopyFrom(row, newY);
+            //    }
+            //}
         }
 
         /// <summary>

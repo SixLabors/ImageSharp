@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
+    using System.IO;
+
     internal static class BufferExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -53,5 +55,15 @@ namespace SixLabors.ImageSharp.Memory
         public static ref T DangerousGetPinnableReference<T>(this IBuffer<T> buffer)
             where T : struct =>
             ref buffer.Span.DangerousGetPinnableReference();
+
+        public static void Read(this Stream stream, IManagedByteBuffer buffer)
+        {
+            stream.Read(buffer.Array, 0, buffer.Length());
+        }
+
+        public static void Write(this Stream stream, IManagedByteBuffer buffer)
+        {
+            stream.Write(buffer.Array, 0, buffer.Length());
+        }
     }
 }

@@ -9,6 +9,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 {
+    using System;
+
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
@@ -179,7 +181,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 
         public void Convert(IPixelSource<TPixel> pixels, int x, int y)
         {
+            this.pixelBlock.LoadAndStretchEdges(pixels, x, y);
 
+            Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
+            PixelOperations<TPixel>.Instance.ToRgb24(this.pixelBlock.AsSpanUnsafe(), rgbSpan, 64);
+
+            ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Y);
+            ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cb);
+            ref float crBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cr);
+            ref Rgb24 rgbStart = ref rgbSpan[0];
+
+            for (int i = 0; i < 64; i++)
+            {
+                ref Rgb24 c = ref Unsafe.Add(ref rgbStart, i);
+
+                this.colorTables.ConvertPixelInto(
+                    c.R,
+                    c.G,
+                    c.B,
+                    ref Unsafe.Add(ref yBlockStart, i),
+                    ref Unsafe.Add(ref cbBlockStart, i),
+                    ref Unsafe.Add(ref crBlockStart, i)
+                    );
+            }
         }
     }
 }

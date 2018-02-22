@@ -1,25 +1,58 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
-    using System.Runtime.InteropServices;
-
     /// <summary>
     /// A generic 8x8 block implementation, useful for manipulating custom 8x8 pixel data.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    // ReSharper disable once InconsistentNaming
     internal unsafe partial struct GenericBlock8x8<T>
         where T : struct
     {
         public const int Size = 64;
 
         public const int SizeInBytes = Size * 3;
+
+        /// <summary>
+        /// FOR TESTING ONLY!
+        /// Gets or sets a <see cref="Rgb24"/> value at the given index
+        /// </summary>
+        /// <param name="idx">The index</param>
+        /// <returns>The value</returns>
+        public T this[int idx]
+        {
+            get
+            {
+                ref T selfRef = ref Unsafe.As<GenericBlock8x8<T>, T>(ref this);
+                return Unsafe.Add(ref selfRef, idx);
+            }
+
+            set
+            {
+                ref T selfRef = ref Unsafe.As<GenericBlock8x8<T>, T>(ref this);
+                Unsafe.Add(ref selfRef, idx) = value;
+            }
+        }
+
+        /// <summary>
+        /// FOR TESTING ONLY!
+        /// Gets or sets a value in a row+coulumn of the 8x8 block
+        /// </summary>
+        /// <param name="x">The x position index in the row</param>
+        /// <param name="y">The column index</param>
+        /// <returns>The value</returns>
+        public T this[int x, int y]
+        {
+            get => this[(y * 8) + x];
+            set => this[(y * 8) + x] = value;
+        }
 
         public void LoadAndStretchEdges<TPixel>(IPixelSource<TPixel> source, int sourceX, int sourceY)
             where TPixel : struct, IPixel<TPixel>
@@ -52,8 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             ref byte blockStart = ref Unsafe.As<GenericBlock8x8<T>, byte>(ref this);
             ref byte imageStart = ref Unsafe.As<T, byte>(
-                                      ref Unsafe.Add(ref source.GetRowSpan(sourceY).DangerousGetPinnableReference(), sourceX)
-                                  );
+                                      ref Unsafe.Add(ref source.GetRowSpan(sourceY).DangerousGetPinnableReference(), sourceX));
 
             int blockRowSizeInBytes = 8 * Unsafe.SizeOf<T>();
             int imageRowSizeInBytes = source.Width * Unsafe.SizeOf<T>();
@@ -93,39 +125,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// Only for on-stack instances!
         /// </summary>
         public Span<T> AsSpanUnsafe() => new Span<T>(Unsafe.AsPointer(ref this), Size);
-
-        /// <summary>
-        /// FOR TESTING ONLY!
-        /// Gets or sets a <see cref="Rgb24"/> value at the given index
-        /// </summary>
-        /// <param name="idx">The index</param>
-        /// <returns>The value</returns>
-        public T this[int idx]
-        {
-            get
-            {
-                ref T selfRef = ref Unsafe.As<GenericBlock8x8<T>, T>(ref this);
-                return Unsafe.Add(ref selfRef, idx);
-            }
-
-            set
-            {
-                ref T selfRef = ref Unsafe.As<GenericBlock8x8<T>, T>(ref this);
-                Unsafe.Add(ref selfRef, idx) = value;
-            }
-        }
-
-        /// <summary>
-        /// FOR TESTING ONLY!
-        /// Gets or sets a value in a row+coulumn of the 8x8 block
-        /// </summary>
-        /// <param name="x">The x position index in the row</param>
-        /// <param name="y">The column index</param>
-        /// <returns>The value</returns>
-        public T this[int x, int y]
-        {
-            get => this[(y * 8) + x];
-            set => this[(y * 8) + x] = value;
-        }
     }
 }

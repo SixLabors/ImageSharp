@@ -37,6 +37,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
+        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
+
+        /// <inheritdoc/>
         public Image<TPixel> Apply()
         {
             if (!this.mutate && this.destination == null)
@@ -74,7 +77,5 @@ namespace SixLabors.ImageSharp
         {
             return this.ApplyProcessor(processor, this.source.Bounds());
         }
-
-        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
     }
 }

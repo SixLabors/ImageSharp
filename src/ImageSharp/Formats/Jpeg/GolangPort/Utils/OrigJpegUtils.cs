@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Utils
 {
     /// <summary>
-    ///     Jpeg specific utilities and extension methods
+    /// Jpeg specific utilities and extension methods
     /// </summary>
     internal static class OrigJpegUtils
     {

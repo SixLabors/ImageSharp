@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,8 +15,6 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
-    using SixLabors.ImageSharp.Helpers;
-
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>

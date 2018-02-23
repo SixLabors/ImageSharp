@@ -4,12 +4,11 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Image encoder for writing an image to a stream as a Windows bitmap.
     /// </summary>

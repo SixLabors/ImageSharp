@@ -4,14 +4,13 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
-    using SixLabors.ImageSharp.Helpers;
-
     /// <summary>
     /// Provides methods that allow the flipping of an image around its center point.
     /// </summary>

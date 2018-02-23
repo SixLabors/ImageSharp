@@ -34,8 +34,14 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         public int Height { get; private set; }
 
+        /// <summary>
+        /// Gets the span to the whole area.
+        /// </summary>
         public Span<T> Span => this.Buffer.Span;
 
+        /// <summary>
+        /// Gets the backing <see cref="IBuffer{T}"/>
+        /// </summary>
         public IBuffer<T> Buffer { get; private set; }
 
         /// <summary>
@@ -56,11 +62,20 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
+        /// <summary>
+        /// Disposes the <see cref="Buffer2D{T}"/> instance
+        /// </summary>
         public void Dispose()
         {
             this.Buffer?.Dispose();
         }
 
+        /// <summary>
+        /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
+        /// Useful to transfer the contents of a temporal <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
+        /// </summary>
+        /// <param name="a">The first buffer</param>
+        /// <param name="b">The second buffer</param>
         public static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();

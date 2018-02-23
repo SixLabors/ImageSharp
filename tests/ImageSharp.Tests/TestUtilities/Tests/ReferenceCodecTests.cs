@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (pngColorType != PngColorType.RgbWithAlpha)
                 {
-                    sourceImage.Mutate(c => c.Opacity(1));
+                    sourceImage.Mutate(c => c.MakeOpaque());
                 }
 
                 var encoder = new PngEncoder() { PngColorType = pngColorType };
@@ -93,12 +93,12 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> original = provider.GetImage())
             {
-                original.Mutate(c => c.Opacity(1));
+                original.Mutate(c => c.MakeOpaque());
                 using (var sdBitmap = new System.Drawing.Bitmap(path))
                 {
                     using (Image<TPixel> resaved = SystemDrawingBridge.FromFromRgb24SystemDrawingBitmap<TPixel>(sdBitmap))
                     {
-                        resaved.Mutate(c => c.Opacity(1));
+                        resaved.Mutate(c => c.MakeOpaque());
                         ImageComparer comparer = ImageComparer.Exact;
                         comparer.VerifySimilarity(original, resaved);
                     }

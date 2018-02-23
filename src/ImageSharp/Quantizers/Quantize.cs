@@ -4,13 +4,12 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
 namespace SixLabors.ImageSharp
 {
-    using SixLabors.ImageSharp.Memory;
-
     /// <summary>
     /// Extension methods for the <see cref="Image{TPixel}"/> type.
     /// </summary>
@@ -78,7 +77,6 @@ namespace SixLabors.ImageSharp
                                     int i = x + yy;
                                     TPixel color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
                                     row[x] = color;
-                                    //pixels[x, y] = color;
                                 }
                             });
 

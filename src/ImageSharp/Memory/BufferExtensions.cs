@@ -2,12 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
-    using System.IO;
-
     internal static class BufferExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

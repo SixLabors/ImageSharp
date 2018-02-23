@@ -17,25 +17,6 @@ namespace SixLabors.ImageSharp
     internal sealed class PixelAccessor<TPixel> : IDisposable, IBuffer2D<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-#pragma warning disable SA1401 // Fields must be private
-        /// <summary>
-        /// The <see cref="Buffer2D{T}"/> containing the pixel data.
-        /// </summary>
-        internal Buffer2D<TPixel> PixelBuffer;
-        private bool ownedBuffer;
-#pragma warning restore SA1401 // Fields must be private
-
-        /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
-        /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose() method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        private bool isDisposed;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
         /// </summary>
@@ -46,43 +27,13 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(image.PixelBuffer.Width, 0, "image width");
             Guard.MustBeGreaterThan(image.PixelBuffer.Height, 0, "image height");
 
-            this.SetPixelBufferUnsafe(image.PixelBuffer, false);
+            this.SetPixelBufferUnsafe(image.PixelBuffer);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}"/> class.
+        /// Gets the <see cref="Buffer2D{T}"/> containing the pixel data.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
-        /// <param name="width">The width of the image represented by the pixel buffer.</param>
-        /// <param name="height">The height of the image represented by the pixel buffer.</param>
-        public PixelAccessor(MemoryManager memoryManager, int width, int height)
-            : this(width, height, memoryManager.Allocate2D<TPixel>(width, height, true), true)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PixelAccessor{TPixel}" /> class.
-        /// </summary>
-        /// <param name="width">The width of the image represented by the pixel buffer.</param>
-        /// <param name="height">The height of the image represented by the pixel buffer.</param>
-        /// <param name="pixels">The pixel buffer.</param>
-        /// <param name="ownedBuffer">if set to <c>true</c> [owned buffer].</param>
-        private PixelAccessor(int width, int height, Buffer2D<TPixel> pixels, bool ownedBuffer)
-        {
-            Guard.NotNull(pixels, nameof(pixels));
-            Guard.MustBeGreaterThan(width, 0, nameof(width));
-            Guard.MustBeGreaterThan(height, 0, nameof(height));
-
-            this.SetPixelBufferUnsafe(pixels, ownedBuffer);
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="PixelAccessor{TPixel}"/> class.
-        /// </summary>
-        ~PixelAccessor()
-        {
-            this.Dispose();
-        }
+        internal Buffer2D<TPixel> PixelBuffer { get; private set; }
 
         /// <summary>
         /// Gets the size of a single pixel in the number of bytes.
@@ -132,22 +83,6 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         public void Dispose()
         {
-            if (this.isDisposed || !this.ownedBuffer)
-            {
-                return;
-            }
-
-            // Note disposing is done.
-            this.isDisposed = true;
-
-            this.PixelBuffer.Dispose();
-
-            // This object will be cleaned up by the Dispose method.
-            // Therefore, you should call GC.SuppressFinalize to
-            // take this object off the finalization queue
-            // and prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -167,7 +102,7 @@ namespace SixLabors.ImageSharp
         internal Buffer2D<TPixel> SwapBufferOwnership(Buffer2D<TPixel> pixels)
         {
             Buffer2D<TPixel> oldPixels = this.PixelBuffer;
-            this.SetPixelBufferUnsafe(pixels, this.ownedBuffer);
+            this.SetPixelBufferUnsafe(pixels);
             return oldPixels;
         }
 
@@ -184,11 +119,9 @@ namespace SixLabors.ImageSharp
         /// Sets the pixel buffer in an unsafe manor this should not be used unless you know what its doing!!!
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>
-        /// <param name="ownedBuffer">if set to <c>true</c> then this instance ownes the buffer and thus should dispose of it afterwards.</param>
-        private void SetPixelBufferUnsafe(Buffer2D<TPixel> pixels, bool ownedBuffer)
+        private void SetPixelBufferUnsafe(Buffer2D<TPixel> pixels)
         {
             this.PixelBuffer = pixels;
-            this.ownedBuffer = ownedBuffer;
 
             this.Width = pixels.Width;
             this.Height = pixels.Height;

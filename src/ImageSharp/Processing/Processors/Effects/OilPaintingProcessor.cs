@@ -11,6 +11,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    using SixLabors.ImageSharp.Helpers;
+
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> to apply an oil painting effect to an <see cref="Image{TPixel}"/>.
     /// </summary>
@@ -65,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int radius = this.BrushSize >> 1;
             int levels = this.Levels;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
 
@@ -133,7 +135,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         }
                     });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
     }

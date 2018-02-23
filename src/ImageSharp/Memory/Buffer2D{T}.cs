@@ -29,14 +29,14 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <inheritdoc />
-        public int Width { get; }
+        public int Width { get; private set; }
 
         /// <inheritdoc />
-        public int Height { get; }
+        public int Height { get; private set; }
 
         public Span<T> Span => this.Buffer.Span;
 
-        public IBuffer<T> Buffer { get; }
+        public IBuffer<T> Buffer { get; private set; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -59,6 +59,22 @@ namespace SixLabors.ImageSharp.Memory
         public void Dispose()
         {
             this.Buffer?.Dispose();
+        }
+
+        public static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
+        {
+            Size aSize = a.Size();
+            Size bSize = b.Size();
+
+            IBuffer<T> temp = a.Buffer;
+            a.Buffer = b.Buffer;
+            b.Buffer = temp;
+
+            b.Width = aSize.Width;
+            b.Height = aSize.Height;
+
+            a.Width = bSize.Width;
+            a.Height = bSize.Height;
         }
     }
 }

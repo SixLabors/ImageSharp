@@ -27,17 +27,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override Matrix4x4 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
         {
-            var translationToTargetCenter = Matrix4x4.CreateTranslation(-destinationRectangle.Width * .5F, -destinationRectangle.Height * .5F, 0);
-            var translateToSourceCenter = Matrix4x4.CreateTranslation(sourceRectangle.Width * .5F, sourceRectangle.Height * .5F, 0);
-            return translationToTargetCenter * this.TransformMatrix * translateToSourceCenter;
+            return TransformHelpers.GetCenteredTransformMatrix(sourceRectangle, destinationRectangle, this.TransformMatrix);
         }
 
         /// <inheritdoc/>
-        protected override Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix4x4 matrix)
+        protected override Size GetTransformedDimensions(Size sourceDimensions, Matrix4x4 matrix)
         {
-            return Matrix4x4.Invert(this.TransformMatrix, out Matrix4x4 sizeMatrix)
-                ? TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, sizeMatrix)
-                : sourceRectangle;
+            var sourceRectangle = new Rectangle(0, 0, sourceDimensions.Width, sourceDimensions.Height);
+            return TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, this.TransformMatrix).Size;
         }
     }
 }

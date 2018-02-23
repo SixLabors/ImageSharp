@@ -1,5 +1,7 @@
 ﻿namespace SixLabors.ImageSharp.Memory
 {
+    using SixLabors.Primitives;
+
     /// <summary>
     /// Extension methods for <see cref="MemoryManager"/>.
     /// </summary>
@@ -43,6 +45,10 @@
 
             return new Buffer2D<T>(buffer, width, height);
         }
+
+        public static Buffer2D<T> Allocate2D<T>(this MemoryManager memoryManager, Size size)
+            where T : struct =>
+            Allocate2D<T>(memoryManager, size.Width, size.Height, false);
 
         public static Buffer2D<T> Allocate2D<T>(this MemoryManager memoryManager, int width, int height)
             where T : struct =>

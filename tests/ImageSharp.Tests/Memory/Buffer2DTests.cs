@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
     using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.Tests.Common;
+    using SixLabors.Primitives;
 
     using Xunit;
 
@@ -125,6 +126,23 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 ref TestStructs.Foo expected = ref span[y * width + x];
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
+            }
+        }
+
+        [Fact]
+        public void SwapContents()
+        {
+            using (Buffer2D<int> a = this.MemoryManager.Allocate2D<int>(10, 5))
+            using (Buffer2D<int> b = this.MemoryManager.Allocate2D<int>(3, 7))
+            {
+                IBuffer<int> aa = a.Buffer;
+                IBuffer<int> bb = b.Buffer;
+
+                Buffer2D<int>.SwapContents(a, b);
+
+                Assert.Equal(bb, a.Buffer);
+                Assert.Equal(new Size(3, 7), a.Size());
+                Assert.Equal(new Size(10, 5), b.Size());
             }
         }
     }

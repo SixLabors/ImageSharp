@@ -10,6 +10,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
+    using SixLabors.ImageSharp.Helpers;
+
     /// <summary>
     /// Provides methods that allow the flipping of an image around its center point.
     /// </summary>
@@ -54,11 +56,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="configuration">The configuration.</param>
         private void FlipX(ImageFrame<TPixel> source, Configuration configuration)
         {
-            int width = source.Width;
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
             {
                 Parallel.For(
                     0,
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             altSourceRow.CopyTo(targetRow);
                         });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
 

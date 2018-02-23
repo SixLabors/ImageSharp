@@ -14,6 +14,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
+    using SixLabors.ImageSharp.Helpers;
+
     /// <summary>
     /// Represents a single frame in a animation.
     /// </summary>
@@ -151,12 +153,26 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Copies the pixels to another <see cref="PixelAccessor{TPixel}"/> of the same size.
+        /// Copies the pixels to a <see cref="PixelAccessor{TPixel}"/> of the same size.
         /// </summary>
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            SpanHelper.Copy(this.GetPixelSpan(), target.PixelBuffer.Span);
+            this.CopyTo(target.PixelBuffer);
+        }
+
+        /// <summary>
+        /// Copies the pixels to a <see cref="Buffer2D{TPixel}"/> of the same size.
+        /// </summary>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        internal void CopyTo(Buffer2D<TPixel> target)
+        {
+            if (this.Size() != target.Size())
+            {
+                throw new ArgumentException("ImageFrame<T>.CopyTo(): target must be of the same size!", nameof(target));
+            }
+
+            SpanHelper.Copy(this.GetPixelSpan(), target.Span);
         }
 
         /// <summary>

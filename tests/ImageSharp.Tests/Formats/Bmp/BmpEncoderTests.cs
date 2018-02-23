@@ -48,9 +48,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             TestBmpEncoderCore(provider, bitsPerPixel);
         }
-
         
-
         private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>
         {   

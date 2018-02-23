@@ -442,7 +442,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 imageFrame = currentFrame;
 
-                this.RestoreToBackground(imageFrame, image.Width, image.Height);
+                this.RestoreToBackground(imageFrame);
             }
 
             int i = 0;
@@ -532,9 +532,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="frame">The frame.</param>
-        /// <param name="imageWidth">Width of the image.</param>
-        /// <param name="imageHeight">Height of the image.</param>
-        private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame, int imageWidth, int imageHeight)
+        private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.restoreArea == null)
@@ -544,29 +542,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             BufferArea<TPixel> pixelArea = frame.PixelBuffer.GetArea(this.restoreArea.Value);
             pixelArea.Clear();
-
-            //if (this.restoreArea.Value.Width == imageWidth &&
-            //    this.restoreArea.Value.Height == imageHeight)
-            //{
-            //    using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
-            //    {
-            //        pixelAccessor.Reset();
-            //    }
-            //}
-            //else
-            //{
-
-            //    using (var emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
-            //    {
-            //        using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
-            //        {
-            //            for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
-            //            {
-            //                pixelAccessor.CopyFrom(emptyRow, y, this.restoreArea.Value.Left);
-            //            }
-            //        }
-            //    }
-            //}
 
             this.restoreArea = null;
         }

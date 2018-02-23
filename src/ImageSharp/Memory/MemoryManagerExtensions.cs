@@ -1,7 +1,7 @@
-﻿namespace SixLabors.ImageSharp.Memory
-{
-    using SixLabors.Primitives;
+﻿using SixLabors.Primitives;
 
+namespace SixLabors.ImageSharp.Memory
+{
     /// <summary>
     /// Extension methods for <see cref="MemoryManager"/>.
     /// </summary>

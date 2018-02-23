@@ -51,8 +51,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public AffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size targetDimensions)
             : base(sampler)
         {
-            // Transforms are inverted else the output is the opposite of the expected.
-            Matrix3x2.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
             this.targetDimensions = targetDimensions;
         }
@@ -94,6 +92,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             // Since could potentially be resizing the canvas we might need to re-calculate the matrix
             Matrix3x2 matrix = this.GetProcessingMatrix(sourceBounds, targetBounds);
+
+            // Convert from screen to world space.
+            Matrix3x2.Invert(matrix, out matrix);
 
             if (this.Sampler is NearestNeighborResampler)
             {

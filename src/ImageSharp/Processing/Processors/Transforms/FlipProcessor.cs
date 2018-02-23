@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(configuration.MemoryManager, width, height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
             {
                 Parallel.For(
                     0,
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             }
                         });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
     }

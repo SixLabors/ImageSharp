@@ -59,7 +59,51 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Returns the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.
+        /// Gets the centered transform matrix based upon the source and destination rectangles
+        /// </summary>
+        /// <param name="sourceRectangle">The source image bounds.</param>
+        /// <param name="destinationRectangle">The destination image bounds.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>The <see cref="Matrix3x2"/></returns>
+        public static Matrix3x2 GetCenteredTransformMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle, Matrix3x2 matrix)
+        {
+            // We invert the matrix to handle the transformation from screen to world space.
+            // This ensures scaling matrices are correct.
+            Matrix3x2.Invert(matrix, out Matrix3x2 inverted);
+
+            var translationToTargetCenter = Matrix3x2.CreateTranslation(-destinationRectangle.Width * .5F, -destinationRectangle.Height * .5F);
+            var translateToSourceCenter = Matrix3x2.CreateTranslation(sourceRectangle.Width * .5F, sourceRectangle.Height * .5F);
+
+            Matrix3x2.Invert(translationToTargetCenter * inverted * translateToSourceCenter, out Matrix3x2 centered);
+
+            // Translate back to world to pass to the Transform method.
+            return centered;
+        }
+
+        /// <summary>
+        /// Gets the centered transform matrix based upon the source and destination rectangles
+        /// </summary>
+        /// <param name="sourceRectangle">The source image bounds.</param>
+        /// <param name="destinationRectangle">The destination image bounds.</param>
+        /// <param name="matrix">The transformation matrix.</param>
+        /// <returns>The <see cref="Matrix4x4"/></returns>
+        public static Matrix4x4 GetCenteredTransformMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle, Matrix4x4 matrix)
+        {
+            // We invert the matrix to handle the transformation from screen to world space.
+            // This ensures scaling matrices are correct.
+            Matrix4x4.Invert(matrix, out Matrix4x4 inverted);
+
+            var translationToTargetCenter = Matrix4x4.CreateTranslation(-destinationRectangle.Width * .5F, -destinationRectangle.Height * .5F, 0);
+            var translateToSourceCenter = Matrix4x4.CreateTranslation(sourceRectangle.Width * .5F, sourceRectangle.Height * .5F, 0);
+
+            Matrix4x4.Invert(translationToTargetCenter * inverted * translateToSourceCenter, out Matrix4x4 centered);
+
+            // Translate back to world to pass to the Transform method.
+            return centered;
+        }
+
+        /// <summary>
+        /// Returns the bounding rectangle relative to the source for the given transformation matrix.
         /// </summary>
         /// <param name="rectangle">The source rectangle.</param>
         /// <param name="matrix">The transformation matrix.</param>
@@ -79,7 +123,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Returns the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.
+        /// Returns the bounding rectangle relative to the source for the given transformation matrix.
         /// </summary>
         /// <param name="rectangle">The source rectangle.</param>
         /// <param name="matrix">The transformation matrix.</param>

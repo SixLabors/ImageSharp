@@ -15,6 +15,12 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
+        /// Gets the source image bounds
+        /// </summary>
+        /// <returns>The <see cref="Rectangle"/></returns>
+        Rectangle Bounds();
+
+        /// <summary>
         /// Adds the processor to the current set of image operations to be applied.
         /// </summary>
         /// <param name="processor">The processor to apply</param>
@@ -40,7 +46,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Adds the processors to the current image
         /// </summary>
-        /// <returns>The current image or a new image depending on withere this is alloed to mutate the source image.</returns>
+        /// <returns>The current image or a new image depending on whether this is allowed to mutate the source image.</returns>
         Image<TPixel> Apply();
     }
 }

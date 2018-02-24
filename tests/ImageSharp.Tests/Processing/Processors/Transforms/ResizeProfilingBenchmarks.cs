@@ -11,6 +11,8 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using SixLabors.Primitives;
+
     public class ResizeProfilingBenchmarks : MeasureFixture
     {
         public ResizeProfilingBenchmarks(ITestOutputHelper output)
@@ -38,9 +40,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         // [Fact]
         public void PrintWeightsData()
         {
-            var proc = new ResizeProcessor<Rgba32>(KnownResamplers.Bicubic, 200, 200);
+            var size = new Size(500, 500);
+            var proc = new ResizeProcessor<Rgba32>(KnownResamplers.Bicubic, 200, 200, size);
 
-            WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
+            WeightsBuffer weights = proc.PrecomputeWeights(proc.Width, size.Width);
 
             var bld = new StringBuilder();
 

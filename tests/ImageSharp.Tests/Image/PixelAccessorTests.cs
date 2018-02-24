@@ -67,10 +67,10 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Theory]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyz)]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
-        [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyzw)]
+        // [Theory]
+        // [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyz)]
+        // [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyx)]
+        // [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Xyzw)]
         // [WithBlankImages(16, 16, PixelTypes.All, ComponentOrder.Zyxw)] TODO: This fails sometimes on Travis. Investigate
         internal void CopyToThenCopyFromWithOffset<TPixel>(TestImageProvider<TPixel> provider, ComponentOrder order)
             where TPixel : struct, IPixel<TPixel>

@@ -47,6 +47,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
+        public Rectangle Bounds() => this.source.Bounds();
+
+        /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
             if (!this.mutate && this.destination == null)
@@ -70,7 +73,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
         {
-            return this.ApplyProcessor(processor, this.source.Bounds());
+            return this.ApplyProcessor(processor, this.Bounds());
         }
     }
 }

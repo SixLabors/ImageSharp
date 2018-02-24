@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
             operations.ApplyProcessors(this.processor);
-            Assert.Contains(this.processor, operations.applied.Select(x => x.Processor));
+            Assert.Contains(this.processor, operations.Applied.Select(x => x.Processor));
         }
 
         public void Dispose()

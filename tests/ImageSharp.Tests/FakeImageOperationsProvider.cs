@@ -1,12 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
@@ -23,13 +22,13 @@ namespace SixLabors.ImageSharp.Tests
         public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
         {
             return this.ImageOperators.OfType<FakeImageOperations<TPixel>>()
-                .Where(x => x.source == source);
+                .Where(x => x.Source == source);
         }
 
-        public IEnumerable<FakeImageOperations<TPixel>.AppliedOpperation> AppliedOperations<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
+        public IEnumerable<FakeImageOperations<TPixel>.AppliedOperation> AppliedOperations<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
         {
             return Created(source)
-                .SelectMany(x => x.applied);
+                .SelectMany(x => x.Applied);
         }
 
         public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate) where TPixel : struct, IPixel<TPixel>
@@ -43,32 +42,31 @@ namespace SixLabors.ImageSharp.Tests
         public class FakeImageOperations<TPixel> : IInternalImageProcessingContext<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            public Image<TPixel> source;
-
-            public List<AppliedOpperation> applied = new List<AppliedOpperation>();
-            public bool mutate;
+            private bool mutate;
 
             public FakeImageOperations(Image<TPixel> source, bool mutate)
             {
                 this.mutate = mutate;
-                if (mutate)
-                {
-                    this.source = source;
-                }
-                else
-                {
-                    this.source = source?.Clone();
-                }
+                this.Source = mutate ? source : source?.Clone();
             }
+
+            public Image<TPixel> Source { get; }
+
+            public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
             public Image<TPixel> Apply()
             {
-                return source;
+                return this.Source;
+            }
+
+            public Rectangle Bounds()
+            {
+                return this.Source.Bounds();
             }
 
             public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
             {
-                applied.Add(new AppliedOpperation
+                this.Applied.Add(new AppliedOperation
                 {
                     Processor = processor,
                     Rectangle = rectangle
@@ -78,13 +76,13 @@ namespace SixLabors.ImageSharp.Tests
 
             public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
             {
-                applied.Add(new AppliedOpperation
+                this.Applied.Add(new AppliedOperation
                 {
                     Processor = processor
                 });
                 return this;
             }
-            public struct AppliedOpperation
+            public struct AppliedOperation
             {
                 public Rectangle? Rectangle { get; set; }
                 public IImageProcessor<TPixel> Processor { get; set; }

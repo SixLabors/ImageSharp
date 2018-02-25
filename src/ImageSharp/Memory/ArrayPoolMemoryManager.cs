@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
         /// <param name="poolSelectorThresholdInBytes">Arrays over this threshold will be pooled in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
         public ArrayPoolMemoryManager(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes)
-            : this(maxPoolSizeInBytes, poolSelectorThresholdInBytes, 8, 24)
+            : this(maxPoolSizeInBytes, poolSelectorThresholdInBytes, DefaultLargePoolBucketCount, DefaultNormalPoolBucketCount)
         {
         }
 
@@ -106,6 +106,7 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
 
+        /// <inheritdoc />
         internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
         {
             ArrayPool<byte> pool = this.GetArrayPool(length);

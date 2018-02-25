@@ -16,13 +16,13 @@ namespace SixLabors.ImageSharp.Memory
         {
             private readonly int length;
 
-            private readonly ArrayPool<byte> sourcePool;
+            private WeakReference<ArrayPool<byte>> sourcePoolReference;
 
             public Buffer(byte[] data, int length, ArrayPool<byte> sourcePool)
             {
                 this.Data = data;
                 this.length = length;
-                this.sourcePool = sourcePool;
+                this.sourcePoolReference = new WeakReference<ArrayPool<byte>>(sourcePool);
             }
 
             protected byte[] Data { get; private set; }
@@ -31,12 +31,17 @@ namespace SixLabors.ImageSharp.Memory
 
             public void Dispose()
             {
-                if (this.Data == null)
+                if (this.Data == null || this.sourcePoolReference == null)
                 {
                     return;
                 }
 
-                this.sourcePool.Return(this.Data);
+                if (this.sourcePoolReference.TryGetTarget(out ArrayPool<byte> pool))
+                {
+                    pool.Return(this.Data);
+                }
+
+                this.sourcePoolReference = null;
                 this.Data = null;
             }
         }

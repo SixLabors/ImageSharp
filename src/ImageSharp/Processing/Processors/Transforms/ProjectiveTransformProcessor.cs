@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(
                 x => new ImageFrame<TPixel>(
                     source.GetMemoryManager(),
-                    this.targetRectangle.Size,
+                    this.targetDimensions,
                     x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added

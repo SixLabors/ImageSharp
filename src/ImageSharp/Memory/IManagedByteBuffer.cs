@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Represents a byte buffer backed by a managed array.
+    /// Represents a byte buffer backed by a managed array. Useful for interop with classic .NET API-s.
     /// </summary>
     internal interface IManagedByteBuffer : IBuffer<byte>
     {

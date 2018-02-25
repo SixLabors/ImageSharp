@@ -171,9 +171,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         [Fact]
-        public void CreateWithNormalPooling()
+        public void CreateDefault()
         {
-            this.MemoryManager = ArrayPoolMemoryManager.CreateWithNormalPooling();
+            this.MemoryManager = ArrayPoolMemoryManager.CreateDefault();
 
             Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2 * 4096 * 4096));
             Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(2048 * 2048));

@@ -19,6 +19,12 @@ namespace SixLabors.ImageSharp.Memory
         internal abstract IBuffer<T> Allocate<T>(int length, bool clear)
             where T : struct;
 
+        /// <summary>
+        /// Allocates an <see cref="IManagedByteBuffer"/>
+        /// </summary>
+        /// <param name="length">The requested buffer length</param>
+        /// <param name="clear">A value indicating whether to clean the buffer</param>
+        /// <returns>The <see cref="IManagedByteBuffer"/></returns>
         internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear);
 
         /// <summary>

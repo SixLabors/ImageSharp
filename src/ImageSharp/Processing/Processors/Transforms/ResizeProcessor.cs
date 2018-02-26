@@ -128,12 +128,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 firstPassPixels.Buffer.Clear();
 
-                Parallel.For(
+                ParallelFor.WithTemporalBuffer(
                     0,
                     sourceRectangle.Bottom,
-                    configuration.ParallelOptions,
-                    () => this.MemoryManager.Allocate<Vector4>(source.Width),
-                    (int y, ParallelLoopState sate, IBuffer<Vector4> tempRowBuffer) =>
+                    configuration,
+                    source.Width,
+                    (int y, IBuffer<Vector4> tempRowBuffer) =>
                         {
                             Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
@@ -157,10 +157,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     firstPassRow[x] = window.ComputeWeightedRowSum(tempRowSpan, sourceX);
                                 }
                             }
-
-                            return tempRowBuffer;
-                        },
-                    (IBuffer<Vector4> tmp) => tmp.Dispose());
+                        });
 
                 // Now process the rows.
                 Parallel.For(

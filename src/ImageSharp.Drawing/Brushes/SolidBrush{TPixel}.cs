@@ -89,28 +89,20 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                try
+                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
+
+                MemoryManager memoryManager = this.Target.MemoryManager;
+
+                using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
                 {
-                    Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
+                    Span<float> amountSpan = amountBuffer.Span;
 
-                    MemoryManager memoryManager = this.Target.MemoryManager;
-
-                    using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        Span<float> amountSpan = amountBuffer.Span;
-
-                        for (int i = 0; i < scanline.Length; i++)
-                        {
-                            amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
-                        }
-
-                        this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
+                        amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                     }
-                }
-                catch (Exception)
-                {
-                    // TODO: Why are we catching exceptions here silently ???
-                    throw;
+
+                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
                 }
             }
         }

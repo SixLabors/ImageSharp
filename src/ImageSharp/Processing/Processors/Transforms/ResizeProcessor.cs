@@ -223,6 +223,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
+                // TODO: Optimization opportunity: if we could assume that all frames are of the same size, we can move this into 'BeforeImageApply()`
                 this.horizontalWeights = this.PrecomputeWeights(
                     this.ResizeRectangle.Width,
                     sourceRectangle.Width);
@@ -367,6 +368,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected override void AfterApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
             base.AfterApply(source, destination, sourceRectangle, configuration);
+
+            // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
             this.horizontalWeights?.Dispose();
             this.horizontalWeights = null;
             this.verticalWeights?.Dispose();

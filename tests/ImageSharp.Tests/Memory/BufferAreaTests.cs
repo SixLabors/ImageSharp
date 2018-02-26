@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 BufferArea<int> area0 = buffer.GetArea(6, 8, 10, 10);
 
-                ref int r = ref area0.GetReferenceToOrigo();
+                ref int r = ref area0.GetReferenceToOrigin();
 
                 int expected = buffer[6, 8];
                 Assert.Equal(expected, r);

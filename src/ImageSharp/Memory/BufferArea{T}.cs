@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <returns>The reference to the [0,0] element</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetReferenceToOrigo() =>
+        public ref T GetReferenceToOrigin() =>
             ref this.DestinationBuffer.Span[(this.Rectangle.Y * this.DestinationBuffer.Width) + this.Rectangle.X];
 
         /// <summary>

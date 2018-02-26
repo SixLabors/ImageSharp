@@ -132,33 +132,35 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     0,
                     sourceRectangle.Bottom,
                     configuration.ParallelOptions,
-                    y =>
+                    () => this.MemoryManager.Allocate<Vector4>(source.Width),
+                    (int y, ParallelLoopState sate, IBuffer<Vector4> tempRowBuffer) =>
                         {
-                            // TODO: Without Parallel.For() this buffer object could be reused:
-                            using (IBuffer<Vector4> tempRowBuffer = this.MemoryManager.Allocate<Vector4>(source.Width))
-                            {
-                                Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
-                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer.Span, sourceRow.Length);
+                            Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
-                                if (this.Compand)
+                            PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
+
+                            if (this.Compand)
+                            {
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                        firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer.Span, sourceX);
-                                    }
-                                }
-                                else
-                                {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
-                                        firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer.Span, sourceX);
-                                    }
+                                    WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                    firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowSpan, sourceX);
                                 }
                             }
-                        });
+                            else
+                            {
+                                for (int x = minX; x < maxX; x++)
+                                {
+                                    WeightsWindow window = this.HorizontalWeights.Weights[x - startX];
+                                    firstPassRow[x] = window.ComputeWeightedRowSum(tempRowSpan, sourceX);
+                                }
+                            }
+
+                            return tempRowBuffer;
+                        },
+                    (IBuffer<Vector4> tmp) => tmp.Dispose());
 
                 // Now process the rows.
                 Parallel.For(

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void CopyTo(BufferArea<float> area)
         {
             ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
-            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigo());
+            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigin());
             int destStride = area.Stride * sizeof(float);
 
             CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
         private void CopyTo2x2(BufferArea<float> area)
         {
-            ref float destBase = ref area.GetReferenceToOrigo();
+            ref float destBase = ref area.GetReferenceToOrigin();
             int destStride = area.Stride;
 
             this.WidenCopyImpl2x2(ref destBase, 0, destStride);

@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (var buffer = this.configuration.MemoryManager.Allocate2D<byte>(width, height, true))
+            using (var buffer = this.memoryManager.AllocateClean2D<byte>(width, height))
             {
                 this.UncompressRle8(width, buffer.Span);
 
@@ -346,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
-            using (IManagedByteBuffer row = this.configuration.MemoryManager.AllocateManagedByteBuffer(arrayWidth + padding, true))
+            using (IManagedByteBuffer row = this.memoryManager.AllocateCleanManagedByteBuffer(arrayWidth + padding))
             {
                 var color = default(TPixel);
                 var rgba = new Rgba32(0, 0, 0, 255);
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (var buffer = this.configuration.MemoryManager.AllocateManagedByteBuffer(stride))
+            using (var buffer = this.memoryManager.AllocateManagedByteBuffer(stride))
             {
                 for (int y = 0; y < height; y++)
                 {

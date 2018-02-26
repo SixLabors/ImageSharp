@@ -127,14 +127,21 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        [Fact]
-        public void ReleaseRetainedResources_ReplacesInnerArrayPool()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ReleaseRetainedResources_ReplacesInnerArrayPool(bool keepBufferAlive)
         {
             IBuffer<int> buffer = this.MemoryManager.Allocate<int>(32);
             ref int ptrToPrev0 = ref buffer.Span.DangerousGetPinnableReference();
-            buffer.Dispose();
+
+            if (!keepBufferAlive)
+            {
+                buffer.Dispose();
+            }
 
             this.MemoryManager.ReleaseRetainedResources();
+            
             buffer = this.MemoryManager.Allocate<int>(32);
 
             Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.DangerousGetPinnableReference()));

@@ -25,6 +25,10 @@ namespace SixLabors.ImageSharp.Memory
             /// <summary>
             /// A weak reference to the source pool.
             /// </summary>
+            /// <remarks>
+            /// By using a weak reference here, we are making sure that array pools and their retained arrays are always GC-ed
+            /// after a call to <see cref="ArrayPoolMemoryManager.ReleaseRetainedResources"/>, regardless of having buffer instances still being in use.
+            /// </remarks>
             private WeakReference<ArrayPool<byte>> sourcePoolReference;
 
             public Buffer(byte[] data, int length, ArrayPool<byte> sourcePool)

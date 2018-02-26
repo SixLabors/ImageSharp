@@ -1,9 +1,9 @@
 ﻿namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Implements <see cref="MemoryManager"/> by allocating new buffers on every call.
+    /// Implements <see cref="MemoryManager"/> by newing up arrays by the GC on every allocation requests.
     /// </summary>
-    public class SimpleManagedMemoryManager : MemoryManager
+    public class SimpleGcMemoryManager : MemoryManager
     {
         /// <inheritdoc />
         internal override IBuffer<T> Allocate<T>(int length, bool clear)

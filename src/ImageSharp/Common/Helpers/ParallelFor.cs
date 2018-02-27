@@ -18,8 +18,8 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Helper method to execute Parallel.For with temporal worker buffer in an optimized way.
-        /// The buffer will be only instantiated for each worker Task, the contents are not cleaned automatically.
+        /// Helper method to execute Parallel.For with temporary worker buffer shared between executing tasks.
+        /// The buffer is not guaranteed to be clean!
         /// </summary>
         /// <typeparam name="T">The value type of the buffer</typeparam>
         /// <param name="fromInclusive">The start index, inclusive.</param>
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp
         /// <param name="configuration">The <see cref="Configuration"/> used for getting the <see cref="MemoryManager"/> and <see cref="ParallelOptions"/></param>
         /// <param name="bufferLength">The length of the requested parallel buffer</param>
         /// <param name="body">The delegate that is invoked once per iteration.</param>
-        public static void WithTemporalBuffer<T>(
+        public static void WithTemporaryBuffer<T>(
             int fromInclusive,
             int toExclusive,
             Configuration configuration,

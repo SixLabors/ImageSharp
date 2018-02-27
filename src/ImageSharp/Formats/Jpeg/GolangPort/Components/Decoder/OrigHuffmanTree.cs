@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Internal part of the DHT processor, whatever does it mean
         /// </summary>
         /// <param name="inputProcessor">The decoder instance</param>
-        /// <param name="defineHuffmanTablesData">The temporal buffer that holds the data that has been read from the Jpeg stream</param>
+        /// <param name="defineHuffmanTablesData">The temporary buffer that holds the data that has been read from the Jpeg stream</param>
         /// <param name="remaining">Remaining bits</param>
         public void ProcessDefineHuffmanTablesMarkerLoop(
             ref InputProcessor inputProcessor,

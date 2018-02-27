@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Drawing
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
 
-            // TODO: This is a temporal workaround because of the lack of Span<T> API-s on IPath. We should use MemoryManager.Allocate() here!
+            // TODO: This is a temporary workaround because of the lack of Span<T> API-s on IPath. We should use MemoryManager.Allocate() here!
             PointF[] innerBuffer = new PointF[buffer.Length];
             int count = this.Shape.FindIntersections(start, end, innerBuffer, 0);
 

@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp
             Vector<float> magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            // need to copy to a temporal struct, because
+            // need to copy to a temporary struct, because
             // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
             // does not work. TODO: This might be a CoreClr bug, need to ask/report
             var temp = default(Octet.OfUInt32);
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp
             Vector<float> magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            // need to copy to a temporal struct, because
+            // need to copy to a temporary struct, because
             // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
             // does not work. TODO: This might be a CoreClr bug, need to ask/report
             var temp = default(Octet.OfUInt32);

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Flip(flipType));
-                image.DebugSave(provider, flipType, Extensions.Bmp);
+                image.DebugSave(provider, flipType);
             }
         }
     }

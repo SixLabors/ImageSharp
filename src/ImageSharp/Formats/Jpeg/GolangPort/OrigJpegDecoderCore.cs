@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             this.MetaData = new ImageMetaData();
             this.InputStream = stream;
-            this.InputProcessor = new InputProcessor(this.configuration.MemoryManager, stream, this.Temp);
+            this.InputProcessor = new InputProcessor(stream, this.Temp);
 
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);

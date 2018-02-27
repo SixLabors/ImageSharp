@@ -15,8 +15,6 @@ namespace SixLabors.ImageSharp.Tests
 
     public class BmpEncoderTests : FileTestBase
     {
-        private const PixelTypes PixelTypesToTest = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
-
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
             new TheoryData<BmpBitsPerPixel>
                 {
@@ -50,9 +48,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             TestBmpEncoderCore(provider, bitsPerPixel);
         }
-
         
-
         private static void TestBmpEncoderCore<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>
         {   

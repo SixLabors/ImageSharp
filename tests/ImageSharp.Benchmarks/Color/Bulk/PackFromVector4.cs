@@ -2,6 +2,7 @@
 namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
     using System.Numerics;
+    using System.Runtime.CompilerServices;
 
     using BenchmarkDotNet.Attributes;
 
@@ -12,9 +13,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class PackFromVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<Vector4> source;
+        private IBuffer<Vector4> source;
 
-        private Buffer<TPixel> destination;
+        private IBuffer<TPixel> destination;
 
         [Params(16, 128, 512)]
         public int Count { get; set; }
@@ -22,8 +23,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = new Buffer<TPixel>(this.Count);
-            this.source = new Buffer<Vector4>(this.Count);
+            this.destination = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
+            this.source = Configuration.Default.MemoryManager.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]
@@ -36,25 +37,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Vector4[] s = this.source.Array;
-            TPixel[] d = this.destination.Array;
+            ref Vector4 s = ref this.source.Span.DangerousGetPinnableReference();
+            ref TPixel d = ref this.destination.Span.DangerousGetPinnableReference();
             
             for (int i = 0; i < this.Count; i++)
             {
-                d[i].PackFromVector4(s[i]);
+                Unsafe.Add(ref d, i).PackFromVector4(Unsafe.Add(ref s, i));
             }
         }
 
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromVector4(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().PackFromVector4(this.source.Span, this.destination.Span, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.PackFromVector4(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.PackFromVector4(this.source.Span, this.destination.Span, this.Count);
         }
     }
 

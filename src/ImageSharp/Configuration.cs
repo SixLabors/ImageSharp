@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -81,6 +82,11 @@ namespace SixLabors.ImageSharp
         /// Gets the currently registered <see cref="IImageFormat"/>s.
         /// </summary>
         public IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
+
+        /// <summary>
+        /// Gets or sets the <see cref="MemoryManager"/> that is currently in use.
+        /// </summary>
+        public MemoryManager MemoryManager { get; set; } = ArrayPoolMemoryManager.CreateDefault();
 
         /// <summary>
         /// Gets the maximum header size of all the formats.

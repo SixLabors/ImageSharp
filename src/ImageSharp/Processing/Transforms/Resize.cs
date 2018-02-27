@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp
                 Guard.MustBeGreaterThan(width, 0, nameof(width));
                 Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-                img.Mutate(x => x.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand }, sourceRectangle));
+                img.Mutate(x => x.ApplyProcessor(new ResizeProcessor<TPixel>(source.MemoryManager, sampler, width, height, targetRectangle) { Compand = compand }, sourceRectangle));
             });
         }
 
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp
                 Guard.MustBeGreaterThan(width, 0, nameof(width));
                 Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-                img.Mutate(x => x.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, targetRectangle) { Compand = compand }));
+                img.Mutate(x => x.ApplyProcessor(new ResizeProcessor<TPixel>(source.MemoryManager, sampler, width, height, targetRectangle) { Compand = compand }));
             });
         }
     }

@@ -28,13 +28,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="InputProcessor"/> struct.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="inputStream">The input <see cref="Stream"/></param>
         /// <param name="temp">Temporal buffer, same as <see cref="OrigJpegDecoderCore.Temp"/></param>
-        public InputProcessor(MemoryManager memoryManager, Stream inputStream, byte[] temp)
+        public InputProcessor(Stream inputStream, byte[] temp)
         {
             this.Bits = default(Bits);
-            this.Bytes = Bytes.Create(memoryManager);
+            this.Bytes = Bytes.Create();
             this.InputStream = inputStream;
             this.Temp = temp;
             this.LastErrorCode = OrigDecoderErrorCode.NoError;

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public IJpegComponent Component { get; }
 
         /// <summary>
-        /// Gets the temporal working buffer of color values.
+        /// Gets the temporary working buffer of color values.
         /// </summary>
         public Buffer2D<float> ColorBuffer { get; }
 

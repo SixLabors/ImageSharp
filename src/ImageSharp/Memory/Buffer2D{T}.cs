@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <summary>
         /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
-        /// Useful to transfer the contents of a temporal <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
+        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
         /// </summary>
         /// <param name="a">The first buffer</param>
         /// <param name="b">The second buffer</param>

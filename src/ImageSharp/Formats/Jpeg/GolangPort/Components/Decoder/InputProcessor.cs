@@ -158,13 +158,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             {
                 if (this.Bytes.J - this.Bytes.I >= length)
                 {
-                    Array.Copy(this.Bytes.Buffer.Array, this.Bytes.I, data, offset, length);
+                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, length);
                     this.Bytes.I += length;
                     length -= length;
                 }
                 else
                 {
-                    Array.Copy(this.Bytes.Buffer.Array, this.Bytes.I, data, offset, this.Bytes.J - this.Bytes.I);
+                    Array.Copy(this.Bytes.Buffer, this.Bytes.I, data, offset, this.Bytes.J - this.Bytes.I);
                     offset += this.Bytes.J - this.Bytes.I;
                     length -= this.Bytes.J - this.Bytes.I;
                     this.Bytes.I += this.Bytes.J - this.Bytes.I;

@@ -73,7 +73,7 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new WuQuantizer<TPixel> { Dither = dither };
+                IQuantizer<TPixel> quantizer = new WuQuantizer<TPixel>() { Dither = dither };
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {

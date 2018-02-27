@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 source.CopyTo(targetPixels);
 
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         }
                     });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
     }

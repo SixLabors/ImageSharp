@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
+            this.bulk = new GlowProcessor<Rgba32>(Configuration.Default.MemoryManager, NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
             this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
 
         }
@@ -103,13 +103,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 
                 int width = maxX - minX;
-                using (Buffer<TPixel> rowColors = new Buffer<TPixel>(width))
+                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryManager.Allocate<TPixel>(width))
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
-                    for (int i = 0; i < width; i++)
-                    {
-                        rowColors[i] = glowColor;
-                    }
+                    rowColors.Span.Fill(glowColor);
 
                     Parallel.For(
                         minY,

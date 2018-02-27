@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             ushort marker = this.ReadUint16();
             fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
 
-            this.quantizationTables = new PdfJsQuantizationTables();
+            this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
             this.dcHuffmanTables = new PdfJsHuffmanTables();
             this.acHuffmanTables = new PdfJsHuffmanTables();
 
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.NumberOfComponents}");
             }
 
-            this.pixelArea = new PdfJsJpegPixelArea(image.Width, image.Height, this.NumberOfComponents);
+            this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.NumberOfComponents);
             this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
 
             if (this.NumberOfComponents == 1)
@@ -648,7 +648,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     maxV = v;
                 }
 
-                var component = new PdfJsFrameComponent(this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                 this.Frame.Components[i] = component;
                 this.Frame.ComponentIds[i] = component.Id;
@@ -673,23 +673,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (var huffmanData = Buffer<byte>.CreateClean(256))
+            using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
             {
+                Span<byte> huffmanSpan = huffmanData.Span;
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (var codeLengths = Buffer<byte>.CreateClean(17))
+                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
                     {
+                        Span<byte> codeLengthsSpan = codeLengths.Span;
                         int codeLengthSum = 0;
 
                         for (int j = 1; j < 17; j++)
                         {
-                            codeLengthSum += codeLengths[j] = huffmanData[j - 1];
+                            codeLengthSum += codeLengthsSpan[j] = huffmanSpan[j - 1];
                         }
 
-                        using (var huffmanValues = Buffer<byte>.CreateClean(256))
+                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -784,18 +786,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             int blocksPerLine = component.BlocksPerLine;
             int blocksPerColumn = component.BlocksPerColumn;
-            using (var computationBuffer = Buffer<short>.CreateClean(64))
-            using (var multiplicationBuffer = Buffer<short>.CreateClean(64))
+            using (IBuffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
+            using (IBuffer<short> multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             {
                 Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
-                Span<short> computationBufferSpan = computationBuffer;
+                Span<short> computationBufferSpan = computationBuffer.Span;
 
                 // For AA&N IDCT method, multiplier are equal to quantization
                 // coefficients scaled by scalefactor[row]*scalefactor[col], where
                 //   scalefactor[0] = 1
                 //   scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
                 // For integer operation, the multiplier table is to be scaled by 12.
-                Span<short> multiplierSpan = multiplicationBuffer;
+                Span<short> multiplierSpan = multiplicationBuffer.Span;
 
                 // for (int i = 0; i < 64; i++)
                 // {
@@ -823,7 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="values">The values</param>
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
-            tables[index] = new PdfJsHuffmanTable(codeLengths, values);
+            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
@@ -18,6 +19,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// </summary>
     internal sealed class GifEncoderCore
     {
+        private readonly MemoryManager memoryManager;
+
         /// <summary>
         /// The temp buffer used to reduce allocations.
         /// </summary>
@@ -61,9 +64,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="options">The options for the encoder.</param>
-        public GifEncoderCore(IGifEncoderOptions options)
+        public GifEncoderCore(MemoryManager memoryManager, IGifEncoderOptions options)
         {
+            this.memoryManager = memoryManager;
             this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
 
             this.quantizer = options.Quantizer;
@@ -350,24 +355,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
-            byte[] colorTable = ArrayPool<byte>.Shared.Rent(colorTableLength);
             var rgb = default(Rgb24);
-            try
+            using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
+                Span<byte> colorTableSpan = colorTable.Span;
+
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
                     image.Palette[i].ToRgb24(ref rgb);
-                    colorTable[offset] = rgb.R;
-                    colorTable[offset + 1] = rgb.G;
-                    colorTable[offset + 2] = rgb.B;
+                    colorTableSpan[offset] = rgb.R;
+                    colorTableSpan[offset + 1] = rgb.G;
+                    colorTableSpan[offset + 2] = rgb.B;
                 }
 
-                writer.Write(colorTable, 0, colorTableLength);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(colorTable);
+                writer.Write(colorTable.Array, 0, colorTableLength);
             }
         }
 
@@ -380,7 +382,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteImageData<TPixel>(QuantizedImage<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new LzwEncoder(image.Pixels, (byte)this.bitDepth))
+            using (var encoder = new LzwEncoder(this.memoryManager, image.Pixels, (byte)this.bitDepth))
             {
                 encoder.Encode(writer.BaseStream);
             }

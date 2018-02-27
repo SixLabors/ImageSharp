@@ -4,12 +4,14 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
     /// Represents a Huffman tree
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct OrigHuffmanTree
     {
         /// <summary>
@@ -68,29 +70,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// are 1 plus the code length, or 0 if the value is too large to fit in
         /// lutSize bits.
         /// </summary>
-        public fixed int Lut[MaxNCodes];
+        public FixedInt32Buffer256 Lut;
 
         /// <summary>
         /// Gets the the decoded values, sorted by their encoding.
         /// </summary>
-        public fixed int Values[MaxNCodes];
+        public FixedInt32Buffer256 Values;
 
         /// <summary>
         /// Gets the array of minimum codes.
         /// MinCodes[i] is the minimum code of length i, or -1 if there are no codes of that length.
         /// </summary>
-        public fixed int MinCodes[MaxCodeLength];
+        public FixedInt32Buffer16 MinCodes;
 
         /// <summary>
         /// Gets the array of maximum codes.
         /// MaxCodes[i] is the maximum code of length i, or -1 if there are no codes of that length.
         /// </summary>
-        public fixed int MaxCodes[MaxCodeLength];
+        public FixedInt32Buffer16 MaxCodes;
 
         /// <summary>
         /// Gets the array of indices. Indices[i] is the index into Values of MinCodes[i].
         /// </summary>
-        public fixed int Indices[MaxCodeLength];
+        public FixedInt32Buffer16 Indices;
 
         /// <summary>
         /// Creates and initializes an array of <see cref="OrigHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
@@ -143,8 +145,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             byte[] values = new byte[MaxNCodes];
             inputProcessor.ReadFull(values, 0, this.Length);
 
-            fixed (int* valuesPtr = this.Values)
-            fixed (int* lutPtr = this.Lut)
+            fixed (int* valuesPtr = this.Values.Data)
+            fixed (int* lutPtr = this.Lut.Data)
             {
                 for (int i = 0; i < values.Length; i++)
                 {
@@ -184,9 +186,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 }
             }
 
-            fixed (int* minCodesPtr = this.MinCodes)
-            fixed (int* maxCodesPtr = this.MaxCodes)
-            fixed (int* indicesPtr = this.Indices)
+            fixed (int* minCodesPtr = this.MinCodes.Data)
+            fixed (int* maxCodesPtr = this.MaxCodes.Data)
+            fixed (int* indicesPtr = this.Indices.Data)
             {
                 // Derive minCodes, maxCodes, and indices.
                 int c = 0, index = 0;
@@ -219,31 +221,41 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="code">The code</param>
         /// <param name="codeLength">The code length</param>
         /// <returns>The value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetValue(int code, int codeLength)
         {
-            fixed (int* valuesPtr = this.Values)
-            fixed (int* minCodesPtr = this.MinCodes)
-            fixed (int* indicesPtr = this.Indices)
+            return this.Values[this.Indices[codeLength] + code - this.MinCodes[codeLength]];
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct FixedInt32Buffer256
+        {
+            public fixed int Data[256];
+
+            public int this[int idx]
             {
-                return valuesPtr[indicesPtr[codeLength] + code - minCodesPtr[codeLength]];
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    ref int self = ref Unsafe.As<FixedInt32Buffer256, int>(ref this);
+                    return Unsafe.Add(ref self, idx);
+                }
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ReadLut(int index)
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct FixedInt32Buffer16
         {
-            fixed (int* lutPtr = this.Lut)
-            {
-                return lutPtr[index];
-            }
-        }
+            public fixed int Data[16];
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetMaxCode(int index)
-        {
-            fixed (int* maxCodesPtr = this.MaxCodes)
+            public int this[int idx]
             {
-                return maxCodesPtr[index];
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    ref int self = ref Unsafe.As<FixedInt32Buffer16, int>(ref this);
+                    return Unsafe.Add(ref self, idx);
+                }
             }
         }
     }

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the source image bounds
+        /// Gets the image bounds at the current point in the processing pipeline.
         /// </summary>
         /// <returns>The <see cref="Rectangle"/></returns>
         Rectangle Bounds();

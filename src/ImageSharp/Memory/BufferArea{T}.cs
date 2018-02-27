@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetRowIndex(int y)
+        internal int GetRowIndex(int y)
         {
             return (y + this.Rectangle.Y) * this.DestinationBuffer.Width;
         }

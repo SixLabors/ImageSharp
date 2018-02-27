@@ -26,6 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 return;
             }
 
+            ref float destBase = ref area.GetReferenceToOrigin();
+
             // TODO: Optimize: implement all the cases with loopless special code! (T4?)
             for (int y = 0; y < 8; y++)
             {
@@ -40,9 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
                     for (int i = 0; i < verticalScale; i++)
                     {
+                        int baseIdx = ((yy + i) * area.Stride) + xx;
+
                         for (int j = 0; j < horizontalScale; j++)
                         {
-                            area[xx + j, yy + i] = value;
+                            // area[xx + j, yy + i] = value;
+                            Unsafe.Add(ref destBase, baseIdx + j) = value;
                         }
                     }
                 }

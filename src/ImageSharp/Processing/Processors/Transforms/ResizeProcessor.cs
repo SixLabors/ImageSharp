@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 firstPassPixels.Buffer.Clear();
 
-                ParallelFor.WithTemporalBuffer(
+                ParallelFor.WithTemporaryBuffer(
                     0,
                     sourceRectangle.Bottom,
                     configuration,

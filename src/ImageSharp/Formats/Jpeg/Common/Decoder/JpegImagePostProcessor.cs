@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public int NumberOfPostProcessorSteps { get; }
 
         /// <summary>
-        /// Gets the size of the temporal buffers we need to allocate into <see cref="JpegComponentPostProcessor.ColorBuffer"/>.
+        /// Gets the size of the temporary buffers we need to allocate into <see cref="JpegComponentPostProcessor.ColorBuffer"/>.
         /// </summary>
         public Size PostProcessorBufferSize { get; }
 

@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests
                 testOutputDetails,
                 appendPixelTypeToFileName);
 
-            var temporalFrameImages = new List<Image<TPixel>>();
+            var temporaryFrameImages = new List<Image<TPixel>>();
 
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
 
@@ -266,14 +266,14 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 var tempImage = Image.Load<TPixel>(path, decoder);
-                temporalFrameImages.Add(tempImage);
+                temporaryFrameImages.Add(tempImage);
             }
 
-            Image<TPixel> firstTemp = temporalFrameImages[0];
+            Image<TPixel> firstTemp = temporaryFrameImages[0];
             
             var result = new Image<TPixel>(firstTemp.Width, firstTemp.Height);
 
-            foreach (Image<TPixel> fi in temporalFrameImages)
+            foreach (Image<TPixel> fi in temporaryFrameImages)
             {
                 result.Frames.AddFrame(fi.Frames.RootFrame);
                 fi.Dispose();

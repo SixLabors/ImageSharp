@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -22,7 +23,7 @@ namespace SixLabors.ImageSharp.Memory
         public static ref Vector<T> FetchVector<T>(this Span<T> span)
             where T : struct
         {
-            return ref Unsafe.As<T, Vector<T>>(ref span.DangerousGetPinnableReference());
+            return ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
         }
 
         /// <summary>
@@ -39,8 +40,8 @@ namespace SixLabors.ImageSharp.Memory
             DebugGuard.MustBeLessThanOrEqualTo(count, source.Length, nameof(count));
             DebugGuard.MustBeLessThanOrEqualTo(count, destination.Length, nameof(count));
 
-            ref byte srcRef = ref Unsafe.As<T, byte>(ref source.DangerousGetPinnableReference());
-            ref byte destRef = ref Unsafe.As<T, byte>(ref destination.DangerousGetPinnableReference());
+            ref byte srcRef = ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(source));
+            ref byte destRef = ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(destination));
 
             int byteCount = Unsafe.SizeOf<T>() * count;
 

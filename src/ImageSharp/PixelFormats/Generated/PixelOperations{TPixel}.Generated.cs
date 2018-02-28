@@ -6,6 +6,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 	    
     public partial class PixelOperations<TPixel>
     {
@@ -20,8 +21,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Rgba32 sourceRef = ref source.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+            ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
@@ -57,8 +58,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-            ref TPixel sourceBaseRef = ref sourcePixels.DangerousGetPinnableReference();
-            ref Rgba32 destBaseRef = ref dest.DangerousGetPinnableReference();
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgba32 destBaseRef = ref MemoryMarshal.GetReference(dest);
 
             for (int i = 0; i < count; i++)
             {
@@ -91,8 +92,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Bgra32 sourceRef = ref source.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+            ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
@@ -128,8 +129,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-            ref TPixel sourceBaseRef = ref sourcePixels.DangerousGetPinnableReference();
-            ref Bgra32 destBaseRef = ref dest.DangerousGetPinnableReference();
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Bgra32 destBaseRef = ref MemoryMarshal.GetReference(dest);
 
             for (int i = 0; i < count; i++)
             {
@@ -162,8 +163,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Rgb24 sourceRef = ref source.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+            ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
@@ -199,8 +200,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-            ref TPixel sourceBaseRef = ref sourcePixels.DangerousGetPinnableReference();
-            ref Rgb24 destBaseRef = ref dest.DangerousGetPinnableReference();
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgb24 destBaseRef = ref MemoryMarshal.GetReference(dest);
 
             for (int i = 0; i < count; i++)
             {
@@ -233,8 +234,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref Bgr24 sourceRef = ref source.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+            ref Bgr24 sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
@@ -270,8 +271,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-            ref TPixel sourceBaseRef = ref sourcePixels.DangerousGetPinnableReference();
-            ref Bgr24 destBaseRef = ref dest.DangerousGetPinnableReference();
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Bgr24 destBaseRef = ref MemoryMarshal.GetReference(dest);
 
             for (int i = 0; i < count; i++)
             {

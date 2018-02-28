@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.
         /// </summary>
-        public struct ComponentValues
+        public ref struct ComponentValues
         {
             /// <summary>
             /// The component count

@@ -4,7 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
-            ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
+            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left + sourceX);
 
             // Destination color components
             Vector4 result = Vector4.Zero;
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
-            ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
+            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left + sourceX);
 
             // Destination color components
             Vector4 result = Vector4.Zero;

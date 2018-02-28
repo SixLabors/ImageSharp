@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -21,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode(Span<byte> scanline, int bytesPerPixel)
         {
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
 
             // Sub(x) + Raw(x-bpp)
             for (int x = 1; x < scanline.Length; x++)
@@ -52,8 +53,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
-            ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte resultBaseRef = ref MemoryMarshal.GetReference(result);
             sum = 0;
 
             // Sub(x) = Raw(x) - Raw(x-bpp)

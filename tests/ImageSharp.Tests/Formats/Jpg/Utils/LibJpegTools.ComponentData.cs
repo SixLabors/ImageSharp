@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.HeightInBlocks = heightInBlocks;
                 this.WidthInBlocks = widthInBlocks;
                 this.Index = index;
-                this.SpectralBlocks = new Buffer2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
+                this.SpectralBlocks = Configuration.Default.MemoryManager.Allocate2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
             }
 
             public Size Size => new Size(this.WidthInBlocks, this.HeightInBlocks);

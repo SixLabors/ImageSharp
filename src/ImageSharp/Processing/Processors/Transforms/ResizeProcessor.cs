@@ -141,11 +141,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations</param>
         /// <param name="destinationSize">The destination size</param>
         /// <param name="sourceSize">The source size</param>
         /// <returns>The <see cref="WeightsBuffer"/></returns>
         // TODO: Made internal to simplify experimenting with weights data. Make it private when finished figuring out how to optimize all the stuff!
-        internal WeightsBuffer PrecomputeWeights(int destinationSize, int sourceSize)
+        internal WeightsBuffer PrecomputeWeights(MemoryManager memoryManager, int destinationSize, int sourceSize)
         {
             float ratio = (float)sourceSize / destinationSize;
             float scale = ratio;
@@ -157,7 +158,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             IResampler sampler = this.Sampler;
             float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new WeightsBuffer(sourceSize, destinationSize);
+            var result = new WeightsBuffer(memoryManager, sourceSize, destinationSize);
 
             for (int i = 0; i < destinationSize; i++)
             {
@@ -211,8 +212,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(this.Width, this.Height, x.MetaData.Clone()));
+            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetMemoryManager(), this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
@@ -225,10 +225,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 // TODO: Optimization opportunity: if we could assume that all frames are of the same size, we can move this into 'BeforeImageApply()`
                 this.horizontalWeights = this.PrecomputeWeights(
+                    source.MemoryManager,
                     this.ResizeRectangle.Width,
                     sourceRectangle.Width);
 
                 this.verticalWeights = this.PrecomputeWeights(
+                    source.MemoryManager,
                     this.ResizeRectangle.Height,
                     sourceRectangle.Height);
             }
@@ -290,38 +292,37 @@ namespace SixLabors.ImageSharp.Processing.Processors
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (var firstPassPixels = new Buffer2D<Vector4>(width, source.Height))
+            using (Buffer2D<Vector4> firstPassPixels = source.MemoryManager.Allocate2D<Vector4>(width, source.Height))
             {
-                firstPassPixels.Clear();
+                firstPassPixels.Buffer.Clear();
 
-                Parallel.For(
+                ParallelFor.WithTemporaryBuffer(
                     0,
                     sourceRectangle.Bottom,
-                    configuration.ParallelOptions,
-                    y =>
+                    configuration,
+                    source.Width,
+                    (int y, IBuffer<Vector4> tempRowBuffer) =>
                         {
-                            // TODO: Without Parallel.For() this buffer object could be reused:
-                            using (var tempRowBuffer = new Buffer<Vector4>(source.Width))
-                            {
-                                Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
-                                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowBuffer, sourceRow.Length);
+                            Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
+                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
-                                if (this.Compand)
+                            PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
+
+                            if (this.Compand)
+                            {
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        WeightsWindow window = this.horizontalWeights.Weights[x - startX];
-                                        firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowBuffer, sourceX);
-                                    }
+                                    WeightsWindow window = this.horizontalWeights.Weights[x - startX];
+                                    firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowSpan, sourceX);
                                 }
-                                else
+                            }
+                            else
+                            {
+                                for (int x = minX; x < maxX; x++)
                                 {
-                                    for (int x = minX; x < maxX; x++)
-                                    {
-                                        WeightsWindow window = this.horizontalWeights.Weights[x - startX];
-                                        firstPassRow[x] = window.ComputeWeightedRowSum(tempRowBuffer, sourceX);
-                                    }
+                                    WeightsWindow window = this.horizontalWeights.Weights[x - startX];
+                                    firstPassRow[x] = window.ComputeWeightedRowSum(tempRowSpan, sourceX);
                                 }
                             }
                         });

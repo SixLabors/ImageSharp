@@ -43,15 +43,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            int width = source.Width;
-            int height = source.Height;
             ParallelOptions parallelOptions = configuration.ParallelOptions;
 
-            using (var firstPassPixels = new PixelAccessor<TPixel>(width, height))
-            using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+            using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
             {
-                this.ApplyConvolution(firstPassPixels, sourcePixels, source.Bounds(), this.KernelX, parallelOptions);
-                this.ApplyConvolution(sourcePixels, firstPassPixels, sourceRectangle, this.KernelY, parallelOptions);
+                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, source.Bounds(), this.KernelX, parallelOptions);
+                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, sourceRectangle, this.KernelY, parallelOptions);
             }
         }
 
@@ -67,8 +64,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="kernel">The kernel operator.</param>
         /// <param name="parallelOptions">The parellel options</param>
         private void ApplyConvolution(
-            PixelAccessor<TPixel> targetPixels,
-            PixelAccessor<TPixel> sourcePixels,
+            Buffer2D<TPixel> targetPixels,
+            Buffer2D<TPixel> sourcePixels,
             Rectangle sourceRectangle,
             Fast2DArray<float> kernel,
             ParallelOptions parallelOptions)

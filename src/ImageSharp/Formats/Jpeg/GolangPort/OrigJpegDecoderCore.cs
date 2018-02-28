@@ -211,11 +211,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <inheritdoc />
         public void Dispose()
         {
-            for (int i = 0; i < this.HuffmanTrees.Length; i++)
-            {
-                this.HuffmanTrees[i].Dispose();
-            }
-
             if (this.Components != null)
             {
                 foreach (OrigComponent component in this.Components)
@@ -680,7 +675,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             foreach (OrigComponent component in this.Components)
             {
-                component.InitializeDerivedData(this);
+                component.InitializeDerivedData(this.configuration.MemoryManager, this);
             }
 
             this.ColorSpace = this.DeduceJpegColorSpace();
@@ -788,7 +783,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this))
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);

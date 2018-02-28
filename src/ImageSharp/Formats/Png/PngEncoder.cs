@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
@@ -66,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryManager(), this))
             {
                 encoder.Encode(image, stream);
             }

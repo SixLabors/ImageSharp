@@ -235,6 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);
+
             if (this.Temp[0] != OrigJpegConstants.Markers.XFF || this.Temp[1] != OrigJpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
@@ -247,6 +248,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             while (processBytes)
             {
                 this.InputProcessor.ReadFull(this.Temp, 0, 2);
+
+                if (this.InputProcessor.ReachedEOF)
+                {
+                    // We've reached the end of the stream.
+                    processBytes = false;
+                }
+
                 while (this.Temp[0] != 0xff)
                 {
                     // Strictly speaking, this is a format error. However, libjpeg is
@@ -281,7 +289,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 {
                     // Section B.1.1.2 says, "Any marker may optionally be preceded by any
                     // number of fill bytes, which are bytes assigned code X'FF'".
-                    marker = this.InputProcessor.ReadByte();
+                    this.InputProcessor.ReadByteUnsafe(out marker);
+
+                    if (this.InputProcessor.ReachedEOF)
+                    {
+                        // We've reached the end of the stream.
+                        processBytes = false;
+                        break;
+                    }
                 }
 
                 // End Of Image.
@@ -303,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 // Read the 16-bit length of the segment. The value includes the 2 bytes for the
                 // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.InputProcessor.ReadFull(this.Temp, 0, 2);
+                this.InputProcessor.ReadFullUnsafe(this.Temp, 0, 2);
                 int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
                 if (remaining < 0)
                 {
@@ -351,12 +366,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                             return;
                         }
 
-                        // when this is a progressive image this gets called a number of times
-                        // need to know how many times this should be called in total.
                         this.ProcessStartOfScanMarker(remaining);
-                        if (this.InputProcessor.ReachedEOF || !this.IsProgressive)
+                        if (this.InputProcessor.ReachedEOF)
                         {
-                            // if unexpeced EOF reached or this is not a progressive image we can stop processing bytes as we now have the image data.
+                            // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
                             processBytes = false;
                         }
 
@@ -389,15 +402,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                             || marker == OrigJpegConstants.Markers.COM)
                         {
                             this.InputProcessor.Skip(remaining);
-                        }
-                        else if (marker < OrigJpegConstants.Markers.SOF0)
-                        {
-                            // See Table B.1 "Marker code assignments".
-                            throw new ImageFormatException("Unknown marker");
-                        }
-                        else
-                        {
-                            throw new ImageFormatException("Unknown marker");
                         }
 
                         break;

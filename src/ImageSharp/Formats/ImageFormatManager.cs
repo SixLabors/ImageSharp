@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats
     /// <summary>
     /// Collection of Image Formats to be used in <see cref="Configuration" /> class.
     /// </summary>
-    public class ImageFormatsManager
+    public class ImageFormatManager
     {
         /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Formats
         private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFormatsManager" /> class.
+        /// Initializes a new instance of the <see cref="ImageFormatManager" /> class.
         /// </summary>
-        public ImageFormatsManager()
+        public ImageFormatManager()
         {
         }
 

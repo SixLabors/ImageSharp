@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
             ref byte blockStart = ref Unsafe.As<GenericBlock8x8<T>, byte>(ref this);
             ref byte imageStart = ref Unsafe.As<T, byte>(
-                                      ref Unsafe.Add(ref source.GetRowSpan(sourceY).DangerousGetPinnableReference(), sourceX));
+                                      ref Unsafe.Add(ref MemoryMarshal.GetReference(source.GetRowSpan(sourceY)), sourceX));
 
             int blockRowSizeInBytes = 8 * Unsafe.SizeOf<T>();
             int imageRowSizeInBytes = source.Width * Unsafe.SizeOf<T>();

@@ -20,10 +20,15 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <returns>The mime type or null if none found.</returns>
-        public static IImageFormat DetectFormat(Stream stream)
-        {
-            return DetectFormat(null, stream);
-        }
+        public static IImageFormat DetectFormat(Stream stream) => DetectFormat(null, stream);
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images mime type.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        public static IImageFormat DetectFormat(Stream stream, ReadOrigin origin) => DetectFormat(null, stream, origin);
 
         /// <summary>
         /// By reading the header on the provided stream this calculates the images mime type.
@@ -31,10 +36,17 @@ namespace SixLabors.ImageSharp
         /// <param name="config">The configuration.</param>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <returns>The mime type or null if none found.</returns>
-        public static IImageFormat DetectFormat(Configuration config, Stream stream)
-        {
-            return WithSeekableStream(stream, s => InternalDetectFormat(s, config ?? Configuration.Default));
-        }
+        public static IImageFormat DetectFormat(Configuration config, Stream stream) => DetectFormat(config, stream, ReadOrigin.Begin);
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images mime type.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        public static IImageFormat DetectFormat(Configuration config, Stream stream, ReadOrigin origin)
+            => WithSeekableStream(stream, origin, s => InternalDetectFormat(s, config ?? Configuration.Default));
 
         /// <summary>
         /// By reading the header on the provided stream this reads the raw image information.
@@ -46,10 +58,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
         /// </returns>
-        public static IImageInfo Identify(Stream stream)
-        {
-            return Identify(null, stream);
-        }
+        public static IImageInfo Identify(Stream stream) => Identify(null, stream);
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
@@ -62,10 +71,20 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
         /// </returns>
-        public static IImageInfo Identify(Configuration config, Stream stream)
-        {
-            return WithSeekableStream(stream, s => InternalIdentity(s, config ?? Configuration.Default));
-        }
+        public static IImageInfo Identify(Configuration config, Stream stream) => Identify(config, stream, ReadOrigin.Begin);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration config, Stream stream, ReadOrigin origin)
+            => WithSeekableStream(stream, origin, s => InternalIdentity(s, config ?? Configuration.Default));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given stream.
@@ -120,7 +139,8 @@ namespace SixLabors.ImageSharp
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>>
-        public static Image<Rgba32> Load(Configuration config, Stream stream, out IImageFormat format) => Load<Rgba32>(config, stream, out format);
+        public static Image<Rgba32> Load(Configuration config, Stream stream, out IImageFormat format)
+            => Load<Rgba32>(config, stream, out format);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -133,9 +153,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Load<TPixel>(null, stream);
-        }
+            => Load<TPixel>(null, stream);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -149,9 +167,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Stream stream, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Load<TPixel>(null, stream, out format);
-        }
+            => Load<TPixel>(null, stream, out format);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -165,9 +181,22 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return WithSeekableStream(stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
-        }
+        => Load<TPixel>(stream, ReadOrigin.Begin, decoder);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Stream stream, ReadOrigin origin, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
+            => WithSeekableStream(stream, origin, s => decoder.Decode<TPixel>(Configuration.Default, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -182,9 +211,23 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return WithSeekableStream(stream, s => decoder.Decode<TPixel>(config, s));
-        }
+            => Load<TPixel>(config, stream, ReadOrigin.Begin, decoder);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
+        /// </summary>
+        /// <param name="config">The Configuration.</param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, ReadOrigin origin, IImageDecoder decoder)
+            where TPixel : struct, IPixel<TPixel>
+            => WithSeekableStream(stream, origin, s => decoder.Decode<TPixel>(config, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -198,9 +241,22 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Load<TPixel>(config, stream, out var _);
-        }
+            => Load<TPixel>(config, stream, out IImageFormat _);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, ReadOrigin origin)
+            where TPixel : struct, IPixel<TPixel>
+            => Load<TPixel>(config, stream, origin, out IImageFormat _);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -214,10 +270,26 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
         public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, out IImageFormat format)
-        where TPixel : struct, IPixel<TPixel>
+            where TPixel : struct, IPixel<TPixel>
+            => Load<TPixel>(config, stream, ReadOrigin.Begin, out format);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
+        /// </summary>
+        /// <param name="config">The configuration options.</param>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="origin">The position in the stream to use for reading.</param>
+        /// <param name="format">the mime type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        public static Image<TPixel> Load<TPixel>(Configuration config, Stream stream, ReadOrigin origin, out IImageFormat format)
+            where TPixel : struct, IPixel<TPixel>
         {
             config = config ?? Configuration.Default;
-            (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(stream, s => Decode<TPixel>(s, config));
+            (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(stream, origin, s => Decode<TPixel>(s, config));
 
             format = data.format;
 
@@ -237,7 +309,7 @@ namespace SixLabors.ImageSharp
             throw new NotSupportedException(stringBuilder.ToString());
         }
 
-        private static T WithSeekableStream<T>(Stream stream, Func<Stream, T> action)
+        private static T WithSeekableStream<T>(Stream stream, ReadOrigin origin, Func<Stream, T> action)
         {
             if (!stream.CanRead)
             {
@@ -246,7 +318,17 @@ namespace SixLabors.ImageSharp
 
             if (stream.CanSeek)
             {
+                if (origin == ReadOrigin.Begin)
+                {
+                    stream.Position = 0;
+                }
+
                 return action(stream);
+            }
+
+            if (origin == ReadOrigin.Current)
+            {
+                throw new NotSupportedException("Cannot seek within the stream.");
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body

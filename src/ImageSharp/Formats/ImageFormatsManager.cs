@@ -12,13 +12,6 @@ namespace SixLabors.ImageSharp.Formats
     public class ImageFormatsManager
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFormatsManager" /> class.
-        /// </summary>
-        public ImageFormatsManager()
-        {
-        }
-
-        /// <summary>
         /// The list of supported <see cref="IImageEncoder"/> keyed to mime types.
         /// </summary>
         private readonly ConcurrentDictionary<IImageFormat, IImageEncoder> mimeTypeEncoders = new ConcurrentDictionary<IImageFormat, IImageEncoder>();
@@ -37,6 +30,13 @@ namespace SixLabors.ImageSharp.Formats
         /// The list of supported <see cref="IImageFormatDetector"/>s.
         /// </summary>
         private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFormatsManager" /> class.
+        /// </summary>
+        public ImageFormatsManager()
+        {
+        }
 
         /// <summary>
         /// Gets the maximum header size of all the formats.
@@ -179,7 +179,5 @@ namespace SixLabors.ImageSharp.Formats
         {
             this.MaxHeaderSize = this.imageFormatDetectors.Max(x => x.HeaderSize);
         }
-
-        
     }
 }

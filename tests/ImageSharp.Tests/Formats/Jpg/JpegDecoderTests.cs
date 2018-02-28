@@ -118,8 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
-
-
+        
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, false)]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, true)]

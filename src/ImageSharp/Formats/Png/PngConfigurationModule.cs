@@ -9,11 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Png
     public sealed class PngConfigurationModule : IConfigurationModule
     {
         /// <inheritdoc/>
-        public void Configure(Configuration host)
+        public void Configure(Configuration config)
         {
-            host.SetEncoder(ImageFormats.Png, new PngEncoder());
-            host.SetDecoder(ImageFormats.Png, new PngDecoder());
-            host.AddImageFormatDetector(new PngImageFormatDetector());
+            config.SetEncoder(ImageFormats.Png, new PngEncoder());
+            config.SetDecoder(ImageFormats.Png, new PngDecoder());
+            config.AddImageFormatDetector(new PngImageFormatDetector());
         }
     }
 }

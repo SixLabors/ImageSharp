@@ -351,12 +351,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                             return;
                         }
 
-                        // when this is a progressive image this gets called a number of times
-                        // need to know how many times this should be called in total.
                         this.ProcessStartOfScanMarker(remaining);
-                        if (this.InputProcessor.ReachedEOF || !this.IsProgressive)
+                        if (this.InputProcessor.ReachedEOF)
                         {
-                            // if unexpeced EOF reached or this is not a progressive image we can stop processing bytes as we now have the image data.
+                            // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
                             processBytes = false;
                         }
 

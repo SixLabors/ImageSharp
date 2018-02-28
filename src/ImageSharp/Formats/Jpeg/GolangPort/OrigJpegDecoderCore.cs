@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 {
                     // Section B.1.1.2 says, "Any marker may optionally be preceded by any
                     // number of fill bytes, which are bytes assigned code X'FF'".
-                    marker = this.InputProcessor.ReadByte();
+                    this.InputProcessor.ReadByteUnsafe(out marker);
 
                     if (this.InputProcessor.ReachedEOF)
                     {
@@ -318,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 // Read the 16-bit length of the segment. The value includes the 2 bytes for the
                 // length itself, so we subtract 2 to get the number of remaining bytes.
-                this.InputProcessor.ReadFull(this.Temp, 0, 2);
+                this.InputProcessor.ReadFullUnsafe(this.Temp, 0, 2);
                 int remaining = (this.Temp[0] << 8) + this.Temp[1] - 2;
                 if (remaining < 0)
                 {

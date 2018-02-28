@@ -13,19 +13,19 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public class ImageFormatsManagerTests
+    public class ImageFormatManagerTests
     {
-        public ImageFormatsManager FormatsManagerEmpty { get; private set; }
-        public ImageFormatsManager DefaultFormatsManager { get; private set; }
+        public ImageFormatManager FormatsManagerEmpty { get; private set; }
+        public ImageFormatManager DefaultFormatsManager { get; private set; }
 
-        public ImageFormatsManagerTests()
+        public ImageFormatManagerTests()
         {
-            this.DefaultFormatsManager = Configuration.Default.FormatsManager;
-            this.FormatsManagerEmpty = new ImageFormatsManager();
+            this.DefaultFormatsManager = Configuration.Default.ImageFormatsManager;
+            this.FormatsManagerEmpty = new ImageFormatManager();
         }        
 
         [Fact]
-        public void IfAutoloadWellknownFormatsIsTrueAllFormatsAreLoaded()
+        public void IfAutoloadWellKnownFormatsIsTrueAllFormatsAreLoaded()
         {
             Assert.Equal(4, this.DefaultFormatsManager.ImageEncoders.Count());
             Assert.Equal(4, this.DefaultFormatsManager.ImageDecoders.Count());

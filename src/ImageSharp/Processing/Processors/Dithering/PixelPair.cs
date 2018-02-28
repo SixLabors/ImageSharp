@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// Represents a composite pair of pixels. Used for caching color distance lookups.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal struct PixelPair<TPixel> : IEquatable<PixelPair<TPixel>>
+    internal readonly struct PixelPair<TPixel> : IEquatable<PixelPair<TPixel>>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Represents a value in relation to a value on the image
     /// </summary>
-    internal struct ValueSize : IEquatable<ValueSize>
+    internal readonly struct ValueSize : IEquatable<ValueSize>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ValueSize"/> struct.

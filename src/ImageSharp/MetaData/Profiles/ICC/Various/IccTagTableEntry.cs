@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// Entry of ICC tag table
     /// </summary>
-    internal struct IccTagTableEntry : IEquatable<IccTagTableEntry>
+    internal readonly struct IccTagTableEntry : IEquatable<IccTagTableEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccTagTableEntry"/> struct.

@@ -24,8 +24,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                     throw new ArgumentException("ThrowExceptionForErrorCode() called with NoError!", nameof(errorCode));
                 case OrigDecoderErrorCode.MissingFF00:
                     throw new MissingFF00Exception();
+
                 case OrigDecoderErrorCode.UnexpectedEndOfStream:
-                    throw new EOFException();
+
+                    // TODO:
+                    // Disabled for now since we want to avoid throwing for most bad eof.
+                    // Will probably delete
+                    // throw new EOFException();
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(errorCode), errorCode, null);
             }

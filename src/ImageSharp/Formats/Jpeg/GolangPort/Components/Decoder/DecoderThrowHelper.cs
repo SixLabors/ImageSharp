@@ -18,20 +18,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowExceptionForErrorCode(this OrigDecoderErrorCode errorCode)
         {
+            // REMARK: If this method throws for an image that is expected to be decodable,
+            // consider using the ***Unsafe variant of the parsing method that asks for ThrowExceptionForErrorCode()
+            // then verify the error code + implement fallback logic manually!
             switch (errorCode)
             {
                 case OrigDecoderErrorCode.NoError:
                     throw new ArgumentException("ThrowExceptionForErrorCode() called with NoError!", nameof(errorCode));
                 case OrigDecoderErrorCode.MissingFF00:
                     throw new MissingFF00Exception();
-
                 case OrigDecoderErrorCode.UnexpectedEndOfStream:
-
-                    // TODO:
-                    // Disabled for now since we want to avoid throwing for most bad eof.
-                    // Will probably delete
-                    // throw new EOFException();
-                    break;
+                    throw new EOFException();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(errorCode), errorCode, null);
             }

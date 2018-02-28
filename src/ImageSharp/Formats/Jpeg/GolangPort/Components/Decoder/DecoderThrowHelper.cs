@@ -18,6 +18,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowExceptionForErrorCode(this OrigDecoderErrorCode errorCode)
         {
+            // REMARK: If this method throws for an image that is expected to be decodable,
+            // consider using the ***Unsafe variant of the parsing method that asks for ThrowExceptionForErrorCode()
+            // then verify the error code + implement fallback logic manually!
             switch (errorCode)
             {
                 case OrigDecoderErrorCode.NoError:

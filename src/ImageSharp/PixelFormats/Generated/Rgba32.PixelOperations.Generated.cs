@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp
 {
     using System;
     using System.Runtime.CompilerServices;
-
+    using System.Runtime.InteropServices;
     using SixLabors.ImageSharp.PixelFormats;
 	    
     /// <content>
@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                ref Rgb24 sourceRef = ref source.DangerousGetPinnableReference();
-                ref Rgba32 destRef = ref destPixels.DangerousGetPinnableReference();
+                ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(source);
+                ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -38,8 +38,8 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                ref Rgba32 sourceRef = ref sourcePixels.DangerousGetPinnableReference();
-                ref Rgb24 destRef = ref dest.DangerousGetPinnableReference();
+                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Rgb24 destRef = ref MemoryMarshal.GetReference(dest);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -54,8 +54,8 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                ref Bgr24 sourceRef = ref source.DangerousGetPinnableReference();
-                ref Rgba32 destRef = ref destPixels.DangerousGetPinnableReference();
+                ref Bgr24 sourceRef = ref MemoryMarshal.GetReference(source);
+                ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -70,8 +70,8 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                ref Rgba32 sourceRef = ref sourcePixels.DangerousGetPinnableReference();
-                ref Bgr24 destRef = ref dest.DangerousGetPinnableReference();
+                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Bgr24 destRef = ref MemoryMarshal.GetReference(dest);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -86,8 +86,8 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                ref Bgra32 sourceRef = ref source.DangerousGetPinnableReference();
-                ref Rgba32 destRef = ref destPixels.DangerousGetPinnableReference();
+                ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(source);
+                ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -102,8 +102,8 @@ namespace SixLabors.ImageSharp
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                ref Rgba32 sourceRef = ref sourcePixels.DangerousGetPinnableReference();
-                ref Bgra32 destRef = ref dest.DangerousGetPinnableReference();
+                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Bgra32 destRef = ref MemoryMarshal.GetReference(dest);
 
                 for (int i = 0; i < count; i++)
                 {

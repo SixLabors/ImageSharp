@@ -63,7 +63,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
         private static JpegColorConverter GetYCbCrConverter() =>
             FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2() : new FromYCbCrSimd();
 
-
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.
         /// </summary>

@@ -21,13 +21,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Baseline.Bad.ExifUndefType,
             };
 
         public static string[] ProgressiveTestJpegs =
             {
                 TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
-                TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF
+                TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
+                TestImages.Jpeg.Progressive.Bad.ExifUndefType,
             };
 
         public JpegImagePostProcessorTests(ITestOutputHelper output)

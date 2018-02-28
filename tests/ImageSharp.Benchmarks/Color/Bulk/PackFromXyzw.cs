@@ -1,6 +1,8 @@
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
+    using System;
+
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Memory;
@@ -9,9 +11,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class PackFromXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TPixel> destination;
+        private IBuffer<TPixel> destination;
 
-        private Buffer<byte> source;
+        private IBuffer<byte> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -19,8 +21,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = new Buffer<TPixel>(this.Count);
-            this.source = new Buffer<byte>(this.Count * 4);
+            this.destination = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
+            this.source = Configuration.Default.MemoryManager.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -33,13 +35,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            byte[] s = this.source.Array;
-            TPixel[] d = this.destination.Array;
+            Span<byte> s = this.source.Span;
+            Span<TPixel> d = this.destination.Span;
             
             for (int i = 0; i < this.Count; i++)
             {
                 int i4 = i * 4;
-                TPixel c = default(TPixel);
+                var c = default(TPixel);
                 c.PackFromRgba32(new Rgba32(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
                 d[i] = c;
             }
@@ -48,13 +50,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source, this.destination, this.Count);
+           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
         }
     }
 

@@ -137,12 +137,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Previous scanline processed
         /// </summary>
-        private Buffer<byte> previousScanline;
+        private IManagedByteBuffer previousScanline;
 
         /// <summary>
         /// The current scanline that is being processed
         /// </summary>
-        private Buffer<byte> scanline;
+        private IManagedByteBuffer scanline;
 
         /// <summary>
         /// The index of the current scanline being processed
@@ -191,6 +191,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
+        private MemoryManager MemoryManager => this.configuration.MemoryManager;
+
         /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
@@ -222,11 +224,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                             switch (currentChunk.Type)
                             {
                                 case PngChunkTypes.Header:
-                                    this.ReadHeaderChunk(currentChunk.Data);
+                                    this.ReadHeaderChunk(currentChunk.Data.Array);
                                     this.ValidateHeader();
                                     break;
                                 case PngChunkTypes.Physical:
-                                    this.ReadPhysicalChunk(metadata, currentChunk.Data);
+                                    this.ReadPhysicalChunk(metadata, currentChunk.Data.Array);
                                     break;
                                 case PngChunkTypes.Data:
                                     if (image == null)
@@ -240,17 +242,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 case PngChunkTypes.Palette:
                                     byte[] pal = new byte[currentChunk.Length];
-                                    Buffer.BlockCopy(currentChunk.Data, 0, pal, 0, currentChunk.Length);
+                                    Buffer.BlockCopy(currentChunk.Data.Array, 0, pal, 0, currentChunk.Length);
                                     this.palette = pal;
                                     break;
                                 case PngChunkTypes.PaletteAlpha:
                                     byte[] alpha = new byte[currentChunk.Length];
-                                    Buffer.BlockCopy(currentChunk.Data, 0, alpha, 0, currentChunk.Length);
+                                    Buffer.BlockCopy(currentChunk.Data.Array, 0, alpha, 0, currentChunk.Length);
                                     this.paletteAlpha = alpha;
                                     this.AssignTransparentMarkers(alpha);
                                     break;
                                 case PngChunkTypes.Text:
-                                    this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
+                                    this.ReadTextChunk(metadata, currentChunk.Data.Array, currentChunk.Length);
                                     break;
                                 case PngChunkTypes.End:
                                     this.isEndChunkReached = true;
@@ -262,7 +264,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                             // Data is rented in ReadChunkData()
                             if (currentChunk.Data != null)
                             {
-                                ArrayPool<byte>.Shared.Return(currentChunk.Data);
+                                currentChunk.Data.Dispose();
+                                currentChunk.Data = null;
                             }
                         }
                     }
@@ -296,17 +299,17 @@ namespace SixLabors.ImageSharp.Formats.Png
                         switch (currentChunk.Type)
                         {
                             case PngChunkTypes.Header:
-                                this.ReadHeaderChunk(currentChunk.Data);
+                                this.ReadHeaderChunk(currentChunk.Data.Array);
                                 this.ValidateHeader();
                                 break;
                             case PngChunkTypes.Physical:
-                                this.ReadPhysicalChunk(metadata, currentChunk.Data);
+                                this.ReadPhysicalChunk(metadata, currentChunk.Data.Array);
                                 break;
                             case PngChunkTypes.Data:
                                 this.SkipChunkDataAndCrc(currentChunk);
                                 break;
                             case PngChunkTypes.Text:
-                                this.ReadTextChunk(metadata, currentChunk.Data, currentChunk.Length);
+                                this.ReadTextChunk(metadata, currentChunk.Data.Array, currentChunk.Length);
                                 break;
                             case PngChunkTypes.End:
                                 this.isEndChunkReached = true;
@@ -318,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         // Data is rented in ReadChunkData()
                         if (currentChunk.Data != null)
                         {
-                            ArrayPool<byte>.Shared.Return(currentChunk.Data);
+                            ArrayPool<byte>.Shared.Return(currentChunk.Data.Array);
                         }
                     }
                 }
@@ -434,8 +437,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
-            this.scanline = Buffer<byte>.CreateClean(this.bytesPerScanline);
+            this.previousScanline = this.MemoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.scanline = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
         }
 
         /// <summary>
@@ -555,7 +558,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
 
                 this.currentRowBytesRead = 0;
-                var filterType = (FilterType)this.scanline[0];
+                Span<byte> scanlineSpan = this.scanline.Span;
+                var filterType = (FilterType)scanlineSpan[0];
 
                 switch (filterType)
                 {
@@ -564,22 +568,22 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     case FilterType.Sub:
 
-                        SubFilter.Decode(this.scanline, this.bytesPerPixel);
+                        SubFilter.Decode(scanlineSpan, this.bytesPerPixel);
                         break;
 
                     case FilterType.Up:
 
-                        UpFilter.Decode(this.scanline, this.previousScanline);
+                        UpFilter.Decode(scanlineSpan, this.previousScanline.Span);
                         break;
 
                     case FilterType.Average:
 
-                        AverageFilter.Decode(this.scanline, this.previousScanline, this.bytesPerPixel);
+                        AverageFilter.Decode(scanlineSpan, this.previousScanline.Span, this.bytesPerPixel);
                         break;
 
                     case FilterType.Paeth:
 
-                        PaethFilter.Decode(this.scanline, this.previousScanline, this.bytesPerPixel);
+                        PaethFilter.Decode(scanlineSpan, this.previousScanline.Span, this.bytesPerPixel);
                         break;
 
                     default:
@@ -750,11 +754,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                         if (this.header.BitDepth == 16)
                         {
                             int length = this.header.Width * 3;
-                            using (var compressed = new Buffer<byte>(length))
+                            using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                             {
                                 // TODO: Should we use pack from vector here instead?
-                                this.From16BitTo8Bit(scanlineBuffer, compressed, length);
-                                PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(compressed, rowSpan, this.header.Width);
+                                this.From16BitTo8Bit(scanlineBuffer, compressed.Span, length);
+                                PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(compressed.Span, rowSpan, this.header.Width);
                             }
                         }
                         else
@@ -767,10 +771,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                         if (this.header.BitDepth == 16)
                         {
                             int length = this.header.Width * 3;
-                            using (var compressed = new Buffer<byte>(length))
+                            using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                             {
                                 // TODO: Should we use pack from vector here instead?
-                                this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                                this.From16BitTo8Bit(scanlineBuffer, compressed.Span, length);
 
                                 Span<Rgb24> rgb24Span = compressed.Span.NonPortableCast<byte, Rgb24>();
                                 for (int x = 0; x < this.header.Width; x++)
@@ -808,11 +812,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 4;
-                        using (var compressed = new Buffer<byte>(length))
+                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
-                            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(compressed, rowSpan, this.header.Width);
+                            this.From16BitTo8Bit(scanlineBuffer, compressed.Span, length);
+                            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(compressed.Span, rowSpan, this.header.Width);
                         }
                     }
                     else
@@ -1011,18 +1015,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 3;
-                        using (var compressed = new Buffer<byte>(length))
+                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                         {
+                            Span<byte> compressedSpan = compressed.Span;
+
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            this.From16BitTo8Bit(scanlineBuffer, compressedSpan, length);
 
                             if (this.hasTrans)
                             {
                                 for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 3)
                                 {
-                                    rgba.R = compressed[o];
-                                    rgba.G = compressed[o + 1];
-                                    rgba.B = compressed[o + 2];
+                                    rgba.R = compressedSpan[o];
+                                    rgba.G = compressedSpan[o + 1];
+                                    rgba.B = compressedSpan[o + 2];
                                     rgba.A = (byte)(this.rgb24Trans.Equals(rgba.Rgb) ? 0 : 255);
 
                                     color.PackFromRgba32(rgba);
@@ -1033,9 +1039,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                             {
                                 for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 3)
                                 {
-                                    rgba.R = compressed[o];
-                                    rgba.G = compressed[o + 1];
-                                    rgba.B = compressed[o + 2];
+                                    rgba.R = compressedSpan[o];
+                                    rgba.G = compressedSpan[o + 1];
+                                    rgba.B = compressedSpan[o + 2];
 
                                     color.PackFromRgba32(rgba);
                                     rowSpan[x] = color;
@@ -1079,16 +1085,18 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 4;
-                        using (var compressed = new Buffer<byte>(length))
+                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
                         {
+                            Span<byte> compressedSpan = compressed.Span;
+
                             // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(scanlineBuffer, compressed, length);
+                            this.From16BitTo8Bit(scanlineBuffer, compressedSpan, length);
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
                             {
-                                rgba.R = compressed[o];
-                                rgba.G = compressed[o + 1];
-                                rgba.B = compressed[o + 2];
-                                rgba.A = compressed[o + 3];
+                                rgba.R = compressedSpan[o];
+                                rgba.G = compressedSpan[o + 1];
+                                rgba.B = compressedSpan[o + 2];
+                                rgba.A = compressedSpan[o + 3];
 
                                 color.PackFromRgba32(rgba);
                                 rowSpan[x] = color;
@@ -1254,7 +1262,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.crc.Reset();
             this.crc.Update(this.chunkTypeBuffer);
-            this.crc.Update(chunk.Data, 0, chunk.Length);
+            this.crc.Update(chunk.Data.Array, 0, chunk.Length);
 
             if (this.crc.Value != chunk.Crc && IsCriticalChunk(chunk))
             {
@@ -1278,8 +1286,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadChunkData(PngChunk chunk)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            chunk.Data = ArrayPool<byte>.Shared.Rent(chunk.Length);
-            this.currentStream.Read(chunk.Data, 0, chunk.Length);
+            chunk.Data = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(chunk.Length);
+            this.currentStream.Read(chunk.Data.Array, 0, chunk.Length);
         }
 
         /// <summary>
@@ -1350,7 +1358,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         private void SwapBuffers()
         {
-            Buffer<byte> temp = this.previousScanline;
+            IManagedByteBuffer temp = this.previousScanline;
             this.previousScanline = this.scanline;
             this.scanline = temp;
         }

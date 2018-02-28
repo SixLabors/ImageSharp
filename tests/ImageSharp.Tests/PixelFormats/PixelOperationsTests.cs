@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.Rgba32.PixelOperations.ToVector4SimdAligned(s, d, 64)
+                    (s, d) => ImageSharp.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.Span, 64)
                 );
             }
 
@@ -50,14 +50,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (Buffer<ImageSharp.Rgba32> source = new Buffer<ImageSharp.Rgba32>(count))
-                using (Buffer<Vector4> dest = new Buffer<Vector4>(count))
+                using (IBuffer<ImageSharp.Rgba32> source = Configuration.Default.MemoryManager.Allocate<ImageSharp.Rgba32>(count))
+                using (IBuffer<Vector4> dest = Configuration.Default.MemoryManager.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                PixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source, dest, count);
+                                PixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source.Span, dest.Span, count);
                             });
                 }
             }
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromVector4(s, d, count)
+                (s, d) => Operations.PackFromVector4(s, d.Span, count)
             );
         }
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(s, d, count)
+                (s, d) => Operations.ToVector4(s, d.Span, count)
             );
         }
 
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgb24Bytes(s, d, count)
+                (s, d) => Operations.PackFromRgb24Bytes(s, d.Span, count)
             );
         }
 
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgb24Bytes(s, d, count)
+                (s, d) => Operations.ToRgb24Bytes(s, d.Span, count)
             );
         }
 
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgba32Bytes(s, d, count)
+                (s, d) => Operations.PackFromRgba32Bytes(s, d.Span, count)
             );
         }
 
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgba32Bytes(s, d, count)
+                (s, d) => Operations.ToRgba32Bytes(s, d.Span, count)
             );
         }
 
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgr24Bytes(s, d, count)
+                (s, d) => Operations.PackFromBgr24Bytes(s, d.Span, count)
             );
         }
 
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgr24Bytes(s, d, count)
+                (s, d) => Operations.ToBgr24Bytes(s, d.Span, count)
             );
         }
 
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgra32Bytes(s, d, count)
+                (s, d) => Operations.PackFromBgra32Bytes(s, d.Span, count)
             );
         }
 
@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgra32Bytes(s, d, count)
+                (s, d) => Operations.ToBgra32Bytes(s, d.Span, count)
             );
         }
 
@@ -333,25 +333,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             where TSource : struct
             where TDest : struct
         {
-            public Buffer<TSource> SourceBuffer { get; }
-            public Buffer<TDest> ActualDestBuffer { get; }
-            public Buffer<TDest> ExpectedDestBuffer { get; }
-
-            public Span<TSource> Source => this.SourceBuffer;
-            public Span<TDest> ActualDest => this.ActualDestBuffer;
-
+            public TSource[] SourceBuffer { get; }
+            public IBuffer<TDest> ActualDestBuffer { get; }
+            public TDest[] ExpectedDestBuffer { get; }
+            
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
-                this.SourceBuffer = new Buffer<TSource>(source);
-                this.ExpectedDestBuffer = new Buffer<TDest>(expectedDest);
-                this.ActualDestBuffer = new Buffer<TDest>(expectedDest.Length);
+                this.SourceBuffer = source;
+                this.ExpectedDestBuffer = expectedDest;
+                this.ActualDestBuffer = Configuration.Default.MemoryManager.Allocate<TDest>(expectedDest.Length);
             }
 
             public void Dispose()
             {
-                this.SourceBuffer.Dispose();
                 this.ActualDestBuffer.Dispose();
-                this.ExpectedDestBuffer.Dispose();
             }
 
             private const float Tolerance = 0.0001f;
@@ -362,8 +357,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDest) == typeof(Vector4))
                 {
-                    Vector4[] expected = this.ExpectedDestBuffer.Array as Vector4[];
-                    Vector4[] actual = this.ActualDestBuffer.Array as Vector4[];
+                    
+                    Span<Vector4> expected = this.ExpectedDestBuffer.AsSpan().NonPortableCast<TDest, Vector4>();
+                    Span<Vector4> actual = this.ActualDestBuffer.Span.NonPortableCast<TDest, Vector4>();
 
                     for (int i = 0; i < count; i++)
                     {
@@ -374,8 +370,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 }
                 else
                 {
-                    TDest[] expected = this.ExpectedDestBuffer.Array;
-                    TDest[] actual = this.ActualDestBuffer.Array;
+                    Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
+                    Span<TDest> actual = this.ActualDestBuffer.Span;
                     for (int i = 0; i < count; i++)
                     {
                         Assert.Equal(expected[i], actual[i]);
@@ -387,7 +383,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<Buffer<TSource>, Buffer<TDest>> action)
+            Action<TSource[], IBuffer<TDest>> action)
             where TSource : struct
             where TDest : struct
         {
@@ -401,7 +397,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static Vector4[] CreateVector4TestData(int length)
         {
             Vector4[] result = new Vector4[length];
-            Random rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
@@ -414,7 +410,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             TPixel[] result = new TPixel[length];
 
-            Random rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {
@@ -428,7 +424,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static byte[] CreateByteTestData(int length)
         {
             byte[] result = new byte[length];
-            Random rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {

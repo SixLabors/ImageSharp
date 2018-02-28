@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -14,6 +15,12 @@ namespace SixLabors.ImageSharp
     public interface IImageProcessingContext<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets a reference to the <see cref="MemoryManager" /> used to allocate buffers
+        /// for this context.
+        /// </summary>
+        MemoryManager MemoryManager { get; }
+
         /// <summary>
         /// Gets the image bounds at the current point in the processing pipeline.
         /// </summary>

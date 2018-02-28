@@ -3,8 +3,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
 using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
@@ -38,7 +39,6 @@ namespace SixLabors.ImageSharp.Tests
             return op;
         }
 
-
         public class FakeImageOperations<TPixel> : IInternalImageProcessingContext<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
@@ -53,6 +53,8 @@ namespace SixLabors.ImageSharp.Tests
             public Image<TPixel> Source { get; }
 
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
+
+            public MemoryManager MemoryManager => this.Source.GetConfiguration().MemoryManager;
 
             public Image<TPixel> Apply()
             {
@@ -82,6 +84,7 @@ namespace SixLabors.ImageSharp.Tests
                 });
                 return this;
             }
+
             public struct AppliedOperation
             {
                 public Rectangle? Rectangle { get; set; }

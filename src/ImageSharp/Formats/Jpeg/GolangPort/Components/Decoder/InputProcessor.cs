@@ -107,6 +107,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             return this.Bytes.ReadByte(this.InputStream);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public OrigDecoderErrorCode ReadByteUnsafe(out byte result)
+        {
+            this.LastErrorCode = this.Bytes.ReadByteUnsafe(this.InputStream, out result);
+            return this.LastErrorCode;
+        }
+
         /// <summary>
         /// Decodes a single bit
         /// TODO: This method (and also the usages) could be optimized by batching!

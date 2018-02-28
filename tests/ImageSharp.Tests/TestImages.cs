@@ -85,6 +85,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static class Bad
                 {
                     public const string BadEOF = "Jpg/progressive/BadEofProgressive.jpg";
+                    public const string ExifUndefType = "Jpg/progressive/ExifUndefType.jpg";
                 }
 
                 public static readonly string[] All = { Fb, Progress, Festzug };
@@ -95,7 +96,6 @@ namespace SixLabors.ImageSharp.Tests
                 public static class Bad
                 {
                     public const string BadEOF = "Jpg/baseline/badeof.jpg";
-                    public const string ExifUndefType = "Jpg/baseline/ExifUndefType.jpg";
                 }
 
                 public const string Cmyk = "Jpg/baseline/cmyk.jpg";
@@ -113,6 +113,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
+                public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
 
                 public static readonly string[] All =
                     {
@@ -129,7 +130,6 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
                 public const string BadZigZagProgressive385 = "Jpg/issues/Issue385-BadZigZag-Progressive.jpg";
                 public const string MultiHuffmanBaseline394 = "Jpg/issues/Issue394-MultiHuffmanBaseline-Speakers.jpg";
-                public const string CmykIssueBaseline464 = "Jpg/issues/Issue464-CMYK-DecodedAsGrayscale.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

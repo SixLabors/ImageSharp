@@ -43,6 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Baseline.Bad.ExifUndefType,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
+                TestImages.Jpeg.Issues.CmykIssueBaseline464
             };
 
         public static string[] ProgressiveTestJpegs =

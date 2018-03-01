@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using SixLabors.ImageSharp.PixelFormats;
-	    
+
     /// <content>
     /// Provides optimized overrides for bulk operations.
     /// </content>

@@ -84,9 +84,9 @@ namespace SixLabors.ImageSharp
         public IEnumerable<IImageFormat> ImageFormats => this.imageFormats;
 
         /// <summary>
-        /// Gets or sets the position in a stream to use for reading.
+        /// Gets or sets the position in a stream to use for reading when using a seekable stream as an image data source.
         /// </summary>
-        public ReadOrigin ReadOrigin { get; set; } = ReadOrigin.Begin;
+        public ReadOrigin ReadOrigin { get; set; } = ReadOrigin.Current;
 
         /// <summary>
         /// Gets or sets the <see cref="MemoryManager"/> that is currently in use.

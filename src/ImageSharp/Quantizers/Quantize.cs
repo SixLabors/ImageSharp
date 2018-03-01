@@ -4,6 +4,7 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
@@ -61,23 +62,25 @@ namespace SixLabors.ImageSharp
                 QuantizedImage<TPixel> quantized = quantizer.Quantize(img.Frames.RootFrame, maxColors);
                 int palleteCount = quantized.Palette.Length - 1;
 
-                using (var pixels = new PixelAccessor<TPixel>(quantized.Width, quantized.Height))
+                using (Buffer2D<TPixel> pixels = source.MemoryManager.Allocate2D<TPixel>(quantized.Width, quantized.Height))
                 {
                     Parallel.For(
                         0,
                         pixels.Height,
                         img.GetConfiguration().ParallelOptions,
                         y =>
-                        {
-                            for (int x = 0; x < pixels.Width; x++)
                             {
-                                int i = x + (y * pixels.Width);
-                                TPixel color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
-                                pixels[x, y] = color;
-                            }
-                        });
+                                Span<TPixel> row = pixels.GetRowSpan(y);
+                                int yy = y * pixels.Width;
+                                for (int x = 0; x < pixels.Width; x++)
+                                {
+                                    int i = x + yy;
+                                    TPixel color = quantized.Palette[Math.Min(palleteCount, quantized.Pixels[i])];
+                                    row[x] = color;
+                                }
+                            });
 
-                    img.Frames[0].SwapPixelsBuffers(pixels);
+                    Buffer2D<TPixel>.SwapContents(img.Frames[0].PixelBuffer, pixels);
                 }
             });
         }

@@ -18,24 +18,13 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="size">The size to draw the blended image.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, Size size, Point location, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, Point location, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (size == default(Size))
-            {
-                size = new Size(image.Width, image.Height);
-            }
-
-            if (location == default(Point))
-            {
-                location = Point.Empty;
-            }
-
-            source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, size, location, options));
+            source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, location, options));
             return source;
         }
 
@@ -45,14 +34,14 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
+        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, float percent)
+        public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
-            options.BlendPercentage = percent;
-            return DrawImage(source, image, default(Size), default(Point), options);
+            options.BlendPercentage = opacity;
+            return DrawImage(source, image, Point.Empty, options);
         }
 
         /// <summary>
@@ -62,15 +51,15 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="blender">The blending mode.</param>
-        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
+        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float percent)
+        public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
-            options.BlendPercentage = percent;
+            options.BlendPercentage = opacity;
             options.BlenderMode = blender;
-            return DrawImage(source, image, default(Size), default(Point), options);
+            return DrawImage(source, image, Point.Empty, options);
         }
 
         /// <summary>
@@ -79,12 +68,12 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="options">The options, including the blending type and belnding amount.</param>
+        /// <param name="options">The options, including the blending type and blending amount.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return DrawImage(source, image, default(Size), default(Point), options);
+            return DrawImage(source, image, Point.Empty, options);
         }
 
         /// <summary>
@@ -93,16 +82,15 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
-        /// <param name="size">The size to draw the blended image.</param>
+        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, float percent, Size size, Point location)
+        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, float opacity, Point location)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
-            options.BlendPercentage = percent;
-            return source.DrawImage(image, size, location, options);
+            options.BlendPercentage = opacity;
+            return source.DrawImage(image, location, options);
         }
 
         /// <summary>
@@ -112,17 +100,16 @@ namespace SixLabors.ImageSharp
         /// <param name="image">The image to blend with the currently processing image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="blender">The type of bending to apply.</param>
-        /// <param name="percent">The opacity of the image image to blend. Must be between 0 and 1.</param>
-        /// <param name="size">The size to draw the blended image.</param>
+        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float percent, Size size, Point location)
+        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float opacity, Point location)
             where TPixel : struct, IPixel<TPixel>
         {
             GraphicsOptions options = GraphicsOptions.Default;
             options.BlenderMode = blender;
-            options.BlendPercentage = percent;
-            return source.DrawImage(image, size, location, options);
+            options.BlendPercentage = opacity;
+            return source.DrawImage(image,  location, options);
         }
     }
 }

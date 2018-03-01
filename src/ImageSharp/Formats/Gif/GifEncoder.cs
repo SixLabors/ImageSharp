@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var encoder = new GifEncoderCore(this);
+            var encoder = new GifEncoderCore(image.GetConfiguration().MemoryManager, this);
             encoder.Encode(image, stream);
         }
     }

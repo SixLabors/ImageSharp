@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets or sets the output
         /// </summary>
-        public Buffer<short> Output;
+        public IBuffer<short> Output;
 
         /// <summary>
         /// Gets or sets the scaling factors

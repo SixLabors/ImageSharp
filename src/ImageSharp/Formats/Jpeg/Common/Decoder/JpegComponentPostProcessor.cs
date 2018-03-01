@@ -22,11 +22,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegComponentPostProcessor"/> class.
         /// </summary>
-        public JpegComponentPostProcessor(JpegImagePostProcessor imagePostProcessor, IJpegComponent component)
+        public JpegComponentPostProcessor(MemoryManager memoryManager, JpegImagePostProcessor imagePostProcessor, IJpegComponent component)
         {
             this.Component = component;
             this.ImagePostProcessor = imagePostProcessor;
-            this.ColorBuffer = new Buffer2D<float>(imagePostProcessor.PostProcessorBufferSize);
+            this.ColorBuffer = memoryManager.Allocate2D<float>(
+                imagePostProcessor.PostProcessorBufferSize.Width,
+                imagePostProcessor.PostProcessorBufferSize.Height);
 
             this.BlockRowsPerStep = JpegImagePostProcessor.BlockRowsPerStep / this.Component.SubSamplingDivisors.Height;
             this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
@@ -43,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public IJpegComponent Component { get; }
 
         /// <summary>
-        /// Gets the temporal working buffer of color values.
+        /// Gets the temporary working buffer of color values.
         /// </summary>
         public Buffer2D<float> ColorBuffer { get; }
 

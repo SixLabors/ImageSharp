@@ -707,6 +707,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBaseline(PdfJsFrameComponent component, int offset, ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
+            Span<short> blockDataSpan = component.BlockData.Span;
+
             int t = this.DecodeHuffman(ref dcHuffmanTable, stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
@@ -714,7 +716,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream);
-            component.BlockData[offset] = (short)(component.Pred += diff);
+            blockDataSpan[offset] = (short)(component.Pred += diff);
 
             int k = 1;
             while (k < 64)
@@ -748,7 +750,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 byte z = PdfJsQuantizationTables.DctZigZag[k];
                 short re = (short)this.ReceiveAndExtend(s, stream);
-                component.BlockData[offset + z] = re;
+                blockDataSpan[offset + z] = re;
                 k++;
             }
         }
@@ -756,6 +758,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeDCFirst(PdfJsFrameComponent component, int offset, ref PdfJsHuffmanTable dcHuffmanTable, Stream stream)
         {
+            Span<short> blockDataSpan = component.BlockData.Span;
+
             int t = this.DecodeHuffman(ref dcHuffmanTable, stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
@@ -763,19 +767,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream) << this.successiveState;
-            component.BlockData[offset] = (short)(component.Pred += diff);
+            blockDataSpan[offset] = (short)(component.Pred += diff);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeDCSuccessive(PdfJsFrameComponent component, int offset, Stream stream)
         {
+            Span<short> blockDataSpan = component.BlockData.Span;
+
             int bit = this.ReadBit(stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
 
-            component.BlockData[offset] |= (short)(bit << this.successiveState);
+            blockDataSpan[offset] |= (short)(bit << this.successiveState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

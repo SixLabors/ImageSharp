@@ -22,8 +22,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="degrees">The angle of rotation in degrees.</param>
-        public RotateProcessor(float degrees)
-            : this(degrees, KnownResamplers.Bicubic)
+        /// <param name="sourceSize">The source image size</param>
+        public RotateProcessor(float degrees, Size sourceSize)
+            : this(degrees, KnownResamplers.Bicubic, sourceSize)
         {
         }
 
@@ -32,8 +33,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="degrees">The angle of rotation in degrees.</param>
         /// <param name="sampler">The sampler to perform the rotating operation.</param>
-        public RotateProcessor(float degrees, IResampler sampler)
-            : base(Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty), sampler)
+        /// <param name="sourceSize">The source image size</param>
+        public RotateProcessor(float degrees, IResampler sampler, Size sourceSize)
+            : base(Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty), sampler, sourceSize)
         {
             this.Degrees = degrees;
         }

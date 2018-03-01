@@ -43,6 +43,10 @@ namespace SixLabors.ImageSharp
             this.ImageFormatsManager = configuration.ImageFormatsManager;
             this.MemoryManager = configuration.MemoryManager;
             this.ImageOperationsProvider = configuration.ImageOperationsProvider;
+
+            #if !NETSTANDARD1_1
+            this.FileSystem = configuration.FileSystem;
+            #endif
         }
 
         /// <summary>

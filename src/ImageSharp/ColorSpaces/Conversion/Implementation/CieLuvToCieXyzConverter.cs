@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             float v0 = ComputeV0(input.WhitePoint);
 
             float y = l > CieConstants.Kappa * CieConstants.Epsilon
-                        ? MathF.Pow((l + 16) / 116, 3)
+                        ? ImageMaths.Pow3((l + 16) / 116)
                         : l / CieConstants.Kappa;
 
             float a = ((52 * l / (u + (13 * l * u0))) - 1) / 3;

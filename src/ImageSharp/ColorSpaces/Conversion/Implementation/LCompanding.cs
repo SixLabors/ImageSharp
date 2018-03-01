@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Expand(float channel)
         {
-            return channel <= 0.08 ? 100 * channel / CieConstants.Kappa : MathF.Pow((channel + 0.16F) / 1.16F, 3);
+            return channel <= 0.08 ? 100 * channel / CieConstants.Kappa : ImageMaths.Pow3((channel + 0.16F) / 1.16F);
         }
 
         /// <inheritdoc/>

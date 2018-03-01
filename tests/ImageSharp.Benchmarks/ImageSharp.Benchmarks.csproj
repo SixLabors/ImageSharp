@@ -18,7 +18,7 @@
     <PackageReference Include="Colourful" Version="1.2.1" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
     <PackageReference Include="BenchmarkDotNet" Version="0.10.12" />
-    <PackageReference Include="Colourful" Version="1.1.2" />
+    <PackageReference Include="Colourful" Version="1.2.1" />
     <PackageReference Include="System.Drawing.Common" Version="4.5.0-preview2-26202-05" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net461'">

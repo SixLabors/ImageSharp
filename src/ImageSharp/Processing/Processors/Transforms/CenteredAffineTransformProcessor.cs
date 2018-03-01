@@ -19,8 +19,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        protected CenteredAffineTransformProcessor(Matrix3x2 matrix, IResampler sampler)
-            : base(matrix, sampler)
+        /// <param name="sourceSize">The source image size</param>
+        protected CenteredAffineTransformProcessor(Matrix3x2 matrix, IResampler sampler, Size sourceSize)
+            : base(matrix, sampler, GetTransformedDimensions(sourceSize, matrix))
         {
         }
 
@@ -30,11 +31,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             return TransformHelpers.GetCenteredTransformMatrix(sourceRectangle, destinationRectangle, this.TransformMatrix);
         }
 
-        /// <inheritdoc/>
-        protected override Size GetTransformedDimensions(Size sourceDimensions, Matrix3x2 matrix)
+        private static Size GetTransformedDimensions(Size sourceDimensions, Matrix3x2 matrix)
         {
             var sourceRectangle = new Rectangle(0, 0, sourceDimensions.Width, sourceDimensions.Height);
-            return TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, this.TransformMatrix).Size;
+            return TransformHelpers.GetTransformedBoundingRectangle(sourceRectangle, matrix).Size;
         }
     }
 }

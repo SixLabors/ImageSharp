@@ -41,6 +41,6 @@ namespace SixLabors.ImageSharp.Processing
         /// Gets or sets a value indicating whether to compress
         /// or expand individual pixel colors the value on processing.
         /// </summary>
-        public bool Compand { get; set; }
+        public bool Compand { get; set; } = false;
     }
 }

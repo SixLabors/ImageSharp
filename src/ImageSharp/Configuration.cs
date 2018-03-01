@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp
             #if !NETSTANDARD1_1
             this.FileSystem = configuration.FileSystem;
             #endif
-              
+
             this.ReadOrigin = configuration.ReadOrigin;
         }
 
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
         /// Gets the currently registered <see cref="IImageFormat"/>s.
         /// </summary>
         public IEnumerable<IImageFormat> ImageFormats => this.ImageFormatsManager.ImageFormats;
-      
+
         /// <summary>
         /// Gets or sets the position in a stream to use for reading when using a seekable stream as an image data source.
         /// </summary>

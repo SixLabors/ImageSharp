@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.Tests
 {

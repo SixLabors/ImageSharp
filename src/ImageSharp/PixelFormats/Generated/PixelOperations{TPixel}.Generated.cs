@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-	    
+
     public partial class PixelOperations<TPixel>
     {
 		

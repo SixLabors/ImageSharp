@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests
     public class ImageProcessingContextTests
     {
         [Fact]
-        public void MutatedBoundsAreAccuratePerOperation()
+        public void MutatedSizeIsAccuratePerOperation()
         {
             var x500 = new Size(500, 500);
             var x400 = new Size(400, 400);
@@ -19,16 +19,16 @@ namespace SixLabors.ImageSharp.Tests
             using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x =>
-                    x.AssertBounds(x500)
-                        .Resize(x400).AssertBounds(x400)
-                        .Resize(x300).AssertBounds(x300)
-                        .Resize(x200).AssertBounds(x200)
-                        .Resize(x100).AssertBounds(x100));
+                    x.AssertSize(x500)
+                        .Resize(x400).AssertSize(x400)
+                        .Resize(x300).AssertSize(x300)
+                        .Resize(x200).AssertSize(x200)
+                        .Resize(x100).AssertSize(x100));
             }
         }
 
         [Fact]
-        public void ClonedBoundsAreAccuratePerOperation()
+        public void ClonedSizeIsAccuratePerOperation()
         {
             var x500 = new Size(500, 500);
             var x400 = new Size(400, 400);
@@ -38,20 +38,20 @@ namespace SixLabors.ImageSharp.Tests
             using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Clone(x =>
-                    x.AssertBounds(x500)
-                        .Resize(x400).AssertBounds(x400)
-                        .Resize(x300).AssertBounds(x300)
-                        .Resize(x200).AssertBounds(x200)
-                        .Resize(x100).AssertBounds(x100));
+                    x.AssertSize(x500)
+                        .Resize(x400).AssertSize(x400)
+                        .Resize(x300).AssertSize(x300)
+                        .Resize(x200).AssertSize(x200)
+                        .Resize(x100).AssertSize(x100));
             }
         }
     }
 
-    public static class BoundsAssertationExtensions
+    public static class SizeAssertationExtensions
     {
-        public static IImageProcessingContext<Rgba32> AssertBounds(this IImageProcessingContext<Rgba32> context, Size size)
+        public static IImageProcessingContext<Rgba32> AssertSize(this IImageProcessingContext<Rgba32> context, Size size)
         {
-            Assert.Equal(size, context.Bounds().Size);
+            Assert.Equal(size, context.GetCurrentSize());
             return context;
         }
     }

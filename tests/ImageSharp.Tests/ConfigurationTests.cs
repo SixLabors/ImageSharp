@@ -60,6 +60,15 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
+        /// Test that the default configuration read origin options is set to begin.
+        /// </summary>
+        [Fact]
+        public void TestDefultConfigurationReadOriginIsCurrent()
+        {
+            Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
+        }
+
+        /// <summary>
         /// Test that the default configuration parallel options max degrees of parallelism matches the
         /// environment processor count.
         /// </summary>
@@ -83,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-               this.DefaultConfiguration.SetEncoder(null, new Mock<IImageEncoder>().Object);
+                this.DefaultConfiguration.SetEncoder(null, new Mock<IImageEncoder>().Object);
             });
             Assert.Throws<ArgumentNullException>(() =>
             {

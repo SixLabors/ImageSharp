@@ -4,7 +4,6 @@
 #>
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
-<#@ assembly name="$(NuGetPackageRoot)/system.memory/4.5.0-preview1-26216-02/lib/netstandard2.0/System.Memory.dll" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>

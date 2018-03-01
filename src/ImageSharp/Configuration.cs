@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -47,6 +47,8 @@ namespace SixLabors.ImageSharp
             #if !NETSTANDARD1_1
             this.FileSystem = configuration.FileSystem;
             #endif
+              
+            this.ReadOrigin = configuration.ReadOrigin;
         }
 
         /// <summary>
@@ -78,6 +80,11 @@ namespace SixLabors.ImageSharp
         /// Gets the currently registered <see cref="IImageFormat"/>s.
         /// </summary>
         public IEnumerable<IImageFormat> ImageFormats => this.ImageFormatsManager.ImageFormats;
+      
+        /// <summary>
+        /// Gets or sets the position in a stream to use for reading when using a seekable stream as an image data source.
+        /// </summary>
+        public ReadOrigin ReadOrigin { get; set; } = ReadOrigin.Current;
 
         /// <summary>
         /// Gets or sets the <see cref="ImageFormatManager"/> that is currently in use.

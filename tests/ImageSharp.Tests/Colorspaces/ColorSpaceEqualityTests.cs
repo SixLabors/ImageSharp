@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.ColorSpaces;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
+// TODO: This needs to be refactored so that it uses a serializable type once the colorspace code is public
 namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
     /// <summary>
@@ -33,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
                     {nameof( YCbCr), YCbCr.Empty }
                 };
 
-        public static readonly IEnumerable<object[]> EmptyData = EmptyDataLookup.Select(x => new [] { x.Key });
+        public static readonly IEnumerable<object[]> EmptyData = EmptyDataLookup.Select(x => new[] { x.Key });
 
         public static readonly TheoryData<object, object, Type> EqualityData =
            new TheoryData<object, object, Type>

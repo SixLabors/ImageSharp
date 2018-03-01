@@ -63,9 +63,9 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationReadOriginIsBegin()
+        public void TestDefultConfigurationReadOriginIsCurrent()
         {
-            Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Begin);
+            Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
         }
 
         /// <summary>

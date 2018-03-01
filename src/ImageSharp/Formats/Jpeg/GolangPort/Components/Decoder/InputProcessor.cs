@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
@@ -43,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public Stream InputStream { get; }
 
         /// <summary>
-        /// Gets the temporal buffer, same instance as <see cref="OrigJpegDecoderCore.Temp"/>
+        /// Gets the temporary buffer, same instance as <see cref="OrigJpegDecoderCore.Temp"/>
         /// </summary>
         public byte[] Temp { get; }
 
@@ -103,6 +105,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public byte ReadByte()
         {
             return this.Bytes.ReadByte(this.InputStream);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public OrigDecoderErrorCode ReadByteUnsafe(out byte result)
+        {
+            this.LastErrorCode = this.Bytes.ReadByteUnsafe(this.InputStream, out result);
+            return this.LastErrorCode;
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -14,6 +15,18 @@ namespace SixLabors.ImageSharp
     public interface IImageProcessingContext<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Gets a reference to the <see cref="MemoryManager" /> used to allocate buffers
+        /// for this context.
+        /// </summary>
+        MemoryManager MemoryManager { get; }
+
+        /// <summary>
+        /// Gets the image dimensions at the current point in the processing pipeline.
+        /// </summary>
+        /// <returns>The <see cref="Rectangle"/></returns>
+        Size GetCurrentSize();
+
         /// <summary>
         /// Adds the processor to the current set of image operations to be applied.
         /// </summary>
@@ -40,7 +53,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Adds the processors to the current image
         /// </summary>
-        /// <returns>The current image or a new image depending on withere this is alloed to mutate the source image.</returns>
+        /// <returns>The current image or a new image depending on whether this is allowed to mutate the source image.</returns>
         Image<TPixel> Apply();
     }
 }

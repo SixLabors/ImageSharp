@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var encoder = new BmpEncoderCore(this);
+            var encoder = new BmpEncoderCore(this, image.GetMemoryManager());
             encoder.Encode(image, stream);
         }
     }

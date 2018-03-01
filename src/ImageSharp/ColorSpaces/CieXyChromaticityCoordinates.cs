@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+// ReSharper disable CompareOfFloatsByEqualityOperator
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
@@ -143,7 +144,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyChromaticityCoordinates other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            // The memberwise comparison here is a workaround for https://github.com/dotnet/coreclr/issues/16443
+            return this.X == other.X && this.Y == other.Y;
         }
 
         /// <inheritdoc/>

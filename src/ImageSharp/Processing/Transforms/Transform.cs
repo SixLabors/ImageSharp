@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, KnownResamplers.NearestNeighbor);
+            => Transform(source, matrix, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm.
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, sampler, Size.Empty);
+            => source.ApplyProcessor(new AffineTransformProcessor<TPixel>(matrix, sampler, source.GetCurrentSize()));
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, KnownResamplers.NearestNeighbor);
+            => Transform(source, matrix, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, sampler, Rectangle.Empty);
+            => source.ApplyProcessor(new ProjectiveTransformProcessor<TPixel>(matrix, sampler, source.GetCurrentSize()));
 
         /// <summary>
         /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.
@@ -117,6 +117,10 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new ProjectiveTransformProcessor<TPixel>(matrix, sampler, rectangle));
+        {
+            var t = Matrix4x4.CreateTranslation(new Vector3(-rectangle.Location, 0));
+            Matrix4x4 combinedMatrix = t * matrix;
+            return source.ApplyProcessor(new ProjectiveTransformProcessor<TPixel>(combinedMatrix, sampler, rectangle.Size));
+        }
     }
 }

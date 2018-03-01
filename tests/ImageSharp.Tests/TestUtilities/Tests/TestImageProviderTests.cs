@@ -239,8 +239,28 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            Image<TPixel> image = provider.GetImage();
-            provider.Utility.SaveTestOutputFile(image, "png");
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "png");
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        public void SaveTestOutputFileMultiFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
+
+                Assert.True(files.Length > 2);
+                foreach (string path in files)
+                {
+                    this.Output.WriteLine(path);
+                    Assert.True(File.Exists(path));
+                }
+            }
         }
 
         [Theory]

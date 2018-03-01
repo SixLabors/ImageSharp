@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
+// TODO: Convert this into a cloning processor inheriting TransformProcessor once Anton's memory PR is merged
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>

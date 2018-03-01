@@ -34,6 +34,18 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Configuration"/> class.
+        /// </summary>
+        /// <param name="configuration">A configuration instance to be copied</param>
+        public Configuration(Configuration configuration)
+        {
+            this.ParallelOptions = configuration.ParallelOptions;
+            this.ImageFormatsManager = configuration.ImageFormatsManager;
+            this.MemoryManager = configuration.MemoryManager;
+            this.ImageOperationsProvider = configuration.ImageOperationsProvider;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
         /// <param name="configurationModules">A collection of configuration modules to register</param>

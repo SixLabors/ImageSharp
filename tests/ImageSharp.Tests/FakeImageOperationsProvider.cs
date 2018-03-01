@@ -61,9 +61,9 @@ namespace SixLabors.ImageSharp.Tests
                 return this.Source;
             }
 
-            public Rectangle Bounds()
+            public Size GetCurrentSize()
             {
-                return this.Source.Bounds();
+                return this.Source.Size();
             }
 
             public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)

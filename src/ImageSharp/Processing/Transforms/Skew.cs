@@ -35,6 +35,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new SkewProcessor<TPixel>(degreesX, degreesY, sampler, source.Bounds().Size));
+        => source.ApplyProcessor(new SkewProcessor<TPixel>(degreesX, degreesY, sampler, source.GetCurrentSize()));
     }
 }

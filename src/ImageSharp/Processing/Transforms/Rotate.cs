@@ -44,6 +44,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new RotateProcessor<TPixel>(degrees, sampler, source.Bounds().Size));
+        => source.ApplyProcessor(new RotateProcessor<TPixel>(degrees, sampler, source.GetCurrentSize()));
     }
 }

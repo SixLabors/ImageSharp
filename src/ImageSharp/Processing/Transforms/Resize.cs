@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// <remarks>Passing zero for one of height or width within the resize options will automatically preserve the aspect ratio of the original image</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, ResizeOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new ResizeProcessor<TPixel>(options, source.Bounds().Size));
+        => source.ApplyProcessor(new ResizeProcessor<TPixel>(options, source.GetCurrentSize()));
 
         /// <summary>
         /// Resizes an image to the given <see cref="Size"/>.
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp
             Rectangle targetRectangle,
             bool compand)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, source.Bounds().Size, targetRectangle, compand), sourceRectangle);
+        => source.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, source.GetCurrentSize(), targetRectangle, compand), sourceRectangle);
 
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler and source rectangle.
@@ -171,6 +171,6 @@ namespace SixLabors.ImageSharp
             Rectangle targetRectangle,
             bool compand)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, source.Bounds().Size, targetRectangle, compand));
+        => source.ApplyProcessor(new ResizeProcessor<TPixel>(sampler, width, height, source.GetCurrentSize(), targetRectangle, compand));
     }
 }

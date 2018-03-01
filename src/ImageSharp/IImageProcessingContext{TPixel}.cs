@@ -22,10 +22,10 @@ namespace SixLabors.ImageSharp
         MemoryManager MemoryManager { get; }
 
         /// <summary>
-        /// Gets the image bounds at the current point in the processing pipeline.
+        /// Gets the image dimensions at the current point in the processing pipeline.
         /// </summary>
         /// <returns>The <see cref="Rectangle"/></returns>
-        Rectangle Bounds();
+        Size GetCurrentSize();
 
         /// <summary>
         /// Adds the processor to the current set of image operations to be applied.

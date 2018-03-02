@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -165,9 +166,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, false, testManagedByteBuffer))
             {
-                ref T a = ref buffer.Span.DangerousGetPinnableReference();
-                ref T b = ref buffer.Span.DangerousGetPinnableReference();
-                ref T c = ref buffer.Span.DangerousGetPinnableReference();
+                ref T a = ref MemoryMarshal.GetReference(buffer.Span);
+                ref T b = ref MemoryMarshal.GetReference(buffer.Span);
+                ref T c = ref MemoryMarshal.GetReference(buffer.Span);
 
                 Assert.True(Unsafe.AreSame(ref a, ref b));
                 Assert.True(Unsafe.AreSame(ref b, ref c));

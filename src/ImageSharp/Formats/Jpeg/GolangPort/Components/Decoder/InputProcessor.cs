@@ -5,8 +5,6 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>

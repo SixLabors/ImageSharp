@@ -701,7 +701,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
-            var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
+            var scanlineBuffer = new Span<byte>(defilteredScanline, 1, defilteredScanline.Length - 1);
 
             switch (this.pngColorType)
             {
@@ -932,7 +932,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             var color = default(TPixel);
 
             // Trim the first marker byte from the buffer
-            var scanlineBuffer = new Span<byte>(defilteredScanline, 1);
+            var scanlineBuffer = new Span<byte>(defilteredScanline, 1, defilteredScanline.Length - 1);
 
             switch (this.pngColorType)
             {

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
     /// codeword size in bits and the 24 least significant bits hold the codeword.
     /// The maximum codeword size is 16 bits.
     /// </summary>
-    internal struct HuffmanLut
+    internal readonly struct HuffmanLut
     {
         /// <summary>
         /// The compiled representations of theHuffmanSpec.

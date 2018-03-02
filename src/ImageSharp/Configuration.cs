@@ -34,24 +34,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Configuration"/> class.
-        /// </summary>
-        /// <param name="configuration">A configuration instance to be copied</param>
-        public Configuration(Configuration configuration)
-        {
-            this.ParallelOptions = configuration.ParallelOptions;
-            this.ImageFormatsManager = configuration.ImageFormatsManager;
-            this.MemoryManager = configuration.MemoryManager;
-            this.ImageOperationsProvider = configuration.ImageOperationsProvider;
-
-            #if !NETSTANDARD1_1
-            this.FileSystem = configuration.FileSystem;
-            #endif
-
-            this.ReadOrigin = configuration.ReadOrigin;
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
         /// <param name="configurationModules">A collection of configuration modules to register</param>
@@ -74,7 +56,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the global parallel options for processing tasks in parallel.
         /// </summary>
-        public ParallelOptions ParallelOptions { get; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+        public ParallelOptions ParallelOptions { get; private set; } = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.
@@ -136,6 +118,28 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(configuration, nameof(configuration));
             configuration.Configure(this);
+        }
+
+        /// <summary>
+        /// Creates a shallow copy of the <see cref="Configuration"/>
+        /// </summary>
+        /// <returns>A new configuration instance</returns>
+        public Configuration ShallowCopy()
+        {
+            Configuration cfg = new Configuration();
+
+            cfg.ParallelOptions = this.ParallelOptions;
+            cfg.ImageFormatsManager = this.ImageFormatsManager;
+            cfg.MemoryManager = this.MemoryManager;
+            cfg.ImageOperationsProvider = this.ImageOperationsProvider;
+
+#if !NETSTANDARD1_1
+            cfg.FileSystem = this.FileSystem;
+#endif
+
+            cfg.ReadOrigin = this.ReadOrigin;
+
+            return cfg;
         }
 
         /// <summary>

@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Tests
 
             IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
             IImageFormat format = TestEnvironment.GetImageFormat(path);
-            IImageDecoder defaultDecoder = Configuration.Default.FindDecoder(format);
+            IImageDecoder defaultDecoder = Configuration.Default.ImageFormatsManager.FindDecoder(format);
 
             //if (referenceDecoder.GetType() == defaultDecoder.GetType())
             //{

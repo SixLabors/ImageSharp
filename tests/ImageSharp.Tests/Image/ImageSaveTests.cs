@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            config.AddImageFormatDetector(this.localMimeTypeDetector);
-            config.SetEncoder(this.localImageFormat.Object, this.encoder.Object);
+            config.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
+            config.ImageFormatsManager.SetEncoder(this.localImageFormat.Object, this.encoder.Object);
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 

@@ -217,6 +217,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                                         while (decoder.Temp[0] == 0xFF && decoder.InputProcessor.CheckEOFEnsureNoError())
                                         {
                                             decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 1);
+                                            if (!decoder.InputProcessor.CheckEOFEnsureNoError())
+                                            {
+                                                break;
+                                            }
                                         }
 
                                         // Have we found a valid restart marker?

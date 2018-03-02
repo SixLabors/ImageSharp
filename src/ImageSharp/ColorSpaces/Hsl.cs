@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
     /// </summary>
-    internal struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
+    internal readonly struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
         /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.

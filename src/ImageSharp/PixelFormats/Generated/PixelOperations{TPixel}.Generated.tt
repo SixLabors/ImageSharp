@@ -7,6 +7,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
 <#@ output extension=".cs" #>
 <#    
     void GenerateToDestFormatMethods(string pixelType)
@@ -24,8 +25,8 @@
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-            ref TPixel sourceBaseRef = ref sourcePixels.DangerousGetPinnableReference();
-            ref <#=pixelType#> destBaseRef = ref dest.DangerousGetPinnableReference();
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref <#=pixelType#> destBaseRef = ref MemoryMarshal.GetReference(dest);
 
             for (int i = 0; i < count; i++)
             {
@@ -64,8 +65,8 @@
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
-            ref <#=pixelType#> sourceRef = ref source.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destPixels.DangerousGetPinnableReference();
+            ref <#=pixelType#> sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
             Rgba32 rgba = new Rgba32(0, 0, 0, 255);
 
@@ -101,7 +102,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 {
     using System;
     using System.Runtime.CompilerServices;
-	    
+    using System.Runtime.InteropServices;
+
     public partial class PixelOperations<TPixel>
     {
 		<#

@@ -197,16 +197,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                     if (decoder.RestartInterval > 0 && mcu % decoder.RestartInterval == 0 && mcu < decoder.TotalMCUCount)
                     {
-                        // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
-                        // but this one assumes well-formed input, and hence the restart marker follows immediately.
+                        // Attempt to look for RST[0-7] markers to resynchronize from corrupt input.
                         if (!decoder.InputProcessor.ReachedEOF)
                         {
                             decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
                             if (decoder.InputProcessor.CheckEOFEnsureNoError())
                             {
-                                if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
+                                if (decoder.Temp[0] != 0xFF || decoder.Temp[1] != expectedRst)
                                 {
-                                    throw new ImageFormatException("Bad RST marker");
+                                    bool invalidRst = true;
+
+                                    // Most jpeg's containing well-formed input will have a RST[0-7] marker following immediately
+                                    // but some, see Issue #481, contain padding bytes "0xFF" before the RST[0-7] marker.
+                                    // If we identify that case we attempt to read until we have bypassed the padded bytes.
+                                    // We then check again for our RST marker and throw if invalid.
+                                    // No other methods are attempted to resynchronize from corrupt input.
+                                    if (decoder.Temp[0] == 0xFF && decoder.Temp[1] == 0xFF)
+                                    {
+                                        while (decoder.Temp[0] == 0xFF && decoder.InputProcessor.CheckEOFEnsureNoError())
+                                        {
+                                            decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 1);
+                                        }
+
+                                        // Have we found a valid restart marker?
+                                        invalidRst = decoder.Temp[0] != expectedRst;
+                                    }
+
+                                    if (invalidRst)
+                                    {
+                                        throw new ImageFormatException("Bad RST marker");
+                                    }
                                 }
 
                                 expectedRst++;

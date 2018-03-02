@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -148,6 +149,6 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>A reference to the element.</returns>
         private static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => ref source.PixelBuffer.Span.DangerousGetPinnableReference();
+            => ref MemoryMarshal.GetReference(source.PixelBuffer.Span);
     }
 }

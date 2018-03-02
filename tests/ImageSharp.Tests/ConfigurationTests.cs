@@ -23,7 +23,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public ConfigurationTests()
         {
-            this.DefaultConfiguration = Configuration.CreateDefaultInstance();
+            // the shallow copy of configuration should behave exactly like the default configuration,
+            // so by using the copy, we test both the default and the copy.
+            this.DefaultConfiguration = Configuration.CreateDefaultInstance().ShallowCopy(); 
             this.ConfigurationEmpty = new Configuration();
         }
 

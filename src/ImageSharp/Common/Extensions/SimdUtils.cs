@@ -76,8 +76,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref source.DangerousGetPinnableReference());
-            ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref dest.DangerousGetPinnableReference());
+            ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
+            ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
             int n = source.Length / 8;
 
             Vector<float> magick = new Vector<float>(32768.0f);
@@ -117,8 +117,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref source.DangerousGetPinnableReference());
-            ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref dest.DangerousGetPinnableReference());
+            ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
+            ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
             int n = source.Length / 8;
 
             Vector<float> magick = new Vector<float>(32768.0f);

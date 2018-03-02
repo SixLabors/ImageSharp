@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// Associates a normalized device code with a measurement value
     /// </summary>
-    internal struct IccResponseNumber : IEquatable<IccResponseNumber>
+    internal readonly struct IccResponseNumber : IEquatable<IccResponseNumber>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccResponseNumber"/> struct.

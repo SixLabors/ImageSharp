@@ -78,8 +78,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.Foo[] source = TestStructs.Foo.CreateArray(count + 2);
                 TestStructs.Foo[] dest = new TestStructs.Foo[count + 5];
 
-                var apSource = new Span<TestStructs.Foo>(source, 1);
-                var apDest = new Span<TestStructs.Foo>(dest, 1);
+                var apSource = new Span<TestStructs.Foo>(source, 1, source.Length - 1);
+                var apDest = new Span<TestStructs.Foo>(dest, 1, dest.Length - 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -101,8 +101,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
                 TestStructs.AlignedFoo[] dest = new TestStructs.AlignedFoo[count + 5];
 
-                var apSource = new Span<TestStructs.AlignedFoo>(source, 1);
-                var apDest = new Span<TestStructs.AlignedFoo>(dest, 1);
+                var apSource = new Span<TestStructs.AlignedFoo>(source, 1, source.Length - 1);
+                var apDest = new Span<TestStructs.AlignedFoo>(dest, 1, dest.Length - 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -124,8 +124,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 int[] source = CreateTestInts(count + 2);
                 int[] dest = new int[count + 5];
 
-                var apSource = new Span<int>(source, 1);
-                var apDest = new Span<int>(dest, 1);
+                var apSource = new Span<int>(source, 1, source.Length - 1);
+                var apDest = new Span<int>(dest, 1, dest.Length - 1);
 
                 SpanHelper.Copy(apSource, apDest, count - 1);
 
@@ -148,8 +148,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.Foo[] source = TestStructs.Foo.CreateArray(count + 2);
                 byte[] dest = new byte[destCount + sizeof(TestStructs.Foo) * 2];
 
-                var apSource = new Span<TestStructs.Foo>(source, 1);
-                var apDest = new Span<byte>(dest, sizeof(TestStructs.Foo));
+                var apSource = new Span<TestStructs.Foo>(source, 1, source.Length - 1);
+                var apDest = new Span<byte>(dest, sizeof(TestStructs.Foo), dest.Length - sizeof(TestStructs.Foo));
 
                 SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(TestStructs.Foo));
 
@@ -171,8 +171,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
                 byte[] dest = new byte[destCount + sizeof(TestStructs.AlignedFoo) * 2];
 
-                var apSource = new Span<TestStructs.AlignedFoo>(source, 1);
-                var apDest = new Span<byte>(dest, sizeof(TestStructs.AlignedFoo));
+                var apSource = new Span<TestStructs.AlignedFoo>(source, 1, source.Length - 1);
+                var apDest = new Span<byte>(dest, sizeof(TestStructs.AlignedFoo), dest.Length - sizeof(TestStructs.AlignedFoo));
 
                 SpanHelper.Copy(apSource.AsBytes(), apDest, (count - 1) * sizeof(TestStructs.AlignedFoo));
 

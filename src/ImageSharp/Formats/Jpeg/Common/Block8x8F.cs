@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void LoadFrom(Span<float> source)
         {
-            ref byte s = ref Unsafe.As<float, byte>(ref source.DangerousGetPinnableReference());
+            ref byte s = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(source));
             ref byte d = ref Unsafe.As<Block8x8F, byte>(ref this);
 
             Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyTo(Span<float> dest)
         {
-            ref byte d = ref Unsafe.As<float, byte>(ref dest.DangerousGetPinnableReference());
+            ref byte d = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(dest));
             ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);
 
             Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));

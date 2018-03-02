@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
     /// Provides information about the JFIF marker segment
     /// TODO: Thumbnail?
     /// </summary>
-    internal struct JFifMarker : IEquatable<JFifMarker>
+    internal readonly struct JFifMarker : IEquatable<JFifMarker>
     {
         /// <summary>
         /// Gets the length of an JFIF marker segment.

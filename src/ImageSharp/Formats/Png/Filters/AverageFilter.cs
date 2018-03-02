@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -24,8 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         {
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
 
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
-            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
             for (int x = 1; x < scanline.Length; x++)
@@ -60,9 +61,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
             DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
 
-            ref byte scanBaseRef = ref scanline.DangerousGetPinnableReference();
-            ref byte prevBaseRef = ref previousScanline.DangerousGetPinnableReference();
-            ref byte resultBaseRef = ref result.DangerousGetPinnableReference();
+            ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
+            ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
+            ref byte resultBaseRef = ref MemoryMarshal.GetReference(result);
             sum = 0;
 
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)

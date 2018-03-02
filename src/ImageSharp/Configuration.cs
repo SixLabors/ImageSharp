@@ -83,21 +83,6 @@ namespace SixLabors.ImageSharp
         /// </summary>
         internal int MaxHeaderSize => this.ImageFormatsManager.MaxHeaderSize;
 
-        /// <summary>
-        /// Gets the currently registered <see cref="IImageFormatDetector"/>s.
-        /// </summary>
-        internal IEnumerable<IImageFormatDetector> FormatDetectors => this.ImageFormatsManager.FormatDetectors;
-
-        /// <summary>
-        /// Gets the currently registered <see cref="IImageDecoder"/>s.
-        /// </summary>
-        internal IEnumerable<KeyValuePair<IImageFormat, IImageDecoder>> ImageDecoders => this.ImageFormatsManager.ImageDecoders;
-
-        /// <summary>
-        /// Gets the currently registered <see cref="IImageEncoder"/>s.
-        /// </summary>
-        internal IEnumerable<KeyValuePair<IImageFormat, IImageEncoder>> ImageEncoders => this.ImageFormatsManager.ImageEncoders;
-
 #if !NETSTANDARD1_1
         /// <summary>
         /// Gets or sets the filesystem helper for accessing the local file system.
@@ -126,106 +111,18 @@ namespace SixLabors.ImageSharp
         /// <returns>A new configuration instance</returns>
         public Configuration ShallowCopy()
         {
-            Configuration cfg = new Configuration();
-
-            cfg.ParallelOptions = this.ParallelOptions;
-            cfg.ImageFormatsManager = this.ImageFormatsManager;
-            cfg.MemoryManager = this.MemoryManager;
-            cfg.ImageOperationsProvider = this.ImageOperationsProvider;
+            return new Configuration
+            {
+                ParallelOptions = this.ParallelOptions,
+                ImageFormatsManager = this.ImageFormatsManager,
+                MemoryManager = this.MemoryManager,
+                ImageOperationsProvider = this.ImageOperationsProvider,
+                ReadOrigin = this.ReadOrigin,
 
 #if !NETSTANDARD1_1
-            cfg.FileSystem = this.FileSystem;
+                FileSystem = this.FileSystem
 #endif
-
-            cfg.ReadOrigin = this.ReadOrigin;
-
-            return cfg;
-        }
-
-        /// <summary>
-        /// Registers a new format provider.
-        /// </summary>
-        /// <param name="format">The format to register as a known format.</param>
-        public void AddImageFormat(IImageFormat format)
-        {
-            this.ImageFormatsManager.AddImageFormat(format);
-        }
-
-        /// <summary>
-        /// For the specified file extensions type find the e <see cref="IImageFormat"/>.
-        /// </summary>
-        /// <param name="extension">The extension to discover</param>
-        /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
-        public IImageFormat FindFormatByFileExtension(string extension)
-        {
-            return this.ImageFormatsManager.FindFormatByFileExtension(extension);
-        }
-
-        /// <summary>
-        /// For the specified mime type find the <see cref="IImageFormat"/>.
-        /// </summary>
-        /// <param name="mimeType">The mime-type to discover</param>
-        /// <returns>The <see cref="IImageFormat"/> if found; otherwise null</returns>
-        public IImageFormat FindFormatByMimeType(string mimeType)
-        {
-            return this.ImageFormatsManager.FindFormatByMimeType(mimeType);
-        }
-
-        /// <summary>
-        /// Sets a specific image encoder as the encoder for a specific image format.
-        /// </summary>
-        /// <param name="imageFormat">The image format to register the encoder for.</param>
-        /// <param name="encoder">The encoder to use,</param>
-        public void SetEncoder(IImageFormat imageFormat, IImageEncoder encoder)
-        {
-            this.ImageFormatsManager.SetEncoder(imageFormat, encoder);
-        }
-
-        /// <summary>
-        /// Sets a specific image decoder as the decoder for a specific image format.
-        /// </summary>
-        /// <param name="imageFormat">The image format to register the encoder for.</param>
-        /// <param name="decoder">The decoder to use,</param>
-        public void SetDecoder(IImageFormat imageFormat, IImageDecoder decoder)
-        {
-            this.ImageFormatsManager.SetDecoder(imageFormat, decoder);
-        }
-
-        /// <summary>
-        /// Removes all the registered image format detectors.
-        /// </summary>
-        public void ClearImageFormatDetectors()
-        {
-            this.ImageFormatsManager.ClearImageFormatDetectors();
-        }
-
-        /// <summary>
-        /// Adds a new detector for detecting mime types.
-        /// </summary>
-        /// <param name="detector">The detector to add</param>
-        public void AddImageFormatDetector(IImageFormatDetector detector)
-        {
-            this.ImageFormatsManager.AddImageFormatDetector(detector);
-        }
-
-        /// <summary>
-        /// For the specified mime type find the decoder.
-        /// </summary>
-        /// <param name="format">The format to discover</param>
-        /// <returns>The <see cref="IImageDecoder"/> if found otherwise null</returns>
-        public IImageDecoder FindDecoder(IImageFormat format)
-        {
-            return this.ImageFormatsManager.FindDecoder(format);
-        }
-
-        /// <summary>
-        /// For the specified mime type find the encoder.
-        /// </summary>
-        /// <param name="format">The format to discover</param>
-        /// <returns>The <see cref="IImageEncoder"/> if found otherwise null</returns>
-        public IImageEncoder FindEncoder(IImageFormat format)
-        {
-            return this.ImageFormatsManager.FindEncoder(format);
+            };
         }
 
         /// <summary>

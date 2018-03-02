@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp
             var stringBuilder = new StringBuilder();
             stringBuilder.AppendLine("Image cannot be loaded. Available decoders:");
 
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in config.ImageDecoders)
+            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in config.ImageFormatsManager.ImageDecoders)
             {
                 stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
             }

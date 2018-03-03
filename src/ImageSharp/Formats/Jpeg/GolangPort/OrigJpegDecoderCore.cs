@@ -412,6 +412,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
+        /// Returns true if 'mcuCounter' is at restart interval
+        /// </summary>
+        public bool IsAtRestartInterval(int mcuCounter)
+        {
+            return this.RestartInterval > 0 && mcuCounter % this.RestartInterval == 0
+                                            && mcuCounter < this.TotalMCUCount;
+        }
+
+        /// <summary>
         /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
         private void InitDerivedMetaDataProperties()

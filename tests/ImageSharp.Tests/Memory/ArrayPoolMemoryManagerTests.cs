@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void ReleaseRetainedResources_ReplacesInnerArrayPool(bool keepBufferAlive)
         {
             IBuffer<int> buffer = this.MemoryManager.Allocate<int>(32);
-            ref int ptrToPrev0 = ref buffer.Span.DangerousGetPinnableReference();
+            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.Span);
 
             if (!keepBufferAlive)
             {

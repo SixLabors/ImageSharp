@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Memory
     /// This type is kind-of 2D Span, but it can live on heap.
     /// </summary>
     /// <typeparam name="T">The element type</typeparam>
-    internal struct BufferArea<T>
+    internal readonly struct BufferArea<T>
         where T : struct
     {
         /// <summary>

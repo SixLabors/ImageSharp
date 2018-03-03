@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// ICC Profile ID
     /// </summary>
-    public struct IccProfileId : IEquatable<IccProfileId>
+    public readonly struct IccProfileId : IEquatable<IccProfileId>
     {
         /// <summary>
         /// A profile ID with all values set to zero

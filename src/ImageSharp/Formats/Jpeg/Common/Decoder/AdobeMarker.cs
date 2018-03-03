@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
     /// Provides information about the Adobe marker segment.
     /// </summary>
     /// <remarks>See the included 5116.DCT.pdf file in the source for more information.</remarks>
-    internal struct AdobeMarker : IEquatable<AdobeMarker>
+    internal readonly struct AdobeMarker : IEquatable<AdobeMarker>
     {
         /// <summary>
         /// Gets the length of an adobe marker segment.

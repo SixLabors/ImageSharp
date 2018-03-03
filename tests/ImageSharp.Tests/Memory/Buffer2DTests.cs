@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 {
     using System;
     using System.Runtime.CompilerServices;
-
+    using System.Runtime.InteropServices;
     using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.Tests.Common;
     using SixLabors.Primitives;
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public static void SpanPointsTo<T>(Span<T> span, IBuffer<T> buffer, int bufferOffset = 0)
                 where T : struct
             {
-                ref T actual = ref span.DangerousGetPinnableReference();
+                ref T actual = ref MemoryMarshal.GetReference(span);
                 ref T expected = ref Unsafe.Add(ref buffer.DangerousGetPinnableReference(), bufferOffset);
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");

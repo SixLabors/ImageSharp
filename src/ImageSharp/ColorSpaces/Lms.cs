@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// named after their responsivity (sensitivity) at long, medium and short wavelengths.
     /// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
     /// </summary>
-    internal struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
+    internal readonly struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {
         /// <summary>
         /// Represents a <see cref="Lms"/> that has L, M, and S values set to zero.

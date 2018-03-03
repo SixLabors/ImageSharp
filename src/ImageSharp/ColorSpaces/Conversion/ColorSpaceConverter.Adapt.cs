@@ -163,6 +163,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             LinearRgb linearOutput = this.Adapt(linearInput);
             return this.ToRgb(linearOutput);
         }
+
         private void CheckChromaticAdaptation()
         {
             const string NoAdapterMessage = "Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.";

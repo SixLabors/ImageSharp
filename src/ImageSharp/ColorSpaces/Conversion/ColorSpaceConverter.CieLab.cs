@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
@@ -48,8 +49,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref CieLch sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref CieLch sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -82,8 +83,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref CieLchuv sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref CieLchuv sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -116,8 +117,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref CieLuv sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref CieLuv sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -150,8 +151,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref CieXyy sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref CieXyy sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -190,8 +191,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref CieXyz sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref CieXyz sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -224,8 +225,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref Cmyk sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref Cmyk sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -258,8 +259,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref Hsl sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref Hsl sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -292,8 +293,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref Hsv sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref Hsv sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -326,8 +327,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref HunterLab sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref HunterLab sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -360,8 +361,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref Lms sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref Lms sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -394,8 +395,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref LinearRgb sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref LinearRgb sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -428,8 +429,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref Rgb sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref Rgb sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
@@ -462,12 +463,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.SpansMustBeSizedAtLeast(source, nameof(source), destination, nameof(destination), count);
 
-            ref YCbCr sourceRef = ref source.DangerousGetPinnableReference();
-            ref CieLab destRef = ref destination.DangerousGetPinnableReference();
+            ref YCbCr sourceRef = ref MemoryMarshal.GetReference(source);
+            ref CieLab destRef = ref MemoryMarshal.GetReference(destination);
 
             for (int i = 0; i < count; i++)
             {
-                ref Rgb sp = ref Unsafe.Add(ref sourceRef, i);
+                ref YCbCr sp = ref Unsafe.Add(ref sourceRef, i);
                 ref CieLab dp = ref Unsafe.Add(ref destRef, i);
                 dp = this.ToCieLab(sp);
             }

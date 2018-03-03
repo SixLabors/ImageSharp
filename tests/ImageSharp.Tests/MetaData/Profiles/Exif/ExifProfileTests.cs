@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ExifTypeUndefined()
         {
-            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType).CreateImage();
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateImage();
             Assert.NotNull(image);
 
             ExifProfile profile = image.MetaData.ExifProfile;

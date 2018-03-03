@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// A single channel of a <see cref="IccScreeningTagDataEntry"/>
     /// </summary>
-    internal struct IccScreeningChannel : IEquatable<IccScreeningChannel>
+    internal readonly struct IccScreeningChannel : IEquatable<IccScreeningChannel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccScreeningChannel"/> struct.

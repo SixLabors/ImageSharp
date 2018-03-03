@@ -14,22 +14,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsJpegPixelArea : IDisposable
     {
+        private readonly MemoryManager memoryManager;
+
         private readonly int imageWidth;
 
         private readonly int imageHeight;
 
-        private Buffer<byte> componentData;
+        private IBuffer<byte> componentData;
 
         private int rowStride;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsJpegPixelArea"/> struct.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="imageWidth">The image width</param>
         /// <param name="imageHeight">The image height</param>
         /// <param name="numberOfComponents">The number of components</param>
-        public PdfJsJpegPixelArea(int imageWidth, int imageHeight, int numberOfComponents)
+        public PdfJsJpegPixelArea(MemoryManager memoryManager, int imageWidth, int imageHeight, int numberOfComponents)
         {
+            this.memoryManager = memoryManager;
             this.imageWidth = imageWidth;
             this.imageHeight = imageHeight;
             this.Width = 0;
@@ -69,19 +73,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.rowStride = width * numberOfComponents;
             var scale = new Vector2(this.imageWidth / (float)width, this.imageHeight / (float)height);
 
-            this.componentData = new Buffer<byte>(width * height * numberOfComponents);
-            Span<byte> componentDataSpan = this.componentData;
+            this.componentData = this.memoryManager.Allocate<byte>(width * height * numberOfComponents);
+            Span<byte> componentDataSpan = this.componentData.Span;
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
-            using (var xScaleBlockOffset = new Buffer<int>(width))
+            using (IBuffer<int> xScaleBlockOffset = this.memoryManager.Allocate<int>(width))
             {
-                Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset;
+                Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset.Span;
                 for (int i = 0; i < numberOfComponents; i++)
                 {
                     ref PdfJsComponent component = ref components.Components[i];
                     Vector2 componentScale = component.Scale * scale;
                     int offset = i;
-                    Span<short> output = component.Output;
+                    Span<short> output = component.Output.Span;
                     int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
 
                     // Precalculate the xScaleBlockOffset

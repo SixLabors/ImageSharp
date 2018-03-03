@@ -12,32 +12,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsHuffmanTable : IDisposable
     {
-        private Buffer<short> lookahead;
-        private Buffer<short> valOffset;
-        private Buffer<long> maxcode;
-        private Buffer<byte> huffval;
+        private BasicArrayBuffer<short> lookahead;
+        private BasicArrayBuffer<short> valOffset;
+        private BasicArrayBuffer<long> maxcode;
+        private IManagedByteBuffer huffval;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(byte[] lengths, byte[] values)
+        public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)
         {
-            this.lookahead = Buffer<short>.CreateClean(256);
-            this.valOffset = Buffer<short>.CreateClean(18);
-            this.maxcode = Buffer<long>.CreateClean(18);
+            // TODO: Replace FakeBuffer<T> usages with standard or array orfixed-sized arrays
+            this.lookahead = memoryManager.AllocateFake<short>(256);
+            this.valOffset = memoryManager.AllocateFake<short>(18);
+            this.maxcode = memoryManager.AllocateFake<long>(18);
 
-            using (var huffsize = Buffer<short>.CreateClean(257))
-            using (var huffcode = Buffer<short>.CreateClean(257))
+            using (IBuffer<short> huffsize = memoryManager.Allocate<short>(257))
+            using (IBuffer<short> huffcode = memoryManager.Allocate<short>(257))
             {
-                GenerateSizeTable(lengths, huffsize);
-                GenerateCodeTable(huffsize, huffcode);
-                GenerateDecoderTables(lengths, huffcode, this.valOffset, this.maxcode);
-                GenerateLookaheadTables(lengths, values, this.lookahead);
+                GenerateSizeTable(lengths, huffsize.Span);
+                GenerateCodeTable(huffsize.Span, huffcode.Span);
+                GenerateDecoderTables(lengths, huffcode.Span, this.valOffset.Span, this.maxcode.Span);
+                GenerateLookaheadTables(lengths, values, this.lookahead.Span);
             }
 
-            this.huffval = Buffer<byte>.CreateClean(values.Length);
+            this.huffval = memoryManager.AllocateManagedByteBuffer(values.Length, true);
             Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
 
             this.MaxCode = this.maxcode.Array;

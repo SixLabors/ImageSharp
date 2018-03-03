@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     {
         private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(3);
 
+        private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
+
         [Theory]
         [InlineData(0, 0, 0, 0, 0, 0)]
         [InlineData(1, 1, 1, 1, 1, 1)]
@@ -34,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb output = converter.Adapt(input);
 
             // Assert
-            Assert.Equal(expectedOutput.WorkingSpace, output.WorkingSpace);
+            Assert.Equal(expectedOutput.WorkingSpace, output.WorkingSpace, ApproximateComparer);
             Assert.Equal(expectedOutput.R, output.R, FloatRoundingComparer);
             Assert.Equal(expectedOutput.G, output.G, FloatRoundingComparer);
             Assert.Equal(expectedOutput.B, output.B, FloatRoundingComparer);
@@ -55,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb output = converter.Adapt(input);
 
             // Assert
-            Assert.Equal(expectedOutput.WorkingSpace, output.WorkingSpace);
+            Assert.Equal(expectedOutput.WorkingSpace, output.WorkingSpace, ApproximateComparer);
             Assert.Equal(expectedOutput.R, output.R, FloatRoundingComparer);
             Assert.Equal(expectedOutput.G, output.G, FloatRoundingComparer);
             Assert.Equal(expectedOutput.B, output.B, FloatRoundingComparer);

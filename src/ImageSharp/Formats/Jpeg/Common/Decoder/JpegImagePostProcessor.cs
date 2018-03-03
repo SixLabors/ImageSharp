@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// Temporal buffer to store a row of colors.
         /// </summary>
-        private readonly Buffer<Vector4> rgbaBuffer;
+        private readonly IBuffer<Vector4> rgbaBuffer;
 
         /// <summary>
         /// The <see cref="ColorConverters.JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.
@@ -44,16 +44,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="rawJpeg">The <see cref="IRawJpegData"/> representing the uncompressed spectral Jpeg data</param>
-        public JpegImagePostProcessor(IRawJpegData rawJpeg)
+        public JpegImagePostProcessor(MemoryManager memoryManager, IRawJpegData rawJpeg)
         {
             this.RawJpeg = rawJpeg;
             IJpegComponent c0 = rawJpeg.Components.First();
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
-            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(this, c)).ToArray();
-            this.rgbaBuffer = new Buffer<Vector4>(rawJpeg.ImageSizeInPixels.Width);
+            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryManager, this, c)).ToArray();
+            this.rgbaBuffer = memoryManager.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
             this.colorConverter = ColorConverters.JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         public int NumberOfPostProcessorSteps { get; }
 
         /// <summary>
-        /// Gets the size of the temporal buffers we need to allocate into <see cref="JpegComponentPostProcessor.ColorBuffer"/>.
+        /// Gets the size of the temporary buffers we need to allocate into <see cref="JpegComponentPostProcessor.ColorBuffer"/>.
         /// </summary>
         public Size PostProcessorBufferSize { get; }
 
@@ -149,11 +150,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 int y = yy - this.PixelRowCounter;
 
                 var values = new ColorConverters.JpegColorConverter.ComponentValues(buffers, y);
-                this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer);
+                this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer.Span);
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
-                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer, destRow, destination.Width);
+                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer.Span, destRow, destination.Width);
             }
         }
     }

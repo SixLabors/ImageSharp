@@ -4,6 +4,8 @@
 using System;
 using System.Buffers;
 using System.Numerics;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Drawing

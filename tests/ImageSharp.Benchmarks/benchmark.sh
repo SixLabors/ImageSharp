@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build in release mode
-dotnet build -c Release -f netcoreapp1.1
+dotnet build -c Release -f netcoreapp2.0
 
 # Run benchmarks
-dotnet bin/Release/netcoreapp1.1/ImageSharp.Benchmarks.dll
+dotnet bin/Release/netcoreapp2.0/ImageSharp.Benchmarks.dll

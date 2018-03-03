@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing
 
                 if (clone.Frames.Count != source.Frames.Count)
                 {
-                    throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
+                    throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
                 Configuration configuration = source.GetConfiguration();
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing
                 // we now need to move the pixel data/size data from one image base to another
                 if (cloned.Frames.Count != source.Frames.Count)
                 {
-                    throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
+                    throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
                 source.SwapPixelsBuffers(cloned);
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Generates a deep clone of the source image that operatinos should be applied to.
+        /// Generates a deep clone of the source image that operations should be applied to.
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The source rectangle.</param>
@@ -96,6 +96,7 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
+        /// TODO: We should probably name this 'BeforeFrameApply'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
@@ -108,6 +109,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}" /> at the specified location
         /// and with the specified size.
+        /// TODO: We should probably name this 'ApplyToFrame'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
@@ -117,6 +119,7 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
+        /// TODO: We should probably name this 'AfterFrameApply'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>

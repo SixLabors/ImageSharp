@@ -3,11 +3,14 @@
 
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 {
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
+    /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
     /// </summary>
     internal unsafe struct RgbToYCbCrTables
     {
@@ -91,27 +94,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         }
 
         /// <summary>
+        /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
         /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
         /// </summary>
-        /// <param name="yBlockRaw">The The luminance block.</param>
-        /// <param name="cbBlockRaw">The red chroma block.</param>
-        /// <param name="crBlockRaw">The blue chroma block.</param>
-        /// <param name="tables">The reference to the tables instance.</param>
-        /// <param name="index">The current index.</param>
-        /// <param name="r">The red value.</param>
-        /// <param name="g">The green value.</param>
-        /// <param name="b">The blue value.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Allocate(ref float* yBlockRaw, ref float* cbBlockRaw, ref float* crBlockRaw, ref RgbToYCbCrTables* tables, int index, int r, int g, int b)
+        public void ConvertPixelInto(int r, int g, int b, ref float yResult, ref float cbResult, ref float crResult)
         {
-            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
-            yBlockRaw[index] = (tables->YRTable[r] + tables->YGTable[g] + tables->YBTable[b]) >> ScaleBits;
+            ref int start = ref Unsafe.As<RgbToYCbCrTables, int>(ref this);
 
-            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
-            cbBlockRaw[index] = (tables->CbRTable[r] + tables->CbGTable[g] + tables->CbBTable[b]) >> ScaleBits;
+            ref int yR = ref start;
+            ref int yG = ref Unsafe.Add(ref start, 256 * 1);
+            ref int yB = ref Unsafe.Add(ref start, 256 * 2);
 
-            // float b = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
-            crBlockRaw[index] = (tables->CbBTable[r] + tables->CrGTable[g] + tables->CrBTable[b]) >> ScaleBits;
+            ref int cbR = ref Unsafe.Add(ref start, 256 * 3);
+            ref int cbG = ref Unsafe.Add(ref start, 256 * 4);
+            ref int cbB = ref Unsafe.Add(ref start, 256 * 5);
+
+            ref int crG = ref Unsafe.Add(ref start, 256 * 6);
+            ref int crB = ref Unsafe.Add(ref start, 256 * 7);
+
+            yResult = (Unsafe.Add(ref yR, r) + Unsafe.Add(ref yG, g) + Unsafe.Add(ref yB, b)) >> ScaleBits;
+            cbResult = (Unsafe.Add(ref cbR, r) + Unsafe.Add(ref cbG, g) + Unsafe.Add(ref cbB, b)) >> ScaleBits;
+            crResult = (Unsafe.Add(ref cbB, r) + Unsafe.Add(ref crG, g) + Unsafe.Add(ref crB, b)) >> ScaleBits;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
     /// <summary>
     /// Trivial implementation of <see cref="IRgbWorkingSpace"/>
     /// </summary>
-    internal struct RgbWorkingSpace : IRgbWorkingSpace
+    internal readonly struct RgbWorkingSpace : IRgbWorkingSpace
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> struct.

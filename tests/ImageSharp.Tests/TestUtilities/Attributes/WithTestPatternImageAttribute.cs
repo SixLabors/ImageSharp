@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="pixelTypes">The requested parameter</param>
         /// <param name="additionalParameters">Additional theory parameter values</param>
         public WithTestPatternImagesAttribute(int width, int height, PixelTypes pixelTypes, params object[] additionalParameters)
-            : this(null, width, height, pixelTypes,additionalParameters)
+            : this(null, width, height, pixelTypes, additionalParameters)
         {
         }
 

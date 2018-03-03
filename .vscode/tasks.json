@@ -16,13 +16,13 @@
     {
       "taskName": "build benchmark",
       "suppressTaskName": true,
-      "args": [ "build", "tests/ImageSharp.Benchmarks/ImageSharp.Benchmarks.csproj", "-f", "netcoreapp1.1", "-c", "Release" ],
+      "args": [ "build", "tests/ImageSharp.Benchmarks/ImageSharp.Benchmarks.csproj", "-f", "netcoreapp2.0", "-c", "Release" ],
       "showOutput": "always",
       "problemMatcher": "$msCompile"
     },
     {
       "taskName": "test",
-      "args": ["tests/ImageSharp.Tests/ImageSharp.Tests.csproj", "-c", "release", "-f", "netcoreapp1.1"],
+      "args": ["tests/ImageSharp.Tests/ImageSharp.Tests.csproj", "-c", "release", "-f", "netcoreapp2.0"],
       "isTestCommand": true,
       "showOutput": "always",
       "problemMatcher": "$msCompile"

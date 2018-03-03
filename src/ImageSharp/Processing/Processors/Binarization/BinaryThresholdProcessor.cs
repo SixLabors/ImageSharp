@@ -4,14 +4,14 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// An <see cref="IImageProcessor{TPixel}"/> to perform binary threshold filtering against an
-    /// <see cref="Image{TPixel}"/>. The image will be converted to grayscale before thresholding occurs.
+    /// Performs simple binary threshold filtering against an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
@@ -22,14 +22,22 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         public BinaryThresholdProcessor(float threshold)
+            : this(threshold, NamedColors<TPixel>.White, NamedColors<TPixel>.Black)
         {
-            // TODO: Check thresholding limit. Colors should probably have Max/Min/Middle properties.
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+        /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
+        /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
+        public BinaryThresholdProcessor(float threshold, TPixel upperColor, TPixel lowerColor)
+        {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
             this.Threshold = threshold;
-
-            // Default to white/black for upper/lower.
-            this.UpperColor = NamedColors<TPixel>.White;
-            this.LowerColor = NamedColors<TPixel>.Black;
+            this.UpperColor = upperColor;
+            this.LowerColor = lowerColor;
         }
 
         /// <summary>
@@ -48,54 +56,37 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public TPixel LowerColor { get; set; }
 
         /// <inheritdoc/>
-        protected override void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            new GrayscaleBt709Processor<TPixel>().Apply(source, sourceRectangle, configuration);
-        }
-
-        /// <inheritdoc/>
         protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            float threshold = this.Threshold;
+            float threshold = this.Threshold * 255F;
             TPixel upper = this.UpperColor;
             TPixel lower = this.LowerColor;
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+            int startY = interest.Y;
+            int endY = interest.Bottom;
+            int startX = interest.X;
+            int endX = interest.Right;
 
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
-
-            if (minY > 0)
-            {
-                startY = 0;
-            }
+            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
             Parallel.For(
-                minY,
-                maxY,
+                startY,
+                endY,
                 configuration.ParallelOptions,
                 y =>
                 {
-                    Span<TPixel> row = source.GetPixelRowSpan(y - startY);
+                    Span<TPixel> row = source.GetPixelRowSpan(y);
+                    var rgba = default(Rgba32);
 
-                    for (int x = minX; x < maxX; x++)
+                    for (int x = startX; x < endX; x++)
                     {
-                        ref TPixel color = ref row[x - startX];
+                        ref TPixel color = ref row[x];
+                        color.ToRgba32(ref rgba);
 
-                        // Any channel will do since it's Grayscale.
-                        color = color.ToVector4().X >= threshold ? upper : lower;
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        float luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+                        color = luminance >= threshold ? upper : lower;
                     }
                 });
         }

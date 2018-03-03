@@ -380,5 +380,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             this.LastErrorCode = this.Bits.ReceiveExtendUnsafe(t, ref this, out x);
             return this.LastErrorCode;
         }
+
+        /// <summary>
+        /// Reset the Huffman decoder.
+        /// </summary>
+        public void ResetHuffmanDecoder()
+        {
+            this.Bits = default(Bits);
+        }
     }
 }

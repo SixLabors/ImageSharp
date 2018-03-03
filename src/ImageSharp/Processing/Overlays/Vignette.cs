@@ -151,10 +151,10 @@ namespace SixLabors.ImageSharp
 
         private static IImageProcessingContext<TPixel> VignetteInternal<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new VignetteProcessor<TPixel>(color, radiusX, radiusY, options), rectangle);
+            => source.ApplyProcessor(new VignetteProcessor<TPixel>(source.MemoryManager, color, radiusX, radiusY, options), rectangle);
 
         private static IImageProcessingContext<TPixel> VignetteInternal<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new VignetteProcessor<TPixel>(color, radiusX, radiusY, options));
+            => source.ApplyProcessor(new VignetteProcessor<TPixel>(source.MemoryManager, color, radiusX, radiusY, options));
     }
 }

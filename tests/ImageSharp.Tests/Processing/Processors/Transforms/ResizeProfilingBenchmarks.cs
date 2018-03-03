@@ -6,7 +6,8 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
-using Xunit;
+using SixLabors.Primitives;
+
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
@@ -38,13 +39,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         // [Fact]
         public void PrintWeightsData()
         {
-            var proc = new ResizeProcessor<Rgba32>(new BicubicResampler(), 200, 200);
+            var size = new Size(500, 500);
+            var proc = new ResizeProcessor<Rgba32>(KnownResamplers.Bicubic, 200, 200, size);
 
-            ResamplingWeightedProcessor<Rgba32>.WeightsBuffer weights = proc.PrecomputeWeights(200, 500);
+            WeightsBuffer weights = proc.PrecomputeWeights(Configuration.Default.MemoryManager, proc.Width, size.Width);
 
             var bld = new StringBuilder();
 
-            foreach (ResamplingWeightedProcessor<Rgba32>.WeightsWindow window in weights.Weights)
+            foreach (WeightsWindow window in weights.Weights)
             {
                 Span<float> span = window.GetWindowSpan();
                 for (int i = 0; i < window.Length; i++)

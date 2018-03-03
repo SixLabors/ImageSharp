@@ -4,6 +4,7 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -54,11 +55,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="configuration">The configuration.</param>
         private void FlipX(ImageFrame<TPixel> source, Configuration configuration)
         {
-            int width = source.Width;
             int height = source.Height;
             int halfHeight = (int)Math.Ceiling(source.Height * .5F);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
             {
                 Parallel.For(
                     0,
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             altSourceRow.CopyTo(targetRow);
                         });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
 
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int height = source.Height;
             int halfWidth = (int)Math.Ceiling(width * .5F);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(width, height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
             {
                 Parallel.For(
                     0,
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             }
                         });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
     }

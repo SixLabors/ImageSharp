@@ -5,6 +5,8 @@ using System;
 using System.Buffers;
 using System.IO;
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
@@ -69,12 +71,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The hash table.
         /// </summary>
-        private readonly int[] hashTable;
+        private readonly IBuffer<int> hashTable;
 
         /// <summary>
         /// The code table.
         /// </summary>
-        private readonly int[] codeTable;
+        private readonly IBuffer<int> codeTable;
 
         /// <summary>
         /// Define the storage for the packet accumulator.
@@ -189,17 +191,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwEncoder"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="indexedPixels">The array of indexed pixels.</param>
         /// <param name="colorDepth">The color depth in bits.</param>
-        public LzwEncoder(byte[] indexedPixels, int colorDepth)
+        public LzwEncoder(MemoryManager memoryManager, byte[] indexedPixels, int colorDepth)
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
 
-            this.hashTable = ArrayPool<int>.Shared.Rent(HashSize);
-            this.codeTable = ArrayPool<int>.Shared.Rent(HashSize);
-            Array.Clear(this.hashTable, 0, HashSize);
-            Array.Clear(this.codeTable, 0, HashSize);
+            this.hashTable = memoryManager.Allocate<int>(HashSize, true);
+            this.codeTable = memoryManager.Allocate<int>(HashSize, true);
         }
 
         /// <summary>
@@ -258,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="stream">The output stream.</param>
         private void ClearBlock(Stream stream)
         {
-            this.ResetCodeTable(this.hsize);
+            this.ResetCodeTable();
             this.freeEntry = this.clearCode + 2;
             this.clearFlag = true;
 
@@ -268,13 +269,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Reset the code table.
         /// </summary>
-        /// <param name="size">The hash size.</param>
-        private void ResetCodeTable(int size)
+        private void ResetCodeTable()
         {
-            for (int i = 0; i < size; ++i)
-            {
-                this.hashTable[i] = -1;
-            }
+            this.hashTable.Span.Fill(-1);
+
+            // Original code:
+            // for (int i = 0; i < size; ++i)
+            // {
+            //     this.hashTable[i] = -1;
+            // }
         }
 
         /// <summary>
@@ -316,23 +319,26 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             hsizeReg = this.hsize;
 
-            this.ResetCodeTable(hsizeReg); // clear hash table
+            this.ResetCodeTable(); // clear hash table
 
             this.Output(this.clearCode, stream);
+
+            Span<int> hashTableSpan = this.hashTable.Span;
+            Span<int> codeTableSpan = this.codeTable.Span;
 
             while ((c = this.NextPixel()) != Eof)
             {
                 fcode = (c << this.maxbits) + ent;
                 int i = (c << hshift) ^ ent /* = 0 */;
 
-                if (this.hashTable[i] == fcode)
+                if (hashTableSpan[i] == fcode)
                 {
-                    ent = this.codeTable[i];
+                    ent = codeTableSpan[i];
                     continue;
                 }
 
                 // Non-empty slot
-                if (this.hashTable[i] >= 0)
+                if (hashTableSpan[i] >= 0)
                 {
                     int disp = hsizeReg - i;
                     if (i == 0)
@@ -347,15 +353,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
                             i += hsizeReg;
                         }
 
-                        if (this.hashTable[i] == fcode)
+                        if (hashTableSpan[i] == fcode)
                         {
-                            ent = this.codeTable[i];
+                            ent = codeTableSpan[i];
                             break;
                         }
                     }
-                    while (this.hashTable[i] >= 0);
+                    while (hashTableSpan[i] >= 0);
 
-                    if (this.hashTable[i] == fcode)
+                    if (hashTableSpan[i] == fcode)
                     {
                         continue;
                     }
@@ -365,8 +371,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 ent = c;
                 if (this.freeEntry < this.maxmaxcode)
                 {
-                    this.codeTable[i] = this.freeEntry++; // code -> hashtable
-                    this.hashTable[i] = fcode;
+                    codeTableSpan[i] = this.freeEntry++; // code -> hashtable
+                    hashTableSpan[i] = fcode;
                 }
                 else
                 {
@@ -483,8 +489,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             if (disposing)
             {
-                ArrayPool<int>.Shared.Return(this.hashTable);
-                ArrayPool<int>.Shared.Return(this.codeTable);
+                this.hashTable?.Dispose();
+                this.codeTable?.Dispose();
             }
 
             this.isDisposed = true;

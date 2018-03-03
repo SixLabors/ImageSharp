@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Dithering.Base
             this.startingOffset = 0;
             for (int i = 0; i < this.matrixWidth; i++)
             {
-                // Good to disable here as we are not comparing matematical output.
+                // Good to disable here as we are not comparing mathematical output.
                 // ReSharper disable once CompareOfFloatsByEqualityOperator
                 if (matrix[0, i] != 0)
                 {
@@ -70,27 +70,15 @@ namespace SixLabors.ImageSharp.Dithering.Base
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageFrame<TPixel> pixels, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
+        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY)
             where TPixel : struct, IPixel<TPixel>
         {
-            this.Dither(pixels, source, transformed, x, y, minX, minY, maxX, maxY, true);
-        }
-
-        /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int minY, int maxX, int maxY, bool replacePixel)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (replacePixel)
-            {
-                // Assign the transformed pixel to the array.
-                image[x, y] = transformed;
-            }
+            image[x, y] = transformed;
 
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();
 
-            // Loop through and distribute the error amongst neighbouring pixels.
+            // Loop through and distribute the error amongst neighboring pixels.
             for (int row = 0; row < this.matrixHeight; row++)
             {
                 int matrixY = y + row;
@@ -115,10 +103,8 @@ namespace SixLabors.ImageSharp.Dithering.Base
 
                             ref TPixel pixel = ref rowSpan[matrixX];
                             var offsetColor = pixel.ToVector4();
-                            var coefficientVector = new Vector4(coefficient);
 
-                            Vector4 result = ((error * coefficientVector) / this.divisorVector) + offsetColor;
-                            result.W = offsetColor.W;
+                            Vector4 result = ((error * coefficient) / this.divisorVector) + offsetColor;
                             pixel.PackFromVector4(result);
                         }
                     }

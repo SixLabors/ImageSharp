@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNullOrEmpty(filePath, nameof(filePath));
 
             string ext = Path.GetExtension(filePath).Trim('.');
-            IImageFormat format = source.GetConfiguration().FindFormatByFileExtension(ext);
+            IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
             if (format == null)
             {
                 var stringBuilder = new StringBuilder();
@@ -45,13 +45,13 @@ namespace SixLabors.ImageSharp
                 throw new NotSupportedException(stringBuilder.ToString());
             }
 
-            IImageEncoder encoder = source.GetConfiguration().FindEncoder(format);
+            IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
             if (encoder == null)
             {
                 var stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
-                foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageEncoders)
+                foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
                     stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
                 }
@@ -93,14 +93,14 @@ namespace SixLabors.ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.NotNull(format, nameof(format));
-            IImageEncoder encoder = source.GetConfiguration().FindEncoder(format);
+            IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
             if (encoder == null)
             {
                 var stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
-                foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageEncoders)
+                foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
                     stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
                 }

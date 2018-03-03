@@ -116,9 +116,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public void Configure(Configuration host)
         {
-            host.AddImageFormatDetector(new TestHeader(this));
-            host.SetEncoder(this, new TestEncoder(this));
-            host.SetDecoder(this, new TestDecoder(this));
+            host.ImageFormatsManager.AddImageFormatDetector(new TestHeader(this));
+            host.ImageFormatsManager.SetEncoder(this, new TestEncoder(this));
+            host.ImageFormatsManager.SetDecoder(this, new TestDecoder(this));
         }
 
         public struct DecodeOperation

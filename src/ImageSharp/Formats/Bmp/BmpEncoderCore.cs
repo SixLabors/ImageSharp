@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -21,14 +22,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// Gets or sets the number of bits per pixel.
         /// </summary>
-        private BmpBitsPerPixel bitsPerPixel;
+        private readonly BmpBitsPerPixel bitsPerPixel;
+
+        private readonly MemoryManager memoryManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options</param>
-        public BmpEncoderCore(IBmpEncoderOptions options)
+        /// <param name="memoryManager">The memory manager</param>
+        public BmpEncoderCore(IBmpEncoderOptions options, MemoryManager memoryManager)
         {
+            this.memoryManager = memoryManager;
             this.bitsPerPixel = options.BitsPerPixel;
         }
 
@@ -145,6 +150,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
+        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
+        {
+            return this.memoryManager.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+        }
+
         /// <summary>
         /// Writes the 32bit color palette to the stream.
         /// </summary>
@@ -154,12 +164,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write32Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyxw, this.padding))
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    pixels.CopyTo(row, y);
-                    writer.Write(row.Bytes, 0, row.Length);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.Span, pixelSpan.Length);
+                    writer.Write(row.Array, 0, row.Length());
                 }
             }
         }
@@ -173,12 +184,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write24Bit<TPixel>(EndianBinaryWriter writer, PixelAccessor<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelArea<TPixel> row = new PixelArea<TPixel>(pixels.Width, ComponentOrder.Zyx, this.padding))
+            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    pixels.CopyTo(row, y);
-                    writer.Write(row.Bytes, 0, row.Length);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.Span, pixelSpan.Length);
+                    writer.Write(row.Array, 0, row.Length());
                 }
             }
         }

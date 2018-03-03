@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 using SixLabors.Primitives;
 
@@ -11,44 +12,37 @@ namespace SixLabors.ImageSharp.Memory
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer2D<T> : Buffer<T>, IBuffer2D<T>
+    internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
         where T : struct
     {
-        public Buffer2D(Size size)
-            : this(size.Width, size.Height)
-        {
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
+        /// <param name="wrappedBuffer">The buffer to wrap</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(int width, int height)
-            : base(width * height)
+        public Buffer2D(IBuffer<T> wrappedBuffer, int width, int height)
         {
-            this.Width = width;
-            this.Height = height;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
-        /// </summary>
-        /// <param name="array">The array to pin</param>
-        /// <param name="width">The number of elements in a row</param>
-        /// <param name="height">The number of rows</param>
-        public Buffer2D(T[] array, int width, int height)
-            : base(array, width * height)
-        {
+            this.Buffer = wrappedBuffer;
             this.Width = width;
             this.Height = height;
         }
 
         /// <inheritdoc />
-        public int Width { get; }
+        public int Width { get; private set; }
 
         /// <inheritdoc />
-        public int Height { get; }
+        public int Height { get; private set; }
+
+        /// <summary>
+        /// Gets the span to the whole area.
+        /// </summary>
+        public Span<T> Span => this.Buffer.Span;
+
+        /// <summary>
+        /// Gets the backing <see cref="IBuffer{T}"/>
+        /// </summary>
+        public IBuffer<T> Buffer { get; private set; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -63,29 +57,39 @@ namespace SixLabors.ImageSharp.Memory
             {
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-
-                return ref this.Array[(this.Width * y) + x];
+                Span<T> span = this.Buffer.Span;
+                return ref span[(this.Width * y) + x];
             }
         }
 
         /// <summary>
-        /// Creates a clean instance of <see cref="Buffer2D{T}"/> initializing it's elements with 'default(T)'.
+        /// Disposes the <see cref="Buffer2D{T}"/> instance
         /// </summary>
-        /// <param name="width">The number of elements in a row</param>
-        /// <param name="height">The number of rows</param>
-        /// <returns>The <see cref="Buffer{T}"/> instance</returns>
-        public static Buffer2D<T> CreateClean(int width, int height)
+        public void Dispose()
         {
-            var buffer = new Buffer2D<T>(width, height);
-            buffer.Clear();
-            return buffer;
+            this.Buffer?.Dispose();
         }
 
         /// <summary>
-        /// Creates a clean instance of <see cref="Buffer2D{T}"/> initializing it's elements with 'default(T)'.
+        /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
+        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
         /// </summary>
-        /// <param name="size">The size of the buffer</param>
-        /// <returns>The <see cref="Buffer2D{T}"/> instance</returns>
-        public static Buffer2D<T> CreateClean(Size size) => CreateClean(size.Width, size.Height);
+        /// <param name="a">The first buffer</param>
+        /// <param name="b">The second buffer</param>
+        public static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
+        {
+            Size aSize = a.Size();
+            Size bSize = b.Size();
+
+            IBuffer<T> temp = a.Buffer;
+            a.Buffer = b.Buffer;
+            b.Buffer = temp;
+
+            b.Width = aSize.Width;
+            b.Height = aSize.Height;
+
+            a.Width = bSize.Width;
+            a.Height = bSize.Height;
+        }
     }
 }

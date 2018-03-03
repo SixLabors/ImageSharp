@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public static ref T DangerousGetPinnableReference<T>(this IBuffer<T> buffer)
             where T : struct =>
-            ref buffer.Span.DangerousGetPinnableReference();
+            ref MemoryMarshal.GetReference(buffer.Span);
 
         public static void Read(this Stream stream, IManagedByteBuffer buffer)
         {

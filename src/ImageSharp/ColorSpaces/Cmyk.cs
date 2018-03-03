@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
     /// </summary>
-    internal struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
+    internal readonly struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
     {
         /// <summary>
         /// Represents a <see cref="Cmyk"/> that has C, M, Y, and K values set to zero.

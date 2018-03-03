@@ -21,20 +21,20 @@ namespace SixLabors.ImageSharp.Tests
         internal static IImageDecoder GetReferenceDecoder(string filePath)
         {
             IImageFormat format = GetImageFormat(filePath);
-            return Configuration.FindDecoder(format);
+            return Configuration.ImageFormatsManager.FindDecoder(format);
         }
 
         internal static IImageEncoder GetReferenceEncoder(string filePath)
         {
             IImageFormat format = GetImageFormat(filePath);
-            return Configuration.FindEncoder(format);
+            return Configuration.ImageFormatsManager.FindEncoder(format);
         }
 
         internal static IImageFormat GetImageFormat(string filePath)
         {
             string extension = Path.GetExtension(filePath).ToLower();
             if (extension[0] == '.') extension = extension.Substring(1);
-            IImageFormat format = Configuration.FindFormatByFileExtension(extension);
+            IImageFormat format = Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
             return format;
         }
 
@@ -45,9 +45,9 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder encoder,
             IImageFormatDetector detector)
         {
-            cfg.SetDecoder(imageFormat, decoder);
-            cfg.SetEncoder(imageFormat, encoder);
-            cfg.AddImageFormatDetector(detector);
+            cfg.ImageFormatsManager.SetDecoder(imageFormat, decoder);
+            cfg.ImageFormatsManager.SetEncoder(imageFormat, encoder);
+            cfg.ImageFormatsManager.AddImageFormatDetector(detector);
         }
 
         private static Configuration CreateDefaultConfiguration()

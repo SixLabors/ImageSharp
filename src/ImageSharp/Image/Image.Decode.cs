@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp
                 long startPosition = stream.Position;
                 stream.Read(buffer.Array, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                return config.FormatDetectors.Select(x => x.DetectFormat(buffer.Span)).LastOrDefault(x => x != null);
+                return config.ImageFormatsManager.FormatDetectors.Select(x => x.DetectFormat(buffer.Span)).LastOrDefault(x => x != null);
             }
         }
 
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp
             format = InternalDetectFormat(stream, config);
             if (format != null)
             {
-                return config.FindDecoder(format);
+                return config.ImageFormatsManager.FindDecoder(format);
             }
 
             return null;

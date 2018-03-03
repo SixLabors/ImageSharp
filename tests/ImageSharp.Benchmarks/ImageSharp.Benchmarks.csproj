@@ -23,7 +23,12 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net461'">
     <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
+    <PackageReference Include="Colourful" Version="1.1.2" />
+    <PackageReference Include="System.Drawing.Common" Version="4.5.0-preview1-26216-02" />
+    <PackageReference Include="System.Memory" Version="4.5.0-preview1-26216-02" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-preview1-26216-02" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
     <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />

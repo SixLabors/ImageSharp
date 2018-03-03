@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 ushort marker = fileMarker.Marker;
 
-                // RSTn - We've alread read the bytes and altered the position so no need to skip
+                // RSTn - We've already read the bytes and altered the position so no need to skip
                 if (marker >= PdfJsJpegConstants.Markers.RST0 && marker <= PdfJsJpegConstants.Markers.RST7)
                 {
                     continue;

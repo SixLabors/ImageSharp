@@ -42,7 +42,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
-                TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
+                TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
+                TestImages.Jpeg.Baseline.Bad.BadRST
             };
 
         public static string[] ProgressiveTestJpegs =
@@ -61,6 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [TestImages.Jpeg.Baseline.Calliphora] = 0.00002f / 100,
             [TestImages.Jpeg.Baseline.Bad.BadEOF] = 0.38f / 100,
             [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
+            [TestImages.Jpeg.Baseline.Bad.BadRST] = 0.0589f / 100,
 
             // Progressive:
             [TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159] = 0.34f / 100,
@@ -119,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
-        
+
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, false)]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, true)]

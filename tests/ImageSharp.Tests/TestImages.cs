@@ -96,6 +96,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static class Bad
                 {
                     public const string BadEOF = "Jpg/baseline/badeof.jpg";
+                    public const string BadRST = "Jpg/baseline/badrst.jpg";
                 }
 
                 public const string Cmyk = "Jpg/baseline/cmyk.jpg";

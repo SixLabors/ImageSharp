@@ -11,10 +11,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public void Configure(Configuration config)
         {
-            config.SetEncoder(ImageFormats.Jpeg, new JpegEncoder());
-            config.SetDecoder(ImageFormats.Jpeg, new JpegDecoder());
+            config.ImageFormatsManager.SetEncoder(ImageFormats.Jpeg, new JpegEncoder());
+            config.ImageFormatsManager.SetDecoder(ImageFormats.Jpeg, new JpegDecoder());
 
-            config.AddImageFormatDetector(new JpegImageFormatDetector());
+            config.ImageFormatsManager.AddImageFormatDetector(new JpegImageFormatDetector());
         }
     }
 }

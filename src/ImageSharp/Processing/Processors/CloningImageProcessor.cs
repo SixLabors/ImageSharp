@@ -96,6 +96,7 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
+        /// TODO: We should probably name this 'BeforeFrameApply'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
@@ -108,6 +109,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}" /> at the specified location
         /// and with the specified size.
+        /// TODO: We should probably name this 'ApplyToFrame'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
@@ -117,6 +119,7 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
+        /// TODO: We should probably name this 'AfterFrameApply'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>

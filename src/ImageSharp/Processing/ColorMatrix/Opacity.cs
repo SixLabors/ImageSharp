@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp
     public static partial class ImageExtensions
     {
         /// <summary>
-        /// Alters the alpha component of the image.
+        /// Multiplies the alpha component of the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp
         => source.ApplyProcessor(new OpacityProcessor<TPixel>(amount));
 
         /// <summary>
-        /// Alters the alpha component of the image.
+        /// Multiplies the alpha component of the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>

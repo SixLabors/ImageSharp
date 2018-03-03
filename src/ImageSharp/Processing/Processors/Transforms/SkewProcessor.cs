@@ -18,8 +18,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
-        public SkewProcessor(float degreesX, float degreesY)
-            : this(degreesX, degreesY, KnownResamplers.Bicubic)
+        /// <param name="sourceSize">The source image size</param>
+        public SkewProcessor(float degreesX, float degreesY, Size sourceSize)
+            : this(degreesX, degreesY, KnownResamplers.Bicubic, sourceSize)
         {
         }
 
@@ -29,8 +30,9 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="degreesX">The angle in degrees to perform the skew along the x-axis.</param>
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
         /// <param name="sampler">The sampler to perform the skew operation.</param>
-        public SkewProcessor(float degreesX, float degreesY, IResampler sampler)
-            : base(Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty), sampler)
+        /// <param name="sourceSize">The source image size</param>
+        public SkewProcessor(float degreesX, float degreesY, IResampler sampler, Size sourceSize)
+            : base(Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty), sampler, sourceSize)
         {
             this.DegreesX = degreesX;
             this.DegreesY = degreesY;

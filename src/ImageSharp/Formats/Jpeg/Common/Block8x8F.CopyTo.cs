@@ -26,6 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
                 return;
             }
 
+            ref float destBase = ref area.GetReferenceToOrigin();
+
             // TODO: Optimize: implement all the cases with loopless special code! (T4?)
             for (int y = 0; y < 8; y++)
             {
@@ -40,9 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
                     for (int i = 0; i < verticalScale; i++)
                     {
+                        int baseIdx = ((yy + i) * area.Stride) + xx;
+
                         for (int j = 0; j < horizontalScale; j++)
                         {
-                            area[xx + j, yy + i] = value;
+                            // area[xx + j, yy + i] = value;
+                            Unsafe.Add(ref destBase, baseIdx + j) = value;
                         }
                     }
                 }
@@ -53,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void CopyTo(BufferArea<float> area)
         {
             ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
-            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigo());
+            ref byte destBase = ref Unsafe.As<float, byte>(ref area.GetReferenceToOrigin());
             int destStride = area.Stride * sizeof(float);
 
             CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
@@ -76,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 
         private void CopyTo2x2(BufferArea<float> area)
         {
-            ref float destBase = ref area.GetReferenceToOrigo();
+            ref float destBase = ref area.GetReferenceToOrigin();
             int destStride = area.Stride;
 
             this.WidenCopyImpl2x2(ref destBase, 0, destStride);

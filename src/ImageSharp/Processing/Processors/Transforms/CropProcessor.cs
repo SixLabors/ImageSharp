@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
+// TODO: Convert this into a cloning processor inheriting TransformProcessor once Anton's memory PR is merged
 namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            using (var targetPixels = new PixelAccessor<TPixel>(this.CropRectangle.Width, this.CropRectangle.Height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(this.CropRectangle.Size))
             {
                 Parallel.For(
                     minY,
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         SpanHelper.Copy(sourceRow, targetRow, maxX - minX);
                     });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
 

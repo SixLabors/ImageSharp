@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// Position of an object within an ICC profile
     /// </summary>
-    internal struct IccPositionNumber : IEquatable<IccPositionNumber>
+    internal readonly struct IccPositionNumber : IEquatable<IccPositionNumber>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccPositionNumber"/> struct.

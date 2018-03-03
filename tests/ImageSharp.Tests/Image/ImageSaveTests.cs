@@ -24,17 +24,14 @@ namespace SixLabors.ImageSharp.Tests
         private readonly Mock<IFileSystem> fileSystem;
         private readonly Mock<IImageEncoder> encoder;
         private readonly Mock<IImageEncoder> encoderNotInFormat;
-        private Mock<IImageFormatDetector> localMimeTypeDetector;
+        private IImageFormatDetector localMimeTypeDetector;
         private Mock<IImageFormat> localImageFormat;
 
         public ImageSaveTests()
         {
             this.localImageFormat = new Mock<IImageFormat>();
             this.localImageFormat.Setup(x => x.FileExtensions).Returns(new[] { "png" });
-
-            this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
-            this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<Span<byte>>())).Returns(localImageFormat.Object);
+            this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormat.Object);
 
             this.encoder = new Mock<IImageEncoder>();
 
@@ -45,8 +42,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            config.AddImageFormatDetector(this.localMimeTypeDetector.Object);
-            config.SetEncoder(localImageFormat.Object, this.encoder.Object);
+            config.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
+            config.ImageFormatsManager.SetEncoder(this.localImageFormat.Object, this.encoder.Object);
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 
@@ -57,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel[] buffer = new TPixel[image.Width*image.Height];
+                TPixel[] buffer = new TPixel[image.Width * image.Height];
                 image.SavePixelData(buffer);
 
                 image.ComparePixelBufferTo(buffer);
@@ -73,14 +70,14 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                byte[] buffer = new byte[image.Width*image.Height*Unsafe.SizeOf<TPixel>()];
+                byte[] buffer = new byte[image.Width * image.Height * Unsafe.SizeOf<TPixel>()];
 
                 image.SavePixelData(buffer);
 
                 image.ComparePixelBufferTo(buffer.AsSpan().NonPortableCast<byte, TPixel>());
             }
         }
-        
+
         [Fact]
         public void SavePixelData_Rgba32_WhenBufferIsTooSmall_Throws()
         {
@@ -91,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 img[0, 1] = Rgba32.Red;
                 img[1, 1] = Rgba32.Blue;
-                var buffer = new byte[2 * 2]; // width * height * bytes per pixel
+                byte[] buffer = new byte[2 * 2]; // width * height * bytes per pixel
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
@@ -125,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ToBase64String()
         {
-            var str = this.Image.ToBase64String(localImageFormat.Object);
+            string str = this.Image.ToBase64String(this.localImageFormat.Object);
 
             this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, It.IsAny<Stream>()));
         }
@@ -134,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests
         public void SaveStreamWithMime()
         {
             Stream stream = new MemoryStream();
-            this.Image.Save(stream, localImageFormat.Object);
+            this.Image.Save(stream, this.localImageFormat.Object);
 
             this.encoder.Verify(x => x.Encode<Rgba32>(this.Image, stream));
         }

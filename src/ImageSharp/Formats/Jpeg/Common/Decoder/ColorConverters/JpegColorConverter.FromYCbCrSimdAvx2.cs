@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Tuples;
 
 // ReSharper disable ImpureMethodCallOnReadonlyValueField
@@ -46,14 +47,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
                 }
 
                 ref Vector<float> yBase =
-                    ref Unsafe.As<float, Vector<float>>(ref values.Component0.DangerousGetPinnableReference());
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector<float> cbBase =
-                    ref Unsafe.As<float, Vector<float>>(ref values.Component1.DangerousGetPinnableReference());
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component1));
                 ref Vector<float> crBase =
-                    ref Unsafe.As<float, Vector<float>>(ref values.Component2.DangerousGetPinnableReference());
+                    ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
                 ref Vector4Octet resultBase =
-                    ref Unsafe.As<Vector4, Vector4Octet>(ref result.DangerousGetPinnableReference());
+                    ref Unsafe.As<Vector4, Vector4Octet>(ref MemoryMarshal.GetReference(result));
 
                 var chromaOffset = new Vector<float>(-128f);
 

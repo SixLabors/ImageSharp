@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// Entry of ICC colorant table
     /// </summary>
-    internal struct IccColorantTableEntry : IEquatable<IccColorantTableEntry>
+    internal readonly struct IccColorantTableEntry : IEquatable<IccColorantTableEntry>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccColorantTableEntry"/> struct.

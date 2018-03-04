@@ -1,14 +1,13 @@
-﻿// <copyright file="TiffLzwEncoder.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Tiff
+using System;
+using System.Buffers;
+using System.IO;
+using SixLabors.ImageSharp.Formats.Gif;
+
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-
     /// <summary>
     /// Encodes and compresses the image data using dynamic Lempel-Ziv compression.
     /// </summary>

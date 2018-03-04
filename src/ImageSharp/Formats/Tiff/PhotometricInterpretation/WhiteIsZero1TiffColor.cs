@@ -1,15 +1,13 @@
-// <copyright file="WhiteIsZero1TiffColor.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Tiff
+using System;
+using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using ImageSharp;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Implements the 'WhiteIsZero' photometric interpretation (optimised for bilevel images).
     /// </summary>

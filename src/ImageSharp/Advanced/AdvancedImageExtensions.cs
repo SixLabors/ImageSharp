@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -89,6 +90,14 @@ namespace SixLabors.ImageSharp.Advanced
             => source.Frames.RootFrame.GetPixelRowSpan(row);
 
         /// <summary>
+        /// Gets the <see cref="MemoryManager"/> assigned to 'source'.
+        /// </summary>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the configuration.</returns>
+        internal static MemoryManager GetMemoryManager(this IConfigurable source)
+            => GetConfiguration(source).MemoryManager;
+
+        /// <summary>
         /// Gets the span to the backing buffer.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
@@ -140,6 +149,6 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>A reference to the element.</returns>
         private static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => ref source.PixelBuffer.Span.DangerousGetPinnableReference();
+            => ref MemoryMarshal.GetReference(source.PixelBuffer.Span);
     }
 }

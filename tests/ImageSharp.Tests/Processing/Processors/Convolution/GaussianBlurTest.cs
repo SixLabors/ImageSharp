@@ -11,12 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     public class GaussianBlurTest : FileTestBase
     {
-        public static readonly TheoryData<int> GaussianBlurValues
-        = new TheoryData<int>
-        {
-            3,
-            5
-        };
+        public static readonly TheoryData<int> GaussianBlurValues = new TheoryData<int> { 3, 5 };
 
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), nameof(GaussianBlurValues), DefaultPixelType)]
@@ -36,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 

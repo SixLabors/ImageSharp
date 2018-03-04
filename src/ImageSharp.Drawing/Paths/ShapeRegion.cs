@@ -46,18 +46,17 @@ namespace SixLabors.ImageSharp.Drawing
         {
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
-            using (var innerBuffer = new Buffer<PointF>(buffer.Length))
+
+            // TODO: This is a temporary workaround because of the lack of Span<T> API-s on IPath. We should use MemoryManager.Allocate() here!
+            PointF[] innerBuffer = new PointF[buffer.Length];
+            int count = this.Shape.FindIntersections(start, end, innerBuffer, 0);
+
+            for (int i = 0; i < count; i++)
             {
-                PointF[] array = innerBuffer.Array;
-                int count = this.Shape.FindIntersections(start, end, array, 0);
-
-                for (int i = 0; i < count; i++)
-                {
-                    buffer[i + offset] = array[i].X;
-                }
-
-                return count;
+                buffer[i + offset] = innerBuffer[i].X;
             }
+
+            return count;
         }
     }
 }

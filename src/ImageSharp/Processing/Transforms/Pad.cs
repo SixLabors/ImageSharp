@@ -1,10 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -25,11 +23,11 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Pad<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            ResizeOptions options = new ResizeOptions
+            var options = new ResizeOptions
             {
                 Size = new Size(width, height),
                 Mode = ResizeMode.BoxPad,
-                Sampler = new NearestNeighborResampler()
+                Sampler = KnownResamplers.NearestNeighbor
             };
 
             return Resize(source, options);

@@ -1,6 +1,7 @@
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
+    using System;
     using System.Numerics;
 
     using BenchmarkDotNet.Attributes;
@@ -11,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class ToVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TPixel> source;
+        private IBuffer<TPixel> source;
 
-        private Buffer<Vector4> destination;
+        private IBuffer<Vector4> destination;
 
         [Params(64, 300, 1024)]
         public int Count { get; set; }
@@ -21,8 +22,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.source = new Buffer<TPixel>(this.Count);
-            this.destination = new Buffer<Vector4>(this.Count);
+            this.source = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
+            this.destination = Configuration.Default.MemoryManager.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]
@@ -35,8 +36,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TPixel[] s = this.source.Array;
-            Vector4[] d = this.destination.Array;
+            Span<TPixel> s = this.source.Span;
+            Span<Vector4> d = this.destination.Span;
 
             for (int i = 0; i < this.Count; i++)
             {
@@ -48,13 +49,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToVector4(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().ToVector4(this.source.Span, this.destination.Span, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToVector4(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.ToVector4(this.source.Span, this.destination.Span, this.Count);
         }
     }
 

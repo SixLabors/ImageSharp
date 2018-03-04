@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void Construct()
         {
-            using (var buffer = new Buffer2D<int>(10, 20))
+            using (var buffer = Configuration.Default.MemoryManager.Allocate2D<int>(10, 20))
             {
                 var rectangle = new Rectangle(3,2, 5, 6);
                 var area = new BufferArea<int>(buffer, rectangle);
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         private static Buffer2D<int> CreateTestBuffer(int w, int h)
         {
-            var buffer = new Buffer2D<int>(w, h);
+            var buffer = Configuration.Default.MemoryManager.Allocate2D<int>(w, h);
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
@@ -104,10 +104,43 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 BufferArea<int> area0 = buffer.GetArea(6, 8, 10, 10);
 
-                ref int r = ref area0.GetReferenceToOrigo();
+                ref int r = ref area0.GetReferenceToOrigin();
 
                 int expected = buffer[6, 8];
                 Assert.Equal(expected, r);
+            }
+        }
+
+        [Fact]
+        public void Clear_FullArea()
+        {
+            using (Buffer2D<int> buffer = CreateTestBuffer(22, 13))
+            {
+                buffer.GetArea().Clear();
+                Span<int> fullSpan = buffer.Span;
+                Assert.True(fullSpan.SequenceEqual(new int[fullSpan.Length]));
+            }
+        }
+
+        [Fact]
+        public void Clear_SubArea()
+        {
+            using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
+            {
+                BufferArea<int> area = buffer.GetArea(5, 5, 10, 10);
+                area.Clear();
+
+                Assert.NotEqual(0, buffer[4, 4]);
+                Assert.NotEqual(0, buffer[15, 15]);
+
+                Assert.Equal(0, buffer[5, 5]);
+                Assert.Equal(0, buffer[14, 14]);
+
+                for (int y = area.Rectangle.Y; y < area.Rectangle.Bottom; y++)
+                {
+                    Span<int> span = buffer.GetRowSpan(y).Slice(area.Rectangle.X, area.Width);
+                    Assert.True(span.SequenceEqual(new int[area.Width]));
+                }
             }
         }
     }

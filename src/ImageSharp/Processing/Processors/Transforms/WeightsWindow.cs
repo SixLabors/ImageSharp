@@ -4,7 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// The buffer containing the weights values.
         /// </summary>
-        private readonly Buffer<float> buffer;
+        private readonly IBuffer<float> buffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             this.flatStartIndex = (index * buffer.Width) + left;
             this.Left = left;
-            this.buffer = buffer;
+            this.buffer = buffer.Buffer;
             this.Length = length;
         }
 
@@ -57,7 +57,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref float GetStartReference()
         {
-            return ref this.buffer[this.flatStartIndex];
+            Span<float> span = this.buffer.Span;
+            return ref span[this.flatStartIndex];
         }
 
         /// <summary>
@@ -78,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
-            ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
+            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left + sourceX);
 
             // Destination color components
             Vector4 result = Vector4.Zero;
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         {
             ref float horizontalValues = ref this.GetStartReference();
             int left = this.Left;
-            ref Vector4 vecPtr = ref Unsafe.Add(ref rowSpan.DangerousGetPinnableReference(), left + sourceX);
+            ref Vector4 vecPtr = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowSpan), left + sourceX);
 
             // Destination color components
             Vector4 result = Vector4.Zero;

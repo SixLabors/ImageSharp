@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an CIE XYZ 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#Definition_of_the_CIE_XYZ_color_space"/>
     /// </summary>
-    internal struct CieXyz : IColorVector, IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
+    internal readonly struct CieXyz : IColorVector, IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
     {
         /// <summary>
         /// Represents a <see cref="CieXyz"/> that has X, Y, and Z values set to zero.

@@ -8,7 +8,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 {
     /// <summary>
-    /// Encapsulates the implementation of processing "raw" <see cref="Buffer{T}"/>-s into Jpeg image channels.
+    /// Encapsulates the implementation of processing "raw" <see cref="IBuffer{T}"/>-s into Jpeg image channels.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal struct JpegBlockPostProcessor

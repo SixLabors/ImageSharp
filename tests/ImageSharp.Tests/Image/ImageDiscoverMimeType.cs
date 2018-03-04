@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.PixelFormats;
 using Moq;
 using Xunit;
 
@@ -18,10 +17,10 @@ namespace SixLabors.ImageSharp.Tests
     {
         private readonly Mock<IFileSystem> fileSystem;
         private readonly string FilePath;
-        private readonly Mock<IImageFormatDetector> localMimeTypeDetector;
+        private readonly IImageFormatDetector localMimeTypeDetector;
         private readonly Mock<IImageFormat> localImageFormatMock;
 
-        public IImageFormat localImageFormat => localImageFormatMock.Object;
+        public IImageFormat localImageFormat => this.localImageFormatMock.Object;
         public Configuration LocalConfiguration { get; private set; }
         public byte[] Marker { get; private set; }
         public MemoryStream DataStream { get; private set; }
@@ -32,9 +31,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             this.localImageFormatMock = new Mock<IImageFormat>();
 
-            this.localMimeTypeDetector = new Mock<IImageFormatDetector>();
-            this.localMimeTypeDetector.Setup(x => x.HeaderSize).Returns(1);
-            this.localMimeTypeDetector.Setup(x => x.DetectFormat(It.IsAny<ReadOnlySpan<byte>>())).Returns(localImageFormatMock.Object);
+            this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 
             this.fileSystem = new Mock<IFileSystem>();
 
@@ -42,7 +39,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 FileSystem = this.fileSystem.Object
             };
-            this.LocalConfiguration.AddImageFormatDetector(this.localMimeTypeDetector.Object);
+
+            this.LocalConfiguration.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
 
             TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
@@ -58,49 +56,49 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void DiscoverImageFormatByteArray()
         {
-            var type = Image.DetectFormat(DataStream.ToArray());
+            IImageFormat type = Image.DetectFormat(this.DataStream.ToArray());
             Assert.Equal(TestFormat.GlobalTestFormat, type);
         }
 
         [Fact]
         public void DiscoverImageFormatByteArray_WithConfig()
         {
-            var type = Image.DetectFormat(this.LocalConfiguration, DataStream.ToArray());
-            Assert.Equal(localImageFormat, type);
+            IImageFormat type = Image.DetectFormat(this.LocalConfiguration, this.DataStream.ToArray());
+            Assert.Equal(this.localImageFormat, type);
         }
 
         [Fact]
         public void DiscoverImageFormatFile()
         {
-            var type = Image.DetectFormat(this.FilePath);
+            IImageFormat type = Image.DetectFormat(this.FilePath);
             Assert.Equal(TestFormat.GlobalTestFormat, type);
         }
 
         [Fact]
         public void DiscoverImageFormatFilePath_WithConfig()
         {
-            var type = Image.DetectFormat(this.LocalConfiguration, FilePath);
-            Assert.Equal(localImageFormat, type);
+            IImageFormat type = Image.DetectFormat(this.LocalConfiguration, this.FilePath);
+            Assert.Equal(this.localImageFormat, type);
         }
 
         [Fact]
         public void DiscoverImageFormatStream()
         {
-            var type = Image.DetectFormat(this.DataStream);
+            IImageFormat type = Image.DetectFormat(this.DataStream);
             Assert.Equal(TestFormat.GlobalTestFormat, type);
         }
 
         [Fact]
         public void DiscoverImageFormatFileStream_WithConfig()
         {
-            var type = Image.DetectFormat(this.LocalConfiguration, DataStream);
-            Assert.Equal(localImageFormat, type);
+            IImageFormat type = Image.DetectFormat(this.LocalConfiguration, this.DataStream);
+            Assert.Equal(this.localImageFormat, type);
         }
 
         [Fact]
         public void DiscoverImageFormatNoDetectorsRegisterdShouldReturnNull()
         {
-            var type = Image.DetectFormat(new Configuration(), DataStream);
+            IImageFormat type = Image.DetectFormat(new Configuration(), this.DataStream);
             Assert.Null(type);
         }
     }

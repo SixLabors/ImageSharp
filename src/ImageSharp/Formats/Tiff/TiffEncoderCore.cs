@@ -1,25 +1,16 @@
-// <copyright file="TiffEncoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Collections.Generic;
+using System.IO;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats
 {
-    using System;
-    using System.Buffers;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Runtime.CompilerServices;
-    using System.Text;
-    using ImageSharp.Formats.Tiff;
-    using ImageSharp.Memory;
-    using ImageSharp.PixelFormats;
-
-    using Quantizers;
-
-    using static ComparableExtensions;
-
     /// <summary>
     /// Performs the TIFF encoding operation.
     /// </summary>
@@ -48,7 +39,7 @@ namespace ImageSharp.Formats
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
@@ -138,7 +129,7 @@ namespace ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdOffset">The marker to write this IFD offset.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
         public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
@@ -159,7 +150,7 @@ namespace ImageSharp.Formats
         /// Adds image metadata to the specified IFD.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The metadata entries to add to the IFD.</param>
         public void AddMetadata<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
             where TPixel : struct, IPixel<TPixel>
@@ -227,7 +218,7 @@ namespace ImageSharp.Formats
         /// Adds image format information to the specified IFD.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageBase{TPixel}"/> to encode from.</param>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
         public void AddImageFormat<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
             where TPixel : struct, IPixel<TPixel>

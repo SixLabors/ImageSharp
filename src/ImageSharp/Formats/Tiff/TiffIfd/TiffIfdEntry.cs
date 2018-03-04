@@ -1,9 +1,7 @@
-﻿// <copyright file="TiffIfdEntry.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Data structure for holding details of each TIFF IFD entry.
@@ -31,7 +29,7 @@ namespace ImageSharp.Formats.Tiff
         public byte[] Value;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TiffIfdEntry" /> class.
+        /// Initializes a new instance of the <see cref="TiffIfdEntry"/> struct.
         /// </summary>
         /// <param name="tag">The Tag ID for this entry.</param>
         /// <param name="type">The data-type of this entry.</param>

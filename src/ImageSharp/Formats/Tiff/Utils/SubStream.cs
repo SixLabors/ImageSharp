@@ -1,12 +1,11 @@
-// <copyright file="SubStream.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats.Tiff
-{
-    using System;
-    using System.IO;
 
+using System;
+using System.IO;
+
+namespace SixLabors.ImageSharp.Formats.Tiff
+{
     /// <summary>
     /// Utility class to encapsulate a sub-portion of another <see cref="Stream"/>.
     /// </summary>
@@ -22,7 +21,7 @@ namespace ImageSharp.Formats.Tiff
         private long length;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Stream"/> class.
+        /// Initializes a new instance of the <see cref="SubStream"/> class.
         /// </summary>
         /// <param name="innerStream">The underlying <see cref="Stream"/> to wrap.</param>
         /// <param name="length">The length of the sub-stream.</param>
@@ -39,7 +38,7 @@ namespace ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Stream"/> class.
+        /// Initializes a new instance of the <see cref="SubStream"/> class.
         /// </summary>
         /// <param name="innerStream">The underlying <see cref="Stream"/> to wrap.</param>
         /// <param name="offset">The offset of the sub-stream within the underlying <see cref="Stream"/>.</param>

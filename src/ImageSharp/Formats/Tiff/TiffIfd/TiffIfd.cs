@@ -1,9 +1,7 @@
-﻿// <copyright file="TiffIfd.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Data structure for holding details of each TIFF IFD.
@@ -21,7 +19,7 @@ namespace ImageSharp.Formats.Tiff
         public uint NextIfdOffset;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TiffIfd" /> class.
+        /// Initializes a new instance of the <see cref="TiffIfd"/> struct.
         /// </summary>
         /// <param name="entries">An array of the entries within the IFD.</param>
         /// <param name="nextIfdOffset">Offset (in bytes) to the next IFD, or zero if this is the last IFD.</param>

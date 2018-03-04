@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
@@ -37,14 +38,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
                 DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisable by 8!");
 
                 ref Vector4Pair yBase =
-                    ref Unsafe.As<float, Vector4Pair>(ref values.Component0.DangerousGetPinnableReference());
+                    ref Unsafe.As<float, Vector4Pair>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector4Pair cbBase =
-                    ref Unsafe.As<float, Vector4Pair>(ref values.Component1.DangerousGetPinnableReference());
+                    ref Unsafe.As<float, Vector4Pair>(ref MemoryMarshal.GetReference(values.Component1));
                 ref Vector4Pair crBase =
-                    ref Unsafe.As<float, Vector4Pair>(ref values.Component2.DangerousGetPinnableReference());
+                    ref Unsafe.As<float, Vector4Pair>(ref MemoryMarshal.GetReference(values.Component2));
 
                 ref Vector4Octet resultBase =
-                    ref Unsafe.As<Vector4, Vector4Octet>(ref result.DangerousGetPinnableReference());
+                    ref Unsafe.As<Vector4, Vector4Octet>(ref MemoryMarshal.GetReference(result));
 
                 var chromaOffset = new Vector4(-128f);
 

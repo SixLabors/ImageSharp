@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Lomograph<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new LomographProcessor<TPixel>(options));
+            source.ApplyProcessor(new LomographProcessor<TPixel>(source.MemoryManager, options));
             return source;
         }
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Lomograph<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            source.ApplyProcessor(new LomographProcessor<TPixel>(options), rectangle);
+            source.ApplyProcessor(new LomographProcessor<TPixel>(source.MemoryManager, options), rectangle);
             return source;
         }
     }

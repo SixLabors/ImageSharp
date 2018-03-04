@@ -95,6 +95,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         private int eobRun;
 
         /// <summary>
+        /// The block counter
+        /// </summary>
+        private int blockCounter;
+
+        /// <summary>
+        /// The MCU counter
+        /// </summary>
+        private int mcuCounter;
+
+        /// <summary>
+        /// The expected RST marker value
+        /// </summary>
+        private byte expectedRst;
+
+        /// <summary>
         /// Initializes a default-constructed <see cref="OrigJpegScanDecoder"/> instance for reading data from <see cref="OrigJpegDecoderCore"/>-s stream.
         /// </summary>
         /// <param name="p">Pointer to <see cref="OrigJpegScanDecoder"/> on the stack</param>
@@ -139,100 +154,136 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         {
             decoder.InputProcessor.ResetErrorState();
 
-            int blockCount = 0;
-            int mcu = 0;
-            byte expectedRst = OrigJpegConstants.Markers.RST0;
+            this.blockCounter = 0;
+            this.mcuCounter = 0;
+            this.expectedRst = OrigJpegConstants.Markers.RST0;
 
             for (int my = 0; my < decoder.MCUCountY; my++)
             {
                 for (int mx = 0; mx < decoder.MCUCountX; mx++)
                 {
-                    for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
+                    this.DecodeBlocksAtMcuIndex(decoder, mx, my);
+
+                    this.mcuCounter++;
+
+                    // Handling restart intervals
+                    // Useful info: https://stackoverflow.com/a/8751802
+                    if (decoder.IsAtRestartInterval(this.mcuCounter))
                     {
-                        this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
-                        OrigComponent component = decoder.Components[this.ComponentIndex];
-
-                        this.hi = component.HorizontalSamplingFactor;
-                        int vi = component.VerticalSamplingFactor;
-
-                        for (int j = 0; j < this.hi * vi; j++)
-                        {
-                            if (this.componentScanCount != 1)
-                            {
-                                this.bx = (this.hi * mx) + (j % this.hi);
-                                this.by = (vi * my) + (j / this.hi);
-                            }
-                            else
-                            {
-                                int q = decoder.MCUCountX * this.hi;
-                                this.bx = blockCount % q;
-                                this.by = blockCount / q;
-                                blockCount++;
-                                if (this.bx * 8 >= decoder.ImageWidth || this.by * 8 >= decoder.ImageHeight)
-                                {
-                                    continue;
-                                }
-                            }
-
-                            // Find the block at (bx,by) in the component's buffer:
-                            ref Block8x8 blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
-
-                            // Copy block to stack
-                            this.data.Block = blockRefOnHeap;
-
-                            if (!decoder.InputProcessor.ReachedEOF)
-                            {
-                                this.DecodeBlock(decoder, scanIndex);
-                            }
-
-                            // Store the result block:
-                            blockRefOnHeap = this.data.Block;
-                        }
-
-                        // for j
-                    }
-
-                    // for i
-                    mcu++;
-
-                    if (decoder.RestartInterval > 0 && mcu % decoder.RestartInterval == 0 && mcu < decoder.TotalMCUCount)
-                    {
-                        // A more sophisticated decoder could use RST[0-7] markers to resynchronize from corrupt input,
-                        // but this one assumes well-formed input, and hence the restart marker follows immediately.
-                        if (!decoder.InputProcessor.ReachedEOF)
-                        {
-                            decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
-                            if (decoder.InputProcessor.CheckEOFEnsureNoError())
-                            {
-                                if (decoder.Temp[0] != 0xff || decoder.Temp[1] != expectedRst)
-                                {
-                                    throw new ImageFormatException("Bad RST marker");
-                                }
-
-                                expectedRst++;
-                                if (expectedRst == OrigJpegConstants.Markers.RST7 + 1)
-                                {
-                                    expectedRst = OrigJpegConstants.Markers.RST0;
-                                }
-                            }
-                        }
-
-                        // Reset the Huffman decoder.
-                        decoder.InputProcessor.Bits = default(Bits);
-
-                        // Reset the DC components, as per section F.2.1.3.1.
-                        this.ResetDc();
-
-                        // Reset the progressive decoder state, as per section G.1.2.2.
-                        this.eobRun = 0;
+                        this.ProcessRSTMarker(decoder);
+                        this.Reset(decoder);
                     }
                 }
-
-                // for mx
             }
         }
 
-        private void ResetDc()
+        private void DecodeBlocksAtMcuIndex(OrigJpegDecoderCore decoder, int mx, int my)
+        {
+            for (int scanIndex = 0; scanIndex < this.componentScanCount; scanIndex++)
+            {
+                this.ComponentIndex = this.pointers.ComponentScan[scanIndex].ComponentIndex;
+                OrigComponent component = decoder.Components[this.ComponentIndex];
+
+                this.hi = component.HorizontalSamplingFactor;
+                int vi = component.VerticalSamplingFactor;
+
+                for (int j = 0; j < this.hi * vi; j++)
+                {
+                    if (this.componentScanCount != 1)
+                    {
+                        this.bx = (this.hi * mx) + (j % this.hi);
+                        this.by = (vi * my) + (j / this.hi);
+                    }
+                    else
+                    {
+                        int q = decoder.MCUCountX * this.hi;
+                        this.bx = this.blockCounter % q;
+                        this.by = this.blockCounter / q;
+                        this.blockCounter++;
+                        if (this.bx * 8 >= decoder.ImageWidth || this.by * 8 >= decoder.ImageHeight)
+                        {
+                            continue;
+                        }
+                    }
+
+                    // Find the block at (bx,by) in the component's buffer:
+                    ref Block8x8 blockRefOnHeap = ref component.GetBlockReference(this.bx, this.by);
+
+                    // Copy block to stack
+                    this.data.Block = blockRefOnHeap;
+
+                    if (!decoder.InputProcessor.ReachedEOF)
+                    {
+                        this.DecodeBlock(decoder, scanIndex);
+                    }
+
+                    // Store the result block:
+                    blockRefOnHeap = this.data.Block;
+                }
+            }
+        }
+
+        private void ProcessRSTMarker(OrigJpegDecoderCore decoder)
+        {
+            // Attempt to look for RST[0-7] markers to resynchronize from corrupt input.
+            if (!decoder.InputProcessor.ReachedEOF)
+            {
+                decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 2);
+                if (decoder.InputProcessor.CheckEOFEnsureNoError())
+                {
+                    if (decoder.Temp[0] != 0xFF || decoder.Temp[1] != this.expectedRst)
+                    {
+                        bool invalidRst = true;
+
+                        // Most jpeg's containing well-formed input will have a RST[0-7] marker following immediately
+                        // but some, see Issue #481, contain padding bytes "0xFF" before the RST[0-7] marker.
+                        // If we identify that case we attempt to read until we have bypassed the padded bytes.
+                        // We then check again for our RST marker and throw if invalid.
+                        // No other methods are attempted to resynchronize from corrupt input.
+                        if (decoder.Temp[0] == 0xFF && decoder.Temp[1] == 0xFF)
+                        {
+                            while (decoder.Temp[0] == 0xFF && decoder.InputProcessor.CheckEOFEnsureNoError())
+                            {
+                                decoder.InputProcessor.ReadFullUnsafe(decoder.Temp, 0, 1);
+                                if (!decoder.InputProcessor.CheckEOFEnsureNoError())
+                                {
+                                    break;
+                                }
+                            }
+
+                            // Have we found a valid restart marker?
+                            invalidRst = decoder.Temp[0] != this.expectedRst;
+                        }
+
+                        if (invalidRst)
+                        {
+                            throw new ImageFormatException("Bad RST marker");
+                        }
+                    }
+
+                    this.expectedRst++;
+                    if (this.expectedRst == OrigJpegConstants.Markers.RST7 + 1)
+                    {
+                        this.expectedRst = OrigJpegConstants.Markers.RST0;
+                    }
+                }
+            }
+        }
+
+        private void Reset(OrigJpegDecoderCore decoder)
+        {
+            decoder.InputProcessor.ResetHuffmanDecoder();
+
+            this.ResetDcValues();
+
+            // Reset the progressive decoder state, as per section G.1.2.2.
+            this.eobRun = 0;
+        }
+
+        /// <summary>
+        /// Reset the DC components, as per section F.2.1.3.1.
+        /// </summary>
+        private void ResetDcValues()
         {
             Unsafe.InitBlock(this.pointers.Dc, default(byte), sizeof(int) * OrigJpegDecoderCore.MaxComponents);
         }

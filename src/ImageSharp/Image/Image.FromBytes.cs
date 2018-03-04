@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The format or null if none found.</returns>
         public static IImageFormat DetectFormat(byte[] data)
         {
-            return DetectFormat(null, data);
+            return DetectFormat(Configuration.Default, data);
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(byte[] data) => Load<Rgba32>(null, data);
+        public static Image<Rgba32> Load(byte[] data) => Load<Rgba32>(Configuration.Default, data);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="format">The mime type of the decoded image.</param>
         /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
-        public static Image<Rgba32> Load(byte[] data, out IImageFormat format) => Load<Rgba32>(null, data, out format);
+        public static Image<Rgba32> Load(byte[] data, out IImageFormat format) => Load<Rgba32>(Configuration.Default, data, out format);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{Rgba32}"/> class from the given byte array.
@@ -93,9 +93,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Load<TPixel>(null, data);
-        }
+            => Load<TPixel>(Configuration.Default, data);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.
@@ -106,9 +104,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Load<TPixel>(null, data, out format);
-        }
+            => Load<TPixel>(Configuration.Default, data, out format);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array.

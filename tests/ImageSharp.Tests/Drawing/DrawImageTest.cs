@@ -1,17 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
-using System.Linq;
+using System;
+using System.Numerics;
+using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Numerics;
-
     public class DrawImageTest : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
@@ -22,8 +21,6 @@ namespace SixLabors.ImageSharp.Tests
                TestImages.Png.Splash,
                TestImages.Gif.Rings
         };
-
-        object[][] Modes = System.Enum.GetValues(typeof(PixelBlenderMode)).Cast<PixelBlenderMode>().Select(x => new object[] { x }).ToArray();
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Normal)]
@@ -39,9 +36,10 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
-            using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
+            using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
-                image.Mutate(x => x.DrawImage(blend, mode, .75f, new Size(image.Width / 2, image.Height / 2), new Point(image.Width / 4, image.Height / 4)));
+                blend.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
+                image.Mutate(x => x.DrawImage(blend, mode, .75f, new Point(image.Width / 4, image.Height / 4)));
                 image.DebugSave(provider, new { mode });
             }
         }
@@ -52,15 +50,25 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
-            using (Image<TPixel> blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
+            using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
                 Matrix3x2 rotate = Matrix3x2Extensions.CreateRotationDegrees(45F);
                 Matrix3x2 scale = Matrix3x2Extensions.CreateScale(new SizeF(.25F, .25F));
+                Matrix3x2 matrix = rotate * scale;
 
-                blend.Mutate(x => x.Transform(rotate * scale));
+                // Lets center the matrix so we can tell whether any cut-off issues we may have belong to the drawing processor
+                Rectangle srcBounds = blend.Bounds();
+                Rectangle destBounds = TransformHelpers.GetTransformedBoundingRectangle(srcBounds, matrix);
+                Matrix3x2 centeredMatrix = TransformHelpers.GetCenteredTransformMatrix(srcBounds, destBounds, matrix);
+
+                // We pass a new rectangle here based on the dest bounds since we've offset the matrix
+                blend.Mutate(x => x.Transform(
+                    centeredMatrix,
+                    KnownResamplers.Bicubic,
+                    new Rectangle(0, 0, destBounds.Width, destBounds.Height)));
 
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
-                image.Mutate(x => x.DrawImage(blend, mode, .75F, new Size(blend.Width, blend.Height), position));
+                image.Mutate(x => x.DrawImage(blend, mode, .75F, position));
                 image.DebugSave(provider, new[] { "Transformed" });
             }
         }
@@ -78,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 backgroundPixel = background[0, 0];
                 Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
 
-                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Size(overlay.Width, overlay.Height), new Point(xy, xy)));
+                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Point(xy, xy)));
 
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[0, 0]);
@@ -100,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 backgroundPixel = background[xy - 1, xy - 1];
                 Rgba32 overlayPixel = overlay[0, 0];
 
-                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Size(overlay.Width, overlay.Height), new Point(xy, xy)));
+                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Point(xy, xy)));
 
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[xy, xy]);

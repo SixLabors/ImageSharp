@@ -188,7 +188,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </returns>
         public static bool operator ==(ExifValue left, ExifValue right)
         {
-            return ExifValue.Equals(left, right);
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -205,7 +210,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </returns>
         public static bool operator !=(ExifValue left, ExifValue right)
         {
-            return !ExifValue.Equals(left, right);
+            return !(left == right);
         }
 
         /// <inheritdoc />

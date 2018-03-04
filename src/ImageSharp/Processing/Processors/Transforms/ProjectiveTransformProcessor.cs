@@ -22,59 +22,35 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class ProjectiveTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        // TODO: We should use a Size instead! (See AffineTransformProcessor<T>)
-        private Rectangle targetRectangle;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="matrix">The transform matrix</param>
-        public ProjectiveTransformProcessor(Matrix4x4 matrix)
-           : this(matrix, KnownResamplers.Bicubic)
-        {
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="matrix">The transform matrix</param>
         /// <param name="sampler">The sampler to perform the transform operation.</param>
-        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler)
-           : this(matrix, sampler, Rectangle.Empty)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="matrix">The transform matrix</param>
-        /// <param name="sampler">The sampler to perform the transform operation.</param>
-        /// <param name="rectangle">The rectangle to constrain the transformed image to.</param>
-        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Rectangle rectangle)
+        /// <param name="targetDimensions">The target dimensions to constrain the transformed image to.</param>
+        public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Size targetDimensions)
             : base(sampler)
         {
-            // Transforms are inverted else the output is the opposite of the expected.
-            Matrix4x4.Invert(matrix, out matrix);
             this.TransformMatrix = matrix;
-            this.targetRectangle = rectangle;
+            this.TargetDimensions = targetDimensions;
         }
 
         /// <summary>
-        /// Gets the matrix used to supply the non-affine transform
+        /// Gets the matrix used to supply the projective transform
         /// </summary>
         public Matrix4x4 TransformMatrix { get; }
+
+        /// <summary>
+        /// Gets the target dimensions to constrain the transformed image to
+        /// </summary>
+        public Size TargetDimensions { get; }
 
         /// <inheritdoc/>
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            if (this.targetRectangle == Rectangle.Empty)
-            {
-                this.targetRectangle = this.GetTransformedBoundingRectangle(sourceRectangle, this.TransformMatrix);
-            }
-
             // We will always be creating the clone even for mutate because we may need to resize the canvas
             IEnumerable<ImageFrame<TPixel>> frames =
-                source.Frames.Select(x => new ImageFrame<TPixel>(this.targetRectangle.Width, this.targetRectangle.Height, x.MetaData.Clone()));
+                source.Frames.Select(x => new ImageFrame<TPixel>(source.GetMemoryManager(), this.TargetDimensions.Width, this.TargetDimensions.Height, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
@@ -83,12 +59,17 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
-            int height = this.targetRectangle.Height;
-            int width = this.targetRectangle.Width;
+            int height = this.TargetDimensions.Height;
+            int width = this.TargetDimensions.Width;
+
             Rectangle sourceBounds = source.Bounds();
+            var targetBounds = new Rectangle(0, 0, width, height);
 
             // Since could potentially be resizing the canvas we might need to re-calculate the matrix
-            Matrix4x4 matrix = this.GetProcessingMatrix(sourceBounds, this.targetRectangle);
+            Matrix4x4 matrix = this.GetProcessingMatrix(sourceBounds, targetBounds);
+
+            // Convert from screen to world space.
+            Matrix4x4.Invert(matrix, out matrix);
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -125,8 +106,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
             int yLength = (int)MathF.Ceiling((radius.Y * 2) + 2);
 
-            using (var yBuffer = new Buffer2D<float>(yLength, height))
-            using (var xBuffer = new Buffer2D<float>(xLength, height))
+            MemoryManager memoryManager = configuration.MemoryManager;
+
+            using (Buffer2D<float> yBuffer = memoryManager.Allocate2D<float>(yLength, height))
+            using (Buffer2D<float> xBuffer = memoryManager.Allocate2D<float>(xLength, height))
             {
                 Parallel.For(
                     0,
@@ -199,8 +182,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     var vector = source[i, j].ToVector4();
 
                                     // Values are first premultiplied to prevent darkening of edge pixels
-                                    Vector4 mupltiplied = vector.Premultiply();
-                                    sum += mupltiplied * xWeight * yWeight;
+                                    Vector4 multiplied = vector.Premultiply();
+                                    sum += multiplied * xWeight * yWeight;
                                 }
                             }
 
@@ -224,17 +207,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected virtual Matrix4x4 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
         {
             return this.TransformMatrix;
-        }
-
-        /// <summary>
-        /// Gets the bounding <see cref="Rectangle"/> relative to the source for the given transformation matrix.
-        /// </summary>
-        /// <param name="sourceRectangle">The source rectangle.</param>
-        /// <param name="matrix">The transformation matrix.</param>
-        /// <returns>The <see cref="Rectangle"/></returns>
-        protected virtual Rectangle GetTransformedBoundingRectangle(Rectangle sourceRectangle, Matrix4x4 matrix)
-        {
-            return sourceRectangle;
         }
     }
 }

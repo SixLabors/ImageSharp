@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         public static IImageFormat DetectFormat(string filePath)
         {
-            return DetectFormat(null, filePath);
+            return DetectFormat(Configuration.Default, filePath);
         }
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(string path)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TPixel>(null, path);
+            return Load<TPixel>(Configuration.Default, path);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(string path, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TPixel>(null, path, out format);
+            return Load<TPixel>(Configuration.Default, path, out format);
         }
 
         /// <summary>
@@ -150,7 +150,6 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, string path)
             where TPixel : struct, IPixel<TPixel>
         {
-            config = config ?? Configuration.Default;
             using (Stream stream = config.FileSystem.OpenRead(path))
             {
                 return Load<TPixel>(config, stream);
@@ -171,7 +170,6 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, string path, out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            config = config ?? Configuration.Default;
             using (Stream stream = config.FileSystem.OpenRead(path))
             {
                 return Load<TPixel>(config, stream, out format);
@@ -191,7 +189,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(string path, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            return Load<TPixel>(null, path, decoder);
+            return Load<TPixel>(Configuration.Default, path, decoder);
         }
 
         /// <summary>
@@ -208,7 +206,6 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, string path, IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            config = config ?? Configuration.Default;
             using (Stream stream = config.FileSystem.OpenRead(path))
             {
                 return Load<TPixel>(config, stream, decoder);

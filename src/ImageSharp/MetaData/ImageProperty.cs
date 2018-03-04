@@ -71,7 +71,12 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public static bool operator ==(ImageProperty left, ImageProperty right)
         {
-            return Equals(left, right);
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -90,7 +95,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public static bool operator !=(ImageProperty left, ImageProperty right)
         {
-            return !Equals(left, right);
+            return !(left == right);
         }
 
         /// <summary>

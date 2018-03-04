@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
             Orientation orientation = GetExifOrientation(source);
-
+            Size size = sourceRectangle.Size;
             switch (orientation)
             {
                 case Orientation.TopRight:
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     break;
 
                 case Orientation.BottomRight:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate180).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate180, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.BottomLeft:
@@ -35,21 +35,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     break;
 
                 case Orientation.LeftTop:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate90).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
                     new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.RightTop:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate90).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.RightBottom:
                     new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate270).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.LeftBottom:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate270).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.Unknown:

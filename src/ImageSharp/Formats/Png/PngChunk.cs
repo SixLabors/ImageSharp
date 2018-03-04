@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
@@ -25,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets the data bytes appropriate to the chunk type, if any.
         /// This field can be of zero length.
         /// </summary>
-        public byte[] Data { get; set; }
+        public IManagedByteBuffer Data { get; set; }
 
         /// <summary>
         /// Gets or sets a CRC (Cyclic Redundancy Check) calculated on the preceding bytes in the chunk,

@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The global color table.
         /// </summary>
-        private Buffer<byte> globalColorTable;
+        private IManagedByteBuffer globalColorTable;
 
         /// <summary>
         /// The global color table length
@@ -91,6 +91,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the decoding mode for multi-frame images
         /// </summary>
         public FrameDecodingMode DecodingMode { get; }
+
+        private MemoryManager MemoryManager => this.configuration.MemoryManager;
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -333,17 +335,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     continue;
                 }
 
-                byte[] commentsBuffer = ArrayPool<byte>.Shared.Rent(length);
-
-                try
+                using (IManagedByteBuffer commentsBuffer = this.MemoryManager.AllocateManagedByteBuffer(length))
                 {
-                    this.currentStream.Read(commentsBuffer, 0, length);
-                    string comments = this.TextEncoding.GetString(commentsBuffer, 0, length);
+                    this.currentStream.Read(commentsBuffer.Array, 0, length);
+                    string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
                     this.metaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(commentsBuffer);
                 }
             }
         }
@@ -359,22 +355,23 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             GifImageDescriptor imageDescriptor = this.ReadImageDescriptor();
 
-            Buffer<byte> localColorTable = null;
-            Buffer<byte> indices = null;
+            IManagedByteBuffer localColorTable = null;
+            IManagedByteBuffer indices = null;
             try
             {
                 // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
                 if (imageDescriptor.LocalColorTableFlag)
                 {
                     int length = imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = Buffer<byte>.CreateClean(length);
+                    localColorTable = this.configuration.MemoryManager.AllocateManagedByteBuffer(length, true);
                     this.currentStream.Read(localColorTable.Array, 0, length);
                 }
 
-                indices = Buffer<byte>.CreateClean(imageDescriptor.Width * imageDescriptor.Height);
+                indices = this.configuration.MemoryManager.AllocateManagedByteBuffer(imageDescriptor.Width * imageDescriptor.Height, true);
 
-                this.ReadFrameIndices(imageDescriptor, indices);
-                this.ReadFrameColors(ref image, ref previousFrame, indices, localColorTable ?? this.globalColorTable, imageDescriptor);
+                this.ReadFrameIndices(imageDescriptor, indices.Span);
+                IManagedByteBuffer colorTable = localColorTable ?? this.globalColorTable;
+                this.ReadFrameColors(ref image, ref previousFrame, indices.Span, colorTable.Span, imageDescriptor);
 
                 // Skip any remaining blocks
                 this.Skip(0);
@@ -395,7 +392,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void ReadFrameIndices(GifImageDescriptor imageDescriptor, Span<byte> indices)
         {
             int dataSize = this.currentStream.ReadByte();
-            using (var lzwDecoder = new LzwDecoder(this.currentStream))
+            using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryManager, this.currentStream))
             {
                 lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
             }
@@ -445,7 +442,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 imageFrame = currentFrame;
 
-                this.RestoreToBackground(imageFrame, image.Width, image.Height);
+                this.RestoreToBackground(imageFrame);
             }
 
             int i = 0;
@@ -535,9 +532,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="frame">The frame.</param>
-        /// <param name="imageWidth">Width of the image.</param>
-        /// <param name="imageHeight">Height of the image.</param>
-        private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame, int imageWidth, int imageHeight)
+        private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.restoreArea == null)
@@ -545,28 +540,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            // Optimization for when the size of the frame is the same as the image size.
-            if (this.restoreArea.Value.Width == imageWidth &&
-                this.restoreArea.Value.Height == imageHeight)
-            {
-                using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
-                {
-                    pixelAccessor.Reset();
-                }
-            }
-            else
-            {
-                using (var emptyRow = new PixelArea<TPixel>(this.restoreArea.Value.Width, ComponentOrder.Xyzw))
-                {
-                    using (PixelAccessor<TPixel> pixelAccessor = frame.Lock())
-                    {
-                        for (int y = this.restoreArea.Value.Top; y < this.restoreArea.Value.Top + this.restoreArea.Value.Height; y++)
-                        {
-                            pixelAccessor.CopyFrom(emptyRow, y, this.restoreArea.Value.Left);
-                        }
-                    }
-                }
-            }
+            BufferArea<TPixel> pixelArea = frame.PixelBuffer.GetArea(this.restoreArea.Value);
+            pixelArea.Clear();
 
             this.restoreArea = null;
         }
@@ -606,7 +581,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {
                 this.globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
-                this.globalColorTable = Buffer<byte>.CreateClean(this.globalColorTableLength);
+
+                this.globalColorTable = this.MemoryManager.AllocateManagedByteBuffer(this.globalColorTableLength, true);
 
                 // Read the global color table from the stream
                 stream.Read(this.globalColorTable.Array, 0, this.globalColorTableLength);

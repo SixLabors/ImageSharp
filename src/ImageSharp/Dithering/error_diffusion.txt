@@ -1,0 +1,58 @@
+List of error diffusion schemes.
+
+Quantization error of *current* pixel is added to the pixels
+on the right and below according to the formulas below.
+This works nicely for most static pictures, but causes
+an avalanche of jittering artifacts if used in animation.
+
+Floyd-Steinberg:
+
+	      *  7
+	   3  5  1	/ 16
+	 
+Jarvis-Judice-Ninke:
+
+	      *  7  5
+	3  5  7  5  3
+	1  3  5  3  1   / 48
+
+Stucki:
+
+	      *  8  4
+	2  4  8  4  2
+	1  2  4  2  1   / 42
+	
+Burkes:
+	
+	      *  8  4
+	2  4  8  4  2	/ 32
+
+
+Sierra3:
+
+	      *  5  3
+	2  4  5  4  2
+	   2  3  2	/ 32
+
+Sierra2:
+
+	      *  4  3
+	1  2  3  2  1	/ 16
+
+Sierra-2-4A:
+
+	      *  2
+	   1  1		/ 4
+
+Stevenson-Arce:
+	
+	            *   .  32
+	12  .   26  .  30   . 16
+        .   12  .  26  .   12  .
+	5   .   12  .  12   .  5    / 200
+
+Atkinson:
+
+	      *   1   1    / 8
+	  1   1   1
+	      1

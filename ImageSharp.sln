@@ -42,12 +42,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj", "{2BF743D8-2A06-412D-96D7-F448F00C5EA5}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{7CC6D57E-B916-43B8-B315-A0BB92F260A2}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvatarWithRoundedCorner", "samples\AvatarWithRoundedCorner\AvatarWithRoundedCorner.csproj", "{844FC582-4E78-4371-847D-EFD4D1103578}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChangeDefaultEncoderOptions", "samples\ChangeDefaultEncoderOptions\ChangeDefaultEncoderOptions.csproj", "{07EE511D-4BAB-4323-BAFC-3AF2BF9366F0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Sandbox46", "tests\ImageSharp.Sandbox46\ImageSharp.Sandbox46.csproj", "{561B880A-D9EE-44EF-90F5-817C54A9D9AB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageSharp.Formats.Tiff.Tests", "tests\ImageSharp.Formats.Tiff.Tests\ImageSharp.Formats.Tiff.Tests.csproj", "{F74D25AB-1E5C-4272-9FD3-6DBBD3E207AC}"

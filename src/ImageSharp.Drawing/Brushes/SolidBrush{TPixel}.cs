@@ -61,17 +61,14 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             public SolidBrushApplicator(ImageFrame<TPixel> source, TPixel color, GraphicsOptions options)
                 : base(source, options)
             {
-                this.Colors = new Buffer<TPixel>(source.Width);
-                for (int i = 0; i < this.Colors.Length; i++)
-                {
-                    this.Colors[i] = color;
-                }
+                this.Colors = source.MemoryManager.Allocate<TPixel>(source.Width);
+                this.Colors.Span.Fill(color);
             }
 
             /// <summary>
             /// Gets the colors.
             /// </summary>
-            protected Buffer<TPixel> Colors { get; }
+            protected IBuffer<TPixel> Colors { get; }
 
             /// <summary>
             /// Gets the color for a single pixel.
@@ -81,7 +78,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            internal override TPixel this[int x, int y] => this.Colors[x];
+            internal override TPixel this[int x, int y] => this.Colors.Span[x];
 
             /// <inheritdoc />
             public override void Dispose()
@@ -92,23 +89,20 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                try
-                {
-                    Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
+                Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                    using (var amountBuffer = new Buffer<float>(scanline.Length))
+                MemoryManager memoryManager = this.Target.MemoryManager;
+
+                using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
+                {
+                    Span<float> amountSpan = amountBuffer.Span;
+
+                    for (int i = 0; i < scanline.Length; i++)
                     {
-                        for (int i = 0; i < scanline.Length; i++)
-                        {
-                            amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
-                        }
-
-                        this.Blender.Blend(destinationRow, destinationRow, this.Colors, amountBuffer);
+                        amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                     }
-                }
-                catch (Exception)
-                {
-                    throw;
+
+                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
                 }
             }
         }

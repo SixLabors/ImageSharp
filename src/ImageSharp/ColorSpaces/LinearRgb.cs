@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an linear Rgb color with specified <see cref="IRgbWorkingSpace"/> working space
     /// </summary>
-    internal struct LinearRgb : IColorVector, IEquatable<LinearRgb>, IAlmostEquatable<LinearRgb, float>
+    internal readonly struct LinearRgb : IColorVector, IEquatable<LinearRgb>, IAlmostEquatable<LinearRgb, float>
     {
         /// <summary>
         /// Represents a <see cref="LinearRgb"/> that has R, G, and B values set to zero.

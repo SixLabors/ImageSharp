@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// Provides 8-bit lookup tables for converting from YCbCr to Rgb colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
     /// </summary>
-    internal struct PdfJsYCbCrToRgbTables
+    internal readonly struct PdfJsYCbCrToRgbTables
     {
         /// <summary>
         /// The red red-chrominance table

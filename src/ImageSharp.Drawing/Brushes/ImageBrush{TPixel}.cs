@@ -122,24 +122,27 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             internal override void Apply(Span<float> scanline, int x, int y)
             {
                 // Create a span for colors
-                using (var amountBuffer = new Buffer<float>(scanline.Length))
-                using (var overlay = new Buffer<TPixel>(scanline.Length))
+                using (IBuffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
+                using (IBuffer<TPixel> overlay = this.Target.MemoryManager.Allocate<TPixel>(scanline.Length))
                 {
+                    Span<float> amountSpan = amountBuffer.Span;
+                    Span<TPixel> overlaySpan = overlay.Span;
+
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;
                     Span<TPixel> sourceRow = this.source.GetPixelRowSpan(sourceY);
 
                     for (int i = 0; i < scanline.Length; i++)
                     {
-                        amountBuffer[i] = scanline[i] * this.Options.BlendPercentage;
+                        amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
 
                         int sourceX = (i + offsetX) % this.xLength;
                         TPixel pixel = sourceRow[sourceX];
-                        overlay[i] = pixel;
+                        overlaySpan[i] = pixel;
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                    this.Blender.Blend(destinationRow, destinationRow, overlay, amountBuffer);
+                    this.Blender.Blend(this.source.MemoryManager, destinationRow, destinationRow, overlaySpan, amountSpan);
                 }
             }
         }

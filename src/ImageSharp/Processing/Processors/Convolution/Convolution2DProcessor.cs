@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (var targetPixels = new PixelAccessor<TPixel>(source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 source.CopyTo(targetPixels);
 
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                                     int offsetX = x + fxr;
 
                                     offsetX = offsetX.Clamp(0, maxX);
-                                    var currentColor = sourceOffsetRow[offsetX].ToVector4();
+                                    Vector4 currentColor = sourceOffsetRow[offsetX].ToVector4().Premultiply();
 
                                     if (fy < kernelXHeight)
                                     {
@@ -118,11 +118,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             float blue = MathF.Sqrt((bX * bX) + (bY * bY));
 
                             ref TPixel pixel = ref targetRow[x];
-                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
+                            pixel.PackFromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W).UnPremultiply());
                         }
                     });
 
-                source.SwapPixelsBuffers(targetPixels);
+                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
             }
         }
     }

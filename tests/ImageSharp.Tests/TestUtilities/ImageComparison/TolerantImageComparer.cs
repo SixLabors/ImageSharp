@@ -12,10 +12,16 @@
 
     public class TolerantImageComparer : ImageComparer
     {
+        // 1% of all pixels in a 100*100 pixel area are allowed to have a difference of 1 unit
         public const float DefaultImageThreshold = 1.0f / (100 * 100 * 255);
 
+        /// <summary>
+        /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
+        /// </summary>
         public TolerantImageComparer(float imageThreshold, int perPixelManhattanThreshold = 0)
         {
+            Guard.MustBeGreaterThanOrEqualTo(imageThreshold, 0, nameof(imageThreshold));
+
             this.ImageThreshold = imageThreshold;
             this.PerPixelManhattanThreshold = perPixelManhattanThreshold;
         }

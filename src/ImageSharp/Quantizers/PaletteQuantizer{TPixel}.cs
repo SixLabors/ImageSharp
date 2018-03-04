@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Quantizers
 {
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
+    /// If no palette is given this will default to the web safe colors defined in the CSS Color Module Level 4.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -31,27 +32,20 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> class.
         /// </summary>
-        /// <param name="palette">
-        /// The color palette. If none is given this will default to the web safe colors defined
-        /// in the CSS Color Module Level 4.
-        /// </param>
+        public PaletteQuantizer()
+            : this(NamedColors<TPixel>.WebSafePalette)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> class.
+        /// </summary>
+        /// <param name="palette">The palette to select substitute colors from.</param>
         public PaletteQuantizer(TPixel[] palette = null)
             : base(true)
         {
-            if (palette == null)
-            {
-                Rgba32[] constants = ColorConstants.WebSafeColors;
-                TPixel[] safe = new TPixel[constants.Length + 1];
-
-                Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
-
-                PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, safe, constants.Length);
-                this.colors = safe;
-            }
-            else
-            {
-                this.colors = palette;
-            }
+            Guard.NotNull(palette, nameof(palette));
+            this.colors = palette;
         }
 
         /// <inheritdoc/>
@@ -102,7 +96,7 @@ namespace SixLabors.ImageSharp.Quantizers
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height, false);
+                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;

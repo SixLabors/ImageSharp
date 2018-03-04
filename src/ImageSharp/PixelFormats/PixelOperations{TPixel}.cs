@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -30,8 +31,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
 
-            ref Vector4 sourceRef = ref sourceVectors.DangerousGetPinnableReference();
-            ref TPixel destRef = ref destColors.DangerousGetPinnableReference();
+            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destColors);
 
             for (int i = 0; i < count; i++)
             {
@@ -51,8 +52,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
-            ref TPixel sourceRef = ref sourceColors.DangerousGetPinnableReference();
-            ref Vector4 destRef = ref destVectors.DangerousGetPinnableReference();
+            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
+            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
 
             for (int i = 0; i < count; i++)
             {

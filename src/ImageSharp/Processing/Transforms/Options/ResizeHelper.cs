@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
@@ -17,52 +16,39 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Calculates the target location and bounds to perform the resize operation against.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
+        /// <param name="sourceSize">The source image size.</param>
         /// <param name="options">The resize options.</param>
+        /// <param name="width">The target width</param>
+        /// <param name="height">The target height</param>
         /// <returns>
-        /// The <see cref="Rectangle"/>.
+        /// The <see cref="ValueTuple{Size,Rectangle}"/>.
         /// </returns>
-        public static Rectangle CalculateTargetLocationAndBounds<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
-            where TPixel : struct, IPixel<TPixel>
+        public static (Size, Rectangle) CalculateTargetLocationAndBounds(Size sourceSize, ResizeOptions options, int width, int height)
         {
             switch (options.Mode)
             {
                 case ResizeMode.Crop:
-                    return CalculateCropRectangle(source, options);
+                    return CalculateCropRectangle(sourceSize, options, width, height);
                 case ResizeMode.Pad:
-                    return CalculatePadRectangle(source, options);
+                    return CalculatePadRectangle(sourceSize, options, width, height);
                 case ResizeMode.BoxPad:
-                    return CalculateBoxPadRectangle(source, options);
+                    return CalculateBoxPadRectangle(sourceSize, options, width, height);
                 case ResizeMode.Max:
-                    return CalculateMaxRectangle(source, options);
+                    return CalculateMaxRectangle(sourceSize, options, width, height);
                 case ResizeMode.Min:
-                    return CalculateMinRectangle(source, options);
+                    return CalculateMinRectangle(sourceSize, options, width, height);
 
                 // Last case ResizeMode.Stretch:
                 default:
-                    return new Rectangle(0, 0, options.Size.Width, options.Size.Height);
+                    return (new Size(width, height), new Rectangle(0, 0, width, height));
             }
         }
 
-        /// <summary>
-        /// Calculates the target rectangle for crop mode.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private static Rectangle CalculateCropRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
-            where TPixel : struct, IPixel<TPixel>
+        private static (Size, Rectangle) CalculateCropRectangle(Size source, ResizeOptions options, int width, int height)
         {
-            int width = options.Size.Width;
-            int height = options.Size.Height;
-
             if (width <= 0 || height <= 0)
             {
-                return new Rectangle(0, 0, source.Width, source.Height);
+                return (new Size(source.Width, source.Height), new Rectangle(0, 0, source.Width, source.Height));
             }
 
             float ratio;
@@ -161,27 +147,14 @@ namespace SixLabors.ImageSharp.Processing
                 destinationWidth = (int)MathF.Ceiling(sourceWidth * percentHeight);
             }
 
-            return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+            return (new Size(width, height), new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight));
         }
 
-        /// <summary>
-        /// Calculates the target rectangle for pad mode.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private static Rectangle CalculatePadRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
-            where TPixel : struct, IPixel<TPixel>
+        private static (Size, Rectangle) CalculatePadRectangle(Size source, ResizeOptions options, int width, int height)
         {
-            int width = options.Size.Width;
-            int height = options.Size.Height;
-
             if (width <= 0 || height <= 0)
             {
-                return new Rectangle(0, 0, source.Width, source.Height);
+                return (new Size(source.Width, source.Height), new Rectangle(0, 0, source.Width, source.Height));
             }
 
             float ratio;
@@ -242,27 +215,14 @@ namespace SixLabors.ImageSharp.Processing
                 }
             }
 
-            return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+            return (new Size(width, height), new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight));
         }
 
-        /// <summary>
-        /// Calculates the target rectangle for box pad mode.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private static Rectangle CalculateBoxPadRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
-            where TPixel : struct, IPixel<TPixel>
+        private static (Size, Rectangle) CalculateBoxPadRectangle(Size source, ResizeOptions options, int width, int height)
         {
-            int width = options.Size.Width;
-            int height = options.Size.Height;
-
             if (width <= 0 || height <= 0)
             {
-                return new Rectangle(0, 0, source.Width, source.Height);
+                return (new Size(source.Width, source.Height), new Rectangle(0, 0, source.Width, source.Height));
             }
 
             int sourceWidth = source.Width;
@@ -325,27 +285,15 @@ namespace SixLabors.ImageSharp.Processing
                         break;
                 }
 
-                return new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight);
+                return (new Size(width, height), new Rectangle(destinationX, destinationY, destinationWidth, destinationHeight));
             }
 
             // Switch to pad mode to downscale and calculate from there.
-            return CalculatePadRectangle(source, options);
+            return CalculatePadRectangle(source, options, width, height);
         }
 
-        /// <summary>
-        /// Calculates the target rectangle for max mode.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private static Rectangle CalculateMaxRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
-            where TPixel : struct, IPixel<TPixel>
+        private static (Size, Rectangle) CalculateMaxRectangle(Size source, ResizeOptions options, int width, int height)
         {
-            int width = options.Size.Width;
-            int height = options.Size.Height;
             int destinationWidth = width;
             int destinationHeight = height;
 
@@ -369,24 +317,11 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             // Replace the size to match the rectangle.
-            options.Size = new Size(width, height);
-            return new Rectangle(0, 0, destinationWidth, destinationHeight);
+            return (new Size(width, height), new Rectangle(0, 0, destinationWidth, destinationHeight));
         }
 
-        /// <summary>
-        /// Calculates the target rectangle for min mode.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="options">The resize options.</param>
-        /// <returns>
-        /// The <see cref="Rectangle"/>.
-        /// </returns>
-        private static Rectangle CalculateMinRectangle<TPixel>(ImageFrame<TPixel> source, ResizeOptions options)
-            where TPixel : struct, IPixel<TPixel>
+        private static (Size, Rectangle) CalculateMinRectangle(Size source, ResizeOptions options, int width, int height)
         {
-            int width = options.Size.Width;
-            int height = options.Size.Height;
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
             int destinationWidth;
@@ -395,8 +330,7 @@ namespace SixLabors.ImageSharp.Processing
             // Don't upscale
             if (width > sourceWidth || height > sourceHeight)
             {
-                options.Size = new Size(sourceWidth, sourceHeight);
-                return new Rectangle(0, 0, sourceWidth, sourceHeight);
+                return (new Size(sourceWidth, sourceWidth), new Rectangle(0, 0, sourceWidth, sourceHeight));
             }
 
             // Fractional variants for preserving aspect ratio.
@@ -438,8 +372,7 @@ namespace SixLabors.ImageSharp.Processing
             }
 
             // Replace the size to match the rectangle.
-            options.Size = new Size(width, height);
-            return new Rectangle(0, 0, destinationWidth, destinationHeight);
+            return (new Size(width, height), new Rectangle(0, 0, destinationWidth, destinationHeight));
         }
     }
 }

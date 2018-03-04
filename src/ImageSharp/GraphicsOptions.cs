@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp
         // some API thought post V1.
 
         /// <summary>
-        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// Gets or sets a value indicating the blending mode to apply to the drawing operation
         /// </summary>
         public PixelBlenderMode BlenderMode
         {

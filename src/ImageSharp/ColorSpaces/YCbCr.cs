@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
     /// </summary>
-    internal struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
+    internal readonly struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
     {
         /// <summary>
         /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.

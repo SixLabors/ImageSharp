@@ -35,6 +35,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string SnakeGame = "Png/SnakeGame.png";
             public const string Icon = "Png/icon.png";
+            public const string Kaboom = "Png/kaboom.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -84,6 +85,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static class Bad
                 {
                     public const string BadEOF = "Jpg/progressive/BadEofProgressive.jpg";
+                    public const string ExifUndefType = "Jpg/progressive/ExifUndefType.jpg";
                 }
 
                 public static readonly string[] All = { Fb, Progress, Festzug };
@@ -94,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static class Bad
                 {
                     public const string BadEOF = "Jpg/baseline/badeof.jpg";
-                    public const string ExifUndefType = "Jpg/baseline/ExifUndefType.jpg";
+                    public const string BadRST = "Jpg/baseline/badrst.jpg";
                 }
 
                 public const string Cmyk = "Jpg/baseline/cmyk.jpg";
@@ -112,6 +114,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg444 = "Jpg/baseline/jpeg444.jpg";
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
+                public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
 
                 public static readonly string[] All =
                     {

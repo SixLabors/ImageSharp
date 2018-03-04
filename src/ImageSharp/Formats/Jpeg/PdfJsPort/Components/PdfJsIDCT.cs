@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {

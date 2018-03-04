@@ -41,8 +41,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Baseline.Bad.ExifUndefType,
                 TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
+                TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
+                TestImages.Jpeg.Baseline.Bad.BadRST
             };
 
         public static string[] ProgressiveTestJpegs =
@@ -51,16 +52,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
                 TestImages.Jpeg.Issues.BadCoeffsProgressive178,
                 TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
-                TestImages.Jpeg.Issues.BadZigZagProgressive385
+                TestImages.Jpeg.Issues.BadZigZagProgressive385,
+                TestImages.Jpeg.Progressive.Bad.ExifUndefType
             };
 
         private static readonly Dictionary<string, float> CustomToleranceValues = new Dictionary<string, float>
         {
             // Baseline:
             [TestImages.Jpeg.Baseline.Calliphora] = 0.00002f / 100,
-            [TestImages.Jpeg.Baseline.Bad.ExifUndefType] = 0.011f / 100,
             [TestImages.Jpeg.Baseline.Bad.BadEOF] = 0.38f / 100,
             [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
+            [TestImages.Jpeg.Baseline.Bad.BadRST] = 0.0589f / 100,
 
             // Progressive:
             [TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159] = 0.34f / 100,
@@ -70,6 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [TestImages.Jpeg.Progressive.Fb] = 0.16f / 100,
             [TestImages.Jpeg.Progressive.Progress] = 0.31f / 100,
             [TestImages.Jpeg.Issues.BadZigZagProgressive385] = 0.23f / 100,
+            [TestImages.Jpeg.Progressive.Bad.ExifUndefType] = 0.011f / 100,
         };
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
@@ -118,7 +121,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
-
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes, false)]

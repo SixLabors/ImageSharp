@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -12,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// Bytes is a byte buffer, similar to a stream, except that it
     /// has to be able to unread more than 1 byte, due to byte stuffing.
     /// Byte stuffing is specified in section F.1.2.3.
+    /// TODO: Optimize buffer management inside this class!
     /// </summary>
     internal struct Bytes : IDisposable
     {
@@ -48,20 +48,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public int UnreadableBytes;
 
-        private static readonly ArrayPool<byte> BytePool = ArrayPool<byte>.Create(BufferSize, 50);
-
-        private static readonly ArrayPool<int> IntPool = ArrayPool<int>.Create(BufferSize, 50);
-
         /// <summary>
         /// Creates a new instance of the <see cref="Bytes"/>, and initializes it's buffer.
         /// </summary>
         /// <returns>The bytes created</returns>
         public static Bytes Create()
         {
+            // DO NOT bother with buffers and array pooling here!
+            // It only makes things worse!
             return new Bytes
             {
-                Buffer = BytePool.Rent(BufferSize),
-                BufferAsInt = IntPool.Rent(BufferSize)
+                Buffer = new byte[BufferSize],
+                BufferAsInt = new int[BufferSize]
             };
         }
 
@@ -70,12 +68,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public void Dispose()
         {
-            if (this.Buffer != null)
-            {
-                BytePool.Return(this.Buffer);
-                IntPool.Return(this.BufferAsInt);
-            }
-
             this.Buffer = null;
             this.BufferAsInt = null;
         }

@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoder options = new PngEncoder { Quantizer = new OctreeQuantizer<Rgba32> { Dither = false }, PaletteSize = 256 };
+                PngEncoder options = new PngEncoder() { Quantizer = new OctreeQuantizer<Rgba32> { Dither = false }, PaletteSize = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoder options = new PngEncoder { Quantizer = new PaletteQuantizer<Rgba32>(), PaletteSize = 256 };
+                PngEncoder options = new PngEncoder() { Quantizer = new PaletteQuantizer<Rgba32>(), PaletteSize = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                PngEncoder options = new PngEncoder { Quantizer = new PaletteQuantizer<Rgba32> { Dither = false }, PaletteSize = 256 };
+                PngEncoder options = new PngEncoder() { Quantizer = new PaletteQuantizer<Rgba32> { Dither = false }, PaletteSize = 256 };
 
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }

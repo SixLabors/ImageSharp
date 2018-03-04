@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 ArgumentException e = Assert.Throws<ArgumentException>(() => { encoder.WriteIfd(writer, entries); });
 
-                Assert.Equal("There must be at least one entry per IFD.\r\nParameter name: entries", e.Message);
+                Assert.Equal($"There must be at least one entry per IFD.{Environment.NewLine}Parameter name: entries", e.Message);
                 Assert.Equal("entries", e.ParamName);
             }
         }

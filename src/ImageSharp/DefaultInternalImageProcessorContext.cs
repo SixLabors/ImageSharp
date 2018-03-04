@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
@@ -35,6 +37,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
+        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
+
+        /// <inheritdoc/>
         public Image<TPixel> Apply()
         {
             if (!this.mutate && this.destination == null)
@@ -47,13 +52,16 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
+        public Size GetCurrentSize() => this.GetCurrentBounds().Size;
+
+        /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
             if (!this.mutate && this.destination == null)
             {
                 // This will only work if the first processor applied is the cloning one thus
-                // realistically for this optermissation to work the resize must the first processor
-                // applied any only up processors will take the douple data path.
+                // realistically for this optimization to work the resize must the first processor
+                // applied any only up processors will take the double data path.
                 if (processor is ICloningImageProcessor<TPixel> cloningImageProcessor)
                 {
                     this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
@@ -70,7 +78,12 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor)
         {
-            return this.ApplyProcessor(processor, this.source.Bounds());
+            return this.ApplyProcessor(processor, this.GetCurrentBounds());
+        }
+
+        private Rectangle GetCurrentBounds()
+        {
+            return this.destination?.Bounds() ?? this.source.Bounds();
         }
     }
 }

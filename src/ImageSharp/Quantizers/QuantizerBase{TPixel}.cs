@@ -40,10 +40,10 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         }
 
         /// <inheritdoc />
-        public bool Dither { get; set; } = false;
+        public bool Dither { get; set; } = true;
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; set; } = new FloydSteinbergDiffuser();
+        public IErrorDiffuser DitherType { get; set; } = KnownDiffusers.FloydSteinberg;
 
         /// <inheritdoc/>
         public virtual QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
@@ -115,6 +115,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
 
         /// <summary>
         /// Override this to process the pixel in the first pass of the algorithm
+        /// TODO: We really should do this on a per-row basis! Shouldn't we internalize this method?
         /// </summary>
         /// <param name="pixel">The pixel to quantize</param>
         /// <remarks>

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
     /// <summary>
     ///     The Huffman encoding specifications.
     /// </summary>
-    internal struct HuffmanSpec
+    internal readonly struct HuffmanSpec
     {
 #pragma warning disable SA1118 // ParameterMustNotSpanMultipleLines
 

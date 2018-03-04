@@ -34,6 +34,8 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         public string TestGroupName { get; set; } = string.Empty;
 
+        public string OutputSubfolderName { get; set; } = string.Empty;
+
         /// <summary>
         /// The name of the test case (by default)
         /// </summary>
@@ -155,51 +157,93 @@ namespace SixLabors.ImageSharp.Tests
             return path;
         }
 
+        public IEnumerable<string> GetTestOutputFileNamesMultiFrame(
+            int frameCount,
+            string extension = null,
+            object testOutputDetails = null,
+            bool appendPixelTypeToFileName = true)
+        {
+            string baseDir = this.GetTestOutputFileName("", testOutputDetails, appendPixelTypeToFileName);
+
+            if (!Directory.Exists(baseDir))
+            {
+                Directory.CreateDirectory(baseDir);
+            }
+            
+            for (int i = 0; i < frameCount; i++)
+            {
+                string filePath = $"{baseDir}/{i:D2}.{extension}";
+                yield return filePath;
+            }
+        }
+
+        public string[] SaveTestOutputFileMultiFrame<TPixel>(
+            Image<TPixel> image,
+            string extension = "png",
+            IImageEncoder encoder = null,
+            object testOutputDetails = null,
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            encoder = encoder ?? TestEnvironment.GetReferenceEncoder($"foo.{extension}");
+
+            string[] files = this.GetTestOutputFileNamesMultiFrame(
+                image.Frames.Count,
+                extension,
+                testOutputDetails,
+                appendPixelTypeToFileName).ToArray();
+
+            for (int i = 0; i < image.Frames.Count; i++)
+            {
+                using (Image<TPixel> frameImage = image.Frames.CloneFrame(i))
+                {
+                    string filePath = files[i];
+                    using (FileStream stream = File.OpenWrite(filePath))
+                    {
+                        frameImage.Save(stream, encoder);
+                    }
+                }
+            }
+
+            return files;
+        }
+
         internal string GetReferenceOutputFileName(
             string extension,
-            object settings,
+            object testOutputDetails,
             bool appendPixelTypeToFileName)
         {
             return TestEnvironment.GetReferenceOutputFileName(
-                this.GetTestOutputFileName(extension, settings, appendPixelTypeToFileName)
+                this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName)
                 );
         }
 
-        internal void Init(string typeName, string methodName)
+        public string[] GetReferenceOutputFileNamesMultiFrame(
+            int frameCount,
+            string extension,
+            object testOutputDetails,
+            bool appendPixelTypeToFileName = true)
+        {
+            return this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails)
+                .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
+        }
+
+        internal void Init(string typeName, string methodName, string outputSubfolderName)
         {
             this.TestGroupName = typeName;
             this.TestName = methodName;
+            this.OutputSubfolderName = outputSubfolderName;
         }
-
-        internal void Init(MethodInfo method)
-        {
-            this.Init(method.DeclaringType.Name, method.Name);
-        }
-
-        //private static IImageEncoder GetEncoderByExtension(string extension, bool grayscale)
-        //{
-        //    extension = extension?.TrimStart('.');
-        //    var format = Configuration.Default.FindFormatByFileExtension(extension);
-        //    IImageEncoder encoder = Configuration.Default.FindEncoder(format);
-        //    PngEncoder pngEncoder = encoder as PngEncoder;
-        //    if (pngEncoder != null)
-        //    {
-        //        pngEncoder = new PngEncoder();
-        //        encoder = pngEncoder;
-        //        pngEncoder.CompressionLevel = 9;
-
-        //        if (grayscale)
-        //        {
-        //            pngEncoder.PngColorType = PngColorType.Grayscale;
-        //        }
-        //    }
-
-        //    return encoder;
-        //}
-
+        
         internal string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
+
+            if (!string.IsNullOrEmpty(this.OutputSubfolderName))
+            {
+                testGroupName = Path.Combine(this.OutputSubfolderName, testGroupName);
+            }
+
             return TestEnvironment.CreateOutputDirectory(testGroupName);
         }
 

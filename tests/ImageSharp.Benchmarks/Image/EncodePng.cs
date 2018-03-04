@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
                 new OctreeQuantizer<Rgba32>()
                 : new PaletteQuantizer<Rgba32>();
 
-                var options = new PngEncoder { Quantizer = quantizer };
+                var options = new PngEncoder() { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

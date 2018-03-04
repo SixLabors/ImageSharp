@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Quantizers;
 
@@ -18,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <summary>
-        /// Gets or sets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
+        /// Gets or sets the size of the color palette to use. Set to zero to leave png encoding to use pixel data.
         /// </summary>
         public int PaletteSize { get; set; } = 0;
 
@@ -66,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryManager(), this))
             {
                 encoder.Encode(image, stream);
             }

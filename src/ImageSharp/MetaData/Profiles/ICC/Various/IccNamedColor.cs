@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// A specific color with a name
     /// </summary>
-    internal struct IccNamedColor : IEquatable<IccNamedColor>
+    internal readonly struct IccNamedColor : IEquatable<IccNamedColor>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccNamedColor"/> struct.

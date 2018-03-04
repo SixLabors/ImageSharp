@@ -7,9 +7,11 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -20,62 +22,84 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// The image pixels. Not private as Buffer2D requires an array in its constructor.
-        /// </summary>
-        private Buffer2D<TPixel> pixelBuffer;
-
         private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        internal ImageFrame(int width, int height)
-            : this(width, height, new ImageFrameMetaData())
+        internal ImageFrame(MemoryManager memoryManager, int width, int height)
+            : this(memoryManager, width, height, new ImageFrameMetaData())
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(int width, int height, ImageFrameMetaData metaData)
+        internal ImageFrame(MemoryManager memoryManager, int width, int height, ImageFrameMetaData metaData)
         {
+            Guard.NotNull(memoryManager, nameof(memoryManager));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
             Guard.NotNull(metaData, nameof(metaData));
 
-            this.pixelBuffer = Buffer2D<TPixel>.CreateClean(width, height);
+            this.MemoryManager = memoryManager;
+            this.PixelBuffer = memoryManager.AllocateClean2D<TPixel>(width, height);
             this.MetaData = metaData;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
-        /// <param name="source">The source.</param>
-        internal ImageFrame(ImageFrame<TPixel> source)
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="size">The <see cref="Size"/> of the frame.</param>
+        /// <param name="metaData">The meta data.</param>
+        internal ImageFrame(MemoryManager memoryManager, Size size, ImageFrameMetaData metaData)
+            : this(memoryManager, size.Width, size.Height, metaData)
         {
-            this.pixelBuffer = new Buffer2D<TPixel>(source.pixelBuffer.Width, source.pixelBuffer.Height);
-            source.pixelBuffer.Span.CopyTo(this.pixelBuffer.Span);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="source">The source.</param>
+        internal ImageFrame(MemoryManager memoryManager, ImageFrame<TPixel> source)
+        {
+            this.MemoryManager = memoryManager;
+            this.PixelBuffer = memoryManager.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            source.PixelBuffer.Span.CopyTo(this.PixelBuffer.Span);
             this.MetaData = source.MetaData.Clone();
         }
 
+        /// <summary>
+        /// Gets the <see cref="MemoryManager" /> to use for buffer allocations.
+        /// </summary>
+        public MemoryManager MemoryManager { get; }
+
+        /// <summary>
+        /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.
+        /// </summary>
+        internal Buffer2D<TPixel> PixelBuffer { get; private set; }
+
         /// <inheritdoc/>
-        Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.pixelBuffer;
+        Buffer2D<TPixel> IPixelSource<TPixel>.PixelBuffer => this.PixelBuffer;
 
         /// <summary>
         /// Gets the width.
         /// </summary>
-        public int Width => this.pixelBuffer.Width;
+        public int Width => this.PixelBuffer.Width;
 
         /// <summary>
         /// Gets the height.
         /// </summary>
-        public int Height => this.pixelBuffer.Height;
+        public int Height => this.PixelBuffer.Height;
 
         /// <summary>
         /// Gets the meta data of the frame.
@@ -93,13 +117,13 @@ namespace SixLabors.ImageSharp
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return this.pixelBuffer[x, y];
+                return this.PixelBuffer[x, y];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                this.pixelBuffer[x, y] = value;
+                this.PixelBuffer[x, y] = value;
             }
         }
 
@@ -112,7 +136,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ref TPixel GetPixelReference(int x, int y)
         {
-            return ref this.pixelBuffer[x, y];
+            return ref this.PixelBuffer[x, y];
         }
 
         /// <summary>
@@ -128,12 +152,26 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Copies the pixels to another <see cref="PixelAccessor{TPixel}"/> of the same size.
+        /// Copies the pixels to a <see cref="PixelAccessor{TPixel}"/> of the same size.
         /// </summary>
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            SpanHelper.Copy(this.GetPixelSpan(), target.PixelBuffer.Span);
+            this.CopyTo(target.PixelBuffer);
+        }
+
+        /// <summary>
+        /// Copies the pixels to a <see cref="Buffer2D{TPixel}"/> of the same size.
+        /// </summary>
+        /// <param name="target">The target pixel buffer accessor.</param>
+        internal void CopyTo(Buffer2D<TPixel> target)
+        {
+            if (this.Size() != target.Size())
+            {
+                throw new ArgumentException("ImageFrame<T>.CopyTo(): target must be of the same size!", nameof(target));
+            }
+
+            SpanHelper.Copy(this.GetPixelSpan(), target.Span);
         }
 
         /// <summary>
@@ -145,8 +183,8 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
             // Push my memory into the accessor (which in turn unpins the old buffer ready for the images use)
-            Buffer2D<TPixel> newPixels = pixelSource.SwapBufferOwnership(this.pixelBuffer);
-            this.pixelBuffer = newPixels;
+            Buffer2D<TPixel> newPixels = pixelSource.SwapBufferOwnership(this.PixelBuffer);
+            this.PixelBuffer = newPixels;
         }
 
         /// <summary>
@@ -157,7 +195,9 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            ComparableExtensions.Swap(ref this.pixelBuffer, ref pixelSource.pixelBuffer);
+            Buffer2D<TPixel> temp = this.PixelBuffer;
+            this.PixelBuffer = pixelSource.PixelBuffer;
+            pixelSource.PixelBuffer = temp;
         }
 
         /// <summary>
@@ -170,8 +210,8 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.pixelBuffer?.Dispose();
-            this.pixelBuffer = null;
+            this.PixelBuffer?.Dispose();
+            this.PixelBuffer = null;
 
             // Note disposing is done.
             this.isDisposed = true;
@@ -198,7 +238,7 @@ namespace SixLabors.ImageSharp
 
             Func<Vector4, Vector4> scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>();
 
-            var target = new ImageFrame<TPixel2>(this.Width, this.Height, this.MetaData.Clone());
+            var target = new ImageFrame<TPixel2>(this.MemoryManager, this.Width, this.Height, this.MetaData.Clone());
 
             using (PixelAccessor<TPixel> pixels = this.Lock())
             using (PixelAccessor<TPixel2> targetPixels = target.Lock())
@@ -227,7 +267,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
         internal ImageFrame<TPixel> Clone()
         {
-            return new ImageFrame<TPixel>(this);
+            return new ImageFrame<TPixel>(this.MemoryManager, this);
         }
 
         /// <inheritdoc/>

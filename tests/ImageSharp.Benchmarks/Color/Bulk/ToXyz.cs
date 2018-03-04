@@ -1,6 +1,9 @@
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
 {
+    using System;
+    using System.Numerics;
+
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Memory;
@@ -9,9 +12,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
     public abstract class ToXyz<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Buffer<TPixel> source;
+        private IBuffer<TPixel> source;
 
-        private Buffer<byte> destination;
+        private IBuffer<byte> destination;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }
@@ -19,8 +22,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.source = new Buffer<TPixel>(this.Count);
-            this.destination = new Buffer<byte>(this.Count * 3);
+            this.source = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
+            this.destination = Configuration.Default.MemoryManager.Allocate<byte>(this.Count * 3);
         }
 
         [GlobalCleanup]
@@ -33,8 +36,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            TPixel[] s = this.source.Array;
-            byte[] d = this.destination.Array;
+            Span<TPixel> s = this.source.Span;
+            Span<byte> d = this.destination.Span;
+
             var rgb = default(Rgb24);
 
             for (int i = 0; i < this.Count; i++)
@@ -51,13 +55,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToRgb24Bytes(this.source, this.destination, this.Count);
+            new PixelOperations<TPixel>().ToRgb24Bytes(this.source.Span, this.destination.Span, this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source, this.destination, this.Count);
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.Span, this.destination.Span, this.Count);
         }
     }
 

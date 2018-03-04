@@ -1,17 +1,17 @@
-﻿// <copyright file="TiffDecoderCore.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System;
+using System.Buffers;
+using System.IO;
+using System.Text;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Formats
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.Text;
-    using ImageSharp.Formats.Tiff;
-    using ImageSharp.PixelFormats;
-
     /// <summary>
     /// Performs the tiff decoding operation.
     /// </summary>
@@ -80,7 +80,7 @@ namespace ImageSharp.Formats
         public Stream InputStream { get; private set; }
 
         /// <summary>
-        /// A flag indicating if the file is encoded in little-endian or big-endian format.
+        /// Gets a value indicating whether the file is encoded in little-endian or big-endian format.
         /// </summary>
         public bool IsLittleEndian { get; private set; }
 

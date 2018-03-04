@@ -1,13 +1,11 @@
-﻿// <copyright file="TiffFormat.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Tiff;
+
+namespace SixLabors.ImageSharp.Formats
 {
-    using System.Collections.Generic;
-    using ImageSharp.Formats.Tiff;
-
     /// <summary>
     /// Encapsulates the means to encode and decode Tiff images.
     /// </summary>

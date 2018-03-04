@@ -1,13 +1,12 @@
-// <copyright file="TiffWriter.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
-namespace ImageSharp.Formats.Tiff
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace SixLabors.ImageSharp.Formats.Tiff
+{
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
     /// </summary>
@@ -27,12 +26,12 @@ namespace ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Gets a flag indicating whether the architecture is little-endian.
+        /// Gets a value indicating whether the architecture is little-endian.
         /// </summary>
         public bool IsLittleEndian => BitConverter.IsLittleEndian;
 
         /// <summary>
-        /// Returns the current position within the stream.
+        /// Gets the current position within the stream.
         /// </summary>
         public long Position => this.output.Position;
 

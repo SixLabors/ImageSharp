@@ -1,9 +1,7 @@
-// <copyright file="TiffConfigurationModule.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats
+namespace SixLabors.ImageSharp.Formats
 {
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the TIFF format.
@@ -13,9 +11,9 @@ namespace ImageSharp.Formats
         /// <inheritdoc/>
         public void Configure(Configuration host)
         {
-            host.SetEncoder(ImageFormats.Tiff, new TiffEncoder());
-            host.SetDecoder(ImageFormats.Tiff, new TiffDecoder());
-            host.AddImageFormatDetector(new TiffImageFormatDetector());
+            host.ImageFormatsManager.SetEncoder(ImageFormats.Tiff, new TiffEncoder());
+            host.ImageFormatsManager.SetDecoder(ImageFormats.Tiff, new TiffDecoder());
+            host.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
         }
     }
 }

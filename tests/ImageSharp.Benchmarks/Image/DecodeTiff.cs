@@ -1,19 +1,16 @@
-﻿// <copyright file="DecodeTiff.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Benchmarks.Image
+using System.Drawing;
+using System.IO;
+
+using BenchmarkDotNet.Attributes;
+
+using CoreImage = SixLabors.ImageSharp.Image;
+using CoreSize = SixLabors.Primitives.Size;
+
+namespace SixLabors.ImageSharp.Benchmarks.Image
 {
-    using System.Drawing;
-    using System.IO;
-
-    using BenchmarkDotNet.Attributes;
-
-    using CoreImage = ImageSharp.Image;
-
-    using CoreSize = ImageSharp.Size;
-
     public class DecodeTiff : BenchmarkBase
     {
         private byte[] tiffBytes;
@@ -32,7 +29,7 @@ namespace ImageSharp.Benchmarks.Image
         {
             using (MemoryStream memoryStream = new MemoryStream(this.tiffBytes))
             {
-                using (Image image = Image.FromStream(memoryStream))
+                using (var image = System.Drawing.Image.FromStream(memoryStream))
                 {
                     return image.Size;
                 }

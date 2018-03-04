@@ -1,16 +1,13 @@
-// <copyright file="DeflateTiffCompression.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
-namespace ImageSharp.Formats.Tiff
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Runtime.CompilerServices;
+
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
-    using System;
-    using System.Buffers;
-    using System.IO;
-    using System.IO.Compression;
-    using System.Runtime.CompilerServices;
-
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using Deflate compression.
     /// </summary>

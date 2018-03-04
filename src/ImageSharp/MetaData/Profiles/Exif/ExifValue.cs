@@ -700,7 +700,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                     Guard.IsTrue(type == typeof(double), nameof(value), $"Value should be a double{(this.IsArray ? " array." : ".")}");
                     break;
                 case ExifDataType.Long:
-                    Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(this.IsArray ? " array." : ".")}");
+                    if ((type == typeof(int)) && !this.IsArray) 
+                    {
+                        Guard.IsTrue(((int)value) >= 0, nameof(value), $"Value should be a positive int (its value is ${(int) value}).");
+                    }
+                    else 
+                    {
+                        Guard.IsTrue(type == typeof(uint), nameof(value), $"Value should be an unsigned int{(this.IsArray ? " array." : ".")}");
+                    }
                     break;
                 case ExifDataType.Rational:
                     Guard.IsTrue(type == typeof(Rational), nameof(value), $"Value should be a Rational{(this.IsArray ? " array." : ".")}");

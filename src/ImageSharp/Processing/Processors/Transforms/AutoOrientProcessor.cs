@@ -15,17 +15,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.
-        /// </summary>
-        public AutoOrientProcessor()
-        {
-        }
-
+        /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
             Orientation orientation = GetExifOrientation(source);
-
+            Size size = sourceRectangle.Size;
             switch (orientation)
             {
                 case Orientation.TopRight:
@@ -33,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     break;
 
                 case Orientation.BottomRight:
-                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate180, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate180, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.BottomLeft:
@@ -41,21 +35,21 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     break;
 
                 case Orientation.LeftTop:
-                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
                     new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.RightTop:
-                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate90, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.RightBottom:
                     new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.LeftBottom:
-                    new RotateProcessor<TPixel>() { Angle = (int)RotateType.Rotate270, Expand = false }.Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
                 case Orientation.Unknown:

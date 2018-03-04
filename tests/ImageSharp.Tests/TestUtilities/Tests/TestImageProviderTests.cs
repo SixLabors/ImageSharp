@@ -23,6 +23,14 @@ namespace SixLabors.ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         [Theory]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
+        public void NoOutputSubfolderIsPresentByDefault<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Assert.Empty(provider.Utility.OutputSubfolderName);
+        }
+
+        [Theory]
         [WithBlankImages(42, 666, PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.HalfSingle, "hello")]
         public void Use_WithEmptyImageAttribute<TPixel>(TestImageProvider<TPixel> provider, string message)
             where TPixel : struct, IPixel<TPixel>
@@ -231,8 +239,28 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
-            Image<TPixel> image = provider.GetImage();
-            provider.Utility.SaveTestOutputFile(image, "png");
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                provider.Utility.SaveTestOutputFile(image, "png");
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        public void SaveTestOutputFileMultiFrame<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
+
+                Assert.True(files.Length > 2);
+                foreach (string path in files)
+                {
+                    this.Output.WriteLine(path);
+                    Assert.True(File.Exists(path));
+                }
+            }
         }
 
         [Theory]

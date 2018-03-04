@@ -35,12 +35,12 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets the sampler to perform the resize operation.
         /// </summary>
-        public IResampler Sampler { get; set; } = new BicubicResampler();
+        public IResampler Sampler { get; set; } = KnownResamplers.Bicubic;
 
         /// <summary>
         /// Gets or sets a value indicating whether to compress
         /// or expand individual pixel colors the value on processing.
         /// </summary>
-        public bool Compand { get; set; }
+        public bool Compand { get; set; } = false;
     }
 }

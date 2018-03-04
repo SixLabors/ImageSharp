@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using SixLabors.Primitives;
 using Xunit;
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
     public class DetectEdgesTest : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
-        
+
         public static readonly TheoryData<EdgeDetection> DetectEdgesFilters = new TheoryData<EdgeDetection>
         {
             EdgeDetection.Kayyali,
@@ -80,9 +79,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 image.Mutate(x => x.DetectEdges(bounds));
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
-
-                // TODO: We don't need this any longer after switching to ReferenceImages
-                //ImageComparer.Tolerant().EnsureProcessorChangesAreConstrained(source, image, bounds);
             }
         }
     }

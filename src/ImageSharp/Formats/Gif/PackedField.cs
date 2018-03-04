@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// Represents a byte of data in a GIF data stream which contains a number
     /// of data items.
     /// </summary>
-    internal struct PackedField : IEquatable<PackedField>
+    internal readonly struct PackedField : IEquatable<PackedField>
     {
         /// <summary>
         /// The individual bits representing the packed byte.

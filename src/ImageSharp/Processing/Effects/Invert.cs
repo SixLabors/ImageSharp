@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Invert<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new InvertProcessor<TPixel>());
+        => source.ApplyProcessor(new InvertProcessor<TPixel>(1F));
 
         /// <summary>
         /// Inverts the colors of the image.
@@ -34,6 +34,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Invert<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new InvertProcessor<TPixel>(), rectangle);
+        => source.ApplyProcessor(new InvertProcessor<TPixel>(1F), rectangle);
     }
 }

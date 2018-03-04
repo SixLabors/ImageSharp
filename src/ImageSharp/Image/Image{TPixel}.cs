@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed partial class Image<TPixel> : IImage, IDisposable, IConfigurable
+    public sealed partial class Image<TPixel> : IImage, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
         private Configuration configuration;

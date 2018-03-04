@@ -6,12 +6,13 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+// ReSharper disable CompareOfFloatsByEqualityOperator
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
     /// Represents the coordinates of CIEXY chromaticity space
     /// </summary>
-    internal struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
+    internal readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
     {
         /// <summary>
         /// Represents a <see cref="CieXyChromaticityCoordinates"/> that has X, Y values set to zero.
@@ -143,7 +144,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyChromaticityCoordinates other)
         {
-            return this.backingVector.Equals(other.backingVector);
+            // The memberwise comparison here is a workaround for https://github.com/dotnet/coreclr/issues/16443
+            return this.X == other.X && this.Y == other.Y;
         }
 
         /// <inheritdoc/>

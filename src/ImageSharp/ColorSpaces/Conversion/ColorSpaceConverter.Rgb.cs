@@ -184,8 +184,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             Rgb rgb = YCbCrAndRgbConverter.Convert(color);
 
             // Adaptation
-            // TODO: Check this!
-            return rgb.WorkingSpace.Equals(this.TargetRgbWorkingSpace) ? rgb : this.Adapt(rgb);
+            return this.Adapt(rgb);
         }
     }
 }

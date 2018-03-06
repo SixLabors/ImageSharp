@@ -9,6 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
+    using SixLabors.ImageSharp.Processing.Binarization;
+
     public class BinaryThresholdTest : FileTestBase
     {
         public static readonly TheoryData<float> BinaryThresholdValues

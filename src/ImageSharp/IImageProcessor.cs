@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp
         /// <paramref name="source"/> is null.
         /// </exception>
         /// <exception cref="System.ArgumentException">
-        /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
+        /// <paramref name="sourceRectangle"/> doesn't fit the dimension of the image.
         /// </exception>
         void Apply(Image<TPixel> source, Rectangle sourceRectangle);
     }

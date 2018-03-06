@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests
                 // We pass a new rectangle here based on the dest bounds since we've offset the matrix
                 blend.Mutate(x => x.Transform(
                     centeredMatrix,
-                    KnownResamplers.Bicubic,
+                    Resamplers.Bicubic,
                     new Rectangle(0, 0, destBounds.Width, destBounds.Height)));
 
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);

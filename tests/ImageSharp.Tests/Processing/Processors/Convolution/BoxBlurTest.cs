@@ -9,6 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
+    using SixLabors.ImageSharp.Processing.Convolution;
+
     public class BoxBlurTest : FileTestBase
     {
         public static readonly TheoryData<int> BoxBlurValues

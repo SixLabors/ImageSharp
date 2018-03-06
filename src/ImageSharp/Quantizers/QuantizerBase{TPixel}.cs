@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         public bool Dither { get; set; } = true;
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; set; } = KnownDiffusers.FloydSteinberg;
+        public IErrorDiffuser DitherType { get; set; } = Diffusers.FloydSteinberg;
 
         /// <inheritdoc/>
         public virtual QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)

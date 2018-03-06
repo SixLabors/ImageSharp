@@ -11,6 +11,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
+    using SixLabors.ImageSharp.Processing.Dithering;
+
     public class DitherTests : FileTestBase
     {
         public static readonly string[] CommonTestImages =
@@ -20,29 +22,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>
         {
-            { "Bayer8x8", KnownDitherers.BayerDither8x8 },
-            { "Bayer4x4", KnownDitherers.BayerDither4x4 },
-            { "Ordered3x3", KnownDitherers.OrderedDither3x3 },
-            { "Bayer2x2", KnownDitherers.BayerDither2x2 }
+            { "Bayer8x8", Dithering.Ditherers.BayerDither8x8 },
+            { "Bayer4x4", Dithering.Ditherers.BayerDither4x4 },
+            { "Ordered3x3", Dithering.Ditherers.OrderedDither3x3 },
+            { "Bayer2x2", Dithering.Ditherers.BayerDither2x2 }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
         {
-            { "Atkinson", KnownDiffusers.Atkinson },
-            { "Burks", KnownDiffusers.Burks },
-            { "FloydSteinberg", KnownDiffusers.FloydSteinberg },
-            { "JarvisJudiceNinke", KnownDiffusers.JarvisJudiceNinke },
-            { "Sierra2", KnownDiffusers.Sierra2 },
-            { "Sierra3", KnownDiffusers.Sierra3 },
-            { "SierraLite", KnownDiffusers.SierraLite },
-            { "StevensonArce", KnownDiffusers.StevensonArce },
-            { "Stucki", KnownDiffusers.Stucki },
+            { "Atkinson", Diffusers.Atkinson },
+            { "Burks", Diffusers.Burks },
+            { "FloydSteinberg", Diffusers.FloydSteinberg },
+            { "JarvisJudiceNinke", Diffusers.JarvisJudiceNinke },
+            { "Sierra2", Diffusers.Sierra2 },
+            { "Sierra3", Diffusers.Sierra3 },
+            { "SierraLite", Diffusers.SierraLite },
+            { "StevensonArce", Diffusers.StevensonArce },
+            { "Stucki", Diffusers.Stucki },
         };
 
 
-        private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
+        private static IOrderedDither DefaultDitherer => Dithering.Ditherers.BayerDither4x4;
 
-        private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
+        private static IErrorDiffuser DefaultErrorDiffuser => Diffusers.Atkinson;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(Ditherers), DefaultPixelType)]

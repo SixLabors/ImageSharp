@@ -3,6 +3,8 @@
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Binarization.Processors;
+using SixLabors.ImageSharp.Processing.Convolution.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
@@ -34,12 +36,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public float Threshold { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             using (ImageFrame<TPixel> temp = source.Clone())
             {
                 // Detect the edges.
-                new SobelProcessor<TPixel>().Apply(temp, sourceRectangle, configuration);
+                new SobelProcessor<TPixel>(false).Apply(temp, sourceRectangle, configuration);
 
                 // Apply threshold binarization filter.
                 new BinaryThresholdProcessor<TPixel>(this.Threshold).Apply(temp, sourceRectangle, configuration);

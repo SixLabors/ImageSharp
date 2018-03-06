@@ -9,6 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
+    using SixLabors.ImageSharp.Processing.Effects;
+
     public class OilPaintTest : FileTestBase
     {
         public static readonly TheoryData<int, int> OilPaintValues = new TheoryData<int, int>

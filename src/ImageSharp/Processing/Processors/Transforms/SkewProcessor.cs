@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
         /// <param name="sourceSize">The source image size</param>
         public SkewProcessor(float degreesX, float degreesY, Size sourceSize)
-            : this(degreesX, degreesY, KnownResamplers.Bicubic, sourceSize)
+            : this(degreesX, degreesY, Resamplers.Bicubic, sourceSize)
         {
         }
 

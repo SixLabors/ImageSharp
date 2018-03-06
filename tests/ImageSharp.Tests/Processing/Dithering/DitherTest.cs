@@ -8,6 +8,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
+    using SixLabors.ImageSharp.Processing.Dithering;
+    using SixLabors.ImageSharp.Processing.Dithering.Processors;
+
     public class DitherTest : BaseImageOperationsExtensionTest
     {
         private readonly IOrderedDither orderedDither;
@@ -21,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
         public DitherTest()
         {
-            this.orderedDither = KnownDitherers.BayerDither4x4;
-            this.errorDiffuser = KnownDiffusers.FloydSteinberg;
+            this.orderedDither = Ditherers.BayerDither4x4;
+            this.errorDiffuser = Diffusers.FloydSteinberg;
         }
 
         [Fact]

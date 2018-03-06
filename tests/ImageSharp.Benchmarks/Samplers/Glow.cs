@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using SixLabors.Primitives;
     using SixLabors.ImageSharp.Helpers;
     using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Processing.Processors.Overlays;
 
     public class Glow : BenchmarkBase
     {
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            this.bulk = new GlowProcessor<Rgba32>(Configuration.Default.MemoryManager, NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
+            this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
             this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
 
         }
@@ -75,7 +76,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             public float Radius { get; set; }
 
             /// <inheritdoc/>
-            protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+            protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
             {
                 int startY = sourceRectangle.Y;
                 int endY = sourceRectangle.Bottom;

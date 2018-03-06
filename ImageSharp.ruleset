@@ -7,5 +7,7 @@
      temp remove the header requirement as stylecop is currently failing to read the stylecop.json file from 'dotnet build' 
     <Rule Id="SA1636" Action="None" />-->
     <Rule Id="SA1633" Action="None" />
+    <!--1.1.0-beta6 incorrectly throws a wobbler here for multiline matrices-->
+    <Rule Id="SA1500" Action="None" /> 
   </Rules>
 </RuleSet>

@@ -8,6 +8,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 {
+    using SixLabors.ImageSharp.Processing.Convolution;
+    using SixLabors.ImageSharp.Processing.Convolution.Processors;
+
     public class GaussianBlurTest : BaseImageOperationsExtensionTest
     {
         [Fact]

@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(
+        protected override void OnFrameApply(
             ImageFrame<TPixel> source,
             ImageFrame<TPixel> destination,
             Rectangle sourceRectangle,

@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Processors.Overlays;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
@@ -157,7 +158,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radius, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new GlowProcessor<TPixel>(source.MemoryManager, color, radius, options), rectangle);
+        => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options), rectangle);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -170,6 +171,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radius, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new GlowProcessor<TPixel>(source.MemoryManager, color, radius, options));
+        => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options));
     }
 }

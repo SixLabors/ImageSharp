@@ -36,30 +36,30 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public static readonly TheoryData<string> ResamplerNames =
             new TheoryData<string>
                   {
-                      nameof(KnownResamplers.Bicubic),
-                      nameof(KnownResamplers.Box),
-                      nameof(KnownResamplers.CatmullRom),
-                      nameof(KnownResamplers.Hermite),
-                      nameof(KnownResamplers.Lanczos2),
-                      nameof(KnownResamplers.Lanczos3),
-                      nameof(KnownResamplers.Lanczos5),
-                      nameof(KnownResamplers.Lanczos8),
-                      nameof(KnownResamplers.MitchellNetravali),
-                      nameof(KnownResamplers.NearestNeighbor),
-                      nameof(KnownResamplers.Robidoux),
-                      nameof(KnownResamplers.RobidouxSharp),
-                      nameof(KnownResamplers.Spline),
-                      nameof(KnownResamplers.Triangle),
-                      nameof(KnownResamplers.Welch),
+                      nameof(Resamplers.Bicubic),
+                      nameof(Resamplers.Box),
+                      nameof(Resamplers.CatmullRom),
+                      nameof(Resamplers.Hermite),
+                      nameof(Resamplers.Lanczos2),
+                      nameof(Resamplers.Lanczos3),
+                      nameof(Resamplers.Lanczos5),
+                      nameof(Resamplers.Lanczos8),
+                      nameof(Resamplers.MitchellNetravali),
+                      nameof(Resamplers.NearestNeighbor),
+                      nameof(Resamplers.Robidoux),
+                      nameof(Resamplers.RobidouxSharp),
+                      nameof(Resamplers.Spline),
+                      nameof(Resamplers.Triangle),
+                      nameof(Resamplers.Welch),
                   };
 
         public static readonly TheoryData<string> Transform_DoesNotCreateEdgeArtifacts_ResamplerNames =
             new TheoryData<string>
                 {
-                    nameof(KnownResamplers.NearestNeighbor),
-                    nameof(KnownResamplers.Triangle),
-                    nameof(KnownResamplers.Bicubic),
-                    nameof(KnownResamplers.Lanczos8),
+                    nameof(Resamplers.NearestNeighbor),
+                    nameof(Resamplers.Triangle),
+                    nameof(Resamplers.Bicubic),
+                    nameof(Resamplers.Lanczos8),
                 };
 
         public AffineTransformTests(ITestOutputHelper output)
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 this.PrintMatrix(m);
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
+                image.Mutate(i => i.Transform(m, Resamplers.Bicubic));
 
                 string testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
                 image.DebugSave(provider, testOutputDetails);
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 Matrix3x2 m = this.MakeManuallyCenteredMatrix(angleDeg, s, image);
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
+                image.Mutate(i => i.Transform(m, Resamplers.Bicubic));
 
                 string testOutputDetails = $"R({angleDeg})_S({s})";
                 image.DebugSave(provider, testOutputDetails);
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 var m = Matrix3x2.CreateScale(2.0F, 1.5F);
                 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                image.Mutate(i => i.Transform(m, Resamplers.Spline, rectangle));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             {
                 var m = Matrix3x2.CreateScale(1.0F, 2.0F);
 
-                image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
+                image.Mutate(i => i.Transform(m, Resamplers.Spline, rectangle));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         private static IResampler GetResampler(string name)
         {
-            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
+            PropertyInfo property = typeof(Resamplers).GetTypeInfo().GetProperty(name);
 
             if (property == null)
             {

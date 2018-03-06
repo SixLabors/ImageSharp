@@ -61,9 +61,9 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Implicitly converts a float into an absolute value
         /// </summary>
-        /// <param name="d">the vlaue to use as the absolute figure.</param>
-        public static implicit operator ValueSize(float d)
-            => Absolute(d);
+        /// <param name="f">the value to use as the absolute figure.</param>
+        public static implicit operator ValueSize(float f)
+            => Absolute(f);
 
         /// <summary>
         /// Create a new ValueSize with as a PercentageOfWidth type with value set to percentage.
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp
         /// Calculates the specified size.
         /// </summary>
         /// <param name="size">The size.</param>
-        /// <returns>The calucalted value</returns>
+        /// <returns>The calculated value</returns>
         public float Calculate(Size size)
         {
             switch (this.Type)
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public bool Equals(ValueSize other)
         {
-            return this.Type == other.Type && this.Value == other.Value;
+            return this.Type == other.Type && this.Value.Equals(other.Value);
         }
     }
 }

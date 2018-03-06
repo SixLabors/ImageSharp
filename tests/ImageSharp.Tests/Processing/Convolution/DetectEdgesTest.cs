@@ -11,6 +11,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 {
+    using SixLabors.ImageSharp.Processing.Convolution;
+    using SixLabors.ImageSharp.Processing.Convolution.Processors;
+
     public class DetectEdgesTest : BaseImageOperationsExtensionTest
     {
 
@@ -34,21 +37,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
             // Assert.True(processor.Grayscale);
         }
         public static IEnumerable<object[]> EdgeDetectionTheoryData => new[] {
-            new object[]{ new TestType<KayyaliProcessor<Rgba32>>(), EdgeDetection.Kayyali },
-            new object[]{ new TestType<KirschProcessor<Rgba32>>(), EdgeDetection.Kirsch },
-            new object[]{ new TestType<Laplacian3X3Processor<Rgba32>>(), EdgeDetection.Lapacian3X3 },
-            new object[]{ new TestType<Laplacian5X5Processor<Rgba32>>(), EdgeDetection.Lapacian5X5 },
-            new object[]{ new TestType<LaplacianOfGaussianProcessor<Rgba32>>(), EdgeDetection.LaplacianOfGaussian },
-            new object[]{ new TestType<PrewittProcessor<Rgba32>>(), EdgeDetection.Prewitt },
-            new object[]{ new TestType<RobertsCrossProcessor<Rgba32>>(), EdgeDetection.RobertsCross },
-            new object[]{ new TestType<RobinsonProcessor<Rgba32>>(), EdgeDetection.Robinson },
-            new object[]{ new TestType<ScharrProcessor<Rgba32>>(), EdgeDetection.Scharr },
-            new object[]{ new TestType<SobelProcessor<Rgba32>>(), EdgeDetection.Sobel },
+            new object[]{ new TestType<KayyaliProcessor<Rgba32>>(), EdgeDetectionOperators.Kayyali },
+            new object[]{ new TestType<KirschProcessor<Rgba32>>(), EdgeDetectionOperators.Kirsch },
+            new object[]{ new TestType<Laplacian3x3Processor<Rgba32>>(), EdgeDetectionOperators.Laplacian3x3 },
+            new object[]{ new TestType<Laplacian5x5Processor<Rgba32>>(), EdgeDetectionOperators.Laplacian5x5 },
+            new object[]{ new TestType<LaplacianOfGaussianProcessor<Rgba32>>(), EdgeDetectionOperators.LaplacianOfGaussian },
+            new object[]{ new TestType<PrewittProcessor<Rgba32>>(), EdgeDetectionOperators.Prewitt },
+            new object[]{ new TestType<RobertsCrossProcessor<Rgba32>>(), EdgeDetectionOperators.RobertsCross },
+            new object[]{ new TestType<RobinsonProcessor<Rgba32>>(), EdgeDetectionOperators.Robinson },
+            new object[]{ new TestType<ScharrProcessor<Rgba32>>(), EdgeDetectionOperators.Scharr },
+            new object[]{ new TestType<SobelProcessor<Rgba32>>(), EdgeDetectionOperators.Sobel },
         };
 
         [Theory]
         [MemberData(nameof(EdgeDetectionTheoryData))]
-        public void DetectEdges_filter_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetection filter)
+        public void DetectEdges_filter_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
             where TProcessor : IEdgeDetectorProcessor<Rgba32>
         {
             this.operations.DetectEdges(filter);
@@ -60,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 
         [Theory]
         [MemberData(nameof(EdgeDetectionTheoryData))]
-        public void DetectEdges_filter_grayscale_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetection filter)
+        public void DetectEdges_filter_grayscale_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
             where TProcessor : IEdgeDetectorProcessor<Rgba32>
         {
             bool grey = (int)filter % 2 == 0;

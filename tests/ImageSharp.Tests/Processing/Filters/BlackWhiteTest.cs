@@ -6,6 +6,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
+    using SixLabors.ImageSharp.Processing.Filters;
+    using SixLabors.ImageSharp.Processing.Filters.Processors;
+
     public class BlackWhiteTest : BaseImageOperationsExtensionTest
     {
         [Fact]

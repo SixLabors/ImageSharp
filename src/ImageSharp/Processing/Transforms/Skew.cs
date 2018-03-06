@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Skew<TPixel>(this IImageProcessingContext<TPixel> source, float degreesX, float degreesY)
             where TPixel : struct, IPixel<TPixel>
-        => Skew(source, degreesX, degreesY, KnownResamplers.Bicubic);
+        => Skew(source, degreesX, degreesY, Resamplers.Bicubic);
 
         /// <summary>
         /// Skews an image by the given angles in degrees using the specified sampling algorithm.

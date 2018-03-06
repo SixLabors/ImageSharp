@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             // NOP, we did all we wanted to do inside BeforeImageApply
         }

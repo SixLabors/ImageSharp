@@ -20,20 +20,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
             {
-                { "Bicubic", KnownResamplers.Bicubic },
-                { "Triangle", KnownResamplers.Triangle},
-                { "NearestNeighbor", KnownResamplers.NearestNeighbor },
-                { "Box", KnownResamplers.Box },
+                { "Bicubic", Resamplers.Bicubic },
+                { "Triangle", Resamplers.Triangle},
+                { "NearestNeighbor", Resamplers.NearestNeighbor },
+                { "Box", Resamplers.Box },
                 // { "Lanczos2", KnownResamplers.Lanczos2 }, TODO: Add expected file
-                { "Lanczos3", KnownResamplers.Lanczos3 },
-                { "Lanczos5", KnownResamplers.Lanczos5 },
-                { "MitchellNetravali", KnownResamplers.MitchellNetravali  },
-                { "Lanczos8", KnownResamplers.Lanczos8  },
-                { "Hermite", KnownResamplers.Hermite  },
-                { "Spline", KnownResamplers.Spline  },
-                { "Robidoux", KnownResamplers.Robidoux  },
-                { "RobidouxSharp", KnownResamplers.RobidouxSharp },
-                { "Welch", KnownResamplers.Welch  }
+                { "Lanczos3", Resamplers.Lanczos3 },
+                { "Lanczos5", Resamplers.Lanczos5 },
+                { "MitchellNetravali", Resamplers.MitchellNetravali  },
+                { "Lanczos8", Resamplers.Lanczos8  },
+                { "Hermite", Resamplers.Hermite  },
+                { "Spline", Resamplers.Spline  },
+                { "Robidoux", Resamplers.Robidoux  },
+                { "RobidouxSharp", Resamplers.RobidouxSharp },
+                { "Welch", Resamplers.Welch  }
             };
 
         [Theory]
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.NearestNeighbor));
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, Resamplers.NearestNeighbor));
 
                 // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
                 image.DebugSave(provider, extension: Extensions.Gif);
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 var sourceRectangle = new Rectangle(image.Width / 8, image.Height / 8, image.Width / 4, image.Height / 4);
                 var destRectangle = new Rectangle(image.Width / 4, image.Height / 4, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.Resize(image.Width, image.Height, KnownResamplers.Bicubic, sourceRectangle, destRectangle, false));
+                image.Mutate(x => x.Resize(image.Width, image.Height, Resamplers.Bicubic, sourceRectangle, destRectangle, false));
 
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(provider);
@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void BicubicWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Bicubic;
+            var sampler = Resamplers.Bicubic;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void TriangleWindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Triangle;
+            var sampler = Resamplers.Triangle;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -328,7 +328,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(2, 0)]
         public static void Lanczos3WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Lanczos3;
+            var sampler = Resamplers.Lanczos3;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);
@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [InlineData(4, 0)]
         public static void Lanczos5WindowOscillatesCorrectly(float x, float expected)
         {
-            var sampler = KnownResamplers.Lanczos5;
+            var sampler = Resamplers.Lanczos5;
             float result = sampler.GetValue(x);
 
             Assert.Equal(result, expected);

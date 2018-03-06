@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Processing
                     ImageFrame<TPixel> sourceFrame = source.Frames[i];
                     ImageFrame<TPixel> clonedFrame = clone.Frames[i];
 
-                    this.BeforeApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
-                    this.OnApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
-                    this.AfterApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
+                    this.BeforeFrameApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
+                    this.OnFrameApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
+                    this.AfterFrameApply(sourceFrame, clonedFrame, sourceRectangle, configuration);
                 }
 
                 this.AfterImageApply(source, clone, sourceRectangle);
@@ -96,36 +96,33 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <summary>
         /// This method is called before the process is applied to prepare the processor.
-        /// TODO: We should probably name this 'BeforeFrameApply'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        protected virtual void BeforeApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected virtual void BeforeFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 
         /// <summary>
         /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}" /> at the specified location
         /// and with the specified size.
-        /// TODO: We should probably name this 'ApplyToFrame'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        protected abstract void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration);
+        protected abstract void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
-        /// TODO: We should probably name this 'AfterFrameApply'
         /// </summary>
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="destination">The cloned/destination image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        protected virtual void AfterApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected virtual void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 

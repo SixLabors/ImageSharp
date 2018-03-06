@@ -7,6 +7,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
+    using SixLabors.ImageSharp.Processing.Filters;
+
     [GroupOutput("Filters")]
     public class ContrastTest
     {

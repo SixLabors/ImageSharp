@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <param name="degrees">The angle of rotation in degrees.</param>
         /// <param name="sourceSize">The source image size</param>
         public RotateProcessor(float degrees, Size sourceSize)
-            : this(degrees, KnownResamplers.Bicubic, sourceSize)
+            : this(degrees, Resamplers.Bicubic, sourceSize)
         {
         }
 
@@ -46,14 +46,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
         public float Degrees { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
             if (this.OptimizedApply(source, destination, configuration))
             {
                 return;
             }
 
-            base.OnApply(source, destination, sourceRectangle, configuration);
+            base.OnFrameApply(source, destination, sourceRectangle, configuration);
         }
 
         /// <inheritdoc/>

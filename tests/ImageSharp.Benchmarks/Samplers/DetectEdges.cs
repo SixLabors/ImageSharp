@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Convolution;
 
     using CoreImage = ImageSharp.Image;
 
@@ -38,17 +39,17 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp DetectEdges")]
         public void ImageProcessorCoreDetectEdges()
         {
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Kayyali));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Kayyali));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Kirsch));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Lapacian3X3));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Lapacian5X5));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.LaplacianOfGaussian));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Prewitt));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.RobertsCross));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Robinson));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Scharr));
-            this.image.Mutate(x => x.DetectEdges(EdgeDetection.Sobel));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Kayyali));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Kayyali));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Kirsch));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Laplacian3x3));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Laplacian5x5));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.LaplacianOfGaussian));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Prewitt));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.RobertsCross));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Robinson));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Scharr));
+            this.image.Mutate(x => x.DetectEdges(EdgeDetectionOperators.Sobel));
         }
     }
 }

@@ -9,6 +9,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
+    using SixLabors.ImageSharp.Processing.Processors.Overlays;
+
     public class GlowTest : BaseImageOperationsExtensionTest
     {
         [Fact]

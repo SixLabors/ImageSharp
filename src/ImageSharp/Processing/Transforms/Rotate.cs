@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
             where TPixel : struct, IPixel<TPixel>
-        => Rotate(source, degrees, KnownResamplers.Bicubic);
+        => Rotate(source, degrees, Resamplers.Bicubic);
 
         /// <summary>
         /// Rotates an image by the given angle in degrees using the specified sampling algorithm.

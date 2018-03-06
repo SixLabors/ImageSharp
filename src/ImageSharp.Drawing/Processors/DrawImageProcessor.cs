@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Drawing.Processors
         public Point Location { get; }
 
         /// <inheritdoc/>
-        protected override void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             Image<TPixel> targetImage = this.Image;
             PixelBlender<TPixel> blender = this.Blender;

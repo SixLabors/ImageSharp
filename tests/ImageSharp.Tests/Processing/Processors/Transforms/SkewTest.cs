@@ -24,21 +24,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static readonly List<string> ResamplerNames
             = new List<string>
         {
-            nameof(KnownResamplers.Bicubic),
-            nameof(KnownResamplers.Box),
-            nameof(KnownResamplers.CatmullRom),
-            nameof(KnownResamplers.Hermite),
-            nameof(KnownResamplers.Lanczos2),
-            nameof(KnownResamplers.Lanczos3),
-            nameof(KnownResamplers.Lanczos5),
-            nameof(KnownResamplers.Lanczos8),
-            nameof(KnownResamplers.MitchellNetravali),
-            nameof(KnownResamplers.NearestNeighbor),
-            nameof(KnownResamplers.Robidoux),
-            nameof(KnownResamplers.RobidouxSharp),
-            nameof(KnownResamplers.Spline),
-            nameof(KnownResamplers.Triangle),
-            nameof(KnownResamplers.Welch),
+            nameof(Resamplers.Bicubic),
+            nameof(Resamplers.Box),
+            nameof(Resamplers.CatmullRom),
+            nameof(Resamplers.Hermite),
+            nameof(Resamplers.Lanczos2),
+            nameof(Resamplers.Lanczos3),
+            nameof(Resamplers.Lanczos5),
+            nameof(Resamplers.Lanczos8),
+            nameof(Resamplers.MitchellNetravali),
+            nameof(Resamplers.NearestNeighbor),
+            nameof(Resamplers.Robidoux),
+            nameof(Resamplers.RobidouxSharp),
+            nameof(Resamplers.Spline),
+            nameof(Resamplers.Triangle),
+            nameof(Resamplers.Welch),
         };
 
         [Theory]
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private static IResampler GetResampler(string name)
         {
-            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
+            PropertyInfo property = typeof(Resamplers).GetTypeInfo().GetProperty(name);
 
             if (property == null)
             {

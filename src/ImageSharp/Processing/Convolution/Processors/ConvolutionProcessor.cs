@@ -8,9 +8,10 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
     /// <summary>
     /// Defines a processor that uses a 2 dimensional matrix to perform convolution against an image.
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// Initializes a new instance of the <see cref="ConvolutionProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
-        public ConvolutionProcessor(Fast2DArray<float> kernelXY)
+        public ConvolutionProcessor(DenseMatrix<float> kernelXY)
         {
             this.KernelXY = kernelXY;
         }
@@ -31,12 +32,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelXY { get; }
+        public DenseMatrix<float> KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            int kernelLength = this.KernelXY.Height;
+            int kernelLength = this.KernelXY.Rows;
             int radius = kernelLength >> 1;
 
             int startY = sourceRectangle.Y;

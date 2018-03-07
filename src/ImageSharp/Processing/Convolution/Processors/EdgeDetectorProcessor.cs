@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Filters.Processors;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// </summary>
         /// <param name="kernelXY">The 2d gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetectorProcessor(Fast2DArray<float> kernelXY, bool grayscale)
+        protected EdgeDetectorProcessor(DenseMatrix<float> kernelXY, bool grayscale)
         {
             this.KernelXY = kernelXY;
             this.Grayscale = grayscale;
@@ -33,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the 2d gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelXY { get; }
+        public DenseMatrix<float> KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)

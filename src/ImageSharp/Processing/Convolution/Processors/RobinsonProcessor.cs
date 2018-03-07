@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
@@ -24,27 +24,27 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         }
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> North => RobinsonKernels.RobinsonNorth;
+        public override DenseMatrix<float> North => RobinsonKernels.RobinsonNorth;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> NorthWest => RobinsonKernels.RobinsonNorthWest;
+        public override DenseMatrix<float> NorthWest => RobinsonKernels.RobinsonNorthWest;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> West => RobinsonKernels.RobinsonWest;
+        public override DenseMatrix<float> West => RobinsonKernels.RobinsonWest;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> SouthWest => RobinsonKernels.RobinsonSouthWest;
+        public override DenseMatrix<float> SouthWest => RobinsonKernels.RobinsonSouthWest;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> South => RobinsonKernels.RobinsonSouth;
+        public override DenseMatrix<float> South => RobinsonKernels.RobinsonSouth;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> SouthEast => RobinsonKernels.RobinsonSouthEast;
+        public override DenseMatrix<float> SouthEast => RobinsonKernels.RobinsonSouthEast;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> East => RobinsonKernels.RobinsonEast;
+        public override DenseMatrix<float> East => RobinsonKernels.RobinsonEast;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> NorthEast => RobinsonKernels.RobinsonNorthEast;
+        public override DenseMatrix<float> NorthEast => RobinsonKernels.RobinsonNorthEast;
     }
 }

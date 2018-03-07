@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Dithering.Base;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Dithering
 {
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly Fast2DArray<float> StevensonArceMatrix =
+        private static readonly DenseMatrix<float> StevensonArceMatrix =
             new float[,]
             {
                { 0,  0,  0,  0,  0, 32,  0 },

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void FilledBezier<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Primitives.PointF[] simplePath = {
+            SixLabors.Primitives.PointF[] simplePath = {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void OverlayByFilledPolygonOpacity<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Primitives.PointF[] simplePath = {
+            SixLabors.Primitives.PointF[] simplePath = {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),

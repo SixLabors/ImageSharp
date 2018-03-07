@@ -5,9 +5,9 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Drawing.Brushes
@@ -40,8 +40,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         /// <summary>
         /// The pattern.
         /// </summary>
-        private readonly Fast2DArray<TPixel> pattern;
-        private readonly Fast2DArray<Vector4> patternVector;
+        private readonly DenseMatrix<TPixel> pattern;
+        private readonly DenseMatrix<Vector4> patternVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PatternBrush{TPixel}"/> class.
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
         public PatternBrush(TPixel foreColor, TPixel backColor, bool[,] pattern)
-            : this(foreColor, backColor, new Fast2DArray<bool>(pattern))
+            : this(foreColor, backColor, new DenseMatrix<bool>(pattern))
         {
         }
 
@@ -60,12 +60,12 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         /// <param name="foreColor">Color of the fore.</param>
         /// <param name="backColor">Color of the back.</param>
         /// <param name="pattern">The pattern.</param>
-        internal PatternBrush(TPixel foreColor, TPixel backColor, Fast2DArray<bool> pattern)
+        internal PatternBrush(TPixel foreColor, TPixel backColor, DenseMatrix<bool> pattern)
         {
             var foreColorVector = foreColor.ToVector4();
             var backColorVector = backColor.ToVector4();
-            this.pattern = new Fast2DArray<TPixel>(pattern.Width, pattern.Height);
-            this.patternVector = new Fast2DArray<Vector4>(pattern.Width, pattern.Height);
+            this.pattern = new DenseMatrix<TPixel>(pattern.Columns, pattern.Rows);
+            this.patternVector = new DenseMatrix<Vector4>(pattern.Columns, pattern.Rows);
             for (int i = 0; i < pattern.Data.Length; i++)
             {
                 if (pattern.Data[i])
@@ -105,8 +105,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <summary>
             /// The pattern.
             /// </summary>
-            private readonly Fast2DArray<TPixel> pattern;
-            private readonly Fast2DArray<Vector4> patternVector;
+            private readonly DenseMatrix<TPixel> pattern;
+            private readonly DenseMatrix<Vector4> patternVector;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="PatternBrushApplicator" /> class.
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <param name="pattern">The pattern.</param>
             /// <param name="patternVector">The patternVector.</param>
             /// <param name="options">The options</param>
-            public PatternBrushApplicator(ImageFrame<TPixel> source, Fast2DArray<TPixel> pattern, Fast2DArray<Vector4> patternVector, GraphicsOptions options)
+            public PatternBrushApplicator(ImageFrame<TPixel> source, DenseMatrix<TPixel> pattern, DenseMatrix<Vector4> patternVector, GraphicsOptions options)
                 : base(source, options)
             {
                 this.pattern = pattern;
@@ -134,8 +134,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             {
                 get
                 {
-                    x = x % this.pattern.Width;
-                    y = y % this.pattern.Height;
+                    x = x % this.pattern.Columns;
+                    y = y % this.pattern.Rows;
 
                     // 2d array index at row/column
                     return this.pattern[y, x];
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
             /// <inheritdoc />
             internal override void Apply(Span<float> scanline, int x, int y)
             {
-                int patternY = y % this.pattern.Height;
+                int patternY = y % this.pattern.Rows;
                 MemoryManager memoryManager = this.Target.MemoryManager;
 
                 using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                     {
                         amountSpan[i] = (scanline[i] * this.Options.BlendPercentage).Clamp(0, 1);
 
-                        int patternX = (x + i) % this.pattern.Width;
+                        int patternX = (x + i) % this.pattern.Columns;
                         overlaySpan[i] = this.pattern[patternY, patternX];
                     }
 

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
@@ -13,17 +13,17 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the 3x3 Laplacian kernel
         /// </summary>
-        public static Fast2DArray<float> Laplacian3x3 => LaplacianKernelFactory.CreateKernel(3);
+        public static DenseMatrix<float> Laplacian3x3 => LaplacianKernelFactory.CreateKernel(3);
 
         /// <summary>
         /// Gets the 5x5 Laplacian kernel
         /// </summary>
-        public static Fast2DArray<float> Laplacian5x5 => LaplacianKernelFactory.CreateKernel(5);
+        public static DenseMatrix<float> Laplacian5x5 => LaplacianKernelFactory.CreateKernel(5);
 
         /// <summary>
         /// Gets the Laplacian of Gaussian kernel.
         /// </summary>
-        public static Fast2DArray<float> LaplacianOfGaussianXY =>
+        public static DenseMatrix<float> LaplacianOfGaussianXY =>
             new float[,]
                 {
                     { 0, 0, -1,  0,  0 },

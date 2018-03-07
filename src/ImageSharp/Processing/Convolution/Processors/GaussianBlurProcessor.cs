@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -73,12 +72,12 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelX { get; }
+        public DenseMatrix<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelY { get; }
+        public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -90,14 +89,14 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
         /// </summary>
         /// <param name="horizontal">Whether to calculate a horizontal kernel.</param>
-        /// <returns>The <see cref="Fast2DArray{T}"/></returns>
-        private Fast2DArray<float> CreateGaussianKernel(bool horizontal)
+        /// <returns>The <see cref="DenseMatrix{T}"/></returns>
+        private DenseMatrix<float> CreateGaussianKernel(bool horizontal)
         {
             int size = this.kernelSize;
             float weight = this.Sigma;
-            Fast2DArray<float> kernel = horizontal
-                ? new Fast2DArray<float>(size, 1)
-                : new Fast2DArray<float>(1, size);
+            DenseMatrix<float> kernel = horizontal
+                ? new DenseMatrix<float>(size, 1)
+                : new DenseMatrix<float>(1, size);
 
             float sum = 0F;
             float midpoint = (size - 1) / 2F;

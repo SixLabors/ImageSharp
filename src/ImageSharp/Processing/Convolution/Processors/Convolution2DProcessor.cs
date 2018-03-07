@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
     /// <summary>
     /// Defines a processor that uses two one-dimensional matrices to perform convolution against an image.
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2DProcessor(Fast2DArray<float> kernelX, Fast2DArray<float> kernelY)
+        public Convolution2DProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -32,20 +33,20 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelX { get; }
+        public DenseMatrix<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelY { get; }
+        public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            int kernelYHeight = this.KernelY.Height;
-            int kernelYWidth = this.KernelY.Width;
-            int kernelXHeight = this.KernelX.Height;
-            int kernelXWidth = this.KernelX.Width;
+            int kernelYHeight = this.KernelY.Rows;
+            int kernelYWidth = this.KernelY.Columns;
+            int kernelXHeight = this.KernelX.Rows;
+            int kernelXWidth = this.KernelX.Columns;
             int radiusY = kernelYHeight >> 1;
             int radiusX = kernelXWidth >> 1;
 

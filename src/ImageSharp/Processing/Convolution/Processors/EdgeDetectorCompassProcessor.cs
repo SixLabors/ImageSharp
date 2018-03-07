@@ -4,10 +4,9 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Filters.Processors;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -31,42 +30,42 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the North gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> North { get; }
+        public abstract DenseMatrix<float> North { get; }
 
         /// <summary>
         /// Gets the NorthWest gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> NorthWest { get; }
+        public abstract DenseMatrix<float> NorthWest { get; }
 
         /// <summary>
         /// Gets the West gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> West { get; }
+        public abstract DenseMatrix<float> West { get; }
 
         /// <summary>
         /// Gets the SouthWest gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> SouthWest { get; }
+        public abstract DenseMatrix<float> SouthWest { get; }
 
         /// <summary>
         /// Gets the South gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> South { get; }
+        public abstract DenseMatrix<float> South { get; }
 
         /// <summary>
         /// Gets the SouthEast gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> SouthEast { get; }
+        public abstract DenseMatrix<float> SouthEast { get; }
 
         /// <summary>
         /// Gets the East gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> East { get; }
+        public abstract DenseMatrix<float> East { get; }
 
         /// <summary>
         /// Gets the NorthEast gradient operator
         /// </summary>
-        public abstract Fast2DArray<float> NorthEast { get; }
+        public abstract DenseMatrix<float> NorthEast { get; }
 
         /// <inheritdoc/>
         public bool Grayscale { get; }
@@ -83,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            Fast2DArray<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
+            DenseMatrix<float>[] kernels = { this.North, this.NorthWest, this.West, this.SouthWest, this.South, this.SouthEast, this.East, this.NorthEast };
 
             int startY = sourceRectangle.Y;
             int endY = sourceRectangle.Bottom;

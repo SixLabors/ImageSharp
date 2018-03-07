@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Dithering
 {
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Dithering
     /// </summary>
     public class OrderedDither : IOrderedDither
     {
-        private readonly Fast2DArray<uint> thresholdMatrix;
+        private readonly DenseMatrix<uint> thresholdMatrix;
         private readonly int modulusX;
         private readonly int modulusY;
 
@@ -21,17 +21,17 @@ namespace SixLabors.ImageSharp.Dithering
         /// <param name="length">The length of the matrix sides</param>
         public OrderedDither(uint length)
         {
-            Fast2DArray<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
-            this.modulusX = ditherMatrix.Width;
-            this.modulusY = ditherMatrix.Height;
+            DenseMatrix<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
+            this.modulusX = ditherMatrix.Columns;
+            this.modulusY = ditherMatrix.Rows;
 
             // Adjust the matrix range for 0-255
             // It looks like it's actually possible to dither an image using it's own colors. We should investigate for V2
             // https://stackoverflow.com/questions/12422407/monochrome-dithering-in-javascript-bayer-atkinson-floyd-steinberg
             int multiplier = 256 / ditherMatrix.Count;
-            for (int y = 0; y < ditherMatrix.Height; y++)
+            for (int y = 0; y < ditherMatrix.Rows; y++)
             {
-                for (int x = 0; x < ditherMatrix.Width; x++)
+                for (int x = 0; x < ditherMatrix.Columns; x++)
                 {
                     ditherMatrix[y, x] = (uint)((ditherMatrix[y, x] + 1) * multiplier) - 1;
                 }

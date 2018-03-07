@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the North gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschNorth =>
+        public static DenseMatrix<float> KirschNorth =>
             new float[,]
             {
                { 5,  5,  5 },
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the NorthWest gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschNorthWest =>
+        public static DenseMatrix<float> KirschNorthWest =>
             new float[,]
             {
                { 5,  5, -3 },
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the West gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschWest =>
+        public static DenseMatrix<float> KirschWest =>
             new float[,]
             {
                { 5, -3, -3 },
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the SouthWest gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschSouthWest =>
+        public static DenseMatrix<float> KirschSouthWest =>
             new float[,]
             {
                { -3, -3, -3 },
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the South gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschSouth =>
+        public static DenseMatrix<float> KirschSouth =>
             new float[,]
             {
                { -3, -3, -3 },
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the SouthEast gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschSouthEast =>
+        public static DenseMatrix<float> KirschSouthEast =>
             new float[,]
             {
                { -3, -3, -3 },
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the East gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschEast =>
+        public static DenseMatrix<float> KirschEast =>
             new float[,]
             {
                { -3, -3, 5 },
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the NorthEast gradient operator
         /// </summary>
-        public static Fast2DArray<float> KirschNorthEast =>
+        public static DenseMatrix<float> KirschNorthEast =>
             new float[,]
             {
                { -3,  5,  5 },

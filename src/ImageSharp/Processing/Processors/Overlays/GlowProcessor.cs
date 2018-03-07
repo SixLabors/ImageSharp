@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Overlays

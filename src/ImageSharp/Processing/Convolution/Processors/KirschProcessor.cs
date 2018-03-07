@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
@@ -23,27 +23,27 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         }
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> North => KirshKernels.KirschNorth;
+        public override DenseMatrix<float> North => KirshKernels.KirschNorth;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> NorthWest => KirshKernels.KirschNorthWest;
+        public override DenseMatrix<float> NorthWest => KirshKernels.KirschNorthWest;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> West => KirshKernels.KirschWest;
+        public override DenseMatrix<float> West => KirshKernels.KirschWest;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> SouthWest => KirshKernels.KirschSouthWest;
+        public override DenseMatrix<float> SouthWest => KirshKernels.KirschSouthWest;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> South => KirshKernels.KirschSouth;
+        public override DenseMatrix<float> South => KirshKernels.KirschSouth;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> SouthEast => KirshKernels.KirschSouthEast;
+        public override DenseMatrix<float> SouthEast => KirshKernels.KirschSouthEast;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> East => KirshKernels.KirschEast;
+        public override DenseMatrix<float> East => KirshKernels.KirschEast;
 
         /// <inheritdoc/>
-        public override Fast2DArray<float> NorthEast => KirshKernels.KirschNorthEast;
+        public override DenseMatrix<float> NorthEast => KirshKernels.KirschNorthEast;
     }
 }

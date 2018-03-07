@@ -3,7 +3,8 @@
 
 using System;
 using System.Linq;
-using SixLabors.ImageSharp.Memory;
+
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -33,7 +34,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Gets the two dimensional matrix with size of Input-Channels x Output-Channels
         /// </summary>
-        public Fast2DArray<float> MatrixIxO { get; }
+        public DenseMatrix<float> MatrixIxO { get; }
 
         /// <summary>
         /// Gets the one dimensional matrix with size of Output-Channels x 1
@@ -60,18 +61,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         private bool EqualsMatrix(IccMatrixProcessElement element)
         {
-            for (int x = 0; x < this.MatrixIxO.Width; x++)
-            {
-                for (int y = 0; y < this.MatrixIxO.Height; y++)
-                {
-                    if (this.MatrixIxO[x, y] != element.MatrixIxO[x, y])
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
+            return this.MatrixIxO.Equals(element.MatrixIxO);
         }
     }
 }

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Dithering
 {
@@ -16,8 +16,8 @@ namespace SixLabors.ImageSharp.Dithering
         /// <see href="https://en.wikipedia.org/wiki/Ordered_dithering"/>
         /// </summary>
         /// <param name="length">The length of the matrix sides</param>
-        /// <returns>The <see cref="Fast2DArray{T}"/></returns>
-        public static Fast2DArray<uint> CreateDitherMatrix(uint length)
+        /// <returns>The <see cref="DenseMatrix{T}"/></returns>
+        public static DenseMatrix<uint> CreateDitherMatrix(uint length)
         {
             // Calculate the the logarithm of length to the base 2
             uint exponent = 0;
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Dithering
             while (length > bayerLength);
 
             // Create our Bayer matrix that matches the given exponent and dimensions
-            var matrix = new Fast2DArray<uint>((int)length);
+            var matrix = new DenseMatrix<uint>((int)length);
             uint i = 0;
             for (int y = 0; y < length; y++)
             {
@@ -81,9 +81,9 @@ namespace SixLabors.ImageSharp.Dithering
             uint result = 0;
             for (uint i = 0; i < order; ++i)
             {
-                uint xOdd_XOR_yOdd = (x & 1) ^ (y & 1);
+                uint xOddXorYOdd = (x & 1) ^ (y & 1);
                 uint xOdd = x & 1;
-                result = ((result << 1 | xOdd_XOR_yOdd) << 1) | xOdd;
+                result = ((result << 1 | xOddXorYOdd) << 1) | xOdd;
                 x >>= 1;
                 y >>= 1;
             }

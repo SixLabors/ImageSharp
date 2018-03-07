@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Dithering.Base;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Dithering
 {
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Dithering
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private static readonly Fast2DArray<float> AtkinsonMatrix =
+        private static readonly DenseMatrix<float> AtkinsonMatrix =
             new float[,]
             {
                { 0, 0, 1, 1 },

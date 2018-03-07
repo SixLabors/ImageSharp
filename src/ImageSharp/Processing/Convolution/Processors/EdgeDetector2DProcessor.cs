@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Filters.Processors;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -22,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetector2DProcessor(Fast2DArray<float> kernelX, Fast2DArray<float> kernelY, bool grayscale)
+        protected EdgeDetector2DProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY, bool grayscale)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -32,12 +31,12 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelX { get; }
+        public DenseMatrix<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelY { get; }
+        public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
         public bool Grayscale { get; set; }

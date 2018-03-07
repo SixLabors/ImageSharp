@@ -5,8 +5,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Dithering.Base
 {
@@ -38,21 +38,21 @@ namespace SixLabors.ImageSharp.Dithering.Base
         /// <summary>
         /// The diffusion matrix
         /// </summary>
-        private readonly Fast2DArray<float> matrix;
+        private readonly DenseMatrix<float> matrix;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorDiffuserBase"/> class.
         /// </summary>
         /// <param name="matrix">The dithering matrix.</param>
         /// <param name="divisor">The divisor.</param>
-        internal ErrorDiffuserBase(Fast2DArray<float> matrix, byte divisor)
+        internal ErrorDiffuserBase(DenseMatrix<float> matrix, byte divisor)
         {
             Guard.NotNull(matrix, nameof(matrix));
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));
 
             this.matrix = matrix;
-            this.matrixWidth = this.matrix.Width;
-            this.matrixHeight = this.matrix.Height;
+            this.matrixWidth = this.matrix.Columns;
+            this.matrixHeight = this.matrix.Rows;
             this.divisorVector = new Vector4(divisor);
 
             this.startingOffset = 0;

@@ -10,6 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
+    using SixLabors.ImageSharp.Primitives;
     using SixLabors.ImageSharp.Processing.Processors.Overlays;
 
     public class VignetteTest : BaseImageOperationsExtensionTest

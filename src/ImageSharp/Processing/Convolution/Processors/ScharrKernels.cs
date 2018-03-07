@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public static Fast2DArray<float> ScharrX =>
+        public static DenseMatrix<float> ScharrX =>
             new float[,]
                 {
                     { -3, 0, 3 },
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public static Fast2DArray<float> ScharrY =>
+        public static DenseMatrix<float> ScharrY =>
             new float[,]
             {
                 { 3, 10, 3 },

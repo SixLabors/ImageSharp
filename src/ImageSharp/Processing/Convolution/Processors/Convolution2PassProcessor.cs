@@ -4,13 +4,13 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 {
     /// <summary>
     /// Defines a processor that uses two one-dimensional matrices to perform two-pass convolution against an image.
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </summary>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
-        public Convolution2PassProcessor(Fast2DArray<float> kernelX, Fast2DArray<float> kernelY)
+        public Convolution2PassProcessor(DenseMatrix<float> kernelX, DenseMatrix<float> kernelY)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -33,12 +33,12 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Gets the horizontal gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelX { get; }
+        public DenseMatrix<float> KernelX { get; }
 
         /// <summary>
         /// Gets the vertical gradient operator.
         /// </summary>
-        public Fast2DArray<float> KernelY { get; }
+        public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -67,11 +67,11 @@ namespace SixLabors.ImageSharp.Processing.Processors
             Buffer2D<TPixel> targetPixels,
             Buffer2D<TPixel> sourcePixels,
             Rectangle sourceRectangle,
-            Fast2DArray<float> kernel,
+            DenseMatrix<float> kernel,
             ParallelOptions parallelOptions)
         {
-            int kernelHeight = kernel.Height;
-            int kernelWidth = kernel.Width;
+            int kernelHeight = kernel.Rows;
+            int kernelWidth = kernel.Columns;
             int radiusY = kernelHeight >> 1;
             int radiusX = kernelWidth >> 1;
 

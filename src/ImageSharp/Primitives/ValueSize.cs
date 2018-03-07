@@ -4,7 +4,7 @@
 using System;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
     /// Represents a value in relation to a value on the image
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// The different vlaue types
+        /// Enumerates the different value types
         /// </summary>
         public enum ValueSizeType
         {
@@ -121,9 +121,21 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            return obj is ValueSize size && this.Equals(size);
+        }
+
+        /// <inheritdoc/>
         public bool Equals(ValueSize other)
         {
             return this.Type == other.Type && this.Value.Equals(other.Value);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return HashHelpers.Combine(this.Value.GetHashCode(), this.Type.GetHashCode());
         }
     }
 }

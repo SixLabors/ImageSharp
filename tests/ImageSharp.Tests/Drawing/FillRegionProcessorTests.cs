@@ -12,6 +12,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Processing;
+
     public class FillRegionProcessorTests
     {
         [Theory]

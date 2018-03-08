@@ -7,16 +7,18 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
+    using SixLabors.ImageSharp.Primitives;
+
     public class OrderedDitherFactoryTests
     {
-        private static readonly Fast2DArray<uint> Expected2x2Matrix = new Fast2DArray<uint>(
+        private static readonly DenseMatrix<uint> Expected2x2Matrix = new DenseMatrix<uint>(
         new uint[2, 2]
         {
             { 0, 2 },
             { 3, 1 }
         });
 
-        private static readonly Fast2DArray<uint> Expected3x3Matrix = new Fast2DArray<uint>(
+        private static readonly DenseMatrix<uint> Expected3x3Matrix = new DenseMatrix<uint>(
         new uint[3, 3]
         {
             { 0, 5, 2 },
@@ -24,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             { 3, 6, 1 }
         });
 
-        private static readonly Fast2DArray<uint> Expected4x4Matrix = new Fast2DArray<uint>(
+        private static readonly DenseMatrix<uint> Expected4x4Matrix = new DenseMatrix<uint>(
         new uint[4, 4]
         {
             {  0, 8, 2, 10 },
@@ -33,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             { 15, 7, 13, 5 }
         });
 
-        private static readonly Fast2DArray<uint> Expected8x8Matrix = new Fast2DArray<uint>(
+        private static readonly DenseMatrix<uint> Expected8x8Matrix = new DenseMatrix<uint>(
         new uint[8, 8]
         {
             {  0, 32,  8, 40,  2, 34, 10, 42 },
@@ -50,10 +52,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void OrderedDitherFactoryCreatesCorrect2x2Matrix()
         {
-            Fast2DArray<uint> actual = OrderedDitherFactory.CreateDitherMatrix(2);
-            for (int y = 0; y < actual.Height; y++)
+            DenseMatrix<uint> actual = OrderedDitherFactory.CreateDitherMatrix(2);
+            for (int y = 0; y < actual.Rows; y++)
             {
-                for (int x = 0; x < actual.Width; x++)
+                for (int x = 0; x < actual.Columns; x++)
                 {
                     Assert.Equal(Expected2x2Matrix[y, x], actual[y, x]);
                 }
@@ -63,10 +65,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void OrderedDitherFactoryCreatesCorrect3x3Matrix()
         {
-            Fast2DArray<uint> actual = OrderedDitherFactory.CreateDitherMatrix(3);
-            for (int y = 0; y < actual.Height; y++)
+            DenseMatrix<uint> actual = OrderedDitherFactory.CreateDitherMatrix(3);
+            for (int y = 0; y < actual.Rows; y++)
             {
-                for (int x = 0; x < actual.Width; x++)
+                for (int x = 0; x < actual.Columns; x++)
                 {
                     Assert.Equal(Expected3x3Matrix[y, x], actual[y, x]);
                 }
@@ -76,10 +78,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void OrderedDitherFactoryCreatesCorrect4x4Matrix()
         {
-            Fast2DArray<uint> actual = OrderedDitherFactory.CreateDitherMatrix(4);
-            for (int y = 0; y < actual.Height; y++)
+            DenseMatrix<uint> actual = OrderedDitherFactory.CreateDitherMatrix(4);
+            for (int y = 0; y < actual.Rows; y++)
             {
-                for (int x = 0; x < actual.Width; x++)
+                for (int x = 0; x < actual.Columns; x++)
                 {
                     Assert.Equal(Expected4x4Matrix[y, x], actual[y, x]);
                 }
@@ -89,10 +91,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void OrderedDitherFactoryCreatesCorrect8x8Matrix()
         {
-            Fast2DArray<uint> actual = OrderedDitherFactory.CreateDitherMatrix(8);
-            for (int y = 0; y < actual.Height; y++)
+            DenseMatrix<uint> actual = OrderedDitherFactory.CreateDitherMatrix(8);
+            for (int y = 0; y < actual.Rows; y++)
             {
-                for (int x = 0; x < actual.Width; x++)
+                for (int x = 0; x < actual.Columns; x++)
                 {
                     Assert.Equal(Expected8x8Matrix[y, x], actual[y, x]);
                 }

@@ -8,6 +8,8 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Issues
 {
+    using SixLabors.ImageSharp.Processing;
+
     public class Issue412
     {
         [Theory]

@@ -10,6 +10,8 @@ using SixLabors.ImageSharp.Formats.Png;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    using SixLabors.ImageSharp.Processing;
+
     public class PngSmokeTests
     {
         [Theory]

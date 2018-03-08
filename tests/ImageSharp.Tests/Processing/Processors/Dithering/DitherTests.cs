@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Dithering;
 
     public class DitherTests : FileTestBase

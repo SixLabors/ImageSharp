@@ -4,14 +4,27 @@
 using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the processing of images to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class ProcessingExtensions
     {
+        /// <summary>
+        /// Applies the given operation to the mutable image.
+        /// Useful when we need to extract information like Width/Height to parametrize the next operation working on the <see cref="IImageProcessingContext{TPixel}"/> chain.
+        /// To achieve this the method actually implements an "inline" <see cref="IImageProcessor{TPixel}"/> with <paramref name="operation"/> as it's processing logic.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image to mutate.</param>
+        /// <param name="operation">The operation to perform on the source.</param>
+        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
+        public static IImageProcessingContext<TPixel> Apply<TPixel>(this IImageProcessingContext<TPixel> source, Action<Image<TPixel>> operation)
+            where TPixel : struct, IPixel<TPixel> => source.ApplyProcessor(new DelegateProcessor<TPixel>(operation));
+
         /// <summary>
         /// Mutates the source image by applying the image operation to it.
         /// </summary>
@@ -52,7 +65,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to clone.</param>
         /// <param name="operation">The operation to perform on the clone.</param>
-        /// <returns>The new <see cref="Image{TPixel}"/></returns>
+        /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
         public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, Action<IImageProcessingContext<TPixel>> operation)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -70,7 +83,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to clone.</param>
         /// <param name="operations">The operations to perform on the clone.</param>
-        /// <returns>The new <see cref="Image{TPixel}"/></returns>
+        /// <returns>The new <see cref="SixLabors.ImageSharp.Image{TPixel}"/></returns>
         public static Image<TPixel> Clone<TPixel>(this Image<TPixel> source, params IImageProcessor<TPixel>[] operations)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -83,14 +96,14 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Applies the given <see cref="IImageProcessor{TPixel}"/> collection against the context
+        /// Applies the given <see cref="SixLabors.ImageSharp.IImageProcessor{TPixel}"/> collection against the context
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image processing context.</param>
         /// <param name="operations">The operations to perform on the source.</param>
-        /// <returns>The <see cref="IImageProcessingContext{TPixel}"/> to allow chaining of operations.</returns>
+        /// <returns>The <see cref="IImageProcessor{TPixel}"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext<TPixel> ApplyProcessors<TPixel>(this IImageProcessingContext<TPixel> source, params IImageProcessor<TPixel>[] operations)
-                where TPixel : struct, IPixel<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             foreach (IImageProcessor<TPixel> p in operations)
             {

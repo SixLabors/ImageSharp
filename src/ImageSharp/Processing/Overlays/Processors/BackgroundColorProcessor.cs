@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Overlays.Processors
 {
     /// <summary>
     /// Sets the background color of the image.
@@ -17,18 +17,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
     internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly MemoryManager memoryManager;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundColorProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="color">The <typeparamref name="TPixel"/> to set the background color to.</param>
         /// <param name="options">The options defining blending algorithm and amount.</param>
-        public BackgroundColorProcessor(MemoryManager memoryManager, TPixel color, GraphicsOptions options)
+        public BackgroundColorProcessor(TPixel color, GraphicsOptions options)
         {
             this.Value = color;
-            this.memoryManager = memoryManager;
             this.GraphicsOptions = options;
         }
 
@@ -69,13 +65,14 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
             int width = maxX - minX;
 
-            using (IBuffer<TPixel> colors = this.memoryManager.Allocate<TPixel>(width))
-            using (IBuffer<float> amount = this.memoryManager.Allocate<float>(width))
+            using (IBuffer<TPixel> colors = source.MemoryManager.Allocate<TPixel>(width))
+            using (IBuffer<float> amount = source.MemoryManager.Allocate<float>(width))
             {
                 // Be careful! Do not capture colorSpan & amountSpan in the lambda below!
                 Span<TPixel> colorSpan = colors.Span;
                 Span<float> amountSpan = amount.Span;
 
+                // TODO: Use Span.Fill?
                 for (int i = 0; i < width; i++)
                 {
                     colorSpan[i] = this.Value;
@@ -92,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                         Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
 
                         // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
-                        blender.Blend(this.memoryManager, destination, colors.Span, destination, amount.Span);
+                        blender.Blend(source.MemoryManager, destination, colors.Span, destination, amount.Span);
                     });
             }
         }

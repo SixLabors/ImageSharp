@@ -10,6 +10,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Processing;
+
     public class RecolorImageTest : FileTestBase
     {
         [Fact]

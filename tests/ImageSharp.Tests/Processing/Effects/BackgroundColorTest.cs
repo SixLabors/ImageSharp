@@ -8,6 +8,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
+    using SixLabors.ImageSharp.Processing.Overlays;
+    using SixLabors.ImageSharp.Processing.Overlays.Processors;
+
     public class BackgroundColorTest : BaseImageOperationsExtensionTest
     {
         [Fact]

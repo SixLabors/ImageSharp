@@ -3,16 +3,15 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.ImageSharp.Processing.Processors.Overlays;
+using SixLabors.ImageSharp.Processing.Overlays.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Overlays
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the application of a radial glow to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class VignetteExtensions
     {
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -22,9 +21,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Vignette(source, GraphicsOptions.Default);
-        }
+            => Vignette(source, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -35,9 +32,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Vignette(source, color, GraphicsOptions.Default);
-        }
+            => Vignette(source, color, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -49,9 +44,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, float radiusX, float radiusY)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Vignette(source, radiusX, radiusY, GraphicsOptions.Default);
-        }
+            => Vignette(source, radiusX, radiusY, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -64,9 +57,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Vignette(source, rectangle, GraphicsOptions.Default);
-        }
+            => Vignette(source, rectangle, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -82,7 +73,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radiusX, float radiusY, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-         => source.Vignette(color, radiusX, radiusY, rectangle, GraphicsOptions.Default);
+            => source.Vignette(color, radiusX, radiusY, rectangle, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -93,7 +84,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.VignetteInternal(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
+            => source.VignetteInternal(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -105,7 +96,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.VignetteInternal(color, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
+            => source.VignetteInternal(color, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -118,7 +109,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, float radiusX, float radiusY, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.VignetteInternal(NamedColors<TPixel>.Black, radiusX, radiusY, options);
+            => source.VignetteInternal(NamedColors<TPixel>.Black, radiusX, radiusY, options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -132,7 +123,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.VignetteInternal(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), rectangle, options);
+            => source.VignetteInternal(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(.5f), ValueSize.PercentageOfHeight(.5f), rectangle, options);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -149,7 +140,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Vignette<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radiusX, float radiusY, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-         => source.VignetteInternal(color, radiusX, radiusY, rectangle, options);
+            => source.VignetteInternal(color, radiusX, radiusY, rectangle, options);
 
         private static IImageProcessingContext<TPixel> VignetteInternal<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radiusX, ValueSize radiusY, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>

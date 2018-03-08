@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Overlays
+namespace SixLabors.ImageSharp.Processing.Overlays.Processors
 {
     /// <summary>
     /// An <see cref="IImageProcessor{TPixel}"/> that applies a radial vignette effect to an <see cref="Image{TPixel}"/>.

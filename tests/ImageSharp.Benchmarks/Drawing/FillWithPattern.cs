@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using SixLabors.ImageSharp.Drawing.Brushes;
     using CoreBrushes = ImageSharp.Drawing.Brushes.Brushes;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
 
     public class FillWithPattern
     {

@@ -10,6 +10,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Overlays;
+
     public class LineTests : FileTestBase
     {
         [Fact]

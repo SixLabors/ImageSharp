@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using System.Numerics;
 
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
 
     public class DrawPolygon : BenchmarkBase
     {

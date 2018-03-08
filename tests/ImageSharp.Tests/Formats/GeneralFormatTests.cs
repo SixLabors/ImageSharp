@@ -14,6 +14,8 @@ namespace SixLabors.ImageSharp.Tests
 {
     using System;
 
+    using SixLabors.ImageSharp.Processing;
+
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]

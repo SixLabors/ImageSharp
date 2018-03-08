@@ -1,18 +1,42 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Overlays.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Overlays
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the application of a background color to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class BackgroundColorExtensions
     {
+        /// <summary>
+        /// Replaces the background color of image with the given one.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="color">The color to set as the background.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color)
+            where TPixel : struct, IPixel<TPixel>
+            => BackgroundColor(source, color, GraphicsOptions.Default);
+
+        /// <summary>
+        /// Replaces the background color of image with the given one.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="color">The color to set as the background.</param>
+        /// <param name="rectangle">
+        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+        /// </param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Rectangle rectangle)
+            where TPixel : struct, IPixel<TPixel>
+            => BackgroundColor(source, color, rectangle, GraphicsOptions.Default);
+
         /// <summary>
         /// Replaces the background color of image with the given one.
         /// </summary>
@@ -23,7 +47,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(source.MemoryManager, color, options));
+            => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(color, options));
 
         /// <summary>
         /// Replaces the background color of image with the given one.
@@ -38,35 +62,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(source.MemoryManager, color, options), rectangle);
-
-        /// <summary>
-        /// Replaces the background color of image with the given one.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="color">The color to set as the background.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return BackgroundColor(source, color, GraphicsOptions.Default);
-        }
-
-        /// <summary>
-        /// Replaces the background color of image with the given one.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="color">The color to set as the background.</param>
-        /// <param name="rectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-        /// </param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> BackgroundColor<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return BackgroundColor(source, color, rectangle, GraphicsOptions.Default);
-        }
+            => source.ApplyProcessor(new BackgroundColorProcessor<TPixel>(color, options), rectangle);
     }
 }

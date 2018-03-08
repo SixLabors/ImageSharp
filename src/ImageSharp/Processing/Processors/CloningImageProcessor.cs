@@ -6,10 +6,10 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
-    /// Allows the application of processors to images.
+    /// Allows the application of processing algorithms to a clone of the original image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPixel>

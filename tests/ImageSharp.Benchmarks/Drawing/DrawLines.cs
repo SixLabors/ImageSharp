@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
 
     public class DrawLines : BenchmarkBase
     {

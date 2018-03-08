@@ -11,6 +11,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp.Processing;
+
     public class FillPatternBrushTests : FileTestBase
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
@@ -28,9 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     // lets pick random spots to start checking
                     Random r = new Random();
-                    Fast2DArray<Rgba32> expectedPatternFast = new Fast2DArray<Rgba32>(expectedPattern);
-                    int xStride = expectedPatternFast.Width;
-                    int yStride = expectedPatternFast.Height;
+                    DenseMatrix<Rgba32> expectedPatternFast = new DenseMatrix<Rgba32>(expectedPattern);
+                    int xStride = expectedPatternFast.Columns;
+                    int yStride = expectedPatternFast.Rows;
                     int offsetX = r.Next(image.Width / xStride) * xStride;
                     int offsetY = r.Next(image.Height / yStride) * yStride;
                     for (int x = 0; x < xStride; x++)

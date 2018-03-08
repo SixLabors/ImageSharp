@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests
 
     using Xunit;
     using Xunit.Abstractions;
+    using SixLabors.ImageSharp.Processing;
 
     public class ImageComparerTests
     {

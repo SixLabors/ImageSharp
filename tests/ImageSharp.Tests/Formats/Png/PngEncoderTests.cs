@@ -14,6 +14,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Quantizers;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 

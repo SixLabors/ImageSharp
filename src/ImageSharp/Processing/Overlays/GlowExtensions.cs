@@ -3,16 +3,15 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.ImageSharp.Processing.Processors.Overlays;
+using SixLabors.ImageSharp.Processing.Overlays.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Overlays
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the application of a radial glow to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class GlowExtensions
     {
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -22,9 +21,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Glow(source, GraphicsOptions.Default);
-        }
+            => Glow(source, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -48,9 +45,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, float radius)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return Glow(source, radius, GraphicsOptions.Default);
-        }
+            => Glow(source, radius, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -63,7 +58,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(rectangle, GraphicsOptions.Default);
+            => source.Glow(rectangle, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -78,7 +73,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radius, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(color, ValueSize.Absolute(radius), rectangle, GraphicsOptions.Default);
+            => source.Glow(color, ValueSize.Absolute(radius), rectangle, GraphicsOptions.Default);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -89,7 +84,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(0.5f), options);
+            => source.Glow(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(0.5f), options);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -101,7 +96,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(color, ValueSize.PercentageOfWidth(0.5f), options);
+            => source.Glow(color, ValueSize.PercentageOfWidth(0.5f), options);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -113,7 +108,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, float radius, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(NamedColors<TPixel>.Black, ValueSize.Absolute(radius), options);
+            => source.Glow(NamedColors<TPixel>.Black, ValueSize.Absolute(radius), options);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -127,7 +122,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(0.5f), rectangle, options);
+            => source.Glow(NamedColors<TPixel>.Black, ValueSize.PercentageOfWidth(0.5f), rectangle, options);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -143,7 +138,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float radius, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.Glow(color, ValueSize.Absolute(radius), rectangle, options);
+            => source.Glow(color, ValueSize.Absolute(radius), rectangle, options);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -159,7 +154,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radius, Rectangle rectangle, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options), rectangle);
+            => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options), rectangle);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -172,6 +167,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private static IImageProcessingContext<TPixel> Glow<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, ValueSize radius, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-        => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options));
+            => source.ApplyProcessor(new GlowProcessor<TPixel>(color, radius, options));
     }
 }

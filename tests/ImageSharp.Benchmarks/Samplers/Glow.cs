@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     using BenchmarkDotNet.Attributes;
     using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing.Processors;
+
     using CoreSize = SixLabors.Primitives.Size;
     using SixLabors.ImageSharp.Processing;
     using System.Numerics;
@@ -18,8 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using SixLabors.ImageSharp.Memory;
     using SixLabors.Primitives;
     using SixLabors.ImageSharp.Helpers;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Processing.Processors.Overlays;
+    using SixLabors.ImageSharp.Processing.Overlays.Processors;
 
     public class Glow : BenchmarkBase
     {

@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Dithering.Ordered;
 using SixLabors.ImageSharp.Processing.Dithering.Processors;
 using SixLabors.Primitives;
 
@@ -14,6 +14,16 @@ namespace SixLabors.ImageSharp.Processing.Dithering
     public static class DitherExtensions
     {
         /// <summary>
+        /// Dithers the image reducing it to a web-safe palette using Bayer4x4 ordered dithering.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => Dither(source, Ditherers.BayerDither4x4);
+
+        /// <summary>
         /// Dithers the image reducing it to a web-safe palette using ordered dithering.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -22,10 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither));
-            return source;
-        }
+            => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither));
 
         /// <summary>
         /// Dithers the image reducing it to the given palette using ordered dithering.
@@ -37,10 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither, TPixel[] palette)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither, palette));
-            return source;
-        }
+            => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither, palette));
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using ordered dithering.
@@ -54,10 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither), rectangle);
-            return source;
-        }
+            => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither), rectangle);
 
         /// <summary>
         /// Dithers the image reducing it to the given palette using ordered dithering.
@@ -72,9 +73,6 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source, IOrderedDither dither, TPixel[] palette, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither, palette), rectangle);
-            return source;
-        }
+            => source.ApplyProcessor(new OrderedDitherPaletteProcessor<TPixel>(dither, palette), rectangle);
     }
 }

@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 using SixLabors.ImageSharp.Processing.Dithering.Processors;
 using SixLabors.Primitives;
 
@@ -18,15 +18,33 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => Diffuse(source, Diffusers.FloydSteinberg, .5F);
+
+        /// <summary>
+        /// Dithers the image reducing it to a web-safe palette using error diffusion.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, float threshold)
+            where TPixel : struct, IPixel<TPixel>
+            => Diffuse(source, Diffusers.FloydSteinberg, threshold);
+
+        /// <summary>
+        /// Dithers the image reducing it to a web-safe palette using error diffusion.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="source">The image this method extends.</param>
         /// <param name="diffuser">The diffusion algorithm to apply.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold));
-            return source;
-        }
+            => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold));
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using error diffusion.
@@ -41,10 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold), rectangle);
-            return source;
-        }
+            => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold), rectangle);
 
         /// <summary>
         /// Dithers the image reducing it to the given palette using error diffusion.
@@ -57,10 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, TPixel[] palette)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold, palette));
-            return source;
-        }
+            => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold, palette));
 
         /// <summary>
         /// Dithers the image reducing it to the given palette using error diffusion.
@@ -76,9 +88,6 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, IErrorDiffuser diffuser, float threshold, TPixel[] palette, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold, palette), rectangle);
-            return source;
-        }
+            => source.ApplyProcessor(new ErrorDiffusionPaletteProcessor<TPixel>(diffuser, threshold, palette), rectangle);
     }
 }

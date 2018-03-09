@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.Dithering
+namespace SixLabors.ImageSharp.Processing.Dithering.Ordered
 {
     /// <summary>
     /// An ordered dithering matrix with equal sides of arbitrary length
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Dithering
             this.modulusY = ditherMatrix.Rows;
 
             // Adjust the matrix range for 0-255
-            // It looks like it's actually possible to dither an image using it's own colors. We should investigate for V2
+            // TODO: It looks like it's actually possible to dither an image using it's own colors. We should investigate for V2
             // https://stackoverflow.com/questions/12422407/monochrome-dithering-in-javascript-bayer-atkinson-floyd-steinberg
             int multiplier = 256 / ditherMatrix.Count;
             for (int y = 0; y < ditherMatrix.Rows; y++)

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Dithering
+namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
 {
     /// <summary>
     /// Contains reusable static instances of known error diffusion algorithms

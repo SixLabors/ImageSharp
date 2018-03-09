@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         };
 
 
-        private static IOrderedDither DefaultDitherer => Dithering.Ditherers.BayerDither4x4;
+        private static IOrderedDither DefaultDitherer => Ditherers.BayerDither4x4;
 
         private static IErrorDiffuser DefaultErrorDiffuser => Diffusers.Atkinson;
 

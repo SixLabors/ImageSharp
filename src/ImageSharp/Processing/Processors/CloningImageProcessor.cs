@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 #else
             catch (Exception ex)
             {
-                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
 #endif
             }
         }

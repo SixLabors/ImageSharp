@@ -11,6 +11,8 @@ using SixLabors.ImageSharp.Helpers;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class AffineTransformTests
     {
         private readonly ITestOutputHelper Output;
@@ -236,7 +238,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel[] data = new TPixel[image.Width * image.Height];
+            var data = new TPixel[image.Width * image.Height];
             image.Frames.RootFrame.SavePixelData(data);
             var rgba = default(Rgba32);
             var white = new Rgb24(255, 255, 255);

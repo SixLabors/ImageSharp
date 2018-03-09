@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// Provides the base methods to perform affine transforms on an image.
@@ -208,8 +208,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// The <see cref="Matrix3x2"/>.
         /// </returns>
         protected virtual Matrix3x2 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
-        {
-            return this.TransformMatrix;
-        }
+            => this.TransformMatrix;
     }
 }

@@ -7,6 +7,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Transforms;
 
     public class CropTest : FileTestBase
     {

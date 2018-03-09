@@ -10,9 +10,10 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// Provides methods that allow the resizing of images using various algorithms.
@@ -212,38 +213,39 @@ namespace SixLabors.ImageSharp.Processing.Processors
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetMemoryManager(), this.Width, this.Height, x.MetaData.Clone())); // this will create places holders
+            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetMemoryManager(), this.Width, this.Height, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
         }
 
         /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void BeforeImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
         {
             if (!(this.Sampler is NearestNeighborResampler))
             {
-                // TODO: Optimization opportunity: if we could assume that all frames are of the same size, we can move this into 'BeforeImageApply()`
+                // Since all image frame dimensions have to be the same we can calculate this for all frames.
+                MemoryManager memoryManager = source.GetMemoryManager();
                 this.horizontalWeights = this.PrecomputeWeights(
-                    source.MemoryManager,
+                    memoryManager,
                     this.ResizeRectangle.Width,
                     sourceRectangle.Width);
 
                 this.verticalWeights = this.PrecomputeWeights(
-                    source.MemoryManager,
+                    memoryManager,
                     this.ResizeRectangle.Height,
                     sourceRectangle.Height);
             }
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> cloned, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
         {
-            // Jump out, we'll deal with that later.
-            if (source.Width == cloned.Width && source.Height == cloned.Height && sourceRectangle == this.ResizeRectangle)
+            // Handle resize dimensions identical to the original
+            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.ResizeRectangle)
             {
                 // the cloned will be blank here copy all the pixel data over
-                source.GetPixelSpan().CopyTo(cloned.GetPixelSpan());
+                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
 
@@ -275,7 +277,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     {
                         // Y coordinates of source points
                         Span<TPixel> sourceRow = source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
-                        Span<TPixel> targetRow = cloned.GetPixelRowSpan(y);
+                        Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
                         for (int x = minX; x < maxX; x++)
                         {
@@ -336,18 +338,18 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     {
                         // Ensure offsets are normalized for cropping and padding.
                         WeightsWindow window = this.verticalWeights.Weights[y - startY];
-                        Span<TPixel> targetRow = cloned.GetPixelRowSpan(y);
+                        Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
 
                         if (this.Compand)
                         {
                             for (int x = 0; x < width; x++)
                             {
                                 // Destination color components
-                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
-                                destination = destination.Compress();
+                                Vector4 destinationVector = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
+                                destinationVector = destinationVector.Compress();
 
                                 ref TPixel pixel = ref targetRow[x];
-                                pixel.PackFromVector4(destination);
+                                pixel.PackFromVector4(destinationVector);
                             }
                         }
                         else
@@ -355,10 +357,10 @@ namespace SixLabors.ImageSharp.Processing.Processors
                             for (int x = 0; x < width; x++)
                             {
                                 // Destination color components
-                                Vector4 destination = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
+                                Vector4 destinationVector = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
 
                                 ref TPixel pixel = ref targetRow[x];
-                                pixel.PackFromVector4(destination);
+                                pixel.PackFromVector4(destinationVector);
                             }
                         }
                     });

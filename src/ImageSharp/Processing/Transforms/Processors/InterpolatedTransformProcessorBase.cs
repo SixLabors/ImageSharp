@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// The base class for performing interpolated affine and non-affine transforms.
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <summary>
         /// Calculated the weights for the given point.
         /// This method uses more samples than the upscaled version to ensure edge pixels are correctly rendered.
-        /// Additionally the weights are nomalized.
+        /// Additionally the weights are normalized.
         /// </summary>
         /// <param name="min">The minimum sampling offset</param>
         /// <param name="max">The maximum sampling offset</param>

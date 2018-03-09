@@ -4,23 +4,23 @@
 using System;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Quantizers
+namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
-    /// Represents a quantized image where the pixels indexed by a color palette.
+    /// Represents a quantized image frame where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class QuantizedImage<TPixel>
+    public class QuantizedFrame<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QuantizedImage{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="QuantizedFrame{TPixel}"/> class.
         /// </summary>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="pixels">The quantized pixels.</param>
-        public QuantizedImage(int width, int height, TPixel[] palette, byte[] pixels)
+        public QuantizedFrame(int width, int height, TPixel[] palette, byte[] pixels)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
@@ -39,22 +39,22 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <summary>
-        /// Gets the width of this <see cref="T:QuantizedImage"/>.
+        /// Gets the width of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
         public int Width { get; }
 
         /// <summary>
-        /// Gets the height of this <see cref="T:QuantizedImage"/>.
+        /// Gets the height of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
         public int Height { get; }
 
         /// <summary>
-        /// Gets the color palette of this <see cref="T:QuantizedImage"/>.
+        /// Gets the color palette of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
         public TPixel[] Palette { get; }
 
         /// <summary>
-        /// Gets the pixels of this <see cref="T:QuantizedImage"/>.
+        /// Gets the pixels of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
         public byte[] Pixels { get; }
     }

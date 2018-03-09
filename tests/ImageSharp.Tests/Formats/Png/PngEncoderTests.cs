@@ -1,13 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -15,7 +13,6 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Quantizers;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     public class PngEncoderTests

@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Quantizers
+namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// Provides methods for for allowing quantization of images pixels with configurable dithering.
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Quantizers
         /// <returns>
         /// A <see cref="T:QuantizedImage"/> representing a quantized version of the image pixels.
         /// </returns>
-        QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors);
+        QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors);
     }
 
     /// <summary>

@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
     /// Encapsulates methods to alter the pixels of a new image, cloned from the original image.
@@ -24,9 +24,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <paramref name="source"/> is null.
         /// </exception>
         /// <exception cref="System.ArgumentException">
-        /// <paramref name="sourceRectangle"/> doesnt fit the dimension of the image.
+        /// <paramref name="sourceRectangle"/> doesn't fit the dimension of the image.
         /// </exception>
-        /// <returns>Returns the cloned image after thre processor has been applied to it.</returns>
+        /// <returns>Returns the cloned image after there processor has been applied to it.</returns>
         Image<TPixel> CloneAndApply(Image<TPixel> source, Rectangle sourceRectangle);
     }
 }

@@ -2,16 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers.Base;
 
-namespace SixLabors.ImageSharp.Quantizers
+namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// An implementation of Wu's color quantizer with alpha channel.
@@ -137,7 +136,7 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
+        public override QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -199,14 +198,13 @@ namespace SixLabors.ImageSharp.Quantizers
             return this.palette;
         }
 
-        /// <inheritdoc/>
-        protected override void InitialQuantizePixel(TPixel pixel)
+        /// <summary>
+        /// Quantizes the pixel
+        /// </summary>
+        /// <param name="rgba">The rgba used to quantize the pixel input</param>
+        private void QuantizePixel(ref Rgba32 rgba)
         {
             // Add the color to a 3-D color histogram.
-            // Colors are expected in r->g->b->a format
-            var rgba = default(Rgba32);
-            pixel.ToRgba32(ref rgba);
-
             int r = rgba.R >> (8 - IndexBits);
             int g = rgba.G >> (8 - IndexBits);
             int b = rgba.B >> (8 - IndexBits);
@@ -238,11 +236,16 @@ namespace SixLabors.ImageSharp.Quantizers
             // Loop through each row
             for (int y = 0; y < height; y++)
             {
+                Span<TPixel> row = source.GetPixelRowSpan(y);
+                ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
+
                 // And loop through each column
+                var rgba = default(Rgba32);
                 for (int x = 0; x < width; x++)
                 {
-                    // Now I have the pixel, call the FirstPassQuantize function...
-                    this.InitialQuantizePixel(source[x, y]);
+                    ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
+                    pixel.ToRgba32(ref rgba);
+                    this.QuantizePixel(ref rgba);
                 }
             }
 

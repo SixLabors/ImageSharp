@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Filters.Processors
 {
     /// <summary>
-    /// Provides methods that accept a <see cref="Matrix4x4"/> matrix to apply freeform filters to images.
+    /// Provides methods that accept a <see cref="Matrix4x4"/> matrix to apply free-form filters to images.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>

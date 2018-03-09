@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using SixLabors.Primitives;
     using SixLabors.ImageSharp.Helpers;
     using SixLabors.ImageSharp.Processing.Overlays.Processors;
+    using SixLabors.ImageSharp.Processing.Processors;
 
     public class Glow : BenchmarkBase
     {

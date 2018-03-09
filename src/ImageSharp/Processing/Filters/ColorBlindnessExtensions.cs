@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Filters.Processors;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Filters
@@ -21,10 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Filters
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> ColorBlindness<TPixel>(this IImageProcessingContext<TPixel> source, ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(GetProcessor<TPixel>(colorBlindness));
-            return source;
-        }
+            => source.ApplyProcessor(GetProcessor<TPixel>(colorBlindness));
 
         /// <summary>
         /// Applies the given colorblindness simulator to the image.
@@ -38,10 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Filters
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> ColorBlindness<TPixel>(this IImageProcessingContext<TPixel> source, ColorBlindness colorBlindness, Rectangle rectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(GetProcessor<TPixel>(colorBlindness), rectangle);
-            return source;
-        }
+            => source.ApplyProcessor(GetProcessor<TPixel>(colorBlindness), rectangle);
 
         private static IImageProcessor<TPixel> GetProcessor<TPixel>(ColorBlindness colorBlindness)
             where TPixel : struct, IPixel<TPixel>

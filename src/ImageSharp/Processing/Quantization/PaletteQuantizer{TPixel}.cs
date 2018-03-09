@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers.Base;
 
-namespace SixLabors.ImageSharp.Quantizers
+namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
@@ -49,7 +48,7 @@ namespace SixLabors.ImageSharp.Quantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
+        public override QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
             this.colorMap.Clear();

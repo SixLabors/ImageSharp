@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Drawing.Processors

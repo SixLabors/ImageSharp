@@ -2,24 +2,21 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Drawing.Processors
 {
     /// <summary>
-    /// Usinf a brsuh and a shape fills shape with contents of brush the
+    /// Using a brush and a shape fills shape with contents of brush the
     /// </summary>
     /// <typeparam name="TPixel">The type of the color.</typeparam>
-    /// <seealso cref="ImageSharp.Processing.ImageProcessor{TPixel}" />
+    /// <seealso cref="ImageProcessor{TPixel}" />
     internal class FillRegionProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {

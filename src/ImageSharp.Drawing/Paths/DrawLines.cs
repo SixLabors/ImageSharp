@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 

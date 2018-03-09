@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Effects.Processors

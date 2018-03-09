@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Binarization.Processors;
 using SixLabors.ImageSharp.Processing.Convolution.Processors;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors

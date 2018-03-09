@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
     /// Encapsulates methods to alter the pixels of an image.

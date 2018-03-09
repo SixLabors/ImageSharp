@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 
 namespace SixLabors.ImageSharp.Processing.Dithering.Processors
 {

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// Adjusts an image so that its orientation is suitable for viewing. Adjustments are based on EXIF metadata embedded in the image.
@@ -18,42 +18,42 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            Orientation orientation = GetExifOrientation(source);
+            OrientationType orientation = GetExifOrientation(source);
             Size size = sourceRectangle.Size;
             switch (orientation)
             {
-                case Orientation.TopRight:
+                case OrientationType.TopRight:
                     new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.BottomRight:
+                case OrientationType.BottomRight:
                     new RotateProcessor<TPixel>((int)RotateType.Rotate180, size).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.BottomLeft:
+                case OrientationType.BottomLeft:
                     new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.LeftTop:
+                case OrientationType.LeftTop:
                     new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
                     new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.RightTop:
+                case OrientationType.RightTop:
                     new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.RightBottom:
+                case OrientationType.RightBottom:
                     new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
                     new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.LeftBottom:
+                case OrientationType.LeftBottom:
                     new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
-                case Orientation.Unknown:
-                case Orientation.TopLeft:
+                case OrientationType.Unknown:
+                case OrientationType.TopLeft:
                 default:
                     break;
             }
@@ -62,39 +62,39 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> sourceBase, Rectangle sourceRectangle, Configuration config)
         {
-            // all processing happens at the image level within BeforeImageApply();
+            // All processing happens at the image level within BeforeImageApply();
         }
 
         /// <summary>
         /// Returns the current EXIF orientation
         /// </summary>
         /// <param name="source">The image to auto rotate.</param>
-        /// <returns>The <see cref="Orientation"/></returns>
-        private static Orientation GetExifOrientation(Image<TPixel> source)
+        /// <returns>The <see cref="OrientationType"/></returns>
+        private static OrientationType GetExifOrientation(Image<TPixel> source)
         {
             if (source.MetaData.ExifProfile == null)
             {
-                return Orientation.Unknown;
+                return OrientationType.Unknown;
             }
 
             ExifValue value = source.MetaData.ExifProfile.GetValue(ExifTag.Orientation);
             if (value == null)
             {
-                return Orientation.Unknown;
+                return OrientationType.Unknown;
             }
 
-            Orientation orientation;
+            OrientationType orientation;
             if (value.DataType == ExifDataType.Short)
             {
-                orientation = (Orientation)value.Value;
+                orientation = (OrientationType)value.Value;
             }
             else
             {
-                orientation = (Orientation)Convert.ToUInt16(value.Value);
+                orientation = (OrientationType)Convert.ToUInt16(value.Value);
                 source.MetaData.ExifProfile.RemoveValue(ExifTag.Orientation);
             }
 
-            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)Orientation.TopLeft);
+            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationType.TopLeft);
 
             return orientation;
         }

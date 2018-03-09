@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// The base class for all transform processors. Any processor that changes the dimensions of the image should inherit from this.

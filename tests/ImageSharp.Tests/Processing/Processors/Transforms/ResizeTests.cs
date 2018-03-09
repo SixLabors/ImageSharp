@@ -13,6 +13,8 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class ResizeTests : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };

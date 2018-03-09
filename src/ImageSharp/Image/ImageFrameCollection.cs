@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Encapsulates an imaged collection of frames.
+    /// Encapsulates a collection of frames that make up an image.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     internal sealed class ImageFrameCollection<TPixel> : IImageFrameCollection<TPixel>
@@ -51,10 +51,7 @@ namespace SixLabors.ImageSharp
         public ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
 
         /// <inheritdoc/>
-        public ImageFrame<TPixel> this[int index]
-        {
-            get => this.frames[index];
-        }
+        public ImageFrame<TPixel> this[int index] => this.frames[index];
 
         /// <inheritdoc/>
         public int IndexOf(ImageFrame<TPixel> frame) => this.frames.IndexOf(frame);

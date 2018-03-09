@@ -1,17 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Transforms;
+using SixLabors.ImageSharp.Processing.Transforms.Processors;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     public class RotateFlipTests : BaseImageOperationsExtensionTest
     {
-
         [Theory]
         [InlineData(RotateType.None, FlipType.None, 0)]
         [InlineData(RotateType.Rotate90, FlipType.None, 90)]
@@ -25,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [InlineData(RotateType.Rotate90, FlipType.Vertical, 90)]
         [InlineData(RotateType.Rotate180, FlipType.Vertical, 180)]
         [InlineData(RotateType.Rotate270, FlipType.Vertical, 270)]
-        public void Rotate_degreesFloat_RotateProcessorWithAnglesSetrue(RotateType angle, FlipType flip, float expectedAngle)
+        public void RotateDegreesFloatRotateProcessorWithAnglesSet(RotateType angle, FlipType flip, float expectedAngle)
         {
             this.operations.RotateFlip(angle, flip);
             RotateProcessor<Rgba32> rotateProcessor = this.Verify<RotateProcessor<Rgba32>>(0);

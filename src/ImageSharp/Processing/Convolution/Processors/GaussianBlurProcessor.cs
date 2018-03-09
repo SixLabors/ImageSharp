@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="sigma">The 'sigma' value representing the weight of the blur.</param>
-        public GaussianBlurProcessor(float sigma = 3f)
+        public GaussianBlurProcessor(float sigma = 3F)
         {
             this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
             this.Sigma = sigma;

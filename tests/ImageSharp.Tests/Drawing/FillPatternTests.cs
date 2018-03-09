@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 {
     using SixLabors.ImageSharp.Primitives;
     using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Transforms;
 
     public class FillPatternBrushTests : FileTestBase
     {

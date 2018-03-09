@@ -8,6 +8,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Transforms;
 
     public class ImageRotationTests
     {

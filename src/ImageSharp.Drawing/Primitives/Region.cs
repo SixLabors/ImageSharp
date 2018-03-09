@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Drawing
+namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
     /// Represents a region of an image.

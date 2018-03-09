@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Dithering
+namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
 {
     /// <summary>
     /// Encapsulates properties and methods required to perform diffused error dithering on an image.

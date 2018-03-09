@@ -1,13 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering;
-using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
     using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp.Processing.Dithering.Ordered;
 
     public class OrderedDitherFactoryTests
     {

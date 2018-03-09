@@ -5,9 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 
 namespace SixLabors.ImageSharp.Processing.Quantization
 {
@@ -93,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         }
 
         /// <summary>
-        /// Execute a second pass through the bitmap
+        /// Execute a second pass through the image
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="output">The output pixel array</param>
@@ -102,7 +101,8 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         protected abstract void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height);
 
         /// <summary>
-        /// Retrieve the palette for the quantized image. Can be called more than once so make sure calls are cached.
+        /// Retrieve the palette for the quantized image.
+        /// <remarks>Can be called more than once so make sure calls are cached.</remarks>
         /// </summary>
         /// <returns>
         /// <see cref="T:TPixel[]"/>

@@ -3,9 +3,9 @@
 
 using System;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 

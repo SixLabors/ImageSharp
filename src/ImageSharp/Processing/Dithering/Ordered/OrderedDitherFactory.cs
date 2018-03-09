@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.Dithering
+namespace SixLabors.ImageSharp.Processing.Dithering.Ordered
 {
     /// <summary>
     /// A factory for creating ordered dither matrices.

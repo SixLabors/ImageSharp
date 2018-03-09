@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -13,6 +12,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Binarization;
+    using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
+    using SixLabors.ImageSharp.Processing.Dithering.Ordered;
 
     public class BinaryDitherTests : FileTestBase
     {
@@ -21,12 +22,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
             };
 
-        public static readonly TheoryData<string, IOrderedDither> Ditherers = new TheoryData<string, IOrderedDither>
+        public static readonly TheoryData<string, IOrderedDither> OrderedDitherers = new TheoryData<string, IOrderedDither>
         {
-            { "Bayer8x8", Dithering.Ditherers.BayerDither8x8 },
-            { "Bayer4x4", Dithering.Ditherers.BayerDither4x4 },
-            { "Ordered3x3", Dithering.Ditherers.OrderedDither3x3 },
-            { "Bayer2x2", Dithering.Ditherers.BayerDither2x2 }
+            { "Bayer8x8", Ditherers.BayerDither8x8 },
+            { "Bayer4x4", Ditherers.BayerDither4x4 },
+            { "Ordered3x3", Ditherers.OrderedDither3x3 },
+            { "Bayer2x2", Ditherers.BayerDither2x2 }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
@@ -48,8 +49,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         private static IErrorDiffuser DefaultErrorDiffuser => Diffusers.Atkinson;
 
         [Theory]
-        [WithFileCollection(nameof(CommonTestImages), nameof(Ditherers), DefaultPixelType)]
-        [WithTestPatternImages(nameof(Ditherers), 100, 100, DefaultPixelType)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), DefaultPixelType)]
+        [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, DefaultPixelType)]
         public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {

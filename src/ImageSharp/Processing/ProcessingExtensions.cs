@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <summary>
-        /// Applies the given <see cref="SixLabors.ImageSharp.IImageProcessor{TPixel}"/> collection against the context
+        /// Applies the given <see cref="IImageProcessor{TPixel}"/> collection against the context
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image processing context.</param>

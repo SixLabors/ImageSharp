@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
     /// Allows the application of processors to images.
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing
 #else
             catch (Exception ex)
             {
-                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
 #endif
             }
         }
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing
 #else
             catch (Exception ex)
             {
-                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
 #endif
             }
         }

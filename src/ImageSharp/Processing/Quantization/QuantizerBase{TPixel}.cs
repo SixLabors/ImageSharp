@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Dithering;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Quantizers.Base
+namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// Encapsulates methods to calculate the color palette of an image.
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         public IErrorDiffuser DitherType { get; set; } = Diffusers.FloydSteinberg;
 
         /// <inheritdoc/>
-        public virtual QuantizedImage<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
+        public virtual QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Quantizers.Base
                 this.SecondPass(image, quantizedPixels, width, height);
             }
 
-            return new QuantizedImage<TPixel>(width, height, colorPalette, quantizedPixels);
+            return new QuantizedFrame<TPixel>(width, height, colorPalette, quantizedPixels);
         }
 
         /// <summary>
@@ -90,18 +90,6 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         /// <param name="height">The height in pixels of the image.</param>
         protected virtual void FirstPass(ImageFrame<TPixel> source, int width, int height)
         {
-            // Loop through each row
-            for (int y = 0; y < height; y++)
-            {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-
-                // And loop through each column
-                for (int x = 0; x < width; x++)
-                {
-                    // Now I have the pixel, call the FirstPassQuantize function...
-                    this.InitialQuantizePixel(row[x]);
-                }
-            }
         }
 
         /// <summary>
@@ -112,19 +100,6 @@ namespace SixLabors.ImageSharp.Quantizers.Base
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
         protected abstract void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height);
-
-        /// <summary>
-        /// Override this to process the pixel in the first pass of the algorithm
-        /// TODO: We really should do this on a per-row basis! Shouldn't we internalize this method?
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <remarks>
-        /// This function need only be overridden if your quantize algorithm needs two passes,
-        /// such as an Octree quantizer.
-        /// </remarks>
-        protected virtual void InitialQuantizePixel(TPixel pixel)
-        {
-        }
 
         /// <summary>
         /// Retrieve the palette for the quantized image. Can be called more than once so make sure calls are cached.

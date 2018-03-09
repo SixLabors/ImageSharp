@@ -2,21 +2,18 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Drawing.Processors
 {
     /// <summary>
-    /// Using the bursh as a source of pixels colors blends the brush color with source.
+    /// Using the brush as a source of pixels colors blends the brush color with source.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class FillProcessor<TPixel> : ImageProcessor<TPixel>

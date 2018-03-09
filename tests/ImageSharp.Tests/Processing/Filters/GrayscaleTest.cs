@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
     using SixLabors.ImageSharp.Processing.Filters;
     using SixLabors.ImageSharp.Processing.Filters.Processors;
+    using SixLabors.ImageSharp.Processing.Processors;
 
     public class GrayscaleTest : BaseImageOperationsExtensionTest
     {

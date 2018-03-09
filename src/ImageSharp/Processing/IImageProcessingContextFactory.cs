@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
     /// Represents an interface that will create IInternalImageProcessingContext instances
@@ -16,13 +16,13 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format</typeparam>
         /// <param name="source">The source image.</param>
         /// <param name="mutate">A flag to determine whether image operations are allowed to mutate the source image.</param>
-        /// <returns>A new IImageOPeration</returns>
+        /// <returns>A new <see cref="IInternalImageProcessingContext{TPixel}"/></returns>
         IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate)
             where TPixel : struct, IPixel<TPixel>;
     }
 
     /// <summary>
-    /// The default implmentation of <see cref="IImageProcessingContextFactory"/>
+    /// The default implementation of <see cref="IImageProcessingContextFactory"/>
     /// </summary>
     internal class DefaultImageOperationsProviderFactory : IImageProcessingContextFactory
     {

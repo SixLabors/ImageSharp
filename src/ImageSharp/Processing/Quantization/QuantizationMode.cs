@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// Provides enumeration over how an image should be quantized.
     /// </summary>
-    public enum Quantization
+    public enum QuantizationMode
     {
         /// <summary>
         /// An adaptive Octree quantizer. Fast with good quality.

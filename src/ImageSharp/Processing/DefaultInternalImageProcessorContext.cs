@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -81,9 +80,6 @@ namespace SixLabors.ImageSharp.Processing
             return this.ApplyProcessor(processor, this.GetCurrentBounds());
         }
 
-        private Rectangle GetCurrentBounds()
-        {
-            return this.destination?.Bounds() ?? this.source.Bounds();
-        }
+        private Rectangle GetCurrentBounds() => this.destination?.Bounds() ?? this.source.Bounds();
     }
 }

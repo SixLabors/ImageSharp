@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;

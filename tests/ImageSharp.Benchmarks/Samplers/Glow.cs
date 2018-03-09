@@ -10,14 +10,12 @@ namespace SixLabors.ImageSharp.Benchmarks
     using SixLabors.ImageSharp.PixelFormats;
 
     using CoreSize = SixLabors.Primitives.Size;
-    using SixLabors.ImageSharp.Processing;
     using System.Numerics;
     using System;
     using System.Threading.Tasks;
 
     using SixLabors.ImageSharp.Memory;
     using SixLabors.Primitives;
-    using SixLabors.ImageSharp.Helpers;
     using SixLabors.ImageSharp.Processing.Overlays.Processors;
     using SixLabors.ImageSharp.Processing.Processors;
 

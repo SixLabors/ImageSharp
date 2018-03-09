@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -92,8 +91,9 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
             TPixel vignetteColor = this.VignetteColor;
             Vector2 centre = Rectangle.Center(sourceRectangle);
 
-            float finalRadiusX = this.RadiusX.Calculate(source.Size());
-            float finalRadiusY = this.RadiusY.Calculate(source.Size());
+            Size sourceSize = source.Size();
+            float finalRadiusX = this.RadiusX.Calculate(sourceSize);
+            float finalRadiusY = this.RadiusY.Calculate(sourceSize);
             float rX = finalRadiusX > 0 ? MathF.Min(finalRadiusX, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
             float rY = finalRadiusY > 0 ? MathF.Min(finalRadiusY, sourceRectangle.Height * .5F) : sourceRectangle.Height * .5F;
             float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));

@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -20,8 +21,8 @@ namespace SixLabors.ImageSharp
     public sealed partial class Image<TPixel> : IImage, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
-        private Configuration configuration;
-        private ImageFrameCollection<TPixel> frames;
+        private readonly Configuration configuration;
+        private readonly ImageFrameCollection<TPixel> frames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         public Image(int width, int height)
-            : this(null, width, height)
+            : this(Configuration.Default, width, height)
         {
         }
 
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp
         public int Height => this.frames.RootFrame.Height;
 
         /// <inheritdoc/>
-        public ImageMetaData MetaData { get; private set; } = new ImageMetaData();
+        public ImageMetaData MetaData { get; }
 
         /// <summary>
         /// Gets the frames.
@@ -121,6 +122,12 @@ namespace SixLabors.ImageSharp
 
             set => this.PixelSource.PixelBuffer[x, y] = value;
         }
+
+        /// <inheritdoc/>
+        public Size Size() => new Size(this.Width, this.Height);
+
+        /// <inheritdoc/>
+        public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.

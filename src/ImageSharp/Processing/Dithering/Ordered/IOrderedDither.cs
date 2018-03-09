@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Dithering
+namespace SixLabors.ImageSharp.Processing.Dithering.Ordered
 {
     /// <summary>
     /// Encapsulates properties and methods required to perform ordered dithering on an image.

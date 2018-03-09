@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
-namespace SixLabors.ImageSharp.Dithering.Base
+namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
 {
     /// <summary>
     /// The base class for performing error diffusion based dithering.

@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
@@ -104,7 +102,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the meta data of the frame.
         /// </summary>
-        public ImageFrameMetaData MetaData { get; private set; }
+        public ImageFrameMetaData MetaData { get; }
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -126,6 +124,18 @@ namespace SixLabors.ImageSharp
                 this.PixelBuffer[x, y] = value;
             }
         }
+
+        /// <summary>
+        /// Gets the size of the frame.
+        /// </summary>
+        /// <returns>The <see cref="Size"/></returns>
+        public Size Size() => new Size(this.Width, this.Height);
+
+        /// <summary>
+        /// Gets the bounds of the frame.
+        /// </summary>
+        /// <returns>The <see cref="Rectangle"/></returns>
+        public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Gets a reference to the pixel at the specified position.
@@ -168,7 +178,7 @@ namespace SixLabors.ImageSharp
         {
             if (this.Size() != target.Size())
             {
-                throw new ArgumentException("ImageFrame<T>.CopyTo(): target must be of the same size!", nameof(target));
+                throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
             }
 
             SpanHelper.Copy(this.GetPixelSpan(), target.Span);

@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 using Xunit;
 using Xunit.Abstractions;
-using SixLabors.ImageSharp.Helpers;
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms

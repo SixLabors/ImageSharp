@@ -5,7 +5,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// A base class that provides methods to allow the automatic centering of affine transforms
@@ -27,9 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
         /// <inheritdoc/>
         protected override Matrix3x2 GetProcessingMatrix(Rectangle sourceRectangle, Rectangle destinationRectangle)
-        {
-            return TransformHelpers.GetCenteredTransformMatrix(sourceRectangle, destinationRectangle, this.TransformMatrix);
-        }
+            => TransformHelpers.GetCenteredTransformMatrix(sourceRectangle, destinationRectangle, this.TransformMatrix);
 
         private static Size GetTransformedDimensions(Size sourceDimensions, Matrix3x2 matrix)
         {

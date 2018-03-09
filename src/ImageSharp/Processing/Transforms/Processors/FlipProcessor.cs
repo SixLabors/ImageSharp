@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// Provides methods that allow the flipping of an image around its center point.
@@ -48,8 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Swaps the image at the X-axis, which goes horizontally through the middle
-        /// at half the height of the image.
+        /// Swaps the image at the X-axis, which goes horizontally through the middle at half the height of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
         /// <param name="configuration">The configuration.</param>
@@ -81,8 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <summary>
-        /// Swaps the image at the Y-axis, which goes vertically through the middle
-        /// at half of the width of the image.
+        /// Swaps the image at the Y-axis, which goes vertically through the middle at half of the width of the image.
         /// </summary>
         /// <param name="source">The source image to apply the process to.</param>
         /// <param name="configuration">The configuration.</param>

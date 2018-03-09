@@ -8,7 +8,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-
+    using SixLabors.ImageSharp.Processing.Transforms;
+    using SixLabors.ImageSharp.Processing.Transforms.Processors;
 
     public class PadTest : BaseImageOperationsExtensionTest
     {

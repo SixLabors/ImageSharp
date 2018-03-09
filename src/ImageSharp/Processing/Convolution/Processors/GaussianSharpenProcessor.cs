@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// <param name="sigma">
         /// The 'sigma' value representing the weight of the sharpening.
         /// </param>
-        public GaussianSharpenProcessor(float sigma = 3f)
+        public GaussianSharpenProcessor(float sigma = 3F)
         {
             this.kernelSize = ((int)Math.Ceiling(sigma) * 2) + 1;
             this.Sigma = sigma;

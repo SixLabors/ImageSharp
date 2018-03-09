@@ -11,6 +11,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class DrawImageTest : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;

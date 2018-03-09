@@ -12,11 +12,11 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Processors
+// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
+namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
     /// <summary>
     /// Provides the base methods to perform non-affine transforms on an image.
-    /// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class ProjectiveTransformProcessor<TPixel> : InterpolatedTransformProcessorBase<TPixel>

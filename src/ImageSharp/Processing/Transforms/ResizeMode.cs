@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Processing.Transforms
 {
     /// <summary>
-    /// Enumerated resize modes to apply to resized images.
+    /// Enumerated resize modes to apply to images.
     /// </summary>
     public enum ResizeMode
     {
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <summary>
         /// Pads the image to fit the bound of the container without resizing the
         /// original source.
-        /// When downscaling, performs the same functionality as <see cref="ResizeMode.Pad"/>
+        /// When downscaling, performs the same functionality as <see cref="Pad"/>
         /// </summary>
         BoxPad,
 

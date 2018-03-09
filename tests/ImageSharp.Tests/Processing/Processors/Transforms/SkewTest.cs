@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Transforms;
+    using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 
     public class SkewTest : FileTestBase
     {
@@ -25,21 +26,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static readonly List<string> ResamplerNames
             = new List<string>
         {
-            nameof(Resamplers.Bicubic),
-            nameof(Resamplers.Box),
-            nameof(Resamplers.CatmullRom),
-            nameof(Resamplers.Hermite),
-            nameof(Resamplers.Lanczos2),
-            nameof(Resamplers.Lanczos3),
-            nameof(Resamplers.Lanczos5),
-            nameof(Resamplers.Lanczos8),
-            nameof(Resamplers.MitchellNetravali),
-            nameof(Resamplers.NearestNeighbor),
-            nameof(Resamplers.Robidoux),
-            nameof(Resamplers.RobidouxSharp),
-            nameof(Resamplers.Spline),
-            nameof(Resamplers.Triangle),
-            nameof(Resamplers.Welch),
+            nameof(ResampleMode.Bicubic),
+            nameof(ResampleMode.Box),
+            nameof(ResampleMode.CatmullRom),
+            nameof(ResampleMode.Hermite),
+            nameof(ResampleMode.Lanczos2),
+            nameof(ResampleMode.Lanczos3),
+            nameof(ResampleMode.Lanczos5),
+            nameof(ResampleMode.Lanczos8),
+            nameof(ResampleMode.MitchellNetravali),
+            nameof(ResampleMode.NearestNeighbor),
+            nameof(ResampleMode.Robidoux),
+            nameof(ResampleMode.RobidouxSharp),
+            nameof(ResampleMode.Spline),
+            nameof(ResampleMode.Triangle),
+            nameof(ResampleMode.Welch),
         };
 
         [Theory]
@@ -72,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private static IResampler GetResampler(string name)
         {
-            PropertyInfo property = typeof(Resamplers).GetTypeInfo().GetProperty(name);
+            PropertyInfo property = typeof(ResampleMode).GetTypeInfo().GetProperty(name);
 
             if (property == null)
             {

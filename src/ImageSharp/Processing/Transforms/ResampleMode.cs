@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+
 namespace SixLabors.ImageSharp.Processing.Transforms
 {
     /// <summary>
     /// Contains reusable static instances of known resampling algorithms
     /// </summary>
-    public static class Resamplers
+    public static class ResampleMode
     {
         /// <summary>
         /// Gets the Bicubic sampler that implements the bicubic kernel algorithm W(x)

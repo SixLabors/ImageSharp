@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
             {
                 Size = new Size(width, height),
                 Mode = ResizeMode.BoxPad,
-                Sampler = Resamplers.NearestNeighbor
+                Sampler = ResampleMode.NearestNeighbor
             };
 
             return source.Resize(options);

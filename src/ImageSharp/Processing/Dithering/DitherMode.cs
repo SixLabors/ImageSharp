@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Processing.Dithering.Ordered
+using SixLabors.ImageSharp.Processing.Dithering.Ordered;
+
+namespace SixLabors.ImageSharp.Processing.Dithering
 {
     /// <summary>
     /// Contains reusable static instances of known ordered dither matrices
     /// </summary>
-    public class Ditherers
+    public class DitherMode
     {
         /// <summary>
         /// Gets the order ditherer using the 2x2 Bayer dithering matrix

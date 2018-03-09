@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Transforms.Processors;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 
 namespace SixLabors.ImageSharp.Processing.Transforms
 {
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
             where TPixel : struct, IPixel<TPixel>
-            => Rotate(source, degrees, Resamplers.Bicubic);
+            => Rotate(source, degrees, ResampleMode.Bicubic);
 
         /// <summary>
         /// Rotates an image by the given angle in degrees using the specified sampling algorithm.

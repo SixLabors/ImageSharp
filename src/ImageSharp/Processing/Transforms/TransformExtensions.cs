@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Transforms.Processors;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms
@@ -22,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, Resamplers.Bicubic);
+            => Transform(source, matrix, ResampleMode.Bicubic);
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm.
@@ -87,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, Resamplers.Bicubic);
+            => Transform(source, matrix, ResampleMode.Bicubic);
 
         /// <summary>
         /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.

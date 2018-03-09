@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -23,21 +22,18 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         /// Initializes a new instance of the <see cref="RecolorBrush{TPixel}" /> class.
         /// </summary>
         /// <param name="sourceColor">Color of the source.</param>
-        /// <param name="targeTPixel">Color of the target.</param>
+        /// <param name="targetColor">Color of the target.</param>
         /// <param name="threshold">The threshold as a value between 0 and 1.</param>
-        public RecolorBrush(TPixel sourceColor, TPixel targeTPixel, float threshold)
+        public RecolorBrush(TPixel sourceColor, TPixel targetColor, float threshold)
         {
             this.SourceColor = sourceColor;
             this.Threshold = threshold;
-            this.TargeTPixel = targeTPixel;
+            this.TargetColor = targetColor;
         }
 
         /// <summary>
         /// Gets the threshold.
         /// </summary>
-        /// <value>
-        /// The threshold.
-        /// </value>
         public float Threshold { get; }
 
         /// <summary>
@@ -51,15 +47,12 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
         /// <summary>
         /// Gets the target color.
         /// </summary>
-        /// <value>
-        /// The color of the target.
-        /// </value>
-        public TPixel TargeTPixel { get; }
+        public TPixel TargetColor { get; }
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
         {
-            return new RecolorBrushApplicator(source, this.SourceColor, this.TargeTPixel, this.Threshold, options);
+            return new RecolorBrushApplicator(source, this.SourceColor, this.TargetColor, this.Threshold, options);
         }
 
         /// <summary>
@@ -158,8 +151,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
 
                         int offsetX = x + i;
 
-                        // no doubt this one can be optermised further but I can't imagine its
-                        // actually being used and can probably be removed/interalised for now
+                        // No doubt this one can be optimized further but I can't imagine its
+                        // actually being used and can probably be removed/internalized for now
                         overlaySpan[i] = this[offsetX, y];
                     }
 

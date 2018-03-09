@@ -13,9 +13,9 @@ using SixLabors.Shapes;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// EAdds extensions that allow the drawing of Bezier paths to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class DrawBezierExtensions
     {
         /// <summary>
         /// Draws the provided Points as an open Bezier path at the provided thickness with the supplied brush

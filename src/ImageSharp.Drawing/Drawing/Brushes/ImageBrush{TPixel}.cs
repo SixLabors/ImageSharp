@@ -4,7 +4,6 @@
 using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
@@ -43,9 +42,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-        {
-            return new ImageBrushApplicator(source, this.image, region, options);
-        }
+            => new ImageBrushApplicator(source, this.image, region, options);
 
         /// <summary>
         /// The image brush applicator.

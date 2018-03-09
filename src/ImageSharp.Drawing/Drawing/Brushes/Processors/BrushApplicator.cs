@@ -31,12 +31,12 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
         }
 
         /// <summary>
-        /// Gets the blendder
+        /// Gets the blender
         /// </summary>
         internal PixelBlender<TPixel> Blender { get; }
 
         /// <summary>
-        /// Gets the destinaion
+        /// Gets the destination
         /// </summary>
         protected ImageFrame<TPixel> Target { get; }
 
@@ -48,8 +48,8 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
         /// <summary>
         /// Gets the color for a single pixel.
         /// </summary>
-        /// <param name="x">The x cordinate.</param>
-        /// <param name="y">The y cordinate.</param>
+        /// <param name="x">The x coordinate.</param>
+        /// <param name="y">The y coordinate.</param>
         /// <returns>The a <typeparamref name="TPixel"/> that should be applied to the pixel.</returns>
         internal abstract TPixel this[int x, int y] { get; }
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
         public abstract void Dispose();
 
         /// <summary>
-        /// Applies the opactiy weighting for each pixel in a scanline to the target based on the pattern contained in the brush.
+        /// Applies the opacity weighting for each pixel in a scanline to the target based on the pattern contained in the brush.
         /// </summary>
         /// <param name="scanline">The a collection of opacity values between 0 and 1 to be merged with the brushed color value before being applied to the target.</param>
         /// <param name="x">The x position in the target pixel space that the start of the scanline data corresponds to.</param>

@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Processing.Transforms
+namespace SixLabors.ImageSharp.Processing.Transforms.Resamplers
 {
     /// <summary>
-    /// The function implements the Lanczos kernel algorithm as described on
-    /// <see href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</see>
-    /// with a radius of 3 pixels.
+    /// The function implements the welch algorithm.
+    /// <see href="http://www.imagemagick.org/Usage/filter/"/>
     /// </summary>
-    public class Lanczos3Resampler : IResampler
+    public class WelchResampler : IResampler
     {
         /// <inheritdoc/>
         public float Radius => 3;
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
 
             if (x < 3F)
             {
-                return ImageMaths.SinC(x) * ImageMaths.SinC(x / 3F);
+                return ImageMaths.SinC(x) * (1F - (x * x / 9F));
             }
 
             return 0F;

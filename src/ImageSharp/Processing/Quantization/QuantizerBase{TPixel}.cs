@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 
 namespace SixLabors.ImageSharp.Processing.Quantization
@@ -42,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         public bool Dither { get; set; } = true;
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; set; } = Diffusers.FloydSteinberg;
+        public IErrorDiffuser DitherType { get; set; } = DiffuseMode.FloydSteinberg;
 
         /// <inheritdoc/>
         public virtual QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)

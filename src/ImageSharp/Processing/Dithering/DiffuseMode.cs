@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
+using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
+
+namespace SixLabors.ImageSharp.Processing.Dithering
 {
     /// <summary>
     /// Contains reusable static instances of known error diffusion algorithms
     /// </summary>
-    public static class Diffusers
+    public static class DiffuseMode
     {
         /// <summary>
         /// Gets the error diffuser that implements the Atkinson algorithm.

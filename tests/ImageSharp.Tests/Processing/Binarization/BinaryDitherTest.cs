@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
     using SixLabors.ImageSharp.Processing.Binarization;
     using SixLabors.ImageSharp.Processing.Binarization.Processors;
+    using SixLabors.ImageSharp.Processing.Dithering;
     using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
     using SixLabors.ImageSharp.Processing.Dithering.Ordered;
 
@@ -19,8 +20,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
         public BinaryDitherTest()
         {
-            this.orderedDither = Ditherers.BayerDither4x4;
-            this.errorDiffuser = Diffusers.FloydSteinberg;
+            this.orderedDither = DitherMode.BayerDither4x4;
+            this.errorDiffuser = DiffuseMode.FloydSteinberg;
         }
 
         [Fact]

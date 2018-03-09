@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
@@ -25,8 +25,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
         public DitherTest()
         {
-            this.orderedDither = Ditherers.BayerDither4x4;
-            this.errorDiffuser = Diffusers.FloydSteinberg;
+            this.orderedDither = DitherMode.BayerDither4x4;
+            this.errorDiffuser = DiffuseMode.FloydSteinberg;
         }
 
         [Fact]

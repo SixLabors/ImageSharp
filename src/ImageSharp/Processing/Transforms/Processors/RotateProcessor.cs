@@ -3,11 +3,11 @@
 
 using System;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <param name="degrees">The angle of rotation in degrees.</param>
         /// <param name="sourceSize">The source image size</param>
         public RotateProcessor(float degrees, Size sourceSize)
-            : this(degrees, Resamplers.Bicubic, sourceSize)
+            : this(degrees, ResampleMode.Bicubic, sourceSize)
         {
         }
 

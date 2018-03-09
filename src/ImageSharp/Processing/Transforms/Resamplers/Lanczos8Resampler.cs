@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Processing.Transforms
+namespace SixLabors.ImageSharp.Processing.Transforms.Resamplers
 {
     /// <summary>
     /// The function implements the Lanczos kernel algorithm as described on
     /// <see href="https://en.wikipedia.org/wiki/Lanczos_resampling#Algorithm">Wikipedia</see>
-    /// with a radius of 5 pixels.
+    /// with a radius of 8 pixels.
     /// </summary>
-    public class Lanczos5Resampler : IResampler
+    public class Lanczos8Resampler : IResampler
     {
         /// <inheritdoc/>
-        public float Radius => 5;
+        public float Radius => 8;
 
         /// <inheritdoc/>
         public float GetValue(float x)
@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                 x = -x;
             }
 
-            if (x < 5F)
+            if (x < 8F)
             {
-                return ImageMaths.SinC(x) * ImageMaths.SinC(x / 5F);
+                return ImageMaths.SinC(x) * ImageMaths.SinC(x / 8F);
             }
 
             return 0F;

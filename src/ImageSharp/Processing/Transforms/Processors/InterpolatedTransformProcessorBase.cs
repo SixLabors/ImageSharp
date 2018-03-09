@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
@@ -20,6 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <param name="sampler">The sampler to perform the transform operation.</param>
         protected InterpolatedTransformProcessorBase(IResampler sampler)
         {
+            Guard.NotNull(sampler, nameof(sampler));
             this.Sampler = sampler;
         }
 

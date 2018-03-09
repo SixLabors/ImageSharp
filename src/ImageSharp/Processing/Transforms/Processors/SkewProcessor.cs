@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <param name="degreesY">The angle in degrees to perform the skew along the y-axis.</param>
         /// <param name="sourceSize">The source image size</param>
         public SkewProcessor(float degreesX, float degreesY, Size sourceSize)
-            : this(degreesX, degreesY, Resamplers.Bicubic, sourceSize)
+            : this(degreesX, degreesY, ResampleMode.Bicubic, sourceSize)
         {
         }
 

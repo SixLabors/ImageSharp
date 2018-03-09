@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors

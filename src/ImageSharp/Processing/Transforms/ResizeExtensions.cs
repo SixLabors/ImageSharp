@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Transforms.Processors;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms
@@ -34,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size)
             where TPixel : struct, IPixel<TPixel>
-            => Resize(source, size.Width, size.Height, Resamplers.Bicubic, false);
+            => Resize(source, size.Width, size.Height, ResampleMode.Bicubic, false);
 
         /// <summary>
         /// Resizes an image to the given <see cref="Size"/>.
@@ -47,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, Size size, bool compand)
             where TPixel : struct, IPixel<TPixel>
-            => Resize(source, size.Width, size.Height, Resamplers.Bicubic, compand);
+            => Resize(source, size.Width, size.Height, ResampleMode.Bicubic, compand);
 
         /// <summary>
         /// Resizes an image to the given width and height.
@@ -60,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-            => Resize(source, width, height, Resamplers.Bicubic, false);
+            => Resize(source, width, height, ResampleMode.Bicubic, false);
 
         /// <summary>
         /// Resizes an image to the given width and height.
@@ -74,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image</remarks>
         public static IImageProcessingContext<TPixel> Resize<TPixel>(this IImageProcessingContext<TPixel> source, int width, int height, bool compand)
             where TPixel : struct, IPixel<TPixel>
-            => Resize(source, width, height, Resamplers.Bicubic, compand);
+            => Resize(source, width, height, ResampleMode.Bicubic, compand);
 
         /// <summary>
         /// Resizes an image to the given width and height with the given sampler.

@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <summary>
         /// Gets or sets the sampler to perform the resize operation.
         /// </summary>
-        public IResampler Sampler { get; set; } = Resamplers.Bicubic;
+        public IResampler Sampler { get; set; } = ResampleMode.Bicubic;
 
         /// <summary>
         /// Gets or sets a value indicating whether to compress

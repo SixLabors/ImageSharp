@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 

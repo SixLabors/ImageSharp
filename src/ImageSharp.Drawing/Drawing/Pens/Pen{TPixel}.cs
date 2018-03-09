@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Drawing.Pens
     /// section 1 will be width long (making a square) and will be filled by the brush
     /// section 2 will be width * 2 long and will be empty
     /// section 3 will be width/2 long and will be filled
-    /// the the pattern will imidiatly repeat without gap.
+    /// the the pattern will immediately repeat without gap.
     /// </remarks>
     public class Pen<TPixel> : IPen<TPixel>
         where TPixel : struct, IPixel<TPixel>

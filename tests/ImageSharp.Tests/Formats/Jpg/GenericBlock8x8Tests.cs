@@ -2,12 +2,9 @@
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     using System;
-    using System.Numerics;
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Helpers;
     using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Primitives;
 
     using Xunit;
 

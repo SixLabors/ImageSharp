@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -63,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <param name="kernel">The kernel operator.</param>
-        /// <param name="parallelOptions">The parellel options</param>
+        /// <param name="parallelOptions">The parallel options</param>
         private void ApplyConvolution(
             Buffer2D<TPixel> targetPixels,
             Buffer2D<TPixel> sourcePixels,

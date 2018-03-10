@@ -1,13 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Processors;
-using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -28,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushAndPath()
         {
-            this.operations.Fill(brush, path);
+            this.operations.Fill(this.brush, this.path);
             var processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
@@ -39,28 +37,28 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
-            Assert.Equal(brush, processor.Brush);
+            Assert.Equal(this.brush, processor.Brush);
         }
 
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            this.operations.Fill(brush, path, noneDefault);
+            this.operations.Fill(this.brush, this.path, this.noneDefault);
             var processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
-            Assert.Equal(noneDefault, processor.Options);
+            Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
-            Assert.Equal(brush, processor.Brush);
+            Assert.Equal(this.brush, processor.Brush);
         }
 
         [Fact]
         public void CorrectlySetsColorAndPath()
         {
-            this.operations.Fill(color, path);
+            this.operations.Fill(this.color, this.path);
             var processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
@@ -70,23 +68,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
-            Assert.Equal(color, brush.Color);
+            Assert.Equal(this.color, brush.Color);
         }
 
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.Fill(color, path, noneDefault);
+            this.operations.Fill(this.color, this.path, this.noneDefault);
             var processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
-            Assert.Equal(noneDefault, processor.Options);
+            Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
             Polygon polygon = Assert.IsType<Polygon>(region.Shape);
             LinearLineSegment segments = Assert.IsType<LinearLineSegment>(polygon.LineSegments[0]);
 
             SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
-            Assert.Equal(color, brush.Color);
+            Assert.Equal(this.color, brush.Color);
         }
     }
 }

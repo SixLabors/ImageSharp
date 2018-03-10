@@ -3,26 +3,24 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
+using System.Numerics;
+using SixLabors.Shapes;
+using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System.Drawing;
-    using System.Drawing.Drawing2D;
-    using System.IO;
-    using System.Numerics;
-    using SixLabors.Shapes;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-
     public class FillPolygon : BenchmarkBase
     {
         private readonly Polygon shape;
 
         public FillPolygon()
         {
-            this.shape = new SixLabors.Shapes.Polygon(new LinearLineSegment(new Vector2(10, 10),
+            this.shape = new Polygon(new LinearLineSegment(new Vector2(10, 10),
                         new Vector2(550, 50),
                         new Vector2(200, 400)));
         }

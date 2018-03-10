@@ -1,19 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
 using System.Numerics;
 using SixLabors.ImageSharp.Drawing.Pens;
-using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Shapes;
 using Xunit;
-using ShapePath = SixLabors.Shapes.Path;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     public class DrawPathTests : FileTestBase
     {
         [Fact]
@@ -31,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new Vector2(60, 10),
                     new Vector2(10, 400));
 
-                ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
+                Path p = new Path(linerSegemnt, bazierSegment);
 
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -69,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 new Vector2(60, 10),
                 new Vector2(10, 400));
 
-            ShapePath p = new ShapePath(linerSegemnt, bazierSegment);
+            Path p = new Path(linerSegemnt, bazierSegment);
 
             using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
             {

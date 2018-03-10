@@ -3,18 +3,17 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using BenchmarkDotNet.Attributes;
+using System.IO;
+using System.Numerics;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System.Drawing;
-    using System.Drawing.Drawing2D;
 
-    using BenchmarkDotNet.Attributes;
-
-    using System.IO;
-    using System.Numerics;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
 
     public class DrawPolygon : BenchmarkBase
     {

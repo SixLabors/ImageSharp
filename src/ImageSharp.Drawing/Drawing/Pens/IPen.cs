@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Drawing.Pens
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Drawing.Pens
     }
 
     /// <summary>
-    /// Iterface represting the pattern and size of the stroke to apply with a Pen.
+    /// Interface representing the pattern and size of the stroke to apply with a Pen.
     /// </summary>
     public interface IPen
     {
@@ -33,6 +33,6 @@ namespace SixLabors.ImageSharp.Drawing.Pens
         /// <summary>
         /// Gets the stoke pattern.
         /// </summary>
-        System.ReadOnlySpan<float> StrokePattern { get; }
+        ReadOnlySpan<float> StrokePattern { get; }
     }
 }

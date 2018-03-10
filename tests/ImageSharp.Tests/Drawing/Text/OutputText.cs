@@ -13,6 +13,8 @@ using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Text;
 using SixLabors.Shapes;
 using Xunit;
 

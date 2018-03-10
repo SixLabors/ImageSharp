@@ -2,18 +2,18 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.Drawing.Processors;
 using Moq;
 using Xunit;
 using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-
     public class FillRegionProcessorTests
     {
         [Theory]

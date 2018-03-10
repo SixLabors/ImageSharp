@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Shapes;
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                
+
                 image.Mutate(x => x
                     .BackgroundColor(blue)
                     .Fill(hotPink, new Polygon(new CubicBezierLineSegment(simplePath))));
@@ -53,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Vector2(300, 400)
             };
 
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
             using (var image = provider.GetImage() as Image<Rgba32>)
             {

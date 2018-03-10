@@ -27,10 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
         public VignetteProcessor(TPixel color)
+            : this(color, GraphicsOptions.Default)
         {
-            this.VignetteColor = color;
-            this.GraphicsOptions = GraphicsOptions.Default;
-            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions.BlenderMode);
         }
 
         /// <summary>

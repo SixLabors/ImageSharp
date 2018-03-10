@@ -1,21 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Overlays
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the drawing of closed linear polygons to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class DrawPolygonExtensions
     {
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
@@ -28,10 +25,8 @@ namespace SixLabors.ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(new Pen<TPixel>(brush, thickness), new Polygon(new LinearLineSegment(points)), options);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(new Pen<TPixel>(brush, thickness), new Polygon(new LinearLineSegment(points)), options);
 
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
@@ -43,10 +38,8 @@ namespace SixLabors.ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(new Pen<TPixel>(brush, thickness), new Polygon(new LinearLineSegment(points)));
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(new Pen<TPixel>(brush, thickness), new Polygon(new LinearLineSegment(points)));
 
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
@@ -58,10 +51,8 @@ namespace SixLabors.ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, PointF[] points)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawPolygon(new SolidBrush<TPixel>(color), thickness, points);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawPolygon(new SolidBrush<TPixel>(color), thickness, points);
 
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided brush at the provided thickness.
@@ -74,10 +65,8 @@ namespace SixLabors.ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, PointF[] points, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawPolygon(new SolidBrush<TPixel>(color), thickness, points, options);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawPolygon(new SolidBrush<TPixel>(color), thickness, points, options);
 
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided Pen.
@@ -88,10 +77,8 @@ namespace SixLabors.ImageSharp
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, PointF[] points)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(pen, new Polygon(new LinearLineSegment(points)), GraphicsOptions.Default);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(pen, new Polygon(new LinearLineSegment(points)), GraphicsOptions.Default);
 
         /// <summary>
         /// Draws the provided Points as a closed Linear Polygon with the provided Pen.
@@ -103,9 +90,7 @@ namespace SixLabors.ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, PointF[] points, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(pen, new Polygon(new LinearLineSegment(points)), options);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(pen, new Polygon(new LinearLineSegment(points)), options);
     }
 }

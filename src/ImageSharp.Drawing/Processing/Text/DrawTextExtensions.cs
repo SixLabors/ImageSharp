@@ -1,39 +1,22 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.Primitives;
 using SixLabors.Shapes;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Text
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the drawing of text to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static partial class DrawTextExtensions
     {
-        /// <summary>
-        /// Draws the text onto the the image filled via the brush.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the color.</typeparam>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="text">The text.</param>
-        /// <param name="font">The font.</param>
-        /// <param name="color">The color.</param>
-        /// <param name="path">The path.</param>
-        /// <returns>
-        /// The <see cref="Image{TPixel}" />.
-        /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, TPixel color, IPath path)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, color, path, TextGraphicsOptions.Default);
-        }
+        private static readonly int DefaultTextDpi = 72;
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
@@ -43,16 +26,30 @@ namespace SixLabors.ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="color">The color.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="location">The location.</param>
+        /// <returns>
+        /// The <see cref="Image{TPixel}" />.
+        /// </returns>
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, TPixel color, PointF location)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, color, location, TextGraphicsOptions.Default);
+
+        /// <summary>
+        /// Draws the text onto the the image filled via the brush.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the color.</typeparam>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="text">The text.</param>
+        /// <param name="font">The font.</param>
+        /// <param name="color">The color.</param>
+        /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, TPixel color, IPath path, TextGraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, Brushes.Solid(color), null, path, options);
-        }
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, TPixel color, PointF location, TextGraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, Brushes.Solid(color), null, location, options);
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
@@ -62,15 +59,13 @@ namespace SixLabors.ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
-        /// <param name="path">The location.</param>
+        /// <param name="location">The location.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, brush, path, TextGraphicsOptions.Default);
-        }
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, brush, location, TextGraphicsOptions.Default);
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush.
@@ -80,16 +75,14 @@ namespace SixLabors.ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPath path, TextGraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, brush, null, path, options);
-        }
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, PointF location, TextGraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, brush, null, location, options);
 
         /// <summary>
         /// Draws the text onto the the image outlined via the pen.
@@ -99,15 +92,13 @@ namespace SixLabors.ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="location">The location.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, pen, path, TextGraphicsOptions.Default);
-        }
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, pen, location, TextGraphicsOptions.Default);
 
         /// <summary>
         /// Draws the text onto the the image outlined via the pen.
@@ -117,16 +108,14 @@ namespace SixLabors.ImageSharp
         /// <param name="text">The text.</param>
         /// <param name="font">The font.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, null, pen, path, options);
-        }
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, null, pen, location, options);
 
         /// <summary>
         /// Draws the text onto the the image filled via the brush then outlined via the pen.
@@ -137,18 +126,16 @@ namespace SixLabors.ImageSharp
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="location">The location.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.DrawText(text, font, brush, pen, path, TextGraphicsOptions.Default);
-        }
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
+            where TPixel : struct, IPixel<TPixel>
+            => source.DrawText(text, font, brush, pen, location, TextGraphicsOptions.Default);
 
         /// <summary>
-        /// Draws the text onto the the image filled via the brush then outlined via the pen.
+        /// Draws the text using the default resolution of <value>72dpi</value> onto the the image filled via the brush then outlined via the pen.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -156,18 +143,18 @@ namespace SixLabors.ImageSharp
         /// <param name="font">The font.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="location">The location.</param>
         /// <param name="options">The options.</param>
         /// <returns>
         /// The <see cref="Image{TPixel}" />.
         /// </returns>
-        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path, TextGraphicsOptions options)
+        public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location, TextGraphicsOptions options)
            where TPixel : struct, IPixel<TPixel>
         {
             float dpiX = DefaultTextDpi;
             float dpiY = DefaultTextDpi;
 
-            var style = new RendererOptions(font, dpiX, dpiY)
+            var style = new RendererOptions(font, dpiX, dpiY, location)
             {
                 ApplyKerning = options.ApplyKerning,
                 TabWidth = options.TabWidth,
@@ -176,7 +163,7 @@ namespace SixLabors.ImageSharp
                 VerticalAlignment = options.VerticalAlignment
             };
 
-            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, path, style);
+            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, style);
 
             var pathOptions = (GraphicsOptions)options;
             if (brush != null)

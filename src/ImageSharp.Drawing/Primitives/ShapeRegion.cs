@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
-using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
-namespace SixLabors.ImageSharp.Drawing
+namespace SixLabors.ImageSharp.Primitives
 {
     /// <summary>
     /// A mapping between a <see cref="IPath"/> and a region.

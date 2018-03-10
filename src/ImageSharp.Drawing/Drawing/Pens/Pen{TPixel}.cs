@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Drawing.Pens
@@ -24,11 +22,10 @@ namespace SixLabors.ImageSharp.Drawing.Pens
     public class Pen<TPixel> : IPen<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private static readonly float[] EmptyPattern = new float[0];
         private readonly float[] pattern;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageSharp.Drawing.Pens.Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Drawing.Pens.Pen{TPixel}"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
@@ -39,7 +36,7 @@ namespace SixLabors.ImageSharp.Drawing.Pens
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageSharp.Drawing.Pens.Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Drawing.Pens.Pen{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
@@ -52,7 +49,7 @@ namespace SixLabors.ImageSharp.Drawing.Pens
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageSharp.Drawing.Pens.Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Drawing.Pens.Pen{TPixel}"/> class.
         /// </summary>
         /// <param name="color">The color.</param>
         /// <param name="width">The width.</param>
@@ -62,12 +59,12 @@ namespace SixLabors.ImageSharp.Drawing.Pens
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageSharp.Drawing.Pens.Pen{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="Drawing.Pens.Pen{TPixel}"/> class.
         /// </summary>
         /// <param name="brush">The brush.</param>
         /// <param name="width">The width.</param>
         public Pen(IBrush<TPixel> brush, float width)
-            : this(brush, width, EmptyPattern)
+            : this(brush, width, Pens.EmptyPattern)
         {
         }
 

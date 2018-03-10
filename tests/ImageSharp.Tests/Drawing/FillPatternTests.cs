@@ -7,6 +7,8 @@ using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Overlays;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing

@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using SixLabors.Primitives;
-using SixLabors.ImageSharp.Advanced;
+﻿using SixLabors.Primitives;
+
 using Xunit;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Overlays;
 
 namespace SixLabors.ImageSharp.Tests.Issues
 {
@@ -14,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
     {
         [Theory]
         [WithBlankImages(40, 30, PixelTypes.Rgba32)]
-        public void AllPixelsExpectedToBeRedWhenAntialisedDisabled<TPixel>(TestImageProvider<TPixel> provider) where TPixel : struct, IPixel<TPixel>
+        public void AllPixelsExpectedToBeRedWhenAntialiasedDisabled<TPixel>(TestImageProvider<TPixel> provider) where TPixel : struct, IPixel<TPixel>
         {
             using (var image = provider.GetImage())
             {

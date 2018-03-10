@@ -27,10 +27,8 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
         /// </summary>
         /// <param name="color">The color or the glow.</param>
         public GlowProcessor(TPixel color)
+            : this(color, 0)
         {
-            this.GlowColor = color;
-            this.GraphicsOptions = GraphicsOptions.Default;
-            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions.BlenderMode);
         }
 
         /// <summary>
@@ -39,11 +37,18 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
         /// <param name="color">The color or the glow.</param>
         /// <param name="radius">The radius of the glow.</param>
         public GlowProcessor(TPixel color, ValueSize radius)
+            : this(color, radius, GraphicsOptions.Default)
         {
-            this.GlowColor = color;
-            this.Radius = radius;
-            this.GraphicsOptions = GraphicsOptions.Default;
-            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions.BlenderMode);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GlowProcessor{TPixel}" /> class.
+        /// </summary>
+        /// <param name="color">The color or the glow.</param>
+        /// <param name="options">The options effecting blending and composition.</param>
+        public GlowProcessor(TPixel color, GraphicsOptions options)
+            : this(color, 0, options)
+        {
         }
 
         /// <summary>
@@ -83,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
             int startX = sourceRectangle.X;
             int endX = sourceRectangle.Right;
             TPixel glowColor = this.GlowColor;
-            Vector2 centre = Rectangle.Center(sourceRectangle);
+            Vector2 center = Rectangle.Center(sourceRectangle);
 
             float finalRadius = this.Radius.Calculate(source.Size());
 
@@ -130,7 +135,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
                             int offsetX = minX - startX;
                             for (int i = 0; i < width; i++)
                             {
-                                float distance = Vector2.Distance(centre, new Vector2(i + offsetX, offsetY));
+                                float distance = Vector2.Distance(center, new Vector2(i + offsetX, offsetY));
                                 amountsSpan[i] = (this.GraphicsOptions.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
                             }
 

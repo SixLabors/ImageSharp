@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Drawing.Paths;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp.Processing.Text;
 using SixLabors.Shapes;
 using Xunit;
 

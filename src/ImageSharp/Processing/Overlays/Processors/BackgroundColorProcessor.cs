@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
         /// <param name="options">The options defining blending algorithm and amount.</param>
         public BackgroundColorProcessor(TPixel color, GraphicsOptions options)
         {
-            this.Value = color;
+            this.Color = color;
             this.GraphicsOptions = options;
         }
 
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
         /// <summary>
         /// Gets the background color value.
         /// </summary>
-        public TPixel Value { get; }
+        public TPixel Color { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
                 // TODO: Use Span.Fill?
                 for (int i = 0; i < width; i++)
                 {
-                    colorSpan[i] = this.Value;
+                    colorSpan[i] = this.Color;
                     amountSpan[i] = this.GraphicsOptions.BlendPercentage;
                 }
 

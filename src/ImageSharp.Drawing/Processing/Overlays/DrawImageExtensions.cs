@@ -1,34 +1,17 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Overlays
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the drawing of images to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class DrawImageExtensions
     {
-        /// <summary>
-        /// Draws the given image together with the current one by blending their pixels.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="location">The location to draw the blended image.</param>
-        /// <param name="options">The options.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, Point location, GraphicsOptions options)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, location, options));
-            return source;
-        }
-
         /// <summary>
         /// Draws the given image together with the current one by blending their pixels.
         /// </summary>
@@ -39,11 +22,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, float opacity)
             where TPixel : struct, IPixel<TPixel>
-        {
-            GraphicsOptions options = GraphicsOptions.Default;
-            options.BlendPercentage = opacity;
-            return DrawImage(source, image, Point.Empty, options);
-        }
+            => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, opacity));
 
         /// <summary>
         /// Draws the given image together with the current one by blending their pixels.
@@ -56,12 +35,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float opacity)
             where TPixel : struct, IPixel<TPixel>
-        {
-            GraphicsOptions options = GraphicsOptions.Default;
-            options.BlendPercentage = opacity;
-            options.BlenderMode = blender;
-            return DrawImage(source, image, Point.Empty, options);
-        }
+            => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, opacity, blender));
 
         /// <summary>
         /// Draws the given image together with the current one by blending their pixels.
@@ -74,7 +48,7 @@ namespace SixLabors.ImageSharp
         public static IImageProcessingContext<TPixel> Blend<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            return DrawImage(source, image, Point.Empty, options);
+            return source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, options));
         }
 
         /// <summary>
@@ -88,11 +62,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, float opacity, Point location)
             where TPixel : struct, IPixel<TPixel>
-        {
-            GraphicsOptions options = GraphicsOptions.Default;
-            options.BlendPercentage = opacity;
-            return source.DrawImage(image, location, options);
-        }
+            => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, location, opacity));
 
         /// <summary>
         /// Draws the given image together with the current one by blending their pixels.
@@ -106,11 +76,19 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float opacity, Point location)
             where TPixel : struct, IPixel<TPixel>
-        {
-            GraphicsOptions options = GraphicsOptions.Default;
-            options.BlenderMode = blender;
-            options.BlendPercentage = opacity;
-            return source.DrawImage(image,  location, options);
-        }
+            => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, location, opacity, blender));
+
+        /// <summary>
+        /// Draws the given image together with the current one by blending their pixels.
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <param name="image">The image to blend with the currently processing image.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="location">The location to draw the blended image.</param>
+        /// <param name="options">The options containing the blend mode and opacity.</param>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, Point location, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+            => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, location, options));
     }
 }

@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Drawing.Brushes
                 this.targetColor = targetColor.ToVector4();
                 this.targetColorPixel = targetColor;
 
-                // Lets hack a min max extreams for a color space by letting the IPackedPixel clamp our values to something in the correct spaces :)
+                // Lets hack a min max extremes for a color space by letting the IPackedPixel clamp our values to something in the correct spaces :)
                 var maxColor = default(TPixel);
                 maxColor.PackFromVector4(new Vector4(float.MaxValue));
                 var minColor = default(TPixel);

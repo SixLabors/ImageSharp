@@ -8,6 +8,8 @@ using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp.Processing.Text;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Text

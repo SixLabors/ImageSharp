@@ -1,11 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Processors;
-using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Overlays;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Paths
@@ -58,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         {
             this.operations.Fill(color, rectangle);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
-           
+
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);

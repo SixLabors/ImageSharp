@@ -4,6 +4,7 @@
 using System;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Overlays;
 
 using Xunit.Abstractions;
 

@@ -38,12 +38,12 @@ namespace SixLabors.ImageSharp.Primitives
             Absolute,
 
             /// <summary>
-            /// The value is a percentage of the Images Width
+            /// The value is a percentage of the image width
             /// </summary>
             PercentageOfWidth,
 
             /// <summary>
-            /// The value is a percentage of the Images height
+            /// The value is a percentage of the images height
             /// </summary>
             PercentageOfHeight
         }

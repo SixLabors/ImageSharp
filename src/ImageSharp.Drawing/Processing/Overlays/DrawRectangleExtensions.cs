@@ -1,22 +1,21 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
+using SixLabors.Shapes;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Overlays
 {
     /// <summary>
-    /// Extension methods for the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the drawing of rectangles to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class ImageExtensions
+    public static class DrawRectangleExtensions
     {
         /// <summary>
-        /// Draws the outline of the polygon with the provided pen.
+        /// Draws the outline of the rectangle with the provided pen.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -25,13 +24,11 @@ namespace SixLabors.ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, RectangleF shape, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(pen, new SixLabors.Shapes.RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height), options);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(pen, new RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height), options);
 
         /// <summary>
-        /// Draws the outline of the polygon with the provided pen.
+        /// Draws the outline of the rectangle with the provided pen.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -39,13 +36,11 @@ namespace SixLabors.ImageSharp
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, RectangleF shape)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(pen, shape, GraphicsOptions.Default);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(pen, shape, GraphicsOptions.Default);
 
         /// <summary>
-        /// Draws the outline of the polygon with the provided brush at the provided thickness.
+        /// Draws the outline of the rectangle with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -55,13 +50,11 @@ namespace SixLabors.ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(new Pen<TPixel>(brush, thickness), shape, options);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(new Pen<TPixel>(brush, thickness), shape, options);
 
         /// <summary>
-        /// Draws the outline of the polygon with the provided brush at the provided thickness.
+        /// Draws the outline of the rectangle with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -70,13 +63,11 @@ namespace SixLabors.ImageSharp
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, RectangleF shape)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(new Pen<TPixel>(brush, thickness), shape);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(new Pen<TPixel>(brush, thickness), shape);
 
         /// <summary>
-        /// Draws the outline of the polygon with the provided brush at the provided thickness.
+        /// Draws the outline of the rectangle with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -86,13 +77,11 @@ namespace SixLabors.ImageSharp
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, RectangleF shape, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(new SolidBrush<TPixel>(color), thickness, shape, options);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(new SolidBrush<TPixel>(color), thickness, shape, options);
 
         /// <summary>
-        /// Draws the outline of the polygon with the provided brush at the provided thickness.
+        /// Draws the outline of the rectangle with the provided brush at the provided thickness.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
@@ -101,9 +90,7 @@ namespace SixLabors.ImageSharp
         /// <param name="shape">The shape.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, RectangleF shape)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Draw(new SolidBrush<TPixel>(color), thickness, shape);
-        }
+            where TPixel : struct, IPixel<TPixel>
+            => source.Draw(new SolidBrush<TPixel>(color), thickness, shape);
     }
 }

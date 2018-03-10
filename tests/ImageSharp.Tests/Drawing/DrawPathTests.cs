@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Drawing.Pens;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Shapes;

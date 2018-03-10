@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 using Xunit;

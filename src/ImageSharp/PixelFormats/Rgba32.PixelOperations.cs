@@ -6,9 +6,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
     /// Provides optimized overrides for bulk operations.

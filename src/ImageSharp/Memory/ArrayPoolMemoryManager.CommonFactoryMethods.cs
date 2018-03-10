@@ -1,4 +1,6 @@
-﻿namespace SixLabors.ImageSharp.Memory
+﻿using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Contains common factory methods and configuration constants.

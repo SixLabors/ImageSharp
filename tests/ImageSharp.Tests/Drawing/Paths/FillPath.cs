@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.Drawing.Processors;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Shapes;

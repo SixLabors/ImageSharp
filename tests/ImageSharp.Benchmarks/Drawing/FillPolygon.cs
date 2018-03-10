@@ -9,6 +9,8 @@ using System.IO;
 using System.Numerics;
 using SixLabors.Shapes;
 using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Overlays;
 

@@ -7,6 +7,8 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Overlays;
 using CoreRectangle = SixLabors.Primitives.Rectangle;

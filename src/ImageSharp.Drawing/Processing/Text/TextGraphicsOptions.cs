@@ -1,9 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Drawing
+namespace SixLabors.ImageSharp.Processing.Text
 {
     /// <summary>
     /// Options for influencing the drawing functions.
@@ -29,8 +30,8 @@ namespace SixLabors.ImageSharp.Drawing
 
         private float wrapTextWidth;
 
-        private SixLabors.Fonts.HorizontalAlignment? horizontalAlignment;
-        private SixLabors.Fonts.VerticalAlignment? verticalAlignment;
+        private HorizontalAlignment? horizontalAlignment;
+        private VerticalAlignment? verticalAlignment;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TextGraphicsOptions" /> struct.

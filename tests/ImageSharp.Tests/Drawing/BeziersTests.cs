@@ -1,20 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.Drawing;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     public class Beziers : FileTestBase
     {
         [Fact]
@@ -71,9 +64,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new Vector2(240, 30),
                             new Vector2(300, 400)
                     }));
-                    image.Save($"{path}/Opacity.png");
+                image.Save($"{path}/Opacity.png");
 
-                //shift background color towards forground color by the opacity amount
+                //shift background color towards foreground color by the opacity amount
                 Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())

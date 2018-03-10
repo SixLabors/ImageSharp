@@ -2,13 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.Drawing;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -23,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByFilledPolygon()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
-            SixLabors.Primitives.PointF[] simplePath = new SixLabors.Primitives.PointF[] {
+            SixLabors.Primitives.PointF[] simplePath = {
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)

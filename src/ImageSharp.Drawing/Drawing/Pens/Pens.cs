@@ -7,14 +7,15 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Drawing.Pens
 {
     /// <summary>
-    /// Common Pen styles
+    /// Contains a collection of common Pen styles
     /// </summary>
     public static class Pens
     {
-        private static readonly float[] DashDotPattern = new[] { 3f, 1f, 1f, 1f };
-        private static readonly float[] DashDotDotPattern = new[] { 3f, 1f, 1f, 1f, 1f, 1f };
-        private static readonly float[] DottedPattern = new[] { 1f, 1f };
-        private static readonly float[] DashedPattern = new[] { 3f, 1f };
+        private static readonly float[] DashDotPattern = { 3f, 1f, 1f, 1f };
+        private static readonly float[] DashDotDotPattern = { 3f, 1f, 1f, 1f, 1f, 1f };
+        private static readonly float[] DottedPattern = { 1f, 1f };
+        private static readonly float[] DashedPattern = { 3f, 1f };
+        internal static readonly float[] EmptyPattern = new float[0];
 
         /// <summary>
         /// Create a solid pen with out any drawing patterns

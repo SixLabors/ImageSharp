@@ -3,19 +3,18 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Numerics;
+using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Overlays;
+using CoreRectangle = SixLabors.Primitives.Rectangle;
+using CoreSize = SixLabors.Primitives.Size;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System.Drawing;
-    using System.Drawing.Drawing2D;
 
-    using BenchmarkDotNet.Attributes;
-    using CoreRectangle = SixLabors.Primitives.Rectangle;
-    using CoreSize = SixLabors.Primitives.Size;
-
-    using System.Numerics;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
 
     public class FillRectangle : BenchmarkBase
     {

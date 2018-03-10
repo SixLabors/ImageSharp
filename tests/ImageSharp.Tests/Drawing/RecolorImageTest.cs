@@ -1,10 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
-using System.Linq;
 using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Primitives;
 using Xunit;
 

@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// Encapsulates an image, which consists of the pixel data for a graphics image and its attributes.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed partial class Image<TPixel> : IImage, IConfigurable
+    public sealed class Image<TPixel> : IImage, IConfigurable
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Configuration configuration;
@@ -122,12 +121,6 @@ namespace SixLabors.ImageSharp
 
             set => this.PixelSource.PixelBuffer[x, y] = value;
         }
-
-        /// <inheritdoc/>
-        public Size Size() => new Size(this.Width, this.Height);
-
-        /// <inheritdoc/>
-        public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.

@@ -4,7 +4,7 @@
     ImageSharp
     <br>
     <br>
-    <a href="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/APACHE-2.0-LICENSE.txt"><img src="https://img.shields.io/badge/license-Apache%202-blue.svg" alt="GitHub license" data-canonical-src="https://img.shields.io/badge/license-Apache%202-blue.svg" style="max-width:100%;"></a>
+    <a href="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-blue.svg" alt="GitHub license" data-canonical-src="https://img.shields.io/badge/license-Apache%202-blue.svg" style="max-width:100%;"></a>
     <a href="https://gitter.im/ImageSharp/General?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Join%20Chat.svg" alt="Gitter" data-canonical-src="https://badges.gitter.im/Join%20Chat.svg" style="max-width:100%;"></a>
     <a href="https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&amp;text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&amp;url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&amp;via=sixlabors"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter" alt="Twitter" data-canonical-src="https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter" style="max-width:100%;"></a>
     <a href="#backers"><img src="https://opencollective.com/imagesharp/backers/badge.svg" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/backers/badge.svg" style="max-width:100%;"></a>

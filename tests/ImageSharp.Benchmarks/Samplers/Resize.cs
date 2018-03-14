@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Transforms;
 
     using CoreSize = SixLabors.Primitives.Size;
 

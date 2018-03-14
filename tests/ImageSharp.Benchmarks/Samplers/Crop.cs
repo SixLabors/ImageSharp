@@ -3,14 +3,16 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
     using System.Drawing;
     using System.Drawing.Drawing2D;
 
     using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Transforms;
 
     using CoreSize = SixLabors.Primitives.Size;
 

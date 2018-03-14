@@ -9,6 +9,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Processing.Filters;
+    using SixLabors.ImageSharp.Processing.Filters.Processors;
+
     public class LomographTest : BaseImageOperationsExtensionTest
     {
         [Fact]

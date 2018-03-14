@@ -1,14 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.Shapes;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Overlays;
+
     [GroupOutput("Drawing")]
     public class SolidBezierTests
     {
@@ -17,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void FilledBezier<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Primitives.PointF[] simplePath = {
+            SixLabors.Primitives.PointF[] simplePath = {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),
@@ -29,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                
+
                 image.Mutate(x => x
                     .BackgroundColor(blue)
                     .Fill(hotPink, new Polygon(new CubicBezierLineSegment(simplePath))));
@@ -43,14 +46,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void OverlayByFilledPolygonOpacity<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            Primitives.PointF[] simplePath = {
+            SixLabors.Primitives.PointF[] simplePath = {
                         new Vector2(10, 400),
                         new Vector2(30, 10),
                         new Vector2(240, 30),
                         new Vector2(300, 400)
             };
 
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
             using (var image = provider.GetImage() as Image<Rgba32>)
             {

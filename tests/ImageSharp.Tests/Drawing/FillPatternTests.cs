@@ -2,21 +2,24 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class FillPatternBrushTests : FileTestBase
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)
         {
             string path = TestEnvironment.CreateOutputDirectory("Fill", "PatternBrush");
-            using (Image<Rgba32> image = new Image<Rgba32>(20, 20))
+            using (var image = new Image<Rgba32>(20, 20))
             {
                 image.Mutate(x => x
                     .Fill(background)
@@ -27,15 +30,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     // lets pick random spots to start checking
-                    Random r = new Random();
-                    Fast2DArray<Rgba32> expectedPatternFast = new Fast2DArray<Rgba32>(expectedPattern);
-                    int xStride = expectedPatternFast.Width;
-                    int yStride = expectedPatternFast.Height;
+                    var r = new Random();
+                    var expectedPatternFast = new DenseMatrix<Rgba32>(expectedPattern);
+                    int xStride = expectedPatternFast.Columns;
+                    int yStride = expectedPatternFast.Rows;
                     int offsetX = r.Next(image.Width / xStride) * xStride;
                     int offsetY = r.Next(image.Height / yStride) * yStride;
-                    for (int x = 0; x < xStride; x++)
+                    for (var x = 0; x < xStride; x++)
                     {
-                        for (int y = 0; y < yStride; y++)
+                        for (var y = 0; y < yStride; y++)
                         {
                             int actualX = x + offsetX;
                             int actualY = y + offsetY;

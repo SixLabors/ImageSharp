@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SixLabors.ImageSharp.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
 using SixLabors.Primitives;

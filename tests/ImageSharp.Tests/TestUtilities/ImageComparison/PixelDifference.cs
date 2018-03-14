@@ -1,4 +1,6 @@
-﻿namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
+﻿using SixLabors.ImageSharp.PixelFormats;
+
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     using SixLabors.Primitives;
 

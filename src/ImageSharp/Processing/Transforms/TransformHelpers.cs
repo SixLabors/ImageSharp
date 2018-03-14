@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.Processing.Transforms
 {
     /// <summary>
     /// Contains helper methods for working with affine and non-affine transforms

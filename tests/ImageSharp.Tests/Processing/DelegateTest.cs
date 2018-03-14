@@ -8,6 +8,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing
 {
+    using SixLabors.ImageSharp.Processing.Processors;
+
     public class DelegateTest : BaseImageOperationsExtensionTest
     {
         [Fact]

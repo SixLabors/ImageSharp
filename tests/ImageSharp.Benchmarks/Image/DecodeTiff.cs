@@ -6,6 +6,8 @@ using System.IO;
 
 using BenchmarkDotNet.Attributes;
 
+using SixLabors.ImageSharp.PixelFormats;
+
 using CoreImage = SixLabors.ImageSharp.Image;
 using CoreSize = SixLabors.Primitives.Size;
 

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
@@ -10,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
+using SixLabors.ImageSharp.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -308,7 +307,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             // Quantize the image and get the pixels.
-            QuantizedImage<TPixel> quantized = this.WritePaletteChunk(stream, header, image);
+            QuantizedFrame<TPixel> quantized = this.WritePaletteChunk(stream, header, image);
             this.palettePixelData = quantized.Pixels;
         }
 
@@ -498,8 +497,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="image">The image to encode.</param>
-        /// <returns>The <see cref="QuantizedImage{TPixel}"/></returns>
-        private QuantizedImage<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageFrame<TPixel> image)
+        /// <returns>The <see cref="QuantizedFrame{TPixel}"/></returns>
+        private QuantizedFrame<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.paletteSize > 256)
@@ -513,7 +512,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // Quantize the image returning a palette. This boxing is icky.
-            QuantizedImage<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.paletteSize);
+            QuantizedFrame<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.paletteSize);
 
             // Grab the palette and write it to the stream.
             TPixel[] palette = quantized.Palette;

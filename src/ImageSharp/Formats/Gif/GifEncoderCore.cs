@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,7 +9,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
+using SixLabors.ImageSharp.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -106,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             var pixelQuantizer = (IQuantizer<TPixel>)this.quantizer;
 
             // Quantize the image returning a palette.
-            QuantizedImage<TPixel> quantized = pixelQuantizer.Quantize(image.Frames.RootFrame, size);
+            QuantizedFrame<TPixel> quantized = pixelQuantizer.Quantize(image.Frames.RootFrame, size);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -154,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        private int GetTransparentIndex<TPixel>(QuantizedImage<TPixel> quantized)
+        private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
@@ -347,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
-        private void WriteColorTable<TPixel>(QuantizedImage<TPixel> image, EndianBinaryWriter writer)
+        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             // Grab the palette and write it to the stream.
@@ -377,9 +376,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the image pixel data to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="QuantizedImage{TPixel}"/> containing indexed pixels.</param>
+        /// <param name="image">The <see cref="QuantizedFrame{TPixel}"/> containing indexed pixels.</param>
         /// <param name="writer">The stream to write to.</param>
-        private void WriteImageData<TPixel>(QuantizedImage<TPixel> image, EndianBinaryWriter writer)
+        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var encoder = new LzwEncoder(this.memoryManager, image.Pixels, (byte)this.bitDepth))

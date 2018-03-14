@@ -2,17 +2,18 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+#if !NETSTANDARD1_1
 using SixLabors.ImageSharp.IO;
+#endif
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp
 {

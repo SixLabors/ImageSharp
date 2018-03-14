@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     using System;
     using System.Reflection;
 
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class RotateTests : FileTestBase
     {
         public static readonly TheoryData<float> RotateAngles

@@ -1,15 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Pens;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tests.Drawing.Paths;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
+using SixLabors.ImageSharp.Processing.Drawing.Processors;
+using SixLabors.ImageSharp.Processing.Text;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -187,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         }
 
         [Fact]
-        public void BrushAppliesBeforPen()
+        public void BrushAppliesBeforePen()
         {
             this.operations.DrawText(
                 "1",

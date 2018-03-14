@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using Xunit;

@@ -9,6 +9,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Effects;
+
     public class PixelateTest : FileTestBase
     {
         public static readonly TheoryData<int> PixelateValues

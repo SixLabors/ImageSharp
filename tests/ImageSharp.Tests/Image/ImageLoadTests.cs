@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.IO;
 using Moq;
 using Xunit;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {

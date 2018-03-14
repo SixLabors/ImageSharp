@@ -9,6 +9,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Convolution;
+
     public class GaussianBlurTest : FileTestBase
     {
         public static readonly TheoryData<int> GaussianBlurValues = new TheoryData<int> { 3, 5 };

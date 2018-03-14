@@ -6,6 +6,8 @@ using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>

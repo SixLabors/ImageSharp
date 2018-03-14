@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <list type="bullet">
     ///     <item>RGBA (True color) with alpha (8 bit).</item>
     ///     <item>RGB (True color) without alpha (8 bit).</item>
-    ///     <item>Grayscale with alpha (8 bit).</item>
-    ///     <item>Grayscale without alpha (8 bit).</item>
+    ///     <item>grayscale with alpha (8 bit).</item>
+    ///     <item>grayscale without alpha (8 bit).</item>
     ///     <item>Palette Index with alpha (8 bit).</item>
     ///     <item>Palette Index without alpha (8 bit).</item>
     /// </list>

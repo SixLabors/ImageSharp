@@ -3,9 +3,8 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
+using SixLabors.ImageSharp.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {

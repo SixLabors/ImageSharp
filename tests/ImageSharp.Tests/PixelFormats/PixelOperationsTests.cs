@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     public partial class PixelOperationsTests
     {
-        public class Rgba32 : PixelOperationsTests<ImageSharp.Rgba32>
+        public class Rgba32 : PixelOperationsTests<ImageSharp.PixelFormats.Rgba32>
         {
             public Rgba32(ITestOutputHelper output)
                 : base(output)
@@ -25,19 +25,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [Fact]
             public void IsSpecialImplementation()
             {
-                Assert.IsType<ImageSharp.Rgba32.PixelOperations>(PixelOperations<ImageSharp.Rgba32>.Instance);
+                Assert.IsType<ImageSharp.PixelFormats.Rgba32.PixelOperations>(PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance);
             }
 
             [Fact]
             public void ToVector4SimdAligned()
             {
-                ImageSharp.Rgba32[] source = CreatePixelTestData(64);
+                ImageSharp.PixelFormats.Rgba32[] source = CreatePixelTestData(64);
                 Vector4[] expected = CreateExpectedVector4Data(source);
 
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.Span, 64)
+                    (s, d) => ImageSharp.PixelFormats.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.Span, 64)
                 );
             }
 
@@ -50,14 +50,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (IBuffer<ImageSharp.Rgba32> source = Configuration.Default.MemoryManager.Allocate<ImageSharp.Rgba32>(count))
+                using (IBuffer<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryManager.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
                 using (IBuffer<Vector4> dest = Configuration.Default.MemoryManager.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                PixelOperations<ImageSharp.Rgba32>.Instance.ToVector4(source.Span, dest.Span, count);
+                                PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance.ToVector4(source.Span, dest.Span, count);
                             });
                 }
             }

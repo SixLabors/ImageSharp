@@ -10,28 +10,30 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
+    using SixLabors.ImageSharp.Processing.Convolution;
+
     public class DetectEdgesTest : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
 
-        public static readonly TheoryData<EdgeDetection> DetectEdgesFilters = new TheoryData<EdgeDetection>
+        public static readonly TheoryData<EdgeDetectionOperators> DetectEdgesFilters = new TheoryData<EdgeDetectionOperators>
         {
-            EdgeDetection.Kayyali,
-            EdgeDetection.Kirsch,
-            EdgeDetection.Lapacian3X3,
-            EdgeDetection.Lapacian5X5,
-            EdgeDetection.LaplacianOfGaussian,
-            EdgeDetection.Prewitt,
-            EdgeDetection.RobertsCross,
-            EdgeDetection.Robinson,
-            EdgeDetection.Scharr,
-            EdgeDetection.Sobel
+            EdgeDetectionOperators.Kayyali,
+            EdgeDetectionOperators.Kirsch,
+            EdgeDetectionOperators.Laplacian3x3,
+            EdgeDetectionOperators.Laplacian5x5,
+            EdgeDetectionOperators.LaplacianOfGaussian,
+            EdgeDetectionOperators.Prewitt,
+            EdgeDetectionOperators.RobertsCross,
+            EdgeDetectionOperators.Robinson,
+            EdgeDetectionOperators.Scharr,
+            EdgeDetectionOperators.Sobel
         };
 
         [Theory]
         [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, DefaultPixelType)]
         [WithFileCollection(nameof(CommonTestImages), nameof(DetectEdgesFilters), DefaultPixelType)]
-        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetection detector)
+        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

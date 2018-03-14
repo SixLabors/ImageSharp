@@ -1,14 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms;
+using SixLabors.ImageSharp.Processing.Transforms.Processors;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Processors;
-
     public class ResizeTests : BaseImageOperationsExtensionTest
     {
         [Fact]
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 50;
             int height = 100;
-            IResampler sampler = KnownResamplers.Lanczos3;
+            IResampler sampler = ResampleMode.Lanczos3;
             this.operations.Resize(width, height, sampler);
             ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
 
@@ -42,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 50;
             int height = 100;
-            IResampler sampler = KnownResamplers.Lanczos3;
+            IResampler sampler = ResampleMode.Lanczos3;
             bool compand = true;
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
@@ -60,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 50;
             int height = 100;
-            IResampler sampler = KnownResamplers.Lanczos3;
+            IResampler sampler = ResampleMode.Lanczos3;
             bool compand = true;
             ResizeMode mode = ResizeMode.Stretch;
 

@@ -20,6 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets or sets the quality, that will be used to encode the image. Quality
         /// index must be between 0 and 100 (compression from max to min).
+        /// Defaults to <value>75</value>.
         /// </summary>
         public int Quality { get; set; } = 75;
 

@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.Primitives;
 

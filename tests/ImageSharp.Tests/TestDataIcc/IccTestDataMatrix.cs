@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Primitives;
+
     internal static class IccTestDataMatrix
     {
         #region 2D
@@ -38,7 +40,17 @@ namespace SixLabors.ImageSharp.Tests
         /// 3x3 Matrix
         /// </summary>
         public static readonly Matrix4x4 Single_Matrix4x4_ValIdentity = Matrix4x4.Identity;
-        
+
+        /// <summary>
+        /// 3x3 Matrix
+        /// </summary>
+        public static readonly DenseMatrix<float> Single_DenseMatrix_ValGrad = new DenseMatrix<float>(Single_2DArray_ValGrad);
+
+        /// <summary>
+        /// 3x3 Matrix
+        /// </summary>
+        public static readonly DenseMatrix<float> Single_DenseMatrix_ValIdentity = new DenseMatrix<float>(Single_2DArray_ValIdentity);
+
         /// <summary>
         /// 3x3 Matrix
         /// </summary>
@@ -99,7 +111,14 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Fix16_2D_Identity, 3, 3, false, Single_2DArray_ValIdentity },
             new object[] { Single_2D_Grad, 3, 3, true, Single_2DArray_ValGrad },
         };
-        
+
+        public static readonly object[][] Matrix2D_DenseMatrixTestData =
+        {
+            new object[] { Fix16_2D_Grad, 3, 3, false, Single_DenseMatrix_ValGrad },
+            new object[] { Fix16_2D_Identity, 3, 3, false, Single_DenseMatrix_ValIdentity },
+            new object[] { Single_2D_Grad, 3, 3, true, Single_DenseMatrix_ValGrad },
+        };
+
         public static readonly object[][] Matrix2D_Matrix4x4TestData =
         {
             new object[] { Fix16_2D_Grad, 3, 3, false, Single_Matrix4x4_ValGrad },

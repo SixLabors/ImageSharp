@@ -8,6 +8,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Icc
 {
+    using SixLabors.ImageSharp.Primitives;
+
     public class IccDataWriterMatrixTests
     {
         [Theory]
@@ -33,7 +35,19 @@ namespace SixLabors.ImageSharp.Tests.Icc
 
             Assert.Equal(expected, output);
         }
-        
+
+        [Theory]
+        [MemberData(nameof(IccTestDataMatrix.Matrix2D_DenseMatrixTestData), MemberType = typeof(IccTestDataMatrix))]
+        internal void WriteMatrix2D_DenseMatrix(byte[] expected, int xCount, int yCount, bool isSingle, DenseMatrix<float> data)
+        {
+            IccDataWriter writer = CreateWriter();
+
+            writer.WriteMatrix(data, isSingle);
+            byte[] output = writer.GetData();
+
+            Assert.Equal(expected, output);
+        }
+
         [Theory]
         [MemberData(nameof(IccTestDataMatrix.Matrix1D_ArrayTestData), MemberType = typeof(IccTestDataMatrix))]
         public void WriteMatrix1D_Array(byte[] expected, int yCount, bool isSingle, float[] data)

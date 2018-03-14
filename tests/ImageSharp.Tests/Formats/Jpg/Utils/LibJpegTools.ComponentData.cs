@@ -1,3 +1,5 @@
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     using System;

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Drawing.Brushes.Processors
+namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 {
     /// <summary>
     /// primitive that converts a point in to a color for discovering the fill color based on an implementation

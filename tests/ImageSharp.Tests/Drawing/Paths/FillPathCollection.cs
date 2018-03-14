@@ -1,15 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -20,13 +17,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         GraphicsOptions noneDefault = new GraphicsOptions();
         Rgba32 color = Rgba32.HotPink;
         SolidBrush<Rgba32> brush = Brushes.Solid(Rgba32.HotPink);
-        IPath path1 = new SixLabors.Shapes.Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {
+        IPath path1 = new Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
                     new Vector2(20,10),
                     new Vector2(30,10),
                 }));
-        IPath path2 = new SixLabors.Shapes.Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {
+        IPath path2 = new Path(new LinearLineSegment(new SixLabors.Primitives.PointF[] {
                     new Vector2(10,10),
                     new Vector2(20,10),
                     new Vector2(20,10),
@@ -45,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         {
             this.operations.Fill(this.brush, this.pathCollection);
 
-            for (var i = 0; i < 2; i++)
+            for (int i = 0; i < 2; i++)
             {
                 FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
@@ -66,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         {
             this.operations.Fill(this.brush, this.pathCollection, this.noneDefault);
 
-            for (var i = 0; i < 2; i++)
+            for (int i = 0; i < 2; i++)
             {
                 FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
@@ -85,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         {
             this.operations.Fill(this.color, this.pathCollection);
 
-            for (var i = 0; i < 2; i++)
+            for (int i = 0; i < 2; i++)
             {
                 FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 
@@ -105,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         {
             this.operations.Fill(this.color, this.pathCollection, this.noneDefault);
 
-            for (var i = 0; i < 2; i++)
+            for (int i = 0; i < 2; i++)
             {
                 FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(i);
 

@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.Fonts;
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 

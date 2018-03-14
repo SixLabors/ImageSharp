@@ -4,13 +4,12 @@
 using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Drawing.Brushes
+namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 {
     /// <summary>
     /// Provides an implementation of a pattern brush for painting patterns.

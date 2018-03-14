@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-
-using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -20,17 +20,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
 
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -67,17 +67,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPolygonOutlineNoOverlapping()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(207, 25),
                             new Vector2(263, 25),
                             new Vector2(235, 57)));
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -115,17 +115,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPolygonOutlineOverlapping()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(130, 40),
                             new Vector2(65, 137)));
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -158,17 +158,17 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPolygonOutlineDashed()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -182,18 +182,18 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "LineComplexPolygon");
-            Polygon simplePath = new Polygon(new LinearLineSegment(
+            var simplePath = new Polygon(new LinearLineSegment(
                             new Vector2(10, 10),
                             new Vector2(200, 150),
                             new Vector2(50, 300)));
 
-            Polygon hole1 = new Polygon(new LinearLineSegment(
+            var hole1 = new Polygon(new LinearLineSegment(
                             new Vector2(37, 85),
                             new Vector2(93, 85),
                             new Vector2(65, 137)));
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Save($"{path}/Opacity.png");
 
                 //shift background color towards forground color by the opacity amount
-                Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+                var mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {

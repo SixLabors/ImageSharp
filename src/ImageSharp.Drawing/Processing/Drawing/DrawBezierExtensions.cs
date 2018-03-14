@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
-namespace SixLabors.ImageSharp.Processing.Overlays
+namespace SixLabors.ImageSharp.Processing.Drawing
 {
     /// <summary>
     /// Adds extensions that allow the drawing of Bezier paths to the <see cref="Image{TPixel}"/> type.

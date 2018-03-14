@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.Primitives;
 using Xunit;
 
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
+            var brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "RecolorImage");
 
-            RecolorBrush<Rgba32> brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
+            var brush = new RecolorBrush<Rgba32>(Rgba32.Yellow, Rgba32.HotPink, 0.2f);
 
             foreach (TestFile file in Files)
             {

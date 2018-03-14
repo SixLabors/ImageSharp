@@ -8,8 +8,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
     using System;
 
     using Moq;
-
-    using SixLabors.ImageSharp.Drawing;
     using SixLabors.Primitives;
     using SixLabors.Shapes;
 
@@ -42,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void ShapeRegionWithPathRetainsShape()
         {
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             Assert.Equal(this.pathMock.Object, region.Shape);
         }
@@ -50,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void ShapeRegionFromPathConvertsBoundsProxyToShape()
         {
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             Assert.Equal(Math.Floor(this.bounds.Left), region.Bounds.Left);
             Assert.Equal(Math.Ceiling(this.bounds.Right), region.Bounds.Right);
@@ -61,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void ShapeRegionFromPathMaxIntersectionsProxyToShape()
         {
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             int i = region.MaxIntersections;
             this.pathMock.Verify(x => x.MaxIntersections);
@@ -71,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         public void ShapeRegionFromPathScanYProxyToShape()
         {
             int yToScan = 10;
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             this.pathMock
                 .Setup(
@@ -99,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         public void ShapeRegionFromShapeScanYProxyToShape()
         {
             int yToScan = 10;
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             this.pathMock
                 .Setup(
@@ -126,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void ShapeRegionFromShapeConvertsBoundsProxyToShape()
         {
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             Assert.Equal(Math.Floor(this.bounds.Left), region.Bounds.Left);
             Assert.Equal(Math.Ceiling(this.bounds.Right), region.Bounds.Right);
@@ -137,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void ShapeRegionFromShapeMaxIntersectionsProxyToShape()
         {
-            ShapeRegion region = new ShapeRegion(this.pathMock.Object);
+            var region = new ShapeRegion(this.pathMock.Object);
 
             int i = region.MaxIntersections;
             this.pathMock.Verify(x => x.MaxIntersections);

@@ -2,7 +2,7 @@
 
 using Xunit;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Drawing;
 
 namespace SixLabors.ImageSharp.Tests.Issues
 {

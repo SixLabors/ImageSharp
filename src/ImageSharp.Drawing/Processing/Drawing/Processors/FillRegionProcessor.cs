@@ -3,15 +3,14 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Drawing.Processors
+namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 {
     /// <summary>
     /// Using a brush and a shape fills shape with contents of brush the

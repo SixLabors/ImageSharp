@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Overlays.Processors
+namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 {
     /// <summary>
     /// Combines two images together by blending the pixels.

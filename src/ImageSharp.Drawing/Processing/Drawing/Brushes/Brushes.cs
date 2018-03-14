@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Drawing.Brushes
+namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 {
     /// <summary>
     /// A collection of methods for creating generic brushes.

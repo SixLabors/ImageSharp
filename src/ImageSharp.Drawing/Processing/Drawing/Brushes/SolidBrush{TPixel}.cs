@@ -3,12 +3,11 @@
 
 using System;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Drawing.Brushes.Processors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Drawing.Brushes
+namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 {
     /// <summary>
     /// Provides an implementation of a solid brush for painting solid color areas.

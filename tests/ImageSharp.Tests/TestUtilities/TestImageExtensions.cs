@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.Advanced;
     using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.MetaData;
+    using SixLabors.ImageSharp.Processing;
 
     using Xunit;
 

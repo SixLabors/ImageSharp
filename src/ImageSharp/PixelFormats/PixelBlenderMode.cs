@@ -1,14 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// The various blending modes.
+    /// Enumerates the various blending modes.
     /// </summary>
     public enum PixelBlenderMode
     {

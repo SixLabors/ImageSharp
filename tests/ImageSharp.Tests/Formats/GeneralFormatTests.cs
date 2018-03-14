@@ -14,6 +14,9 @@ namespace SixLabors.ImageSharp.Tests
 {
     using System;
 
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Quantization;
+
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]
@@ -71,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
                         {
-                            image.Mutate(x => x.Quantize(Quantization.Octree));
+                            image.Mutate(x => x.Quantize(QuantizationMode.Octree));
                             image.Save(output, mimeType);
 
                         }
@@ -81,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
                         {
-                            image.Mutate(x => x.Quantize(Quantization.Wu));
+                            image.Mutate(x => x.Quantize(QuantizationMode.Wu));
                             image.Save(output, mimeType);
                         }
                     }
@@ -90,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
                         {
-                            image.Mutate(x => x.Quantize(Quantization.Palette));
+                            image.Mutate(x => x.Quantize(QuantizationMode.Palette));
                             image.Save(output, mimeType);
                         }
                     }

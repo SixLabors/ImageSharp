@@ -9,6 +9,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
 {
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Overlays;
+
     public class GlowTest : FileTestBase
     {
         [Theory]

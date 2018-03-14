@@ -640,7 +640,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             switch (remaining)
             {
-                case 6 + (3 * 1): // Grayscale image.
+                case 6 + (3 * 1): // grayscale image.
                     this.ComponentCount = 1;
                     break;
                 case 6 + (3 * 3): // YCbCr or RGB image.
@@ -767,7 +767,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             switch (this.ComponentCount)
             {
                 case 1:
-                    return JpegColorSpace.GrayScale;
+                    return JpegColorSpace.Grayscale;
                 case 3:
                     if (!this.isAdobe || this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
                     {
@@ -790,7 +790,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}."
-                                           + "JpegDecoder only supports YCbCr, RGB, YccK, CMYK and Grayscale color spaces.");
+                                           + "JpegDecoder only supports YCbCr, RGB, YccK, CMYK and grayscale color spaces.");
         }
 
         private Image<TPixel> PostProcessIntoImage<TPixel>()

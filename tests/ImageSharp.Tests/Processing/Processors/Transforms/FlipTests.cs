@@ -7,6 +7,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class FlipTests : FileTestBase
     {
         public static readonly string[] FlipFiles = { TestImages.Bmp.F };

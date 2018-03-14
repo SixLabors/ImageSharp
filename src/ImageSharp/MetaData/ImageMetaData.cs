@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 

@@ -10,9 +10,9 @@
         [Fact]
         public void QuantizersDitherByDefault()
         {
-            var palette = new PaletteQuantizer<Rgba32>();
-            var octree = new OctreeQuantizer<Rgba32>();
-            var wu = new WuQuantizer<Rgba32>();
+            var palette = new PaletteQuantizer();
+            var octree = new OctreeQuantizer();
+            var wu = new WuQuantizer();
 
             Assert.True(palette.Dither);
             Assert.True(octree.Dither);
@@ -29,11 +29,11 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new PaletteQuantizer<TPixel> { Dither = dither };
+                var quantizer = new PaletteQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.Quantize(frame, 256);
+                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
                     Assert.Equal(index, quantized.Pixels[0]);
@@ -51,11 +51,11 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new OctreeQuantizer<TPixel> { Dither = dither };
+                var quantizer = new OctreeQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.Quantize(frame, 256);
+                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
                     Assert.Equal(index, quantized.Pixels[0]);
@@ -73,11 +73,11 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new WuQuantizer<TPixel>() { Dither = dither };
+                var quantizer = new WuQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.Quantize(frame, 256);
+                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
                     Assert.Equal(index, quantized.Pixels[0]);

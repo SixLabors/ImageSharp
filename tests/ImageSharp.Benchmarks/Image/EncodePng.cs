@@ -70,12 +70,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (var memoryStream = new MemoryStream())
             {
-                QuantizerBase<Rgba32> quantizer = this.UseOctreeQuantizer
-                ? (QuantizerBase<Rgba32>)
-                new OctreeQuantizer<Rgba32>()
-                : new PaletteQuantizer<Rgba32>();
+                IQuantizer quantizer = this.UseOctreeQuantizer
+                ?
+                (IQuantizer)new OctreeQuantizer()
+                : new PaletteQuantizer();
 
-                var options = new PngEncoder() { Quantizer = quantizer };
+                var options = new PngEncoder { Quantizer = quantizer };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

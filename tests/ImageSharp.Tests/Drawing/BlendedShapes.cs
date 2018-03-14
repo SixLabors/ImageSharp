@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.Primitives;
 using Xunit;
 

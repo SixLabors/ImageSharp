@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 
-namespace SixLabors.ImageSharp.Drawing.Pens
+namespace SixLabors.ImageSharp.Processing.Drawing.Pens
 {
     /// <summary>
     /// Interface representing a Pen

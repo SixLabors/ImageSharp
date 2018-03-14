@@ -1,17 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.Shapes;
 
-namespace SixLabors.ImageSharp.Processing.Overlays
+namespace SixLabors.ImageSharp.Processing.Drawing
 {
     /// <summary>
-    /// Adds extensions that allow the drawing of collections of polygon outlines to the <see cref="Image{TPixel}"/> type.
+    /// Adds extensions that allow the drawing of polygon outlines to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static class DrawPathCollectionExtensions
+    public static class DrawPathExtensions
     {
         /// <summary>
         /// Draws the outline of the polygon with the provided pen.
@@ -19,19 +20,12 @@ namespace SixLabors.ImageSharp.Processing.Overlays
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="paths">The paths.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, IPathCollection paths, GraphicsOptions options)
-           where TPixel : struct, IPixel<TPixel>
-        {
-            foreach (IPath path in paths)
-            {
-                source.Draw(pen, path, options);
-            }
-
-            return source;
-        }
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, IPath path, GraphicsOptions options)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Fill(pen.StrokeFill, new ShapePath(path, pen), options);
 
         /// <summary>
         /// Draws the outline of the polygon with the provided pen.
@@ -39,11 +33,11 @@ namespace SixLabors.ImageSharp.Processing.Overlays
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="pen">The pen.</param>
-        /// <param name="paths">The paths.</param>
+        /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, IPathCollection paths)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, IPath path)
             where TPixel : struct, IPixel<TPixel>
-            => source.Draw(pen, paths, GraphicsOptions.Default);
+            => source.Draw(pen, path, GraphicsOptions.Default);
 
         /// <summary>
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
@@ -52,12 +46,12 @@ namespace SixLabors.ImageSharp.Processing.Overlays
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
-        /// <param name="paths">The shapes.</param>
+        /// <param name="path">The shape.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, IPathCollection paths, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, IPath path, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-            => source.Draw(new Pen<TPixel>(brush, thickness), paths, options);
+            => source.Draw(new Pen<TPixel>(brush, thickness), path, options);
 
         /// <summary>
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
@@ -66,11 +60,11 @@ namespace SixLabors.ImageSharp.Processing.Overlays
         /// <param name="source">The image this method extends.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="thickness">The thickness.</param>
-        /// <param name="paths">The paths.</param>
+        /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, IPathCollection paths)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, IPath path)
             where TPixel : struct, IPixel<TPixel>
-            => source.Draw(new Pen<TPixel>(brush, thickness), paths);
+            => source.Draw(new Pen<TPixel>(brush, thickness), path);
 
         /// <summary>
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
@@ -79,12 +73,12 @@ namespace SixLabors.ImageSharp.Processing.Overlays
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
-        /// <param name="paths">The paths.</param>
+        /// <param name="path">The path.</param>
         /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, IPathCollection paths, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, IPath path, GraphicsOptions options)
             where TPixel : struct, IPixel<TPixel>
-            => source.Draw(new SolidBrush<TPixel>(color), thickness, paths, options);
+            => source.Draw(new SolidBrush<TPixel>(color), thickness, path, options);
 
         /// <summary>
         /// Draws the outline of the polygon with the provided brush at the provided thickness.
@@ -93,10 +87,10 @@ namespace SixLabors.ImageSharp.Processing.Overlays
         /// <param name="source">The image this method extends.</param>
         /// <param name="color">The color.</param>
         /// <param name="thickness">The thickness.</param>
-        /// <param name="paths">The paths.</param>
+        /// <param name="path">The path.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, IPathCollection paths)
+        public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, IPath path)
             where TPixel : struct, IPixel<TPixel>
-            => source.Draw(new SolidBrush<TPixel>(color), thickness, paths);
+            => source.Draw(new SolidBrush<TPixel>(color), thickness, path);
     }
 }

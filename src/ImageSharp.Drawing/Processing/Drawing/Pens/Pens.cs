@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Brushes;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 
-namespace SixLabors.ImageSharp.Drawing.Pens
+namespace SixLabors.ImageSharp.Processing.Drawing.Pens
 {
     /// <summary>
     /// Contains a collection of common Pen styles

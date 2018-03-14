@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Overlays.Processors;
+using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Overlays
+namespace SixLabors.ImageSharp.Processing.Drawing
 {
     /// <summary>
     /// Adds extensions that allow the drawing of images to the <see cref="Image{TPixel}"/> type.

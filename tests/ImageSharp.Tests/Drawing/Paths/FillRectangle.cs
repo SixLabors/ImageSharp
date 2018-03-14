@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Drawing.Brushes;
-using SixLabors.ImageSharp.Drawing.Processors;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Paths
@@ -20,75 +20,75 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushAndRectangle()
         {
-            this.operations.Fill(brush, rectangle);
+            this.operations.Fill(this.brush, this.rectangle);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            SixLabors.Shapes.RectangularePolygon rect = Assert.IsType<SixLabors.Shapes.RectangularePolygon>(region.Shape);
-            Assert.Equal(rect.Location.X, rectangle.X);
-            Assert.Equal(rect.Location.Y, rectangle.Y);
-            Assert.Equal(rect.Size.Width, rectangle.Width);
-            Assert.Equal(rect.Size.Height, rectangle.Height);
+            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Assert.Equal(rect.Location.X, this.rectangle.X);
+            Assert.Equal(rect.Location.Y, this.rectangle.Y);
+            Assert.Equal(rect.Size.Width, this.rectangle.Width);
+            Assert.Equal(rect.Size.Height, this.rectangle.Height);
 
-            Assert.Equal(brush, processor.Brush);
+            Assert.Equal(this.brush, processor.Brush);
         }
 
         [Fact]
         public void CorrectlySetsBrushRectangleAndOptions()
         {
-            this.operations.Fill(brush, rectangle, noneDefault);
+            this.operations.Fill(this.brush, this.rectangle, this.noneDefault);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
-            Assert.Equal(noneDefault, processor.Options);
+            Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            SixLabors.Shapes.RectangularePolygon rect = Assert.IsType<SixLabors.Shapes.RectangularePolygon>(region.Shape);
-            Assert.Equal(rect.Location.X, rectangle.X);
-            Assert.Equal(rect.Location.Y, rectangle.Y);
-            Assert.Equal(rect.Size.Width, rectangle.Width);
-            Assert.Equal(rect.Size.Height, rectangle.Height);
+            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Assert.Equal(rect.Location.X, this.rectangle.X);
+            Assert.Equal(rect.Location.Y, this.rectangle.Y);
+            Assert.Equal(rect.Size.Width, this.rectangle.Width);
+            Assert.Equal(rect.Size.Height, this.rectangle.Height);
 
-            Assert.Equal(brush, processor.Brush);
+            Assert.Equal(this.brush, processor.Brush);
         }
 
         [Fact]
         public void CorrectlySetsColorAndRectangle()
         {
-            this.operations.Fill(color, rectangle);
+            this.operations.Fill(this.color, this.rectangle);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            SixLabors.Shapes.RectangularePolygon rect = Assert.IsType<SixLabors.Shapes.RectangularePolygon>(region.Shape);
-            Assert.Equal(rect.Location.X, rectangle.X);
-            Assert.Equal(rect.Location.Y, rectangle.Y);
-            Assert.Equal(rect.Size.Width, rectangle.Width);
-            Assert.Equal(rect.Size.Height, rectangle.Height);
+            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Assert.Equal(rect.Location.X, this.rectangle.X);
+            Assert.Equal(rect.Location.Y, this.rectangle.Y);
+            Assert.Equal(rect.Size.Width, this.rectangle.Width);
+            Assert.Equal(rect.Size.Height, this.rectangle.Height);
 
             SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
-            Assert.Equal(color, brush.Color);
+            Assert.Equal(this.color, brush.Color);
         }
 
         [Fact]
         public void CorrectlySetsColorRectangleAndOptions()
         {
-            this.operations.Fill(color, rectangle, noneDefault);
+            this.operations.Fill(this.color, this.rectangle, this.noneDefault);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
-            Assert.Equal(noneDefault, processor.Options);
+            Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            SixLabors.Shapes.RectangularePolygon rect = Assert.IsType<SixLabors.Shapes.RectangularePolygon>(region.Shape);
-            Assert.Equal(rect.Location.X, rectangle.X);
-            Assert.Equal(rect.Location.Y, rectangle.Y);
-            Assert.Equal(rect.Size.Width, rectangle.Width);
-            Assert.Equal(rect.Size.Height, rectangle.Height);
+            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Assert.Equal(rect.Location.X, this.rectangle.X);
+            Assert.Equal(rect.Location.Y, this.rectangle.Y);
+            Assert.Equal(rect.Size.Width, this.rectangle.Width);
+            Assert.Equal(rect.Size.Height, this.rectangle.Height);
 
             SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
-            Assert.Equal(color, brush.Color);
+            Assert.Equal(this.color, brush.Color);
         }
     }
 }

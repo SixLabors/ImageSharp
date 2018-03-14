@@ -7,15 +7,14 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Quantization
+namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 {
     /// <summary>
     /// Encapsulates methods to create a quantized image based upon the given palette.
-    /// If no palette is given this will default to the web safe colors defined in the CSS Color Module Level 4.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class PaletteQuantizer<TPixel> : QuantizerBase<TPixel>
+    internal sealed class PaletteFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -26,33 +25,16 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// <summary>
         /// List of all colors in the palette
         /// </summary>
-        private TPixel[] colors;
+        private readonly TPixel[] colors;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
-        public PaletteQuantizer()
-            : this(NamedColors<TPixel>.WebSafePalette)
+        /// <param name="quantizer">The palette quantizer</param>
+        public PaletteFrameQuantizer(PaletteQuantizer quantizer)
+            : base(quantizer, true)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> class.
-        /// </summary>
-        /// <param name="palette">The palette to select substitute colors from.</param>
-        public PaletteQuantizer(TPixel[] palette = null)
-            : base(true)
-        {
-            Guard.NotNull(palette, nameof(palette));
-            this.colors = palette;
-        }
-
-        /// <inheritdoc/>
-        public override QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
-        {
-            Array.Resize(ref this.colors, maxColors.Clamp(1, 255));
-            this.colorMap.Clear();
-            return base.Quantize(image, maxColors);
+            this.colors = quantizer.GetPalette<TPixel>();
         }
 
         /// <inheritdoc/>

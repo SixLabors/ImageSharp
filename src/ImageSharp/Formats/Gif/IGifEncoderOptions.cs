@@ -22,16 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         Encoding TextEncoding { get; }
 
         /// <summary>
-        /// Gets the size of the color palette to use. For gifs the value ranges from 1 to 256. Leave as zero for default size.
-        /// </summary>
-        int PaletteSize { get; }
-
-        /// <summary>
-        /// Gets the transparency threshold.
-        /// </summary>
-        byte Threshold { get; }
-
-        /// <summary>
         /// Gets the quantizer for reducing the color count.
         /// </summary>
         IQuantizer Quantizer { get; }

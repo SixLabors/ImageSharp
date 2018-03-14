@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using SixLabors.ImageSharp.Formats.Bmp;
     using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
     using SixLabors.Primitives;

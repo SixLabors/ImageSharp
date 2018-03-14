@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
     {
         Undefined = 0,
 
-        GrayScale,
+        Grayscale,
 
         Ycck,
 

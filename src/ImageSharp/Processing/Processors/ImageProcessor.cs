@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing.Processors
 {
     /// <summary>
     /// Allows the application of processors to images.
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing
 #else
             catch (Exception ex)
             {
-                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
 #endif
             }
         }
@@ -52,9 +52,9 @@ namespace SixLabors.ImageSharp.Processing
         {
             try
             {
-                this.BeforeApply(source, sourceRectangle, configuration);
-                this.OnApply(source, sourceRectangle, configuration);
-                this.AfterApply(source, sourceRectangle, configuration);
+                this.BeforeFrameApply(source, sourceRectangle, configuration);
+                this.OnFrameApply(source, sourceRectangle, configuration);
+                this.AfterFrameApply(source, sourceRectangle, configuration);
             }
 #if DEBUG
             catch (Exception)
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing
 #else
             catch (Exception ex)
             {
-                throw new ImageProcessingException($"An error occured when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
+                throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. See the inner exception for more detail.", ex);
 #endif
             }
         }
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        protected virtual void BeforeApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected virtual void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        protected abstract void OnApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration);
+        protected abstract void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration);
 
         /// <summary>
         /// This method is called after the process is applied to prepare the processor.
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The source image. Cannot be null.</param>
         /// <param name="sourceRectangle">The <see cref="Rectangle" /> structure that specifies the portion of the image object to draw.</param>
         /// <param name="configuration">The configuration.</param>
-        protected virtual void AfterApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected virtual void AfterFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
         }
 

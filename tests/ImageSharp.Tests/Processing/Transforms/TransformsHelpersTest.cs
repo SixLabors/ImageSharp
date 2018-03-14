@@ -7,6 +7,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    using SixLabors.ImageSharp.Processing.Transforms;
+
     public class TransformsHelpersTest
     {
         [Fact]

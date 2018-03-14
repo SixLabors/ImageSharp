@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [InlineData(TestImages.Jpeg.Baseline.Testorig420, JpegColorSpace.YCbCr)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg400, JpegColorSpace.GrayScale)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg400, JpegColorSpace.Grayscale)]
         [InlineData(TestImages.Jpeg.Baseline.Ycck, JpegColorSpace.Ycck)]
         [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorSpace.Cmyk)]
         public void ColorSpace_IsDeducedCorrectly(string imageFile, object expectedColorSpaceValue)

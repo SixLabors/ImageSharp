@@ -1,15 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using System.IO;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
+using SixLabors.ImageSharp.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// The options availible for manipulating the encoder pipeline
+    /// The options available for manipulating the encoder pipeline
     /// </summary>
     internal interface IPngEncoderOptions
     {

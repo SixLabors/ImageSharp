@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     using Xunit.Abstractions;

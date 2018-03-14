@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
-
-namespace SixLabors.ImageSharp
+namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
-    /// Provides standardized deifinitions for named colors.
+    /// Provides standardized definitions for named colors.
     /// </content>
     public partial struct Rgba32
     {

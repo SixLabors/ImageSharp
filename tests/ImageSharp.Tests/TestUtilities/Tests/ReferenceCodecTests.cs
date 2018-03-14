@@ -3,6 +3,7 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.Formats;
     using SixLabors.ImageSharp.Formats.Png;
     using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 

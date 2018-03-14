@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void ConvertFromGrayScale(int inputBufferLength, int resultBufferLength, int seed)
         {
-            var converter = JpegColorConverter.GetConverter(JpegColorSpace.GrayScale);
+            var converter = JpegColorConverter.GetConverter(JpegColorSpace.Grayscale);
             JpegColorConverter.ComponentValues values = CreateRandomValues(1, inputBufferLength, seed);
             Vector4[] result = new Vector4[resultBufferLength];
 

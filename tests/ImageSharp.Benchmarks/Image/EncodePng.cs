@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Benchmarks.Image
 {
     using System.Drawing;
@@ -11,8 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
 
     using BenchmarkDotNet.Attributes;
     using SixLabors.ImageSharp.Formats.Png;
-    using SixLabors.ImageSharp.Quantizers;
-    using SixLabors.ImageSharp.Quantizers.Base;
+    using SixLabors.ImageSharp.Processing.Quantization;
     using SixLabors.ImageSharp.Tests;
 
     using CoreImage = ImageSharp.Image;

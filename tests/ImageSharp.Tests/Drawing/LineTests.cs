@@ -1,15 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
 using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.Drawing.Pens;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Overlays;
+
     public class LineTests : FileTestBase
     {
         [Fact]

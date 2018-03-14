@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Tests
 {
     using Castle.Core.Internal;
 
+    using SixLabors.ImageSharp.Processing;
+
     public interface ITestImageProvider
     {
         PixelTypes PixelType { get; }

@@ -1,12 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Quantizers;
+using SixLabors.ImageSharp.Processing.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -38,6 +34,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the quantizer for reducing the color count.
         /// </summary>
-        IQuantizer Quantizer { get;  }
+        IQuantizer Quantizer { get; }
     }
 }

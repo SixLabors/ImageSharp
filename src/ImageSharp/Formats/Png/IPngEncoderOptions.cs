@@ -11,16 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Png
     internal interface IPngEncoderOptions
     {
         /// <summary>
-        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
-        /// </summary>
-        bool IgnoreMetadata { get; }
-
-        /// <summary>
-        /// Gets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
-        /// </summary>
-        int PaletteSize { get; }
-
-        /// <summary>
         /// Gets the png color type
         /// </summary>
         PngColorType PngColorType { get; }

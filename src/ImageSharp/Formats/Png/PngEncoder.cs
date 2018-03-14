@@ -14,16 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Png
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being encoded.
-        /// </summary>
-        public bool IgnoreMetadata { get; set; }
-
-        /// <summary>
-        /// Gets or sets the size of the color palette to use. Set to zero to leave png encoding to use pixel data.
-        /// </summary>
-        public int PaletteSize { get; set; } = 0;
-
-        /// <summary>
         /// Gets or sets the png color type
         /// </summary>
         public PngColorType PngColorType { get; set; } = PngColorType.RgbWithAlpha;
@@ -44,8 +34,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Gets or sets quantizer for reducing the color count.
+        /// Defaults to the <see cref="WuQuantizer"/>
         /// </summary>
-        public IQuantizer Quantizer { get; set; }
+        public IQuantizer Quantizer { get; set; } = new WuQuantizer();
 
         /// <summary>
         /// Gets or sets the transparency threshold.

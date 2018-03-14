@@ -12,34 +12,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization
     public static class QuantizeExtensions
     {
         /// <summary>
-        /// Applies quantization to the image.
+        /// Applies quantization to the image using the <see cref="OctreeQuantizer"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="mode">The quantization mode to apply to perform the operation.</param>
-        /// <param name="maxColors">The maximum number of colors to return. Defaults to 256.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source, QuantizationMode mode = QuantizationMode.Octree, int maxColors = 256)
+        public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-        {
-            IQuantizer<TPixel> quantizer;
-            switch (mode)
-            {
-                case QuantizationMode.Wu:
-                    quantizer = new WuQuantizer<TPixel>();
-                    break;
-
-                case QuantizationMode.Palette:
-                    quantizer = new PaletteQuantizer<TPixel>();
-                    break;
-
-                default:
-                    quantizer = new OctreeQuantizer<TPixel>();
-                    break;
-            }
-
-            return Quantize(source, quantizer, maxColors);
-        }
+            => Quantize(source, QuantizationMode.Octree);
 
         /// <summary>
         /// Applies quantization to the image.
@@ -47,10 +27,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
         /// <param name="quantizer">The quantizer to apply to perform the operation.</param>
-        /// <param name="maxColors">The maximum number of colors to return.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source, IQuantizer<TPixel> quantizer, int maxColors)
+        public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source, IQuantizer quantizer)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new QuantizeProcessor<TPixel>(quantizer, maxColors));
+            => source.ApplyProcessor(new QuantizeProcessor<TPixel>(quantizer));
     }
 }

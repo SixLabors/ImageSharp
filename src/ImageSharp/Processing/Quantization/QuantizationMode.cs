@@ -4,26 +4,26 @@
 namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
-    /// Provides enumeration over how an image should be quantized.
+    /// Contains reusable static instances of known quantizing algorithms
     /// </summary>
-    public enum QuantizationMode
+    public static class QuantizationMode
     {
         /// <summary>
-        /// An adaptive Octree quantizer. Fast with good quality.
+        /// Gets the adaptive Octree quantizer. Fast with good quality.
         /// The quantizer only supports a single alpha value.
         /// </summary>
-        Octree,
+        public static IQuantizer Octree { get; } = new OctreeQuantizer();
 
         /// <summary>
-        /// Xiaolin Wu's Color Quantizer which generates high quality output.
+        /// Gets the Xiaolin Wu's Color Quantizer which generates high quality output.
         /// The quantizer supports multiple alpha values.
         /// </summary>
-        Wu,
+        public static IQuantizer Wu { get; } = new WuQuantizer();
 
         /// <summary>
-        /// Palette based, Uses the collection of web-safe colors by default.
+        /// Gets the palette based, Using the collection of web-safe colors.
         /// The quantizer supports multiple alpha values.
         /// </summary>
-        Palette
+        public static IQuantizer Palette { get; } = new PaletteQuantizer();
     }
 }

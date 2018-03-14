@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
-
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-
+    using SixLabors.ImageSharp.Processing.Transforms;
+    using SixLabors.ImageSharp.Processing.Transforms.Processors;
 
     public class PadTest : BaseImageOperationsExtensionTest
     {
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 500;
             int height = 565;
-            IResampler sampler = KnownResamplers.NearestNeighbor;
+            IResampler sampler = ResampleMode.NearestNeighbor;
 
             this.operations.Pad(width, height);
             ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();

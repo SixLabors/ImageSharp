@@ -2,12 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Drawing;
-using SixLabors.ImageSharp.Drawing.Pens;
-using SixLabors.ImageSharp.Drawing.Processors;
+
 using Moq;
 using Xunit;
-using SixLabors.ImageSharp.Drawing.Brushes;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.ImageSharp.Processing.Drawing.Pens;
+using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Drawing

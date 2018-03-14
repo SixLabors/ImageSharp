@@ -8,6 +8,9 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
+    using SixLabors.ImageSharp.Processing.Effects;
+    using SixLabors.ImageSharp.Processing.Effects.Processors;
+
     public class PixelateTest : BaseImageOperationsExtensionTest
     {
         [Fact]

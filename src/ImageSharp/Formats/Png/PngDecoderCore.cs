@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private Rgb24 rgb24Trans;
 
         /// <summary>
-        /// Represents any color in a Grayscale encoded png that should be transparent
+        /// Represents any color in a grayscale encoded png that should be transparent
         /// </summary>
         private byte intensityTrans;
 
@@ -269,6 +269,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                             }
                         }
                     }
+                }
+
+                if (image == null)
+                {
+                    throw new ImageFormatException("PNG Image does not contain a data chunk");
                 }
 
                 return image;

@@ -2,15 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.PixelFormats;
+
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
 using Moq;
-using SixLabors.Primitives;
+
+using SixLabors.ImageSharp.PixelFormats;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -42,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             this.image.Mutate(x => x.ApplyProcessor(this.processor));
 
             Assert.True(this.provider.HasCreated(this.image));
-            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x=>x.Processor));
+            Assert.Contains(this.processor, this.provider.AppliedOperations(this.image).Select(x => x.Processor));
         }
 
         [Fact]

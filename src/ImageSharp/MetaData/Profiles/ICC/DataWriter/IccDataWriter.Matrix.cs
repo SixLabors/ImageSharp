@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -59,12 +59,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="value">The matrix to write</param>
         /// <param name="isSingle">True if the values are encoded as Single; false if encoded as Fix16</param>
         /// <returns>The number of bytes written</returns>
-        public int WriteMatrix(Fast2DArray<float> value, bool isSingle)
+        public int WriteMatrix(DenseMatrix<float> value, bool isSingle)
         {
             int count = 0;
-            for (int y = 0; y < value.Height; y++)
+            for (int y = 0; y < value.Rows; y++)
             {
-                for (int x = 0; x < value.Width; x++)
+                for (int x = 0; x < value.Columns; x++)
                 {
                     if (isSingle)
                     {

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Processing
+namespace SixLabors.ImageSharp.Processing.Transforms.Resamplers
 {
     /// <summary>
     /// The function implements the Robidoux Sharp algorithm.

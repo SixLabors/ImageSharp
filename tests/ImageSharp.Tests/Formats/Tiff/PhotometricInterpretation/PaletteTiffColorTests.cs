@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Tests
 {
     using System.Collections.Generic;
@@ -122,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Rgba32[][] GenerateResult(uint[][] colorPalette, int[][] pixelLookup)
         {
-            Rgba32[][] result = new Rgba32[pixelLookup.Length][];
+            var result = new Rgba32[pixelLookup.Length][];
 
             for (int y = 0; y < pixelLookup.Length; y++)
             {

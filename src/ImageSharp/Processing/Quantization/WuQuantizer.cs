@@ -9,8 +9,10 @@ using SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers;
 namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
-    /// Allows the quantization of images pixels using Xiaolin Wu's Color Quantizer.
-    /// <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>
+    /// Allows the quantization of images pixels using Xiaolin Wu's Color Quantizer <see href="http://www.ece.mcmaster.ca/~xwu/cq.c"/>
+    /// <para>
+    /// By default the quantizer uses <see cref="KnownDiffusers.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
+    /// </para>
     /// </summary>
     public class WuQuantizer : IQuantizer
     {

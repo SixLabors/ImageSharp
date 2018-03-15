@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         bool Dither { get; }
 
         /// <summary>
-        /// Gets the dithering algorithm to apply to the output image.
+        /// Gets the error diffusion algorithm to apply to the output image.
         /// </summary>
-        IErrorDiffuser DitherType { get; }
+        IErrorDiffuser Diffuser { get; }
 
         /// <summary>
         /// Quantize an image frame and return the resulting output pixels.

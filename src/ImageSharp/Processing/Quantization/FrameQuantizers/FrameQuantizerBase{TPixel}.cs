@@ -39,8 +39,8 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         {
             Guard.NotNull(quantizer, nameof(quantizer));
 
-            this.Dither = quantizer.Dither;
-            this.DitherType = quantizer.DitherType;
+            this.Diffuser = quantizer.Diffuser;
+            this.Dither = this.Diffuser != null;
             this.singlePass = singlePass;
         }
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public bool Dither { get; }
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; }
+        public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc/>
         public virtual QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)

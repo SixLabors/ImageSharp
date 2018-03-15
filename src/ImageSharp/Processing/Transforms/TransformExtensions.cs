@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix3x2 matrix)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, ResampleMode.Bicubic);
+            => Transform(source, matrix, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Transforms an image by the given matrix using the specified sampling algorithm.
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
             where TPixel : struct, IPixel<TPixel>
-            => Transform(source, matrix, ResampleMode.Bicubic);
+            => Transform(source, matrix, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.

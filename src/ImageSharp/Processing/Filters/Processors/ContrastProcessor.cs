@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// </remarks>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
         public ContrastProcessor(float amount)
-            : base(MatrixFilters.CreateContrastFilter(amount))
+            : base(KnownMatrixFilters.CreateContrastFilter(amount))
         {
             this.Amount = amount;
         }

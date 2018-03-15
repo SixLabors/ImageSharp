@@ -19,42 +19,42 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {
-            OrientationType orientation = GetExifOrientation(source);
+            OrientationMode orientation = GetExifOrientation(source);
             Size size = sourceRectangle.Size;
             switch (orientation)
             {
-                case OrientationType.TopRight:
-                    new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
+                case OrientationMode.TopRight:
+                    new FlipProcessor<TPixel>(FlipMode.Horizontal).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.BottomRight:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate180, size).Apply(source, sourceRectangle);
+                case OrientationMode.BottomRight:
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate180, size).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.BottomLeft:
-                    new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
+                case OrientationMode.BottomLeft:
+                    new FlipProcessor<TPixel>(FlipMode.Vertical).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.LeftTop:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
-                    new FlipProcessor<TPixel>(FlipType.Horizontal).Apply(source, sourceRectangle);
+                case OrientationMode.LeftTop:
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
+                    new FlipProcessor<TPixel>(FlipMode.Horizontal).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.RightTop:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate90, size).Apply(source, sourceRectangle);
+                case OrientationMode.RightTop:
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate90, size).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.RightBottom:
-                    new FlipProcessor<TPixel>(FlipType.Vertical).Apply(source, sourceRectangle);
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
+                case OrientationMode.RightBottom:
+                    new FlipProcessor<TPixel>(FlipMode.Vertical).Apply(source, sourceRectangle);
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.LeftBottom:
-                    new RotateProcessor<TPixel>((int)RotateType.Rotate270, size).Apply(source, sourceRectangle);
+                case OrientationMode.LeftBottom:
+                    new RotateProcessor<TPixel>((int)RotateMode.Rotate270, size).Apply(source, sourceRectangle);
                     break;
 
-                case OrientationType.Unknown:
-                case OrientationType.TopLeft:
+                case OrientationMode.Unknown:
+                case OrientationMode.TopLeft:
                 default:
                     break;
             }
@@ -70,32 +70,32 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// Returns the current EXIF orientation
         /// </summary>
         /// <param name="source">The image to auto rotate.</param>
-        /// <returns>The <see cref="OrientationType"/></returns>
-        private static OrientationType GetExifOrientation(Image<TPixel> source)
+        /// <returns>The <see cref="OrientationMode"/></returns>
+        private static OrientationMode GetExifOrientation(Image<TPixel> source)
         {
             if (source.MetaData.ExifProfile == null)
             {
-                return OrientationType.Unknown;
+                return OrientationMode.Unknown;
             }
 
             ExifValue value = source.MetaData.ExifProfile.GetValue(ExifTag.Orientation);
             if (value == null)
             {
-                return OrientationType.Unknown;
+                return OrientationMode.Unknown;
             }
 
-            OrientationType orientation;
+            OrientationMode orientation;
             if (value.DataType == ExifDataType.Short)
             {
-                orientation = (OrientationType)value.Value;
+                orientation = (OrientationMode)value.Value;
             }
             else
             {
-                orientation = (OrientationType)Convert.ToUInt16(value.Value);
+                orientation = (OrientationMode)Convert.ToUInt16(value.Value);
                 source.MetaData.ExifProfile.RemoveValue(ExifTag.Orientation);
             }
 
-            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationType.TopLeft);
+            source.MetaData.ExifProfile.SetValue(ExifTag.Orientation, (ushort)OrientationMode.TopLeft);
 
             return orientation;
         }

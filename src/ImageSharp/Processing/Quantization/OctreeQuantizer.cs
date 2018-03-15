@@ -75,6 +75,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization
             where TPixel : struct, IPixel<TPixel>
             => new OctreeFrameQuantizer<TPixel>(this);
 
-        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? DiffuseMode.FloydSteinberg : null;
+        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
     }
 }

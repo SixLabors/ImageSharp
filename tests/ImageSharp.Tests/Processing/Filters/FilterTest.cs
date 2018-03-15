@@ -16,14 +16,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         [Fact]
         public void Filter_CorrectProcessor()
         {
-            this.operations.Filter(MatrixFilters.AchromatomalyFilter * MatrixFilters.CreateHueFilter(90F));
+            this.operations.Filter(KnownMatrixFilters.AchromatomalyFilter * KnownMatrixFilters.CreateHueFilter(90F));
             FilterProcessor<Rgba32> p = this.Verify<FilterProcessor<Rgba32>>();
         }
 
         [Fact]
         public void Filter_rect_CorrectProcessor()
         {
-            this.operations.Filter(MatrixFilters.AchromatomalyFilter * MatrixFilters.CreateHueFilter(90F), this.rect);
+            this.operations.Filter(KnownMatrixFilters.AchromatomalyFilter * KnownMatrixFilters.CreateHueFilter(90F), this.rect);
             FilterProcessor<Rgba32> p = this.Verify<FilterProcessor<Rgba32>>(this.rect);
         }
     }

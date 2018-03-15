@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.IO;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
@@ -11,6 +10,7 @@ using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Primitives;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort

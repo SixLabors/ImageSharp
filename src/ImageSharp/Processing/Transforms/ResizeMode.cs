@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Processing.Transforms
 {
     /// <summary>
-    /// Enumerated resize modes to apply to images.
+    /// Provides enumeration over how the image should be resized.
     /// </summary>
     public enum ResizeMode
     {

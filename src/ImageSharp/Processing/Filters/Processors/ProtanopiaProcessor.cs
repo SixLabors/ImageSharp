@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="ProtanopiaProcessor{TPixel}"/> class.
         /// </summary>
         public ProtanopiaProcessor()
-            : base(KnownMatrixFilters.ProtanopiaFilter)
+            : base(KnownFilterMatrices.ProtanopiaFilter)
         {
         }
     }

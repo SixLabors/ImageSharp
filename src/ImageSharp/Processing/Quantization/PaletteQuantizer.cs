@@ -10,8 +10,10 @@ namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// Allows the quantization of images pixels using web safe colors defined in the CSS Color Module Level 4.
-    /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
-    /// Override this class to provide your own palette.
+    /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/> Override this class to provide your own palette.
+    /// <para>
+    /// By default the quantizer uses <see cref="KnownDiffusers.FloydSteinberg"/> dithering and the <see cref="NamedColors{TPixel}.WebSafePalette"/>
+    /// </para>
     /// </summary>
     public class PaletteQuantizer : IQuantizer
     {

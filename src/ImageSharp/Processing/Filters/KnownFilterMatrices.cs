@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Filters
     /// <summary>
     /// A collection of known <see cref="Matrix4x4"/> values for composing filters
     /// </summary>
-    public static class KnownMatrixFilters
+    public static class KnownFilterMatrices
     {
         /// <summary>
         /// Gets a filter recreating Achromatomaly (Color desensitivity) color blindness

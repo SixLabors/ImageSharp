@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="DeuteranopiaProcessor{TPixel}"/> class.
         /// </summary>
         public DeuteranopiaProcessor()
-            : base(KnownMatrixFilters.DeuteranopiaFilter)
+            : base(KnownFilterMatrices.DeuteranopiaFilter)
         {
         }
     }

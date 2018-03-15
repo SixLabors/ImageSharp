@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="BlackWhiteProcessor{TPixel}"/> class.
         /// </summary>
         public BlackWhiteProcessor()
-            : base(KnownMatrixFilters.BlackWhiteFilter)
+            : base(KnownFilterMatrices.BlackWhiteFilter)
         {
         }
     }

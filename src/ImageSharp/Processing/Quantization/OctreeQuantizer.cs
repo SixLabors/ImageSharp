@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization
     /// <summary>
     /// Allows the quantization of images pixels using Octrees.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
+    /// <para>
+    /// By default the quantizer uses <see cref="KnownDiffusers.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
+    /// </para>
     /// </summary>
     public class OctreeQuantizer : IQuantizer
     {
@@ -45,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
         public OctreeQuantizer(IErrorDiffuser diffuser)
-             : this(diffuser, 255)
+            : this(diffuser, 255)
         {
         }
 

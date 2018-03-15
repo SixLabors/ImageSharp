@@ -25,10 +25,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IOrderedDither> OrderedDitherers = new TheoryData<string, IOrderedDither>
         {
-            { "Bayer8x8", KnownDitherMatrices.BayerDither8x8 },
-            { "Bayer4x4", KnownDitherMatrices.BayerDither4x4 },
-            { "Ordered3x3", KnownDitherMatrices.OrderedDither3x3 },
-            { "Bayer2x2", KnownDitherMatrices.BayerDither2x2 }
+            { "Bayer8x8", KnownDitherers.BayerDither8x8 },
+            { "Bayer4x4", KnownDitherers.BayerDither4x4 },
+            { "Ordered3x3", KnownDitherers.OrderedDither3x3 },
+            { "Bayer2x2", KnownDitherers.BayerDither2x2 }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         };
 
 
-        private static IOrderedDither DefaultDitherer => KnownDitherMatrices.BayerDither4x4;
+        private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
         private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
 

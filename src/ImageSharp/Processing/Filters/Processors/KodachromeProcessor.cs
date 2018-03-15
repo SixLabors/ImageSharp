@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="KodachromeProcessor{TPixel}"/> class.
         /// </summary>
         public KodachromeProcessor()
-            : base(KnownMatrixFilters.KodachromeFilter)
+            : base(KnownFilterMatrices.KodachromeFilter)
         {
         }
     }

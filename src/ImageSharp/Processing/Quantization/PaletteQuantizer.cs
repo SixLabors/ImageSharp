@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
         public PaletteQuantizer()
-            : this(true, DiffuseMode.FloydSteinberg)
+             : this(true)
         {
         }
 
@@ -28,28 +28,21 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// </summary>
         /// <param name="dither">Whether to apply dithering to the output image</param>
         public PaletteQuantizer(bool dither)
-            : this(dither, DiffuseMode.FloydSteinberg)
+            : this(GetDiffuser(dither))
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
-        /// <param name="dither">Whether to apply dithering to the output image</param>
-        /// <param name="ditherType">The dithering algorithm to apply to the output image</param>
-        public PaletteQuantizer(bool dither, IErrorDiffuser ditherType)
+        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
+        public PaletteQuantizer(IErrorDiffuser diffuser)
         {
-            Guard.NotNull(ditherType, nameof(ditherType));
-
-            this.Dither = dither;
-            this.DitherType = ditherType;
+            this.Diffuser = diffuser;
         }
 
         /// <inheritdoc />
-        public bool Dither { get; }
-
-        /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; }
+        public IErrorDiffuser Diffuser { get; }
 
         /// <summary>
         /// Gets the palette to use to quantize the image.
@@ -64,5 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
             => new PaletteFrameQuantizer<TPixel>(this);
+
+        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? DiffuseMode.FloydSteinberg : null;
     }
 }

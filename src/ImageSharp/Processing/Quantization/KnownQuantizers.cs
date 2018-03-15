@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
     /// <summary>
     /// Contains reusable static instances of known quantizing algorithms
     /// </summary>
-    public static class QuantizationMode
+    public static class KnownQuantizers
     {
         /// <summary>
         /// Gets the adaptive Octree quantizer. Fast with good quality.

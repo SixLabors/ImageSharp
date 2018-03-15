@@ -13,22 +13,22 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
     [GroupOutput("Filters")]
     public class ColorBlindnessTest
     {
-        public static readonly TheoryData<ColorBlindness> ColorBlindnessFilters
-        = new TheoryData<ColorBlindness>
+        public static readonly TheoryData<ColorBlindnessMode> ColorBlindnessFilters
+        = new TheoryData<ColorBlindnessMode>
         {
-            ColorBlindness.Achromatomaly,
-            ColorBlindness.Achromatopsia,
-            ColorBlindness.Deuteranomaly,
-            ColorBlindness.Deuteranopia,
-            ColorBlindness.Protanomaly,
-            ColorBlindness.Protanopia,
-            ColorBlindness.Tritanomaly,
-            ColorBlindness.Tritanopia
+            ColorBlindnessMode.Achromatomaly,
+            ColorBlindnessMode.Achromatopsia,
+            ColorBlindnessMode.Deuteranomaly,
+            ColorBlindnessMode.Deuteranopia,
+            ColorBlindnessMode.Protanomaly,
+            ColorBlindnessMode.Protanopia,
+            ColorBlindnessMode.Tritanomaly,
+            ColorBlindnessMode.Tritanopia
         };
 
         [Theory]
         [WithTestPatternImages(nameof(ColorBlindnessFilters), 48, 48, PixelTypes.Rgba32)]
-        public void ApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindness colorBlindness)
+        public void ApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindnessMode colorBlindness)
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.ColorBlindness(colorBlindness), colorBlindness.ToString());

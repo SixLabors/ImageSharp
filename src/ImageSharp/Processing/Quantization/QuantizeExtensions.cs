@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Quantize<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => Quantize(source, QuantizationMode.Octree);
+            => Quantize(source, KnownQuantizers.Octree);
 
         /// <summary>
         /// Applies quantization to the image.

@@ -13,20 +13,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     {
         public static readonly string[] FlipFiles = { TestImages.Bmp.F };
 
-        public static readonly TheoryData<RotateType, FlipType> RotateFlipValues
-            = new TheoryData<RotateType, FlipType>
+        public static readonly TheoryData<RotateMode, FlipMode> RotateFlipValues
+            = new TheoryData<RotateMode, FlipMode>
         {
-            { RotateType.None, FlipType.Vertical },
-            { RotateType.None, FlipType.Horizontal },
-            { RotateType.Rotate90, FlipType.None },
-            { RotateType.Rotate180, FlipType.None },
-            { RotateType.Rotate270, FlipType.None },
+            { RotateMode.None, FlipMode.Vertical },
+            { RotateMode.None, FlipMode.Horizontal },
+            { RotateMode.Rotate90, FlipMode.None },
+            { RotateMode.Rotate180, FlipMode.None },
+            { RotateMode.Rotate270, FlipMode.None },
         };
 
         [Theory]
         [WithTestPatternImages(nameof(RotateFlipValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateFlipValues), 50, 100, DefaultPixelType)]
-        public void RotateFlip<TPixel>(TestImageProvider<TPixel> provider, RotateType rotateType, FlipType flipType)
+        public void RotateFlip<TPixel>(TestImageProvider<TPixel> provider, RotateMode rotateType, FlipMode flipType)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// </remarks>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
         public SaturateProcessor(float amount)
-            : base(MatrixFilters.CreateSaturateFilter(amount))
+            : base(KnownMatrixFilters.CreateSaturateFilter(amount))
         {
             this.Amount = amount;
         }

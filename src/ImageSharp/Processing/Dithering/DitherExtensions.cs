@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Dither<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => Dither(source, DitherMode.BayerDither4x4);
+            => Dither(source, KnownDitherMatrices.BayerDither4x4);
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using ordered dithering.

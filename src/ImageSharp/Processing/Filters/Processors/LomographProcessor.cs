@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}" /> class.
         /// </summary>
         public LomographProcessor()
-            : base(MatrixFilters.LomographFilter)
+            : base(KnownMatrixFilters.LomographFilter)
         {
         }
 

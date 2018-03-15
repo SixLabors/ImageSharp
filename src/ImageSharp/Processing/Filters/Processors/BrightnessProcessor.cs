@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// </remarks>
         /// <param name="amount">The proportion of the conversion. Must be greater than or equal to 0.</param>
         public BrightnessProcessor(float amount)
-            : base(MatrixFilters.CreateBrightnessFilter(amount))
+            : base(KnownMatrixFilters.CreateBrightnessFilter(amount))
         {
             this.Amount = amount;
         }

@@ -13,17 +13,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     {
         public static readonly string[] FlipFiles = { TestImages.Bmp.F };
 
-        public static readonly TheoryData<FlipType> FlipValues
-            = new TheoryData<FlipType>
+        public static readonly TheoryData<FlipMode> FlipValues
+            = new TheoryData<FlipMode>
         {
-            { FlipType.None },
-            { FlipType.Vertical },
-            { FlipType.Horizontal },
+            { FlipMode.None },
+            { FlipMode.Vertical },
+            { FlipMode.Horizontal },
         };
 
         [Theory]
         [WithFileCollection(nameof(FlipFiles), nameof(FlipValues), DefaultPixelType)]
-        public void ImageShouldFlip<TPixel>(TestImageProvider<TPixel> provider, FlipType flipType)
+        public void ImageShouldFlip<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipType)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

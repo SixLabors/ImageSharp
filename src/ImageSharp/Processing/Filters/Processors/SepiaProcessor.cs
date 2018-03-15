@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
         public SepiaProcessor(float amount)
-            : base(MatrixFilters.CreateSepiaFilter(amount))
+            : base(KnownMatrixFilters.CreateSepiaFilter(amount))
         {
             this.Amount = amount;
         }

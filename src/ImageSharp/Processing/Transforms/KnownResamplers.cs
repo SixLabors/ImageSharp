@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     /// <summary>
     /// Contains reusable static instances of known resampling algorithms
     /// </summary>
-    public static class ResampleMode
+    public static class KnownResamplers
     {
         /// <summary>
         /// Gets the Bicubic sampler that implements the bicubic kernel algorithm W(x)

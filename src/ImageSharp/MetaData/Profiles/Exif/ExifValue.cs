@@ -4,6 +4,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {

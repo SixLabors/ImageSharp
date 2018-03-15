@@ -87,14 +87,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                 {
                     switch (options.Position)
                     {
-                        case AnchorPosition.Top:
-                        case AnchorPosition.TopLeft:
-                        case AnchorPosition.TopRight:
+                        case AnchorPositionMode.Top:
+                        case AnchorPositionMode.TopLeft:
+                        case AnchorPositionMode.TopRight:
                             destinationY = 0;
                             break;
-                        case AnchorPosition.Bottom:
-                        case AnchorPosition.BottomLeft:
-                        case AnchorPosition.BottomRight:
+                        case AnchorPositionMode.Bottom:
+                        case AnchorPositionMode.BottomLeft:
+                        case AnchorPositionMode.BottomRight:
                             destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
                             break;
                         default:
@@ -128,14 +128,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                 {
                     switch (options.Position)
                     {
-                        case AnchorPosition.Left:
-                        case AnchorPosition.TopLeft:
-                        case AnchorPosition.BottomLeft:
+                        case AnchorPositionMode.Left:
+                        case AnchorPositionMode.TopLeft:
+                        case AnchorPositionMode.BottomLeft:
                             destinationX = 0;
                             break;
-                        case AnchorPosition.Right:
-                        case AnchorPosition.TopRight:
-                        case AnchorPosition.BottomRight:
+                        case AnchorPositionMode.Right:
+                        case AnchorPositionMode.TopRight:
+                        case AnchorPositionMode.BottomRight:
                             destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
                             break;
                         default:
@@ -177,14 +177,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms
 
                 switch (options.Position)
                 {
-                    case AnchorPosition.Left:
-                    case AnchorPosition.TopLeft:
-                    case AnchorPosition.BottomLeft:
+                    case AnchorPositionMode.Left:
+                    case AnchorPositionMode.TopLeft:
+                    case AnchorPositionMode.BottomLeft:
                         destinationX = 0;
                         break;
-                    case AnchorPosition.Right:
-                    case AnchorPosition.TopRight:
-                    case AnchorPosition.BottomRight:
+                    case AnchorPositionMode.Right:
+                    case AnchorPositionMode.TopRight:
+                    case AnchorPositionMode.BottomRight:
                         destinationX = (int)MathF.Round(width - (sourceWidth * ratio));
                         break;
                     default:
@@ -199,14 +199,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms
 
                 switch (options.Position)
                 {
-                    case AnchorPosition.Top:
-                    case AnchorPosition.TopLeft:
-                    case AnchorPosition.TopRight:
+                    case AnchorPositionMode.Top:
+                    case AnchorPositionMode.TopLeft:
+                    case AnchorPositionMode.TopRight:
                         destinationY = 0;
                         break;
-                    case AnchorPosition.Bottom:
-                    case AnchorPosition.BottomLeft:
-                    case AnchorPosition.BottomRight:
+                    case AnchorPositionMode.Bottom:
+                    case AnchorPositionMode.BottomLeft:
+                    case AnchorPositionMode.BottomRight:
                         destinationY = (int)MathF.Round(height - (sourceHeight * ratio));
                         break;
                     default:
@@ -247,35 +247,35 @@ namespace SixLabors.ImageSharp.Processing.Transforms
 
                 switch (options.Position)
                 {
-                    case AnchorPosition.Left:
+                    case AnchorPositionMode.Left:
                         destinationY = (height - sourceHeight) / 2;
                         destinationX = 0;
                         break;
-                    case AnchorPosition.Right:
+                    case AnchorPositionMode.Right:
                         destinationY = (height - sourceHeight) / 2;
                         destinationX = width - sourceWidth;
                         break;
-                    case AnchorPosition.TopRight:
+                    case AnchorPositionMode.TopRight:
                         destinationY = 0;
                         destinationX = width - sourceWidth;
                         break;
-                    case AnchorPosition.Top:
+                    case AnchorPositionMode.Top:
                         destinationY = 0;
                         destinationX = (width - sourceWidth) / 2;
                         break;
-                    case AnchorPosition.TopLeft:
+                    case AnchorPositionMode.TopLeft:
                         destinationY = 0;
                         destinationX = 0;
                         break;
-                    case AnchorPosition.BottomRight:
+                    case AnchorPositionMode.BottomRight:
                         destinationY = height - sourceHeight;
                         destinationX = width - sourceWidth;
                         break;
-                    case AnchorPosition.Bottom:
+                    case AnchorPositionMode.Bottom:
                         destinationY = height - sourceHeight;
                         destinationX = (width - sourceWidth) / 2;
                         break;
-                    case AnchorPosition.BottomLeft:
+                    case AnchorPositionMode.BottomLeft:
                         destinationY = height - sourceHeight;
                         destinationX = 0;
                         break;

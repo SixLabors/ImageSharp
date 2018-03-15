@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <param name="degrees">The angle of rotation in degrees.</param>
         /// <param name="sourceSize">The source image size</param>
         public RotateProcessor(float degrees, Size sourceSize)
-            : this(degrees, ResampleMode.Bicubic, sourceSize)
+            : this(degrees, KnownResamplers.Bicubic, sourceSize)
         {
         }
 

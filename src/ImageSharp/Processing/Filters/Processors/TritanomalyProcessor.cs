@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="TritanomalyProcessor{TPixel}"/> class.
         /// </summary>
         public TritanomalyProcessor()
-            : base(MatrixFilters.TritanomalyFilter)
+            : base(KnownMatrixFilters.TritanomalyFilter)
         {
         }
     }

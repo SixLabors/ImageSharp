@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="AchromatopsiaProcessor{TPixel}"/> class.
         /// </summary>
         public AchromatopsiaProcessor()
-            : base(MatrixFilters.AchromatopsiaFilter)
+            : base(KnownMatrixFilters.AchromatopsiaFilter)
         {
         }
     }

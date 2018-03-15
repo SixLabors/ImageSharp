@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 50;
             int height = 100;
-            IResampler sampler = ResampleMode.Lanczos3;
+            IResampler sampler = KnownResamplers.Lanczos3;
             this.operations.Resize(width, height, sampler);
             ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
 
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 50;
             int height = 100;
-            IResampler sampler = ResampleMode.Lanczos3;
+            IResampler sampler = KnownResamplers.Lanczos3;
             bool compand = true;
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int width = 50;
             int height = 100;
-            IResampler sampler = ResampleMode.Lanczos3;
+            IResampler sampler = KnownResamplers.Lanczos3;
             bool compand = true;
             ResizeMode mode = ResizeMode.Stretch;
 

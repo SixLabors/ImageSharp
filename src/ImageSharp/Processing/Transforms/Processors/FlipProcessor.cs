@@ -21,27 +21,27 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="FlipProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="flipType">The <see cref="FlipType"/> used to perform flipping.</param>
-        public FlipProcessor(FlipType flipType)
+        /// <param name="flipMode">The <see cref="Transforms.FlipMode"/> used to perform flipping.</param>
+        public FlipProcessor(FlipMode flipMode)
         {
-            this.FlipType = flipType;
+            this.FlipMode = flipMode;
         }
 
         /// <summary>
-        /// Gets the <see cref="FlipType"/> used to perform flipping.
+        /// Gets the <see cref="Transforms.FlipMode"/> used to perform flipping.
         /// </summary>
-        public FlipType FlipType { get; }
+        public FlipMode FlipMode { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            switch (this.FlipType)
+            switch (this.FlipMode)
             {
                 // No default needed as we have already set the pixels.
-                case FlipType.Vertical:
+                case FlipMode.Vertical:
                     this.FlipX(source, configuration);
                     break;
-                case FlipType.Horizontal:
+                case FlipMode.Horizontal:
                     this.FlipY(source, configuration);
                     break;
             }

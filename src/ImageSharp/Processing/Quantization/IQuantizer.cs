@@ -13,14 +13,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization
     public interface IQuantizer
     {
         /// <summary>
-        /// Gets a value indicating whether to apply dithering to the output image.
+        /// Gets the error diffusion algorithm to apply to the output image.
         /// </summary>
-        bool Dither { get; }
-
-        /// <summary>
-        /// Gets the dithering algorithm to apply to the output image.
-        /// </summary>
-        IErrorDiffuser DitherType { get; }
+        IErrorDiffuser Diffuser { get; }
 
         /// <summary>
         /// Creates the generic frame quantizer

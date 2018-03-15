@@ -14,9 +14,13 @@
             var octree = new OctreeQuantizer();
             var wu = new WuQuantizer();
 
-            Assert.True(palette.Dither);
-            Assert.True(octree.Dither);
-            Assert.True(wu.Dither);
+            Assert.NotNull(palette.Diffuser);
+            Assert.NotNull(octree.Diffuser);
+            Assert.NotNull(wu.Diffuser);
+
+            Assert.True(palette.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(octree.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(wu.CreateFrameQuantizer<Rgba32>().Dither);
         }
 
         [Theory]

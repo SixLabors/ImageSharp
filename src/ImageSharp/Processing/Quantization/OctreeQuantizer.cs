@@ -18,16 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
         public OctreeQuantizer()
-            : this(255)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
-        /// </summary>
-        /// <param name="dither">Whether to apply dithering to the output image</param>
-        public OctreeQuantizer(bool dither)
-            : this(dither, DiffuseMode.FloydSteinberg, 255)
+            : this(true)
         {
         }
 
@@ -36,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// </summary>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
         public OctreeQuantizer(int maxColors)
-            : this(true, DiffuseMode.FloydSteinberg, maxColors)
+            : this(GetDiffuser(true), maxColors)
         {
         }
 
@@ -44,23 +35,35 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
         /// <param name="dither">Whether to apply dithering to the output image</param>
-        /// <param name="ditherType">The dithering algorithm to apply to the output image</param>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
-        public OctreeQuantizer(bool dither, IErrorDiffuser ditherType, int maxColors)
+        public OctreeQuantizer(bool dither)
+            : this(GetDiffuser(dither), 255)
         {
-            Guard.NotNull(ditherType, nameof(ditherType));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
+        /// </summary>
+        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
+        public OctreeQuantizer(IErrorDiffuser diffuser)
+             : this(diffuser, 255)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
+        /// </summary>
+        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
+        public OctreeQuantizer(IErrorDiffuser diffuser, int maxColors)
+        {
             Guard.MustBeBetweenOrEqualTo(maxColors, 1, 255, nameof(maxColors));
 
-            this.Dither = dither;
-            this.DitherType = ditherType;
+            this.Diffuser = diffuser;
             this.MaxColors = maxColors;
         }
 
         /// <inheritdoc />
-        public bool Dither { get; }
-
-        /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; }
+        public IErrorDiffuser Diffuser { get; }
 
         /// <summary>
         /// Gets the maximum number of colors to hold in the color palette.
@@ -71,5 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
             => new OctreeFrameQuantizer<TPixel>(this);
+
+        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? DiffuseMode.FloydSteinberg : null;
     }
 }

@@ -8,14 +8,14 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Quantization
+namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 {
     /// <summary>
     /// Encapsulates methods to calculate the color palette if an image using an Octree pattern.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class OctreeQuantizer<TPixel> : QuantizerBase<TPixel>
+    internal sealed class OctreeFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -24,14 +24,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
-        /// Stores the tree
-        /// </summary>
-        private Octree octree;
-
-        /// <summary>
         /// Maximum allowed color depth
         /// </summary>
-        private byte colors;
+        private readonly byte colors;
+
+        /// <summary>
+        /// Stores the tree
+        /// </summary>
+        private readonly Octree octree;
 
         /// <summary>
         /// The reduced image palette
@@ -44,26 +44,18 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         private byte transparentIndex;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="quantizer">The octree quantizer</param>
         /// <remarks>
         /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
         /// the second pass quantizes a color based on the nodes in the tree
         /// </remarks>
-        public OctreeQuantizer()
-            : base(false)
+        public OctreeFrameQuantizer(OctreeQuantizer quantizer)
+            : base(quantizer, false)
         {
-        }
-
-        /// <inheritdoc/>
-        public override QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
-        {
-            this.colors = (byte)maxColors.Clamp(1, 255);
+            this.colors = (byte)quantizer.MaxColors;
             this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
-            this.palette = null;
-            this.colorMap.Clear();
-
-            return base.Quantize(image, this.colors);
         }
 
         /// <inheritdoc/>
@@ -129,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
+                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;
@@ -322,7 +314,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
                 }
 
                 // Now palletize the nodes
-                TPixel[] palette = new TPixel[colorCount + 1];
+                var palette = new TPixel[colorCount + 1];
 
                 int paletteIndex = 0;
                 this.root.ConstructPalette(palette, ref paletteIndex);

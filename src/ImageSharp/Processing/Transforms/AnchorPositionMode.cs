@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     /// <summary>
     /// Enumerated anchor positions to apply to resized images.
     /// </summary>
-    public enum AnchorPosition
+    public enum AnchorPositionMode
     {
         /// <summary>
         /// Anchors the position of the image to the center of it's bounding container.

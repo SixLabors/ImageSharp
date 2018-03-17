@@ -2,16 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Quantization.Processors
 {
     /// <summary>
-    /// Enables the quantization of images to remove the number of colors used in the image palette.
+    /// Enables the quantization of images to reduce the number of colors used in the image palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
@@ -21,51 +21,38 @@ namespace SixLabors.ImageSharp.Processing.Quantization.Processors
         /// Initializes a new instance of the <see cref="QuantizeProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="quantizer">The quantizer used to reduce the color palette</param>
-        /// <param name="maxColors">The maximum number of colors to reduce the palette to</param>
-        public QuantizeProcessor(IQuantizer<TPixel> quantizer, int maxColors)
+        public QuantizeProcessor(IQuantizer quantizer)
         {
             Guard.NotNull(quantizer, nameof(quantizer));
-            Guard.MustBeGreaterThan(maxColors, 0, nameof(maxColors));
-
             this.Quantizer = quantizer;
-            this.MaxColors = maxColors;
         }
 
         /// <summary>
         /// Gets the quantizer
         /// </summary>
-        public IQuantizer<TPixel> Quantizer { get; }
-
-        /// <summary>
-        /// Gets the maximum number of palette colors
-        /// </summary>
-        public int MaxColors { get; }
+        public IQuantizer Quantizer { get; }
 
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            QuantizedFrame<TPixel> quantized = this.Quantizer.Quantize(source, this.MaxColors);
+            IFrameQuantizer<TPixel> executor = this.Quantizer.CreateFrameQuantizer<TPixel>();
+            QuantizedFrame<TPixel> quantized = executor.QuantizeFrame(source);
             int paletteCount = quantized.Palette.Length - 1;
 
-            using (Buffer2D<TPixel> pixels = source.MemoryManager.Allocate2D<TPixel>(quantized.Width, quantized.Height))
+            // Not parallel to remove "quantized" closure allocation.
+            // We can operate directly on the source here as we've already read it to get the
+            // quantized result
+            for (int y = 0; y < source.Height; y++)
             {
-                Parallel.For(
-                    0,
-                    pixels.Height,
-                    configuration.ParallelOptions,
-                    y =>
-                        {
-                            Span<TPixel> row = pixels.GetRowSpan(y);
-                            int yy = y * pixels.Width;
-                            for (int x = 0; x < pixels.Width; x++)
-                            {
-                                int i = x + yy;
-                                TPixel color = quantized.Palette[Math.Min(paletteCount, quantized.Pixels[i])];
-                                row[x] = color;
-                            }
-                        });
+                Span<TPixel> row = source.GetPixelRowSpan(y);
+                int yy = y * source.Width;
 
-                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, pixels);
+                for (int x = 0; x < source.Width; x++)
+                {
+                    int i = x + yy;
+                    TPixel color = quantized.Palette[Math.Min(paletteCount, quantized.Pixels[i])];
+                    row[x] = color;
+                }
             }
         }
     }

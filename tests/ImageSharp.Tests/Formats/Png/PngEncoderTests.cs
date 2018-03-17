@@ -7,6 +7,8 @@ using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Quantization;
+
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -22,31 +24,31 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// All types except Palette
         /// </summary>
-        public static readonly TheoryData<PngColorType> PngColorTypes = new TheoryData<PngColorType>()
-                                                                           {
-                                                                               PngColorType.RgbWithAlpha,
-                                                                               PngColorType.Rgb,
-                                                                               PngColorType.Grayscale,
-                                                                               PngColorType.GrayscaleWithAlpha,
-                                                                           };
+        public static readonly TheoryData<PngColorType> PngColorTypes = new TheoryData<PngColorType>
+        {
+            PngColorType.RgbWithAlpha,
+            PngColorType.Rgb,
+            PngColorType.Grayscale,
+            PngColorType.GrayscaleWithAlpha,
+        };
 
         /// <summary>
         /// All types except Palette
         /// </summary>
-        public static readonly TheoryData<int> CompressionLevels = new TheoryData<int>()
-                                                                            {
-                                                                                1, 2, 3, 4, 5, 6, 7, 8, 9
-                                                                            };
+        public static readonly TheoryData<int> CompressionLevels = new TheoryData<int>
+                                                                       {
+            1, 2, 3, 4, 5, 6, 7, 8, 9
+        };
 
-        public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>()
+        public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>
                                                                   {
-                                                                      30, 55, 100, 201, 255
-                                                                  };
+            30, 55, 100, 201, 255
+        };
 
-        public static readonly TheoryData<int> PaletteLargeOnly = new TheoryData<int>()
-                                                                  {
-                                                                      80, 100, 120, 230
-                                                                  };
+        public static readonly TheoryData<int> PaletteLargeOnly = new TheoryData<int>
+                                                                      {
+            80, 100, 120, 230
+        };
 
         [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PngColorTypes), PixelTypes.Rgba32)]
@@ -60,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             TestPngEncoderCore(provider, pngColorType, appendPngColorType: true);
         }
-        
+
         [Theory]
         [WithTestPatternImages(nameof(PngColorTypes), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
@@ -76,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             TestPngEncoderCore(provider, PngColorType.RgbWithAlpha, compressionLevel, appendCompressionLevel: true);
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
@@ -92,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests
             TestImageProvider<TPixel> provider,
             PngColorType pngColorType,
             int compressionLevel = 6,
-            int paletteSize = 0,
+            int paletteSize = 255,
             bool appendPngColorType = false,
             bool appendPixelType = false,
             bool appendCompressionLevel = false,
@@ -107,11 +109,11 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 var encoder = new PngEncoder
-                                  {
-                                      PngColorType = pngColorType,
-                                      CompressionLevel = compressionLevel,
-                                      PaletteSize = paletteSize
-                                  };
+                {
+                    PngColorType = pngColorType,
+                    CompressionLevel = compressionLevel,
+                    Quantizer = new WuQuantizer(paletteSize)
+                };
 
                 string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : "";
                 string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : "";
@@ -121,10 +123,10 @@ namespace SixLabors.ImageSharp.Tests
 
                 // Does DebugSave & load reference CompareToReferenceInput():
                 string actualOutputFile = ((ITestImageProvider)provider).Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
-            
+
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
                 string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", debugInfo, appendPixelType);
-            
+
                 using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 using (var referenceImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))
                 {
@@ -136,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32)]
         public void WritesFileMarker<TPixel>(TestImageProvider<TPixel> provider)
@@ -146,8 +148,8 @@ namespace SixLabors.ImageSharp.Tests
             using (var ms = new MemoryStream())
             {
                 image.Save(ms, new PngEncoder());
-                
-                byte[] data = ms.ToArray().Take(8).ToArray(); 
+
+                byte[] data = ms.ToArray().Take(8).ToArray();
                 byte[] expected = {
                     0x89, // Set the high bit.
                     0x50, // P

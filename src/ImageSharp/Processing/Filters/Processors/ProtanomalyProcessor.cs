@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="ProtanomalyProcessor{TPixel}"/> class.
         /// </summary>
         public ProtanomalyProcessor()
-            : base(MatrixFilters.ProtanomalyFilter)
+            : base(KnownFilterMatrices.ProtanomalyFilter)
         {
         }
     }

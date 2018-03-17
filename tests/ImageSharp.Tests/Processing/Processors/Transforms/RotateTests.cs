@@ -21,13 +21,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             50, -50, 170, -170
         };
 
-        public static readonly TheoryData<RotateType> RotateEnumValues
-            = new TheoryData<RotateType>
+        public static readonly TheoryData<RotateMode> RotateEnumValues
+            = new TheoryData<RotateMode>
         {
-            RotateType.None,
-            RotateType.Rotate90,
-            RotateType.Rotate180,
-            RotateType.Rotate270
+            RotateMode.None,
+            RotateMode.Rotate90,
+            RotateMode.Rotate180,
+            RotateMode.Rotate270
         };
         
         [Theory]
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]
-        public void Rotate_WithRotateTypeEnum<TPixel>(TestImageProvider<TPixel> provider, RotateType value)
+        public void Rotate_WithRotateTypeEnum<TPixel>(TestImageProvider<TPixel> provider, RotateMode value)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

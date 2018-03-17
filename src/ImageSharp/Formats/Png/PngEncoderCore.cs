@@ -41,6 +41,36 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly Crc32 crc = new Crc32();
 
         /// <summary>
+        /// The png color type.
+        /// </summary>
+        private readonly PngColorType pngColorType;
+
+        /// <summary>
+        /// The quantizer for reducing the color count.
+        /// </summary>
+        private readonly IQuantizer quantizer;
+
+        /// <summary>
+        /// Gets or sets the CompressionLevel value
+        /// </summary>
+        private readonly int compressionLevel;
+
+        /// <summary>
+        /// Gets or sets the Gamma value
+        /// </summary>
+        private readonly float gamma;
+
+        /// <summary>
+        /// Gets or sets the Threshold value
+        /// </summary>
+        private readonly byte threshold;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to Write Gamma
+        /// </summary>
+        private readonly bool writeGamma;
+
+        /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
         private byte[] palettePixelData;
@@ -101,49 +131,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IManagedByteBuffer average;
 
         /// <summary>
-        /// The buffer for the paeth filter
+        /// The buffer for the Paeth filter
         /// </summary>
         private IManagedByteBuffer paeth;
-
-        /// <summary>
-        /// The png color type.
-        /// </summary>
-        private PngColorType pngColorType;
-
-        /// <summary>
-        /// The quantizer for reducing the color count.
-        /// </summary>
-        private IQuantizer quantizer;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to ignore metadata
-        /// </summary>
-        private bool ignoreMetadata;
-
-        /// <summary>
-        /// Gets or sets the Quality value
-        /// </summary>
-        private int paletteSize;
-
-        /// <summary>
-        /// Gets or sets the CompressionLevel value
-        /// </summary>
-        private int compressionLevel;
-
-        /// <summary>
-        /// Gets or sets the Gamma value
-        /// </summary>
-        private float gamma;
-
-        /// <summary>
-        /// Gets or sets the Threshold value
-        /// </summary>
-        private byte threshold;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to Write Gamma
-        /// </summary>
-        private bool writeGamma;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
@@ -153,8 +143,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngEncoderCore(MemoryManager memoryManager, IPngEncoderOptions options)
         {
             this.memoryManager = memoryManager;
-            this.ignoreMetadata = options.IgnoreMetadata;
-            this.paletteSize = options.PaletteSize > 0 ? options.PaletteSize.Clamp(1, int.MaxValue) : int.MaxValue;
             this.pngColorType = options.PngColorType;
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
@@ -190,28 +178,27 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(this.chunkDataBuffer, 0, 8);
 
-            // Set correct color type if the color count is 256 or less.
-            if (this.paletteSize <= 256)
+            QuantizedFrame<TPixel> quantized = null;
+            if (this.pngColorType == PngColorType.Palette)
             {
-                this.pngColorType = PngColorType.Palette;
-            }
+                // Create quantized frame returning the palette and set the bit depth.
+                quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
+                this.palettePixelData = quantized.Pixels;
+                byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
 
-            if (this.pngColorType == PngColorType.Palette && this.paletteSize > 256)
-            {
-                this.paletteSize = 256;
-            }
+                // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
+                if (bits == 3)
+                {
+                    bits = 4;
+                }
+                else if (bits >= 5 || bits <= 7)
+                {
+                    bits = 8;
+                }
 
-            // Set correct bit depth.
-            this.bitDepth = this.paletteSize <= 256
-                               ? (byte)ImageMaths.GetBitsNeededForColorDepth(this.paletteSize).Clamp(1, 8)
-                               : (byte)8;
-
-            // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
-            if (this.bitDepth == 3)
-            {
-                this.bitDepth = 4;
+                this.bitDepth = bits;
             }
-            else if (this.bitDepth >= 5 || this.bitDepth <= 7)
+            else
             {
                 this.bitDepth = 8;
             }
@@ -232,9 +219,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteHeaderChunk(stream, header);
 
             // Collect the indexed pixel data
-            if (this.pngColorType == PngColorType.Palette)
+            if (quantized != null)
             {
-                this.CollectIndexedBytes(image.Frames.RootFrame, stream, header);
+                this.WritePaletteChunk(stream, header, quantized);
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -294,21 +281,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             buffer.ReverseBytes();
             stream.Write(buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// Collects the indexed pixel data.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image to encode.</param>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="header">The <see cref="PngHeader"/>.</param>
-        private void CollectIndexedBytes<TPixel>(ImageFrame<TPixel> image, Stream stream, PngHeader header)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // Quantize the image and get the pixels.
-            QuantizedFrame<TPixel> quantized = this.WritePaletteChunk(stream, header, image);
-            this.palettePixelData = quantized.Pixels;
         }
 
         /// <summary>
@@ -496,24 +468,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
-        /// <param name="image">The image to encode.</param>
-        /// <returns>The <see cref="QuantizedFrame{TPixel}"/></returns>
-        private QuantizedFrame<TPixel> WritePaletteChunk<TPixel>(Stream stream, PngHeader header, ImageFrame<TPixel> image)
+        /// <param name="quantized">The quantized frame.</param>
+        private void WritePaletteChunk<TPixel>(Stream stream, PngHeader header, QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.paletteSize > 256)
-            {
-                return null;
-            }
-
-            if (this.quantizer == null)
-            {
-                this.quantizer = new WuQuantizer<TPixel>();
-            }
-
-            // Quantize the image returning a palette. This boxing is icky.
-            QuantizedFrame<TPixel> quantized = ((IQuantizer<TPixel>)this.quantizer).Quantize(image, this.paletteSize);
-
             // Grab the palette and write it to the stream.
             TPixel[] palette = quantized.Palette;
             byte pixelCount = palette.Length.ToByte();
@@ -560,8 +518,6 @@ namespace SixLabors.ImageSharp.Formats.Png
                     this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable.Array, 0, pixelCount);
                 }
             }
-
-            return quantized;
         }
 
         /// <summary>

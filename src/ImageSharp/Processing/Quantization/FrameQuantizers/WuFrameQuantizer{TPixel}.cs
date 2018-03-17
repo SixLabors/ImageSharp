@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Quantization
+namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 {
     /// <summary>
     /// An implementation of Wu's color quantizer with alpha channel.
@@ -32,10 +32,10 @@ namespace SixLabors.ImageSharp.Processing.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class WuQuantizer<TPixel> : QuantizerBase<TPixel>
+    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizerBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        // TODO: The WuQuantizer<TPixel> code is rising several questions:
+        // TODO: The WuFrameQuantizer<TPixel> code is rising several questions:
         // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes )
         // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
         //   (T, R, G, B, A, M2) could be grouped together!
@@ -124,26 +124,23 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         private Box[] colorCube;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="quantizer">The wu quantizer</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuQuantizer()
-            : base(false)
+        public WuFrameQuantizer(WuQuantizer quantizer)
+            : base(quantizer, false)
         {
+            this.colors = quantizer.MaxColors;
         }
 
         /// <inheritdoc/>
-        public override QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
+        public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
-
-            this.colors = maxColors.Clamp(1, 255);
-            this.palette = null;
-            this.colorMap.Clear();
-
             MemoryManager memoryManager = image.MemoryManager;
 
             try
@@ -156,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
                 this.m2 = memoryManager.AllocateClean<float>(TableLength);
                 this.tag = memoryManager.AllocateClean<byte>(TableLength);
 
-                return base.Quantize(image, this.colors);
+                return base.QuantizeFrame(image);
             }
             finally
             {
@@ -293,7 +290,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
                     if (this.Dither)
                     {
                         // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.DitherType.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
+                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
                     }
 
                     output[(y * source.Width) + x] = pixelValue;
@@ -872,6 +869,57 @@ namespace SixLabors.ImageSharp.Processing.Quantization
             Span<byte> tagSpan = this.tag.Span;
 
             return tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+        }
+
+        /// <summary>
+        /// Represents a box color cube.
+        /// </summary>
+        private struct Box
+        {
+            /// <summary>
+            /// Gets or sets the min red value, exclusive.
+            /// </summary>
+            public int R0;
+
+            /// <summary>
+            /// Gets or sets the max red value, inclusive.
+            /// </summary>
+            public int R1;
+
+            /// <summary>
+            /// Gets or sets the min green value, exclusive.
+            /// </summary>
+            public int G0;
+
+            /// <summary>
+            /// Gets or sets the max green value, inclusive.
+            /// </summary>
+            public int G1;
+
+            /// <summary>
+            /// Gets or sets the min blue value, exclusive.
+            /// </summary>
+            public int B0;
+
+            /// <summary>
+            /// Gets or sets the max blue value, inclusive.
+            /// </summary>
+            public int B1;
+
+            /// <summary>
+            /// Gets or sets the min alpha value, exclusive.
+            /// </summary>
+            public int A0;
+
+            /// <summary>
+            /// Gets or sets the max alpha value, inclusive.
+            /// </summary>
+            public int A1;
+
+            /// <summary>
+            /// Gets or sets the volume.
+            /// </summary>
+            public int Volume;
         }
     }
 }

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}" /> class.
         /// </summary>
         public PolaroidProcessor()
-            : base(MatrixFilters.PolaroidFilter)
+            : base(KnownFilterMatrices.PolaroidFilter)
         {
         }
 

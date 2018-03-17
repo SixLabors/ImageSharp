@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     /// <summary>
     /// Enumerates the available orientation values supplied by EXIF metadata.
     /// </summary>
-    internal enum OrientationType : ushort
+    internal enum OrientationMode : ushort
     {
         /// <summary>
         /// Unknown rotation.

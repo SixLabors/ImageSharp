@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     /// <summary>
     /// Provides enumeration over how a image should be flipped.
     /// </summary>
-    public enum FlipType
+    public enum FlipMode
     {
         /// <summary>
         /// Don't flip the image.

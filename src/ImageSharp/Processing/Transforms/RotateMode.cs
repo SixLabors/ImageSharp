@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     /// <summary>
     /// Provides enumeration over how the image should be rotated.
     /// </summary>
-    public enum RotateType
+    public enum RotateMode
     {
         /// <summary>
         /// Do not rotate the image.

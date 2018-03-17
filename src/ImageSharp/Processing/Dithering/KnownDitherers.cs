@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
     /// <summary>
     /// Contains reusable static instances of known ordered dither matrices
     /// </summary>
-    public class DitherMode
+    public class KnownDitherers
     {
         /// <summary>
         /// Gets the order ditherer using the 2x2 Bayer dithering matrix

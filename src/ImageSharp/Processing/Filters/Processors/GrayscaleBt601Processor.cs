@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
         public GrayscaleBt601Processor(float amount)
-            : base(MatrixFilters.CreateGrayscaleBt601Filter(amount))
+            : base(KnownFilterMatrices.CreateGrayscaleBt601Filter(amount))
         {
             this.Amount = amount;
         }

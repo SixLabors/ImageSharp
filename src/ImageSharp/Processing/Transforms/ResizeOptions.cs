@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <summary>
         /// Gets or sets the anchor position.
         /// </summary>
-        public AnchorPosition Position { get; set; } = AnchorPosition.Center;
+        public AnchorPositionMode Position { get; set; } = AnchorPositionMode.Center;
 
         /// <summary>
         /// Gets or sets the center coordinates.
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <summary>
         /// Gets or sets the sampler to perform the resize operation.
         /// </summary>
-        public IResampler Sampler { get; set; } = ResampleMode.Bicubic;
+        public IResampler Sampler { get; set; } = KnownResamplers.Bicubic;
 
         /// <summary>
         /// Gets or sets a value indicating whether to compress

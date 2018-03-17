@@ -25,11 +25,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [InlineData(RotateType.None, 0)]
-        [InlineData(RotateType.Rotate90, 90)]
-        [InlineData(RotateType.Rotate180, 180)]
-        [InlineData(RotateType.Rotate270, 270)]
-        public void RotateRotateTypeRotateProcessorWithAnglesConvertedFromEnum(RotateType angle, float expectedAngle)
+        [InlineData(RotateMode.None, 0)]
+        [InlineData(RotateMode.Rotate90, 90)]
+        [InlineData(RotateMode.Rotate180, 180)]
+        [InlineData(RotateMode.Rotate270, 270)]
+        public void RotateRotateTypeRotateProcessorWithAnglesConvertedFromEnum(RotateMode angle, float expectedAngle)
         {
             this.operations.Rotate(angle); // is this api needed ???
             RotateProcessor<Rgba32> processor = this.Verify<RotateProcessor<Rgba32>>();

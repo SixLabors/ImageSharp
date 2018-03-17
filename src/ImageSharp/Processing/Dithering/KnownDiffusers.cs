@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
     /// <summary>
     /// Contains reusable static instances of known error diffusion algorithms
     /// </summary>
-    public static class DiffuseMode
+    public static class KnownDiffusers
     {
         /// <summary>
         /// Gets the error diffuser that implements the Atkinson algorithm.

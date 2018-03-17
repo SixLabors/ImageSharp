@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => Diffuse(source, DiffuseMode.FloydSteinberg, .5F);
+            => Diffuse(source, KnownDiffusers.FloydSteinberg, .5F);
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using error diffusion.
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Diffuse<TPixel>(this IImageProcessingContext<TPixel> source, float threshold)
             where TPixel : struct, IPixel<TPixel>
-            => Diffuse(source, DiffuseMode.FloydSteinberg, threshold);
+            => Diffuse(source, KnownDiffusers.FloydSteinberg, threshold);
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using error diffusion.

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="brush">The brush.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush, PointF[] points)
+        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Fill(options, brush, new Polygon(new LinearLineSegment(points)));
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="brush">The brush.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, PointF[] points)
+        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Fill(brush, new Polygon(new LinearLineSegment(points)));
 
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="color">The color.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color, PointF[] points)
+        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Fill(options, new SolidBrush<TPixel>(color), new Polygon(new LinearLineSegment(points)));
 
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="color">The color.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, PointF[] points)
+        public static IImageProcessingContext<TPixel> FillPolygon<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Fill(new SolidBrush<TPixel>(color), new Polygon(new LinearLineSegment(points)));
     }

@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush, float thickness, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush, float thickness, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Draw(options, new Pen<TPixel>(brush, thickness), new Path(new CubicBezierLineSegment(points)));
 
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, float thickness, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Draw(new Pen<TPixel>(brush, thickness), new Path(new CubicBezierLineSegment(points)));
 
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, float thickness, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.DrawBeziers(new SolidBrush<TPixel>(color), thickness, points);
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="thickness">The thickness.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color, float thickness, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color, float thickness, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.DrawBeziers(options, new SolidBrush<TPixel>(color), thickness, points);
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IPen<TPixel> pen, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IPen<TPixel> pen, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Draw(options, pen, new Path(new CubicBezierLineSegment(points)));
 
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <param name="pen">The pen.</param>
         /// <param name="points">The points.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, PointF[] points)
+        public static IImageProcessingContext<TPixel> DrawBeziers<TPixel>(this IImageProcessingContext<TPixel> source, IPen<TPixel> pen, params PointF[] points)
             where TPixel : struct, IPixel<TPixel>
             => source.Draw(pen, new Path(new CubicBezierLineSegment(points)));
     }

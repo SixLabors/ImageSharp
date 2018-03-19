@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Filters
     /// <summary>
     /// Enumerates the various types of defined color blindness filters.
     /// </summary>
-    public enum ColorBlindness
+    public enum ColorBlindnessMode
     {
         /// <summary>
         /// Partial color desensitivity.

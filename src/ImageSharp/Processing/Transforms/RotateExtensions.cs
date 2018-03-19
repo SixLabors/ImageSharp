@@ -17,11 +17,11 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate.</param>
-        /// <param name="rotateType">The <see cref="RotateType"/> to perform the rotation.</param>
+        /// <param name="rotateMode">The <see cref="RotateMode"/> to perform the rotation.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, RotateType rotateType)
+        public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, RotateMode rotateMode)
             where TPixel : struct, IPixel<TPixel>
-            => Rotate(source, (float)rotateType);
+            => Rotate(source, (float)rotateMode);
 
         /// <summary>
         /// Rotates an image by the given angle in degrees.
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <returns>The <see cref="Image{TPixel}"/></returns>
         public static IImageProcessingContext<TPixel> Rotate<TPixel>(this IImageProcessingContext<TPixel> source, float degrees)
             where TPixel : struct, IPixel<TPixel>
-            => Rotate(source, degrees, ResampleMode.Bicubic);
+            => Rotate(source, degrees, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Rotates an image by the given angle in degrees using the specified sampling algorithm.

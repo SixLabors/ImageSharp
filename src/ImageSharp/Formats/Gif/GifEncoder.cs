@@ -25,19 +25,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public Encoding TextEncoding { get; set; } = GifConstants.DefaultEncoding;
 
         /// <summary>
-        /// Gets or sets the size of the color palette to use. For gifs the value ranges from 1 to 256. Leave as zero for default size.
-        /// </summary>
-        public int PaletteSize { get; set; } = 0;
-
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
-        public byte Threshold { get; set; } = 128;
-
-        /// <summary>
         /// Gets or sets the quantizer for reducing the color count.
+        /// Defaults to the <see cref="OctreeQuantizer"/>
         /// </summary>
-        public IQuantizer Quantizer { get; set; }
+        public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

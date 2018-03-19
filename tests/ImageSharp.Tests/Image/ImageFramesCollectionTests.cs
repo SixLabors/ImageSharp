@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.collection.AddFrame(new Rgba32[0]);
             });
 
-            Assert.StartsWith("Value must be greater than or equal to 100.", ex.Message);
+            Assert.StartsWith("Value 0 must be greater than or equal to 100.", ex.Message);
         }
 
         [Fact]

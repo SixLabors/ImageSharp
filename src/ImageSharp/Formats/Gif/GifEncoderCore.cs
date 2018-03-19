@@ -26,6 +26,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
+        /// Gets the TextEncoding
+        /// </summary>
+        private readonly Encoding textEncoding;
+
+        /// <summary>
+        /// Gets or sets the quantizer for reducing the color count.
+        /// </summary>
+        private readonly IQuantizer quantizer;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// </summary>
+        private readonly bool ignoreMetadata;
+
+        /// <summary>
         /// The number of bits requires to store the image palette.
         /// </summary>
         private int bitDepth;
@@ -36,31 +51,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private bool hasFrames;
 
         /// <summary>
-        /// Gets the TextEncoding
-        /// </summary>
-        private Encoding textEncoding;
-
-        /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
-        /// </summary>
-        private IQuantizer quantizer;
-
-        /// <summary>
-        /// Gets or sets the threshold.
-        /// </summary>
-        private byte threshold;
-
-        /// <summary>
-        /// Gets or sets the size of the color palette to use.
-        /// </summary>
-        private int paletteSize;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
-        /// </summary>
-        private bool ignoreMetadata;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
@@ -69,10 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.memoryManager = memoryManager;
             this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
-
             this.quantizer = options.Quantizer;
-            this.threshold = options.Threshold;
-            this.paletteSize = options.PaletteSize;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
@@ -88,24 +75,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.quantizer = this.quantizer ?? new OctreeQuantizer<TPixel>();
-
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            // Ensure that pallete size  can be set but has a fallback.
-            int size = this.paletteSize;
-            size = size > 0 ? size.Clamp(1, 256) : 256;
-
-            // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(size);
-
             this.hasFrames = image.Frames.Count > 1;
 
-            var pixelQuantizer = (IQuantizer<TPixel>)this.quantizer;
-
             // Quantize the image returning a palette.
-            QuantizedFrame<TPixel> quantized = pixelQuantizer.Quantize(image.Frames.RootFrame, size);
+            QuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
+
+            // Get the number of bits.
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
 
             int index = this.GetTransparentIndex(quantized);
 
@@ -128,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 if (quantized == null)
                 {
-                    quantized = pixelQuantizer.Quantize(frame, size);
+                    quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
                 }
 
                 this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));
@@ -136,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.WriteColorTable(quantized, writer);
                 this.WriteImageData(quantized, writer);
 
-                quantized = null; // so next frame can regenerate it
+                quantized = null; // So next frame can regenerate it
             }
 
             // TODO: Write extension etc

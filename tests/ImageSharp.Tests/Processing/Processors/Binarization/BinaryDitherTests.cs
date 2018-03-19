@@ -25,29 +25,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IOrderedDither> OrderedDitherers = new TheoryData<string, IOrderedDither>
         {
-            { "Bayer8x8", DitherMode.BayerDither8x8 },
-            { "Bayer4x4", DitherMode.BayerDither4x4 },
-            { "Ordered3x3", DitherMode.OrderedDither3x3 },
-            { "Bayer2x2", DitherMode.BayerDither2x2 }
+            { "Bayer8x8", KnownDitherers.BayerDither8x8 },
+            { "Bayer4x4", KnownDitherers.BayerDither4x4 },
+            { "Ordered3x3", KnownDitherers.OrderedDither3x3 },
+            { "Bayer2x2", KnownDitherers.BayerDither2x2 }
         };
 
         public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
         {
-            { "Atkinson", DiffuseMode.Atkinson },
-            { "Burks", DiffuseMode.Burks },
-            { "FloydSteinberg", DiffuseMode.FloydSteinberg },
-            { "JarvisJudiceNinke", DiffuseMode.JarvisJudiceNinke },
-            { "Sierra2", DiffuseMode.Sierra2 },
-            { "Sierra3", DiffuseMode.Sierra3 },
-            { "SierraLite", DiffuseMode.SierraLite },
-            { "StevensonArce", DiffuseMode.StevensonArce },
-            { "Stucki", DiffuseMode.Stucki },
+            { "Atkinson", KnownDiffusers.Atkinson },
+            { "Burks", KnownDiffusers.Burks },
+            { "FloydSteinberg", KnownDiffusers.FloydSteinberg },
+            { "JarvisJudiceNinke", KnownDiffusers.JarvisJudiceNinke },
+            { "Sierra2", KnownDiffusers.Sierra2 },
+            { "Sierra3", KnownDiffusers.Sierra3 },
+            { "SierraLite", KnownDiffusers.SierraLite },
+            { "StevensonArce", KnownDiffusers.StevensonArce },
+            { "Stucki", KnownDiffusers.Stucki },
         };
 
 
-        private static IOrderedDither DefaultDitherer => DitherMode.BayerDither4x4;
+        private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
-        private static IErrorDiffuser DefaultErrorDiffuser => DiffuseMode.Atkinson;
+        private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), DefaultPixelType)]

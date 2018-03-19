@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to rotate, flip, or both.</param>
-        /// <param name="flipType">The <see cref="FlipType"/> to perform the flip.</param>
+        /// <param name="flipMode">The <see cref="FlipMode"/> to perform the flip.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        public static IImageProcessingContext<TPixel> Flip<TPixel>(this IImageProcessingContext<TPixel> source, FlipType flipType)
+        public static IImageProcessingContext<TPixel> Flip<TPixel>(this IImageProcessingContext<TPixel> source, FlipMode flipMode)
             where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new FlipProcessor<TPixel>(flipType));
+            => source.ApplyProcessor(new FlipProcessor<TPixel>(flipMode));
     }
 }

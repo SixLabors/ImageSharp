@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(max) >= 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be less than {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be less than {max}.");
             }
         }
 
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(max) > 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be less than or equal to {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be less than or equal to {max}.");
             }
         }
 
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp
             {
                 throw new ArgumentOutOfRangeException(
                     parameterName,
-                    $"Value must be greater than {min}.");
+                    $"Value {value} must be greater than {min}.");
             }
         }
 
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(min) < 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be greater than or equal to {min}.");
             }
         }
 
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp
         {
             if (value.CompareTo(min) < 0 || value.CompareTo(max) > 0)
             {
-                throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min} and less than or equal to {max}.");
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be greater than or equal to {min} and less than or equal to {max}.");
             }
         }
 

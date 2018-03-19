@@ -6,16 +6,15 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 
-namespace SixLabors.ImageSharp.Processing.Quantization
+namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 {
     /// <summary>
-    /// Encapsulates methods to calculate the color palette of an image.
+    /// The base class for all <see cref="IFrameQuantizer{TPixel}"/> implementations
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public abstract class QuantizerBase<TPixel> : IQuantizer<TPixel>
+    public abstract class FrameQuantizerBase<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
@@ -24,29 +23,35 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         private readonly bool singlePass;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="QuantizerBase{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="FrameQuantizerBase{TPixel}"/> class.
         /// </summary>
+        /// <param name="quantizer">The quantizer</param>
         /// <param name="singlePass">
-        /// If true, the quantization only needs to loop through the source pixels once
+        /// If true, the quantization process only needs to loop through the source pixels once
         /// </param>
         /// <remarks>
         /// If you construct this class with a true value for singlePass, then the code will, when quantizing your image,
-        /// only call the 'QuantizeImage' function. If two passes are required, the code will call 'InitialQuantizeImage'
+        /// only call the <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/> methods.
+        /// If two passes are required, the code will also call <see cref="SecondPass(ImageFrame{TPixel}, byte[], int, int)"/>
         /// and then 'QuantizeImage'.
         /// </remarks>
-        protected QuantizerBase(bool singlePass)
+        protected FrameQuantizerBase(IQuantizer quantizer, bool singlePass)
         {
+            Guard.NotNull(quantizer, nameof(quantizer));
+
+            this.Diffuser = quantizer.Diffuser;
+            this.Dither = this.Diffuser != null;
             this.singlePass = singlePass;
         }
 
         /// <inheritdoc />
-        public bool Dither { get; set; } = true;
+        public bool Dither { get; }
 
         /// <inheritdoc />
-        public IErrorDiffuser DitherType { get; set; } = DiffuseMode.FloydSteinberg;
+        public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc/>
-        public virtual QuantizedFrame<TPixel> Quantize(ImageFrame<TPixel> image, int maxColors)
+        public virtual QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
 

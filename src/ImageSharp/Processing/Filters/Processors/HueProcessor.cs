@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Filters.Processors
         /// </summary>
         /// <param name="degrees">The angle of rotation in degrees</param>
         public HueProcessor(float degrees)
-            : base(MatrixFilters.CreateHueFilter(degrees))
+            : base(KnownFilterMatrices.CreateHueFilter(degrees))
         {
             this.Degrees = degrees;
         }

@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         public void SubstractFunction_Blender<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = new DefaultPixelBlenders<TPixel>.Substract().Blend(back, source, amount);
+            TPixel actual = new DefaultPixelBlenders<TPixel>.Subtract().Blend(back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             where TPixel : struct, IPixel<TPixel>
         {
             Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
-            new DefaultPixelBlenders<TPixel>.Substract().Blend(this.MemoryManager, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
+            new DefaultPixelBlenders<TPixel>.Subtract().Blend(this.MemoryManager, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
             VectorAssert.Equal(expected, dest[0], 2);
         }
 

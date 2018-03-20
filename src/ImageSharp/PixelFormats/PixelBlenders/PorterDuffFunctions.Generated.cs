@@ -285,11 +285,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Substract<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel Subtract<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default(TPixel);
-            dest.PackFromVector4(Substract(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(Subtract(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
 

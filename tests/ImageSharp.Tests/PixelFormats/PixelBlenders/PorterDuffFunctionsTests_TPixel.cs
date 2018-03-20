@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         public void SubstractFunction<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel actual = PorterDuffFunctions.Substract((TPixel)back, source, amount);
+            TPixel actual = PorterDuffFunctions.Subtract((TPixel)back, source, amount);
             VectorAssert.Equal(expected, actual, 2);
         }
 

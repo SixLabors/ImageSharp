@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         GeneratePixelBlender("Normal");
         GeneratePixelBlender("Multiply");
         GeneratePixelBlender("Add");
-        GeneratePixelBlender("Substract");
+        GeneratePixelBlender("Subtract");
         GeneratePixelBlender("Screen");
         GeneratePixelBlender("Darken");
         GeneratePixelBlender("Lighten");

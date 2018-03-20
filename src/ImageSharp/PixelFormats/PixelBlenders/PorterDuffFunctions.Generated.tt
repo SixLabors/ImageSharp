@@ -40,26 +40,29 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
     void GenerateVectorCompositor(string name, string sourceVar, string destVar, string blendVar)
     {
+        int a_s = sourceVar == "Vector4.Zero" ? 0 : 1;
+        int a_b = destVar == "Vector4.Zero" ? 0 : 1;
+        int a_x = blendVar == "Vector4.Zero" ? 0 : 1;
 #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
 <# if(sourceVar != "Vector4.Zero" ) { #>
-            source.W *= opacity;            
+            source.W *= opacity;
 <# } #>
-            Vector4 xform = <#=blendVar#>;
 
             // calculate weights
-            float xw = <#=destVar#>.W * <#=sourceVar#>.W;
-            float bw = <#=destVar#>.W - xw;
-            float sw = <#=sourceVar#>.W - xw;
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
 
             // calculate final alpha
-            float a = xw + bw + sw;
+            float fw = (sw * <#=a_s#>) + (bw * <#=a_b#>) + (xw * <#=a_x#>);
 
             // calculate final value
-            xform = ((xform * xw) + (<#=destVar#> * bw) + (<#=sourceVar#> * sw)) / MathF.Max(a, Constants.Epsilon);
+            Vector4 xform = ((<#=blendVar#> * xw) + (<#=destVar#> * bw) + (<#=sourceVar#> * sw)) / MathF.Max(fw, Constants.Epsilon);
+            xform.W = fw;
 
             return Vector4.Lerp(backdrop, xform, opacity);
         }

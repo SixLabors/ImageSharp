@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.NearestNeighbor));
+                image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, KnownResamplers.Bicubic));
 
                 // Comparer fights decoder with gif-s. Could not use CompareToReferenceOutput here :(
                 image.DebugSave(provider, extension: Extensions.Gif);

@@ -368,10 +368,9 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             }
         }
 
-        /// <inheritdoc />
-        protected override void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Rectangle sourceRectangle, Configuration configuration)
+        protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
         {
-            base.AfterFrameApply(source, destination, sourceRectangle, configuration);
+            base.AfterImageApply(source, destination, sourceRectangle);
 
             // TODO: An exception in the processing chain can leave these buffers undisposed. We should consider making image processors IDisposable!
             this.horizontalWeights?.Dispose();

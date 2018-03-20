@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 case PixelBlenderMode.Multiply: return DefaultPixelBlenders<TPixel>.Multiply.Instance;
                 case PixelBlenderMode.Add: return DefaultPixelBlenders<TPixel>.Add.Instance;
-                case PixelBlenderMode.Substract: return DefaultPixelBlenders<TPixel>.Substract.Instance;
+                case PixelBlenderMode.Subtract: return DefaultPixelBlenders<TPixel>.Subtract.Instance;
                 case PixelBlenderMode.Screen: return DefaultPixelBlenders<TPixel>.Screen.Instance;
                 case PixelBlenderMode.Darken: return DefaultPixelBlenders<TPixel>.Darken.Instance;
                 case PixelBlenderMode.Lighten: return DefaultPixelBlenders<TPixel>.Lighten.Instance;

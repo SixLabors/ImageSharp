@@ -37,26 +37,7 @@ namespace SixLabors.ImageSharp.Memory
         public static unsafe void Copy<T>(ReadOnlySpan<T> source, Span<T> destination, int count)
             where T : struct
         {
-            DebugGuard.MustBeLessThanOrEqualTo(count, source.Length, nameof(count));
-            DebugGuard.MustBeLessThanOrEqualTo(count, destination.Length, nameof(count));
-
-            ref byte srcRef = ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(source));
-            ref byte destRef = ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(destination));
-
-            int byteCount = Unsafe.SizeOf<T>() * count;
-
-            // TODO: Use unfixed Unsafe.CopyBlock(ref T, ref T, int) for small blocks, when it gets available!
-            // This is now available. Check with Anton re intent. Do we replace both ifdefs?
-            fixed (byte* pSrc = &srcRef)
-            fixed (byte* pDest = &destRef)
-            {
-#if NETSTANDARD1_1
-                Unsafe.CopyBlock(pDest, pSrc, (uint)byteCount);
-#else
-                int destLength = destination.Length * Unsafe.SizeOf<T>();
-                Buffer.MemoryCopy(pSrc, pDest, destLength, byteCount);
-#endif
-            }
+            source.Slice(0, count).CopyTo(destination);
         }
 
         /// <summary>

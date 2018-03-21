@@ -97,10 +97,9 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-        { 
+        {
             // There's an implict cast to Span from Array
             // Should we remove this overload and expose Span<TPixel> ?
-
             return LoadPixelData(config, new Span<TPixel>(data), width, height);
         }
 

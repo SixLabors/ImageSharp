@@ -30,20 +30,17 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
                 };
 
         [Theory]
-        [MemberData(nameof(CompositingOperators))]
-        public void PorterDuffOutputIsCorrect(PixelBlenderMode mode)
+        [WithFile(TestImages.Png.PDDest, nameof(CompositingOperators), PixelTypes.Rgba32)]
+        public void PorterDuffOutputIsCorrect(TestImageProvider<Rgba32> provider, PixelBlenderMode mode)
         {
-            string path = TestEnvironment.CreateOutputDirectory("PorterDuff");
             var srcFile = TestFile.Create(TestImages.Png.PDSrc);
-            var destFile = TestFile.Create(TestImages.Png.PDDest);
-
             using (Image<Rgba32> src = srcFile.CreateImage())
-            using (Image<Rgba32> dest = destFile.CreateImage())
+            using (Image<Rgba32> dest = provider.GetImage())
             {
                 using (Image<Rgba32> res = dest.Clone(x => x.Blend(src, new GraphicsOptions { BlenderMode = mode })))
                 {
-                    // TODO: Generate reference files once this works.
-                    res.Save($"{path}/{mode}.png");
+                    res.DebugSave(provider, mode.ToString());
+                    res.CompareToReferenceOutput(provider, mode.ToString());
                 }
             }
         }

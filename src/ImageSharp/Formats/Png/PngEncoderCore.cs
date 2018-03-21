@@ -525,8 +525,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
                 int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
 
-                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan().Slice(0, 4), dpmX);
-                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan().Slice(4, 4), dpmY);
+                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), dpmX);
+                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), dpmY);
 
                 this.chunkDataBuffer[8] = 1;
 

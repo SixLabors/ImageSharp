@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
-                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(true)));
+                    .FillPolygon(new GraphicsOptions(true), Rgba32.HotPink, simplePath));
                 image.Save($"{path}/Simple.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
-                    .FillPolygon(Brushes.Horizontal(Rgba32.HotPink), simplePath, new GraphicsOptions(true)));
+                    .FillPolygon(new GraphicsOptions(true), Brushes.Horizontal(Rgba32.HotPink), simplePath));
                 image.Save($"{path}/Pattern.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .FillPolygon(Rgba32.HotPink, simplePath, new GraphicsOptions(false)));
+                    .FillPolygon(new GraphicsOptions(false), Rgba32.HotPink, simplePath));
                 image.Save($"{path}/Simple_NoAntialias.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())

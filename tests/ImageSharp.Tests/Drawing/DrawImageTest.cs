@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Normal)]
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Multiply)]
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Add)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Substract)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Subtract)]
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Screen)]
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Darken)]
         [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Lighten)]

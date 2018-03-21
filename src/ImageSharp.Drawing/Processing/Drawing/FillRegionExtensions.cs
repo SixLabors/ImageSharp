@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush)
             where TPixel : struct, IPixel<TPixel>
-            => source.Fill(brush, GraphicsOptions.Default);
+            => source.Fill(GraphicsOptions.Default, brush);
 
         /// <summary>
         /// Flood fills the image with the specified color.
@@ -45,20 +45,20 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, Region region)
             where TPixel : struct, IPixel<TPixel>
-            => source.Fill(brush, region, GraphicsOptions.Default);
+            => source.Fill(GraphicsOptions.Default, brush, region);
 
         /// <summary>
         /// Flood fills the image with in the region with the specified color.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="options">The options.</param>
         /// <param name="color">The color.</param>
         /// <param name="region">The region.</param>
-        /// <param name="options">The options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, TPixel color, Region region, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, TPixel color, Region region)
             where TPixel : struct, IPixel<TPixel>
-            => source.Fill(new SolidBrush<TPixel>(color), region, options);
+            => source.Fill(options, new SolidBrush<TPixel>(color), region);
 
         /// <summary>
         /// Flood fills the image with in the region with the specified color.
@@ -77,11 +77,11 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
+        /// <param name="options">The graphics options.</param>
         /// <param name="brush">The brush.</param>
         /// <param name="region">The region.</param>
-        /// <param name="options">The graphics options.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, Region region, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush, Region region)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new FillRegionProcessor<TPixel>(brush, region, options));
 
@@ -90,10 +90,10 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <param name="brush">The details how to fill the region of interest.</param>
         /// <param name="options">The graphics options.</param>
+        /// <param name="brush">The details how to fill the region of interest.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, GraphicsOptions options)
+        public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new FillProcessor<TPixel>(brush, options));
     }

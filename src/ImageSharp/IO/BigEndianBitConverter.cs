@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
+
 namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
@@ -58,27 +61,19 @@ namespace SixLabors.ImageSharp.IO
         /// <inheritdoc/>
         public override short ToInt16(byte[] value, int startIndex)
         {
-            CheckByteArgument(value, startIndex, 2);
-
-            return (short)((value[startIndex] << 8) | value[startIndex + 1]);
+            return BinaryPrimitives.ReadInt16BigEndian(value.AsReadOnlySpan().Slice(startIndex));
         }
 
         /// <inheritdoc/>
         public override int ToInt32(byte[] value, int startIndex)
         {
-            CheckByteArgument(value, startIndex, 4);
-
-            return (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
+            return BinaryPrimitives.ReadInt32BigEndian(value.AsReadOnlySpan().Slice(startIndex));
         }
 
         /// <inheritdoc/>
         public override long ToInt64(byte[] value, int startIndex)
         {
-            CheckByteArgument(value, startIndex, 8);
-
-            long p1 = (value[startIndex] << 24) | (value[startIndex + 1] << 16) | (value[startIndex + 2] << 8) | value[startIndex + 3];
-            long p2 = (value[startIndex + 4] << 24) | (value[startIndex + 5] << 16) | (value[startIndex + 6] << 8) | value[startIndex + 7];
-            return (p2 & 0xFFFFFFFF) | (p1 << 32);
+            return BinaryPrimitives.ReadInt64BigEndian(value.AsReadOnlySpan().Slice(startIndex));
         }
     }
 }

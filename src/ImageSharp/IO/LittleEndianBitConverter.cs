@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
+
 namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
@@ -56,26 +59,21 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
-        public unsafe override short ToInt16(byte[] value, int startIndex)
+        public override short ToInt16(byte[] value, int startIndex)
         {
-            CheckByteArgument(value, startIndex, 2);
-            return (short)((value[startIndex + 1] << 8) | value[startIndex]);
+            return BinaryPrimitives.ReadInt16LittleEndian(value.AsReadOnlySpan().Slice(startIndex));
         }
 
         /// <inheritdoc/>
-        public unsafe override int ToInt32(byte[] value, int startIndex)
+        public override int ToInt32(byte[] value, int startIndex)
         {
-            CheckByteArgument(value, startIndex, 4);
-            return (value[startIndex + 3] << 24) | (value[startIndex + 2] << 16) | (value[startIndex + 1] << 8) | value[startIndex];
+            return BinaryPrimitives.ReadInt32LittleEndian(value.AsReadOnlySpan().Slice(startIndex));
         }
 
         /// <inheritdoc/>
-        public unsafe override long ToInt64(byte[] value, int startIndex)
+        public override long ToInt64(byte[] value, int startIndex)
         {
-            CheckByteArgument(value, startIndex, 8);
-            long p1 = (value[startIndex + 7] << 24) | (value[startIndex + 6] << 16) | (value[startIndex + 5] << 8) | value[startIndex + 4];
-            long p2 = (value[startIndex + 3] << 24) | (value[startIndex + 2] << 16) | (value[startIndex + 1] << 8) | value[startIndex];
-            return (p2 & 0xFFFFFFFF) | (p1 << 32);
+            return BinaryPrimitives.ReadInt64LittleEndian(value.AsReadOnlySpan().Slice(startIndex));
         }
     }
 }

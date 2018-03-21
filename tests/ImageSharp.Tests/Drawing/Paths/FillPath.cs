@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathOptions()
         {
-            this.operations.Fill(this.brush, this.path, this.noneDefault);
+            this.operations.Fill(this.noneDefault, this.brush, this.path);
             var processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(this.noneDefault, processor.Options);
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.Fill(this.color, this.path, this.noneDefault);
+            this.operations.Fill(this.noneDefault, this.color, this.path);
             var processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(this.noneDefault, processor.Options);

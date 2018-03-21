@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         [Fact]
         public void BackgroundColor_amount_options_BackgroundColorProcessorDefaultsSet()
         {
-            this.operations.BackgroundColor(Rgba32.BlanchedAlmond, this.options);
+            this.operations.BackgroundColor(this.options, Rgba32.BlanchedAlmond);
             var processor = this.Verify<BackgroundColorProcessor<Rgba32>>();
 
             Assert.Equal(this.options, processor.GraphicsOptions);
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         [Fact]
         public void BackgroundColor_amount_rect_options_BackgroundColorProcessorDefaultsSet()
         {
-            this.operations.BackgroundColor(Rgba32.BlanchedAlmond, this.rect, this.options);
+            this.operations.BackgroundColor(this.options, Rgba32.BlanchedAlmond, this.rect);
             var processor = this.Verify<BackgroundColorProcessor<Rgba32>>(this.rect);
 
             Assert.Equal(this.options, processor.GraphicsOptions);

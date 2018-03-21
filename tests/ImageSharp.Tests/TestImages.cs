@@ -36,6 +36,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string SnakeGame = "Png/SnakeGame.png";
             public const string Icon = "Png/icon.png";
             public const string Kaboom = "Png/kaboom.png";
+            public const string PDSrc = "Png/pd-source.png";
+            public const string PDDest = "Png/pd-dest.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

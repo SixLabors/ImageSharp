@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
             using (Image<Rgba32> src = srcFile.CreateImage())
             using (Image<Rgba32> dest = provider.GetImage())
             {
-                using (Image<Rgba32> res = dest.Clone(x => x.Blend(new GraphicsOptions { BlenderMode = mode }, src)))
+                using (Image<Rgba32> res = dest.Clone(x => x.DrawImage(new GraphicsOptions { BlenderMode = mode }, src)))
                 {
                     res.DebugSave(provider, mode.ToString());
                     res.CompareToReferenceOutput(provider, mode.ToString());

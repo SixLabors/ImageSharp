@@ -9,7 +9,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
-    /// Equivalent of <see cref="BinaryReader"/>, but with either endianness, depending on the <see cref="EndianBitConverter"/> it is constructed with.
+    /// Equivalent of <see cref="BinaryReader"/>, but with either endianness.
     /// No data is buffered in the reader; the client may seek within the stream at will.
     /// </summary>
     internal class EndianBinaryReader : IDisposable
@@ -46,8 +46,7 @@ namespace SixLabors.ImageSharp.IO
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
-        /// Equivalent of <see cref="System.IO.BinaryWriter"/>, but with either endianness, depending on
-        /// the EndianBitConverter it is constructed with.
+        /// Modeled after <see cref="System.IO.BinaryWriter"/> with endian support.
         /// </summary>
         /// <param name="endianness">
         /// Endianness to use when reading data
@@ -238,7 +237,7 @@ namespace SixLabors.ImageSharp.IO
         /// <returns>The floating point value read</returns>
         public unsafe float ReadSingle()
         {
-            int intValue = ReadInt32();
+            int intValue = this.ReadInt32();
 
             return *((float*)&intValue);
         }
@@ -253,24 +252,6 @@ namespace SixLabors.ImageSharp.IO
             long value = this.ReadInt64();
 
             return *((double*)&value);
-        }
-
-        /// <summary>
-        /// Reads a decimal value from the stream, using the bit converter
-        /// for this reader. 16 bytes are read.
-        /// </summary>
-        /// <returns>The decimal value read</returns>
-        public unsafe decimal ReadDecimal()
-        {
-            decimal result = 0m;
-            int* presult = (int*)&result;
-
-            presult[0] = this.ReadInt32();
-            presult[1] = this.ReadInt32();
-            presult[2] = this.ReadInt32();
-            presult[3] = this.ReadInt32();
-
-            return result;
         }
 
         /// <summary>

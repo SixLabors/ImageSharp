@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.IO
         /// <summary>
         /// The endianness used to read data
         /// </summary>
-        private Endianness endianness;
+        private readonly Endianness endianness;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
@@ -74,7 +75,6 @@ namespace SixLabors.ImageSharp.IO
             Guard.IsTrue(stream.CanRead, nameof(stream), "Stream isn't readable");
 
             this.BaseStream = stream;
-            this.BitConverter = EndianBitConverter.GetConverter(endianness);
             this.Encoding = encoding;
             this.decoder = encoding.GetDecoder();
             this.endianness = endianness;
@@ -95,11 +95,6 @@ namespace SixLabors.ImageSharp.IO
         /// Gets the underlying stream of the EndianBinaryReader.
         /// </summary>
         public Stream BaseStream { get; }
-
-        /// <summary>
-        /// Gets the bit converter used to read values from the stream.
-        /// </summary>
-        internal EndianBitConverter BitConverter { get; }
 
         /// <summary>
         /// Closes the reader, including the underlying stream.
@@ -149,7 +144,6 @@ namespace SixLabors.ImageSharp.IO
             this.ReadInternal(this.storageBuffer, 1);
 
             return this.storageBuffer[0] != 0;
-
         }
 
         /// <summary>
@@ -160,7 +154,10 @@ namespace SixLabors.ImageSharp.IO
         public short ReadInt16()
         {
             this.ReadInternal(this.storageBuffer, 2);
-            return this.BitConverter.ToInt16(this.storageBuffer, 0);
+
+            return (this.endianness == Endianness.BigEndian)
+                ? BinaryPrimitives.ReadInt16BigEndian(this.storageBuffer)
+                : BinaryPrimitives.ReadInt16LittleEndian(this.storageBuffer);
         }
 
         /// <summary>
@@ -171,7 +168,10 @@ namespace SixLabors.ImageSharp.IO
         public int ReadInt32()
         {
             this.ReadInternal(this.storageBuffer, 4);
-            return this.BitConverter.ToInt32(this.storageBuffer, 0);
+
+            return (this.endianness == Endianness.BigEndian)
+               ? BinaryPrimitives.ReadInt32BigEndian(this.storageBuffer)
+               : BinaryPrimitives.ReadInt32LittleEndian(this.storageBuffer);
         }
 
         /// <summary>
@@ -182,7 +182,10 @@ namespace SixLabors.ImageSharp.IO
         public long ReadInt64()
         {
             this.ReadInternal(this.storageBuffer, 8);
-            return this.BitConverter.ToInt64(this.storageBuffer, 0);
+
+            return (this.endianness == Endianness.BigEndian)
+               ? BinaryPrimitives.ReadInt64BigEndian(this.storageBuffer)
+               : BinaryPrimitives.ReadInt64LittleEndian(this.storageBuffer);
         }
 
         /// <summary>
@@ -193,7 +196,10 @@ namespace SixLabors.ImageSharp.IO
         public ushort ReadUInt16()
         {
             this.ReadInternal(this.storageBuffer, 2);
-            return this.BitConverter.ToUInt16(this.storageBuffer, 0);
+
+            return (this.endianness == Endianness.BigEndian)
+               ? BinaryPrimitives.ReadUInt16BigEndian(this.storageBuffer)
+               : BinaryPrimitives.ReadUInt16LittleEndian(this.storageBuffer);
         }
 
         /// <summary>
@@ -204,7 +210,10 @@ namespace SixLabors.ImageSharp.IO
         public uint ReadUInt32()
         {
             this.ReadInternal(this.storageBuffer, 4);
-            return this.BitConverter.ToUInt32(this.storageBuffer, 0);
+
+            return (this.endianness == Endianness.BigEndian)
+               ? BinaryPrimitives.ReadUInt32BigEndian(this.storageBuffer)
+               : BinaryPrimitives.ReadUInt32LittleEndian(this.storageBuffer);
         }
 
         /// <summary>
@@ -215,7 +224,11 @@ namespace SixLabors.ImageSharp.IO
         public ulong ReadUInt64()
         {
             this.ReadInternal(this.storageBuffer, 8);
-            return this.BitConverter.ToUInt64(this.storageBuffer, 0);
+
+            return (this.endianness == Endianness.BigEndian)
+               ? BinaryPrimitives.ReadUInt64BigEndian(this.storageBuffer)
+               : BinaryPrimitives.ReadUInt64LittleEndian(this.storageBuffer);
+
         }
 
         /// <summary>
@@ -223,10 +236,11 @@ namespace SixLabors.ImageSharp.IO
         /// for this reader. 4 bytes are read.
         /// </summary>
         /// <returns>The floating point value read</returns>
-        public float ReadSingle()
+        public unsafe float ReadSingle()
         {
-            this.ReadInternal(this.storageBuffer, 4);
-            return this.BitConverter.ToSingle(this.storageBuffer, 0);
+            int intValue = ReadInt32();
+
+            return *((float*)&intValue);
         }
 
         /// <summary>
@@ -234,10 +248,11 @@ namespace SixLabors.ImageSharp.IO
         /// for this reader. 8 bytes are read.
         /// </summary>
         /// <returns>The floating point value read</returns>
-        public double ReadDouble()
+        public unsafe double ReadDouble()
         {
-            this.ReadInternal(this.storageBuffer, 8);
-            return this.BitConverter.ToDouble(this.storageBuffer, 0);
+            long value = this.ReadInt64();
+
+            return *((double*)&value);
         }
 
         /// <summary>
@@ -245,10 +260,17 @@ namespace SixLabors.ImageSharp.IO
         /// for this reader. 16 bytes are read.
         /// </summary>
         /// <returns>The decimal value read</returns>
-        public decimal ReadDecimal()
+        public unsafe decimal ReadDecimal()
         {
-            this.ReadInternal(this.storageBuffer, 16);
-            return this.BitConverter.ToDecimal(this.storageBuffer, 0);
+            decimal result = 0m;
+            int* presult = (int*)&result;
+
+            presult[0] = this.ReadInt32();
+            presult[1] = this.ReadInt32();
+            presult[2] = this.ReadInt32();
+            presult[3] = this.ReadInt32();
+
+            return result;
         }
 
         /// <summary>

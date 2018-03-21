@@ -37,12 +37,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void FillsForEachACharachterWhenBrushSetAndNotPen()
         {
             this.operations.DrawText(
+                new TextGraphicsOptions(true),
                 "123",
                 this.Font,
                 Brushes.Solid(Rgba32.Red),
                 null,
-                this.path,
-                new TextGraphicsOptions(true));
+                this.path);
 
             this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenBrushSet()
         {
-            this.operations.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), this.path, new TextGraphicsOptions(true));
+            this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Brushes.Solid(Rgba32.Red), this.path);
 
             this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void FillsForEachACharachterWhenColorSet()
         {
-            this.operations.DrawText("123", this.Font, Rgba32.Red, this.path, new TextGraphicsOptions(true));
+            this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Rgba32.Red, this.path);
 
             var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);
@@ -109,12 +109,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void DrawForEachACharachterWhenPenSetAndNotBrush()
         {
             this.operations.DrawText(
+                new TextGraphicsOptions(true),
                 "123",
                 this.Font,
                 null,
                 Pens.Dash(Rgba32.Red, 1),
-                this.path,
-                new TextGraphicsOptions(true));
+                this.path);
 
             var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Fact]
         public void DrawForEachACharachterWhenPenSet()
         {
-            this.operations.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), this.path, new TextGraphicsOptions(true));
+            this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Pens.Dash(Rgba32.Red, 1), this.path);
 
             var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);
@@ -155,12 +155,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void DrawForEachACharachterWhenPenSetAndFillFroEachWhenBrushSet()
         {
             this.operations.DrawText(
+                new TextGraphicsOptions(true),
                 "123",
                 this.Font,
                 Brushes.Solid(Rgba32.Red),
                 Pens.Dash(Rgba32.Red, 1),
-                this.path,
-                new TextGraphicsOptions(true));
+                this.path);
 
             var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);
@@ -187,12 +187,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         public void BrushAppliesBeforPen()
         {
             this.operations.DrawText(
+                new TextGraphicsOptions(true),
                 "1",
                 this.Font,
                 Brushes.Solid(Rgba32.Red),
                 Pens.Dash(Rgba32.Red, 1),
-                this.path,
-            new TextGraphicsOptions(true));
+                this.path);
 
             var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
             this.Verify<FillRegionProcessor<Rgba32>>(1);

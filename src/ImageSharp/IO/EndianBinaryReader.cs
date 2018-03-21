@@ -227,7 +227,6 @@ namespace SixLabors.ImageSharp.IO
             return (this.endianness == Endianness.BigEndian)
                ? BinaryPrimitives.ReadUInt64BigEndian(this.storageBuffer)
                : BinaryPrimitives.ReadUInt64LittleEndian(this.storageBuffer);
-
         }
 
         /// <summary>

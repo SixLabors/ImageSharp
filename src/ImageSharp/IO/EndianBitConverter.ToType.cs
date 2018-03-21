@@ -68,6 +68,18 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <summary>
+        /// Returns a Boolean value converted from one byte at a specified position in a byte array.
+        /// </summary>
+        /// <param name="value">An array of bytes.</param>
+        /// <param name="startIndex">The starting position within value.</param>
+        /// <returns>true if the byte at startIndex in value is nonzero; otherwise, false.</returns>
+        public bool ToBoolean(byte[] value, int startIndex)
+        {
+            CheckByteArgument(value, startIndex, 1);
+            return value[startIndex] != 0;
+        }
+
+        /// <summary>
         /// Returns a Unicode character converted from two bytes at a specified position in a byte array.
         /// </summary>
         /// <param name="value">An array of bytes.</param>

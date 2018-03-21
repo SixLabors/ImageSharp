@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -414,14 +415,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="metadata">The metadata to read to.</param>
         /// <param name="data">The data containing physical data.</param>
-        private void ReadPhysicalChunk(ImageMetaData metadata, byte[] data)
+        private void ReadPhysicalChunk(ImageMetaData metadata, ReadOnlySpan<byte> data)
         {
-            data.ReverseBytes(0, 4);
-            data.ReverseBytes(4, 4);
-
             // 39.3700787 = inches in a meter.
-            metadata.HorizontalResolution = BitConverter.ToInt32(data, 0) / 39.3700787d;
-            metadata.VerticalResolution = BitConverter.ToInt32(data, 4) / 39.3700787d;
+            metadata.HorizontalResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)) / 39.3700787d;
+            metadata.VerticalResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)) / 39.3700787d;
         }
 
         /// <summary>
@@ -699,14 +697,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="pixels">The image</param>
-        private void ProcessDefilteredScanline<TPixel>(byte[] defilteredScanline, ImageFrame<TPixel> pixels)
+        private void ProcessDefilteredScanline<TPixel>(Span<byte> defilteredScanline, ImageFrame<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
-            var scanlineBuffer = new Span<byte>(defilteredScanline, 1, defilteredScanline.Length - 1);
+            Span<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             switch (this.pngColorType)
             {
@@ -1159,22 +1157,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a header chunk from the data.
         /// </summary>
-        /// <param name="data">The <see cref="T:byte[]"/> containing  data.</param>
-        private void ReadHeaderChunk(byte[] data)
+        /// <param name="data">The <see cref="T:Span<byte>"/> containing  data.</param>
+        private void ReadHeaderChunk(ReadOnlySpan<byte> data)
         {
-            this.header = new PngHeader();
-
-            data.ReverseBytes(0, 4);
-            data.ReverseBytes(4, 4);
-
-            this.header.Width = BitConverter.ToInt32(data, 0);
-            this.header.Height = BitConverter.ToInt32(data, 4);
-
-            this.header.BitDepth = data[8];
-            this.header.ColorType = (PngColorType)data[9];
-            this.header.CompressionMethod = data[10];
-            this.header.FilterMethod = data[11];
-            this.header.InterlaceMethod = (PngInterlaceMode)data[12];
+            this.header = new PngHeader
+            {
+                Width = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
+                Height = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
+                BitDepth = data[8],
+                ColorType = (PngColorType)data[9],
+                CompressionMethod = data[10],
+                FilterMethod = data[11],
+                InterlaceMethod = (PngInterlaceMode)data[12]
+            };
         }
 
         /// <summary>

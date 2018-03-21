@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
-                SpanHelper.Copy(sourceColors.NonPortableCast<RgbaVector, Vector4>(), destVectors, count);
+                sourceColors.NonPortableCast<RgbaVector, Vector4>().Slice(0, count).CopyTo(destVectors);
             }
         }
     }

@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathAndOptions()
         {
-            this.operations.FillPolygon(this.brush, this.path, this.noneDefault);
+            this.operations.FillPolygon(this.noneDefault, this.brush, this.path);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(this.noneDefault, processor.Options);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.FillPolygon(this.color, this.path, this.noneDefault);
+            this.operations.FillPolygon(this.noneDefault, this.color, this.path);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
 

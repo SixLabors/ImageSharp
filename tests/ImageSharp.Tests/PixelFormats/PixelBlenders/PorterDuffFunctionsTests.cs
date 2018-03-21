@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(SubstractFunctionData))]
         public void SubstractFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Substract((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Subtract((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 

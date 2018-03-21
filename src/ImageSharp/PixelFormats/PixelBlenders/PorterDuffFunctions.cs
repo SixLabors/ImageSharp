@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Source over backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Source multiplied by backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Source added to backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -63,14 +63,14 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Source substracted from backdrop
+        /// Source subtracted from backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Substract(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Subtract(Vector4 backdrop, Vector4 source, float opacity)
         {
             source.W *= opacity;
             return Compose(backdrop, source, Vector4.Max(Vector4.Zero, backdrop - source));
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Complement of source multiplied by the complement of backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Per element, chooses the smallest value of source and backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Per element, chooses the largest value of source and backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Overlays source over backdrop
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// Hard light effect
         /// </summary>
-        /// <param name="backdrop">Backgrop color</param>
+        /// <param name="backdrop">Backdrop color</param>
         /// <param name="source">Source color</param>
         /// <param name="opacity">Opacity applied to Source Alpha</param>
         /// <returns>Output color</returns>
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <summary>
         /// General composition function for all modes, with a general solution for alpha channel
         /// </summary>
-        /// <param name="backdrop">Original backgrop color</param>
+        /// <param name="backdrop">Original Backdrop color</param>
         /// <param name="source">Original source color</param>
         /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
         /// <returns>The final color</returns>

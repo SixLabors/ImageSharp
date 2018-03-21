@@ -141,17 +141,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Substract : PixelBlender<TPixel>
+            internal class Subtract : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Substract Instance { get; } = new Substract();
+                public static Subtract Instance { get; } = new Subtract();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Substract(background, source, amount);
+                    return PorterDuffFunctions.Subtract(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Substract(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.Subtract(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);

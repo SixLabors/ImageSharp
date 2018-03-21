@@ -50,13 +50,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(Rgba32.HotPink, 5,
-                    new SixLabors.Primitives.PointF[] {
-                            new Vector2(10, 10),
-                            new Vector2(200, 150),
-                            new Vector2(50, 300)
-                    },
-                    new GraphicsOptions(false)));
+                    .DrawLines(
+                        new GraphicsOptions(false),
+                        Rgba32.HotPink, 
+                        5,
+                        new SixLabors.Primitives.PointF[] {
+                                new Vector2(10, 10),
+                                new Vector2(200, 150),
+                                new Vector2(50, 300)
+                        }));
                 image.Save($"{path}/Simple_noantialias.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())

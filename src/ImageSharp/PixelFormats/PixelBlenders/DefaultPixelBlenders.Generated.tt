@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         "Normal",
         "Multiply",
         "Add",
-        "Substract",
+        "Subtract",
         "Screen",
         "Darken",
         "Lighten",

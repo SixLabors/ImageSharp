@@ -22,24 +22,24 @@ namespace SixLabors.ImageSharp.Tests.Issues
                         for (var i = 0; i < 40; ++i)
                         {
                             context.DrawLines(
+                                new GraphicsOptions(false),
                                 NamedColors<TPixel>.Black,
                                 1,
                                 new[]
                                 {
                                 new PointF(i, 0.1066f),
                                 new PointF(i, 10.1066f)
-                                },
-                                new GraphicsOptions(true));
+                                });
 
                             context.DrawLines(
+                                new GraphicsOptions(false),
                                 NamedColors<TPixel>.Red,
                                 1,
                                 new[]
                                 {
                                 new PointF(i, 15.1066f),
                                 new PointF(i, 25.1066f)
-                                },
-                                new GraphicsOptions(false));
+                                });
                         }
                     });
 

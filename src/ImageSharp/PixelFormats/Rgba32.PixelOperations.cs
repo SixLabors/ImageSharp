@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
-                SpanHelper.Copy(source, destPixels, count);
+                source.Slice(0, count).CopyTo(destPixels);
             }
 
             /// <inheritdoc />
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                SpanHelper.Copy(sourcePixels, dest, count);
+                sourcePixels.Slice(0, count).CopyTo(dest);
             }
 
             /// <summary>

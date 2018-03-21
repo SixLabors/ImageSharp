@@ -39,6 +39,11 @@ namespace SixLabors.ImageSharp.IO
         private bool disposed;
 
         /// <summary>
+        /// The endianness used to read data
+        /// </summary>
+        private Endianness endianness;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
         /// Equivalent of <see cref="System.IO.BinaryWriter"/>, but with either endianness, depending on
         /// the EndianBitConverter it is constructed with.
@@ -72,6 +77,7 @@ namespace SixLabors.ImageSharp.IO
             this.BitConverter = EndianBitConverter.GetConverter(endianness);
             this.Encoding = encoding;
             this.decoder = encoding.GetDecoder();
+            this.endianness = endianness;
             this.minBytesPerChar = 1;
 
             if (encoding is UnicodeEncoding)
@@ -141,7 +147,9 @@ namespace SixLabors.ImageSharp.IO
         public bool ReadBoolean()
         {
             this.ReadInternal(this.storageBuffer, 1);
-            return this.BitConverter.ToBoolean(this.storageBuffer, 0);
+
+            return this.storageBuffer[0] != 0;
+
         }
 
         /// <summary>

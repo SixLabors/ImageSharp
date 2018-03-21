@@ -15,7 +15,6 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void CopyToWithNullBufferThrowsException()
         {
-            Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.ToBoolean(null, 0));
             Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.ToInt16(null, 0));
             Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.ToUInt16(null, 0));
             Assert.Throws<ArgumentNullException>(() => EndianBitConverter.BigEndianConverter.ToInt32(null, 0));
@@ -27,7 +26,6 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void CopyToWithIndexTooBigThrowsException()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToBoolean(new byte[1], 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToInt16(new byte[2], 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToUInt16(new byte[2], 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToInt32(new byte[4], 1));
@@ -39,28 +37,12 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void CopyToWithBufferTooSmallThrowsException()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToBoolean(new byte[0], 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToInt16(new byte[1], 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToUInt16(new byte[1], 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToInt32(new byte[3], 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToUInt32(new byte[3], 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToInt64(new byte[7], 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => EndianBitConverter.BigEndianConverter.ToUInt64(new byte[7], 0));
-        }
-
-        /// <summary>
-        /// Tests that passing a <see cref="bool"/> returns the correct bytes.
-        /// </summary>
-        [Fact]
-        public void ToBoolean()
-        {
-            Assert.False(EndianBitConverter.BigEndianConverter.ToBoolean(new byte[] { 0 }, 0));
-            Assert.True(EndianBitConverter.BigEndianConverter.ToBoolean(new byte[] { 1 }, 0));
-            Assert.True(EndianBitConverter.BigEndianConverter.ToBoolean(new byte[] { 42 }, 0));
-
-            Assert.False(EndianBitConverter.BigEndianConverter.ToBoolean(new byte[] { 1, 0 }, 1));
-            Assert.True(EndianBitConverter.BigEndianConverter.ToBoolean(new byte[] { 0, 1 }, 1));
-            Assert.True(EndianBitConverter.BigEndianConverter.ToBoolean(new byte[] { 0, 42 }, 1));
         }
 
         /// <summary>

@@ -1251,14 +1251,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadChunkCrc(PngChunk chunk)
         {
             int numBytes = this.currentStream.Read(this.crcBuffer, 0, 4);
+
             if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
-
-            this.crcBuffer.ReverseBytes();
-
-            chunk.Crc = BitConverter.ToUInt32(this.crcBuffer, 0);
+            
+            chunk.Crc = BinaryPrimitives.ReadUInt32BigEndian(this.crcBuffer);
 
             this.crc.Reset();
             this.crc.Update(this.chunkTypeBuffer);
@@ -1323,15 +1322,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ReadChunkLength(PngChunk chunk)
         {
             int numBytes = this.currentStream.Read(this.chunkLengthBuffer, 0, 4);
+
             if (numBytes < 4)
             {
                 chunk.Length = -1;
                 return;
             }
 
-            this.chunkLengthBuffer.ReverseBytes();
-
-            chunk.Length = BitConverter.ToInt32(this.chunkLengthBuffer, 0);
+            chunk.Length = BinaryPrimitives.ReadInt32BigEndian(this.chunkLengthBuffer);
         }
 
         /// <summary>

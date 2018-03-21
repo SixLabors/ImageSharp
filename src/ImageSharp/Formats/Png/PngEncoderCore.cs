@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -251,9 +252,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="value">The value to write.</param>
         private static void WriteInteger(Stream stream, int value)
         {
-            byte[] buffer = BitConverter.GetBytes(value);
+            byte[] buffer = new byte[4];
 
-            buffer.ReverseBytes();
+            BinaryPrimitives.WriteInt32BigEndian(buffer, value);
+
             stream.Write(buffer, 0, 4);
         }
 
@@ -264,9 +266,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="value">The value to write.</param>
         private static void WriteInteger(Stream stream, uint value)
         {
-            byte[] buffer = BitConverter.GetBytes(value);
+            byte[] buffer = new byte[4];
 
-            buffer.ReverseBytes();
+            BinaryPrimitives.WriteUInt32BigEndian(buffer, value);
+
             stream.Write(buffer, 0, 4);
         }
 

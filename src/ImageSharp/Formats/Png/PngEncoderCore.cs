@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
@@ -244,20 +245,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Writes an integer to the byte array.
-        /// </summary>
-        /// <param name="data">The <see cref="T:byte[]"/> containing image data.</param>
-        /// <param name="offset">The amount to offset by.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(byte[] data, int offset, int value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            buffer.ReverseBytes();
-            Buffer.BlockCopy(buffer, 0, data, offset, 4);
-        }
-
-        /// <summary>
         /// Writes an integer to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -450,8 +437,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         private void WriteHeaderChunk(Stream stream, PngHeader header)
         {
-            WriteInteger(this.chunkDataBuffer, 0, header.Width);
-            WriteInteger(this.chunkDataBuffer, 4, header.Height);
+            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), header.Width);
+            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), header.Height);
 
             this.chunkDataBuffer[8] = header.BitDepth;
             this.chunkDataBuffer[9] = (byte)header.ColorType;
@@ -535,8 +522,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
                 int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
 
-                WriteInteger(this.chunkDataBuffer, 0, dpmX);
-                WriteInteger(this.chunkDataBuffer, 4, dpmY);
+                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan().Slice(0, 4), dpmX);
+                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan().Slice(4, 4), dpmY);
 
                 this.chunkDataBuffer[8] = 1;
 

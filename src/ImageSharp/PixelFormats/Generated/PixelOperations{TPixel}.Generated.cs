@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba32"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRgba32(Span<Rgba32> source, Span<TPixel> destPixels, int count)
+        internal virtual void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<TPixel> destPixels, int count)
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromRgba32Bytes(Span<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void PackFromRgba32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
             this.PackFromRgba32(sourceBytes.NonPortableCast<byte, Rgba32>(), destPixels, count);
         }
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="dest">The destination span of <see cref="Rgba32"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgba32(Span<TPixel> sourcePixels, Span<Rgba32> dest, int count)
+        internal virtual void ToRgba32(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba32> dest, int count)
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToRgba32Bytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToRgba32Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             this.ToRgba32(sourceColors, destBytes.NonPortableCast<byte, Rgba32>(), count);
         }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra32"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromBgra32(Span<Bgra32> source, Span<TPixel> destPixels, int count)
+        internal virtual void PackFromBgra32(ReadOnlySpan<Bgra32> source, Span<TPixel> destPixels, int count)
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromBgra32Bytes(Span<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void PackFromBgra32Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
             this.PackFromBgra32(sourceBytes.NonPortableCast<byte, Bgra32>(), destPixels, count);
         }
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="dest">The destination span of <see cref="Bgra32"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToBgra32(Span<TPixel> sourcePixels, Span<Bgra32> dest, int count)
+        internal virtual void ToBgra32(ReadOnlySpan<TPixel> sourcePixels, Span<Bgra32> dest, int count)
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToBgra32Bytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToBgra32Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             this.ToBgra32(sourceColors, destBytes.NonPortableCast<byte, Bgra32>(), count);
         }
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb24"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromRgb24(Span<Rgb24> source, Span<TPixel> destPixels, int count)
+        internal virtual void PackFromRgb24(ReadOnlySpan<Rgb24> source, Span<TPixel> destPixels, int count)
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromRgb24Bytes(Span<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void PackFromRgb24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
             this.PackFromRgb24(sourceBytes.NonPortableCast<byte, Rgb24>(), destPixels, count);
         }
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="dest">The destination span of <see cref="Rgb24"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToRgb24(Span<TPixel> sourcePixels, Span<Rgb24> dest, int count)
+        internal virtual void ToRgb24(ReadOnlySpan<TPixel> sourcePixels, Span<Rgb24> dest, int count)
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToRgb24Bytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToRgb24Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             this.ToRgb24(sourceColors, destBytes.NonPortableCast<byte, Rgb24>(), count);
         }
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgr24"/> data.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromBgr24(Span<Bgr24> source, Span<TPixel> destPixels, int count)
+        internal virtual void PackFromBgr24(ReadOnlySpan<Bgr24> source, Span<TPixel> destPixels, int count)
         {
 			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
             
@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PackFromBgr24Bytes(Span<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        internal void PackFromBgr24Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
             this.PackFromBgr24(sourceBytes.NonPortableCast<byte, Bgr24>(), destPixels, count);
         }
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourcePixels">The span of source pixels</param>
         /// <param name="dest">The destination span of <see cref="Bgr24"/> data.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToBgr24(Span<TPixel> sourcePixels, Span<Bgr24> dest, int count)
+        internal virtual void ToBgr24(ReadOnlySpan<TPixel> sourcePixels, Span<Bgr24> dest, int count)
         {
             GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
         /// <param name="count">The number of pixels to convert.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ToBgr24Bytes(Span<TPixel> sourceColors, Span<byte> destBytes, int count)
+        internal void ToBgr24Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
             this.ToBgr24(sourceColors, destBytes.NonPortableCast<byte, Bgr24>(), count);
         }

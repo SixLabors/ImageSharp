@@ -25,14 +25,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Bulk version of <see cref="IPixel.PackFromVector4(Vector4)"/>
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destColors, int count)
+        internal virtual void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destinationColors, int count)
         {
-            GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
+            GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 
             ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destColors);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
 
             for (int i = 0; i < count; i++)
             {
@@ -46,14 +46,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Bulk version of <see cref="IPixel.ToVector4()"/>.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destVectors, int count)
+        internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destinationVectors, int count)
         {
-            GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
+            GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
 
             ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
+            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
 
             for (int i = 0; i < count; i++)
             {
@@ -64,25 +64,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Verifies that the given 'source' and 'dest' spans are at least of 'minLength' size.
+        /// Verifies that the given 'source' and 'destination' spans are at least of 'minLength' size.
         /// Throwing an <see cref="ArgumentException"/> if the condition is not met.
         /// </summary>
         /// <typeparam name="TSource">The source element type</typeparam>
         /// <typeparam name="TDest">The destination element type</typeparam>
         /// <param name="source">The source span</param>
         /// <param name="sourceParamName">The source parameter name</param>
-        /// <param name="dest">The destination span</param>
-        /// <param name="destParamName">The destination parameter name</param>
+        /// <param name="destination">The destination span</param>
+        /// <param name="destinationParamName">The destination parameter name</param>
         /// <param name="minLength">The minimum length</param>
         protected internal static void GuardSpans<TSource, TDest>(
             ReadOnlySpan<TSource> source,
             string sourceParamName,
-            Span<TDest> dest,
-            string destParamName,
+            Span<TDest> destination,
+            string destinationParamName,
             int minLength)
         {
-            Guard.MustBeSizedAtLeast<TSource>(source, minLength, sourceParamName);
-            Guard.MustBeSizedAtLeast<TDest>(dest, minLength, destParamName);
+            Guard.MustBeSizedAtLeast(source, minLength, sourceParamName);
+            Guard.MustBeSizedAtLeast(destination, minLength, destinationParamName);
         }
     }
 }

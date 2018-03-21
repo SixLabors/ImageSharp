@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                 {
                     Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(minX);
                     Span<TPixel> targetRow = destination.GetPixelRowSpan(y - minY);
-                    SpanHelper.Copy(sourceRow, targetRow, maxX - minX);
+                    sourceRow.Slice(0, maxX - minX).CopyTo(targetRow);
                 });
         }
     }

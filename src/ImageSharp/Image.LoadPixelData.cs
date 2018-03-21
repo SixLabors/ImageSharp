@@ -2,12 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -102,14 +97,11 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-        {
-            int count = width * height;
-            Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
+        { 
+            // There's an implict cast to Span from Array
+            // Should we remove this overload and expose Span<TPixel> ?
 
-            var image = new Image<TPixel>(config, width, height);
-            SpanHelper.Copy(data, image.GetPixelSpan(), count);
-
-            return image;
+            return LoadPixelData(config, new Span<TPixel>(data), width, height);
         }
 
         /// <summary>
@@ -128,7 +120,8 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
             var image = new Image<TPixel>(config, width, height);
-            SpanHelper.Copy(data, image.Frames.RootFrame.GetPixelSpan(), count);
+
+            data.Slice(0, count).CopyTo(image.Frames.RootFrame.GetPixelSpan());
 
             return image;
         }

@@ -1157,7 +1157,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a header chunk from the data.
         /// </summary>
-        /// <param name="data">The <see cref="T:Span<byte>"/> containing  data.</param>
+        /// <param name="data">The <see cref="T:Span{byte}"/> containing  data.</param>
         private void ReadHeaderChunk(ReadOnlySpan<byte> data)
         {
             this.header = new PngHeader
@@ -1256,7 +1256,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
-            
+
             chunk.Crc = BinaryPrimitives.ReadUInt32BigEndian(this.crcBuffer);
 
             this.crc.Reset();

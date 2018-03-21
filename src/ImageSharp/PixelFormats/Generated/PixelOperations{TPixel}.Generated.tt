@@ -37,7 +37,7 @@
         }
 
 		/// <summary>
-        /// A helper for <see cref="To<#=pixelType#>(Span{TPixel}, Span{<#=pixelType#>}, int)"/> that expects a byte span as destination.
+        /// A helper for <see cref="To<#=pixelType#>(ReadOnlySpan{TPixel}, Span{<#=pixelType#>}, int)"/> that expects a byte span as destination.
         /// The layout of the data in 'destBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
@@ -79,10 +79,10 @@
         }
 		
 		/// <summary>
-        /// A helper for <see cref="PackFrom<#=pixelType#>(Span{<#=pixelType#>}, Span{TPixel}, int)"/> that expects a byte span.
+        /// A helper for <see cref="PackFrom<#=pixelType#>(ReadOnlySpan{<#=pixelType#>}, Span{TPixel}, int)"/> that expects a byte span.
         /// The layout of the data in 'sourceBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
         /// </summary>
-        /// <param name="sourceBytes">The <see cref="Span{T}"/> to the source bytes.</param>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
         /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
         /// <param name="count">The number of pixels to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

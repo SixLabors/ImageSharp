@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Blends the 2 values by subtraction.
         /// </summary>
-        Substract,
+        Subtract,
 
         /// <summary>
         /// Multiplies the complements of the backdrop and source values, then complements the result.

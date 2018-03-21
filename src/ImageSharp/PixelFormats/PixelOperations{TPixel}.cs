@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
         /// <param name="destColors">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void PackFromVector4(Span<Vector4> sourceVectors, Span<TPixel> destColors, int count)
+        internal virtual void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<TPixel> destColors, int count)
         {
             GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
         /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
         /// <param name="count">The number of pixels to convert.</param>
-        internal virtual void ToVector4(Span<TPixel> sourceColors, Span<Vector4> destVectors, int count)
+        internal virtual void ToVector4(ReadOnlySpan<TPixel> sourceColors, Span<Vector4> destVectors, int count)
         {
             GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
@@ -75,14 +75,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="destParamName">The destination parameter name</param>
         /// <param name="minLength">The minimum length</param>
         protected internal static void GuardSpans<TSource, TDest>(
-            Span<TSource> source,
+            ReadOnlySpan<TSource> source,
             string sourceParamName,
             Span<TDest> dest,
             string destParamName,
             int minLength)
         {
-            Guard.MustBeSizedAtLeast(source, minLength, sourceParamName);
-            Guard.MustBeSizedAtLeast(dest, minLength, destParamName);
+            Guard.MustBeSizedAtLeast<TSource>(source, minLength, sourceParamName);
+            Guard.MustBeSizedAtLeast<TDest>(dest, minLength, destParamName);
         }
     }
 }

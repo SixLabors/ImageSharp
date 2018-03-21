@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="destination">The destination <see cref="Span{T}"/>.</param>
         /// <param name="count">The number of elements to copy</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(Span<T> source, Span<T> destination, int count)
+        public static unsafe void Copy<T>(ReadOnlySpan<T> source, Span<T> destination, int count)
             where T : struct
         {
             DebugGuard.MustBeLessThanOrEqualTo(count, source.Length, nameof(count));
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="source">The <see cref="Span{T}"/> to copy elements from.</param>
         /// <param name="destination">The destination <see cref="Span{T}"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Copy<T>(Span<T> source, Span<T> destination)
+        public static void Copy<T>(ReadOnlySpan<T> source, Span<T> destination)
             where T : struct
         {
             Copy(source, destination, Math.Min(source.Length, destination.Length));

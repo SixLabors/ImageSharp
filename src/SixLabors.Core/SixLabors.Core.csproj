@@ -11,7 +11,7 @@
         <AssemblyName>SixLabors.Core</AssemblyName>
         <PackageId>SixLabors.Core</PackageId>
         <PackageTags>rectangle;point;size,primitives</PackageTags>
-        <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Home/master/logo.png</PackageIconUrl>
+        <PackageIconUrl>https://raw.githubusercontent.com/SixLabors/Branding/master/icons/core/sixlabors.core.128.png</PackageIconUrl>
         <PackageProjectUrl>https://github.com/SixLabors/Core</PackageProjectUrl>
         <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
         <RepositoryType>git</RepositoryType>

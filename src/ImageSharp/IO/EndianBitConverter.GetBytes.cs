@@ -121,17 +121,5 @@ namespace SixLabors.ImageSharp.IO
         {
             return this.GetBytes(*((int*)&value));
         }
-
-        /// <summary>
-        /// Returns the specified decimal value as an array of bytes.
-        /// </summary>
-        /// <param name="value">The number to convert.</param>
-        /// <returns>An array of bytes with length 16.</returns>
-        public byte[] GetBytes(decimal value)
-        {
-            byte[] result = new byte[16];
-            this.CopyBytes(value, result, 0);
-            return result;
-        }
     }
 }

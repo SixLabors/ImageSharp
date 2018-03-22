@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Text;
 
 namespace SixLabors.ImageSharp.IO
 {
@@ -19,11 +18,6 @@ namespace SixLabors.ImageSharp.IO
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
-        /// Buffer used for Write(char)
-        /// </summary>
-        private readonly char[] charBuffer = new char[1];
-
-        /// <summary>
         /// The endianness used to write the data
         /// </summary>
         private readonly Endianness endianness;
@@ -35,39 +29,18 @@ namespace SixLabors.ImageSharp.IO
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class
-        /// with the given bit converter, writing to the given stream, using UTF-8 encoding.
-        /// </summary>
-        /// <param name="endianness">Endianness to use when writing data</param>
-        /// <param name="stream">Stream to write data to</param>
-        public EndianBinaryWriter(Endianness endianness, Stream stream)
-            : this(endianness, stream, Encoding.UTF8)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class
         /// with the given bit converter, writing to the given stream, using the given encoding.
         /// </summary>
         /// <param name="endianness">Endianness to use when writing data</param>
         /// <param name="stream">Stream to write data to</param>
-        /// <param name="encoding">
-        /// Encoding to use when writing character data
-        /// </param>
-        public EndianBinaryWriter(Endianness endianness, Stream stream, Encoding encoding)
+        public EndianBinaryWriter(Endianness endianness, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
-            Guard.NotNull(stream, nameof(encoding));
             Guard.IsTrue(stream.CanWrite, nameof(stream), "Stream isn't writable");
 
             this.BaseStream = stream;
-            this.Encoding = encoding;
             this.endianness = endianness;
         }
-
-        /// <summary>
-        /// Gets the encoding used to write strings
-        /// </summary>
-        public Encoding Encoding { get; }
 
         /// <summary>
         /// Gets the underlying stream of the EndianBinaryWriter.
@@ -289,71 +262,6 @@ namespace SixLabors.ImageSharp.IO
         {
             this.CheckDisposed();
             this.BaseStream.Write(value, offset, count);
-        }
-
-        /// <summary>
-        /// Writes a single character to the stream, using the encoding for this writer.
-        /// </summary>
-        /// <param name="value">The value to write</param>
-        public void Write(char value)
-        {
-            this.charBuffer[0] = value;
-            this.Write(this.charBuffer);
-        }
-
-        /// <summary>
-        /// Writes an array of characters to the stream, using the encoding for this writer.
-        /// </summary>
-        /// <param name="value">An array containing the characters to write</param>
-        /// <exception cref="ArgumentNullException">value is null</exception>
-        public void Write(char[] value)
-        {
-            Guard.NotNull(value, nameof(value));
-
-            this.CheckDisposed();
-            byte[] data = this.Encoding.GetBytes(value, 0, value.Length);
-            this.WriteInternal(data, data.Length);
-        }
-
-        /// <summary>
-        /// Writes a length-prefixed string to the stream, using the encoding for this writer.
-        /// </summary>
-        /// <param name="value">The value to write. Must not be null.</param>
-        /// <exception cref="ArgumentNullException">value is null</exception>
-        public void Write(string value)
-        {
-            Guard.NotNull(value, nameof(value));
-
-            this.CheckDisposed();
-            byte[] data = this.Encoding.GetBytes(value);
-            this.Write7BitEncodedInt(data.Length);
-            this.WriteInternal(data, data.Length);
-        }
-
-        /// <summary>
-        /// Writes a 7-bit encoded integer from the stream. This is stored with the least significant
-        /// information first, with 7 bits of information per byte of value, and the top
-        /// bit as a continuation flag.
-        /// </summary>
-        /// <param name="value">The 7-bit encoded integer to write to the stream</param>
-        public void Write7BitEncodedInt(int value)
-        {
-            this.CheckDisposed();
-            if (value < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), "Value must be greater than or equal to 0.");
-            }
-
-            int index = 0;
-            while (value >= 128)
-            {
-                this.buffer[index++] = (byte)((value & 0x7f) | 0x80);
-                value = value >> 7;
-                index++;
-            }
-
-            this.buffer[index++] = (byte)value;
-            this.BaseStream.Write(this.buffer, 0, index);
         }
 
         /// <summary>

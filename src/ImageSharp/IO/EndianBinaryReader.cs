@@ -15,24 +15,9 @@ namespace SixLabors.ImageSharp.IO
     internal class EndianBinaryReader : IDisposable
     {
         /// <summary>
-        /// Decoder to use for string conversions.
-        /// </summary>
-        private readonly Decoder decoder;
-
-        /// <summary>
         /// Buffer used for temporary storage before conversion into primitives
         /// </summary>
         private readonly byte[] storageBuffer = new byte[16];
-
-        /// <summary>
-        /// Buffer used for temporary storage when reading a single character
-        /// </summary>
-        private readonly char[] charBuffer = new char[1];
-
-        /// <summary>
-        /// Minimum number of bytes used to encode a character
-        /// </summary>
-        private readonly int minBytesPerChar;
 
         /// <summary>
         /// Whether or not this reader has been disposed yet.
@@ -46,49 +31,19 @@ namespace SixLabors.ImageSharp.IO
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
-        /// Modeled after <see cref="System.IO.BinaryWriter"/> with endian support.
-        /// </summary>
-        /// <param name="endianness">
-        /// Endianness to use when reading data
-        /// </param>
-        /// <param name="stream">
-        /// Stream to read data from
-        /// </param>
-        public EndianBinaryReader(Endianness endianness, Stream stream)
-            : this(endianness, stream, Encoding.UTF8)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EndianBinaryReader"/> class.
         /// Constructs a new binary reader with the given bit converter, reading
         /// to the given stream, using the given encoding.
         /// </summary>
         /// <param name="endianness">Endianness to use when reading data</param>
         /// <param name="stream">Stream to read data from</param>
-        /// <param name="encoding">Encoding to use when reading character data</param>
-        public EndianBinaryReader(Endianness endianness, Stream stream, Encoding encoding)
+        public EndianBinaryReader(Endianness endianness, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
-            Guard.NotNull(encoding, nameof(encoding));
             Guard.IsTrue(stream.CanRead, nameof(stream), "Stream isn't readable");
 
             this.BaseStream = stream;
-            this.Encoding = encoding;
-            this.decoder = encoding.GetDecoder();
             this.endianness = endianness;
-            this.minBytesPerChar = 1;
-
-            if (encoding is UnicodeEncoding)
-            {
-                this.minBytesPerChar = 2;
-            }
         }
-
-        /// <summary>
-        /// Gets the encoding used to read strings
-        /// </summary>
-        public Encoding Encoding { get; }
 
         /// <summary>
         /// Gets the underlying stream of the EndianBinaryReader.
@@ -254,92 +209,6 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <summary>
-        /// Reads a single character from the stream, using the character encoding for
-        /// this reader. If no characters have been fully read by the time the stream ends,
-        /// -1 is returned.
-        /// </summary>
-        /// <returns>The character read, or -1 for end of stream.</returns>
-        public int Read()
-        {
-            int charsRead = this.Read(this.charBuffer, 0, 1);
-            if (charsRead == 0)
-            {
-                return -1;
-            }
-            else
-            {
-                return this.charBuffer[0];
-            }
-        }
-
-        /// <summary>
-        /// Reads the specified number of characters into the given buffer, starting at
-        /// the given index.
-        /// </summary>
-        /// <param name="data">The buffer to copy data into</param>
-        /// <param name="index">The first index to copy data into</param>
-        /// <param name="count">The number of characters to read</param>
-        /// <returns>The number of characters actually read. This will only be less than
-        /// the requested number of characters if the end of the stream is reached.
-        /// </returns>
-        public int Read(char[] data, int index, int count)
-        {
-            this.CheckDisposed();
-
-            Guard.NotNull(this.storageBuffer, nameof(this.storageBuffer));
-            Guard.MustBeGreaterThanOrEqualTo(index, 0, nameof(index));
-            Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
-            Guard.IsFalse(count + index > data.Length, nameof(data.Length), "Not enough space in buffer for specified number of characters starting at specified index.");
-
-            int read = 0;
-            bool firstTime = true;
-
-            // Use the normal buffer if we're only reading a small amount, otherwise
-            // use at most 4K at a time.
-            byte[] byteBuffer = this.storageBuffer;
-
-            if (byteBuffer.Length < count * this.minBytesPerChar)
-            {
-                byteBuffer = new byte[4096];
-            }
-
-            while (read < count)
-            {
-                int amountToRead;
-
-                // First time through we know we haven't previously read any data
-                if (firstTime)
-                {
-                    amountToRead = count * this.minBytesPerChar;
-                    firstTime = false;
-                }
-                else
-                {
-                    // After that we can only assume we need to fully read 'chars left -1' characters
-                    // and a single byte of the character we may be in the middle of
-                    amountToRead = ((count - read - 1) * this.minBytesPerChar) + 1;
-                }
-
-                if (amountToRead > byteBuffer.Length)
-                {
-                    amountToRead = byteBuffer.Length;
-                }
-
-                int bytesRead = this.TryReadInternal(byteBuffer, amountToRead);
-                if (bytesRead == 0)
-                {
-                    return read;
-                }
-
-                int decoded = this.decoder.GetChars(byteBuffer, 0, bytesRead, data, index);
-                read += decoded;
-                index += decoded;
-            }
-
-            return read;
-        }
-
-        /// <summary>
         /// Reads the specified number of bytes into the given buffer, starting at
         /// the given index.
         /// </summary>
@@ -419,84 +288,6 @@ namespace SixLabors.ImageSharp.IO
             byte[] ret = new byte[count];
             this.ReadInternal(ret, count);
             return ret;
-        }
-
-        /// <summary>
-        /// Reads a 7-bit encoded integer from the stream. This is stored with the least significant
-        /// information first, with 7 bits of information per byte of value, and the top
-        /// bit as a continuation flag. This method is not affected by the endianness
-        /// of the bit converter.
-        /// </summary>
-        /// <returns>The 7-bit encoded integer read from the stream.</returns>
-        public int Read7BitEncodedInt()
-        {
-            this.CheckDisposed();
-
-            int ret = 0;
-            for (int shift = 0; shift < 35; shift += 7)
-            {
-                int b = this.BaseStream.ReadByte();
-                if (b == -1)
-                {
-                    throw new EndOfStreamException();
-                }
-
-                ret = ret | ((b & 0x7f) << shift);
-                if ((b & 0x80) == 0)
-                {
-                    return ret;
-                }
-            }
-
-            // Still haven't seen a byte with the high bit unset? Dodgy data.
-            throw new IOException("Invalid 7-bit encoded integer in stream.");
-        }
-
-        /// <summary>
-        /// Reads a 7-bit encoded integer from the stream. This is stored with the most significant
-        /// information first, with 7 bits of information per byte of value, and the top
-        /// bit as a continuation flag. This method is not affected by the endianness
-        /// of the bit converter.
-        /// </summary>
-        /// <returns>The 7-bit encoded integer read from the stream.</returns>
-        public int ReadBigEndian7BitEncodedInt()
-        {
-            this.CheckDisposed();
-
-            int ret = 0;
-            for (int i = 0; i < 5; i++)
-            {
-                int b = this.BaseStream.ReadByte();
-                if (b == -1)
-                {
-                    throw new EndOfStreamException();
-                }
-
-                ret = (ret << 7) | (b & 0x7f);
-                if ((b & 0x80) == 0)
-                {
-                    return ret;
-                }
-            }
-
-            // Still haven't seen a byte with the high bit unset? Dodgy data.
-            throw new IOException("Invalid 7-bit encoded integer in stream.");
-        }
-
-        /// <summary>
-        /// Reads a length-prefixed string from the stream, using the encoding for this reader.
-        /// A 7-bit encoded integer is first read, which specifies the number of bytes
-        /// to read from the stream. These bytes are then converted into a string with
-        /// the encoding for this reader.
-        /// </summary>
-        /// <returns>The string read from the stream.</returns>
-        public string ReadString()
-        {
-            int bytesToRead = this.Read7BitEncodedInt();
-
-            byte[] data = new byte[bytesToRead];
-            this.ReadInternal(data, bytesToRead);
-            return this.Encoding.GetString(data, 0, data.Length);
         }
 
         /// <summary>

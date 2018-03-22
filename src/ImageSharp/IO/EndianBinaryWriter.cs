@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
 using System.IO;
 
 namespace SixLabors.ImageSharp.IO
@@ -10,17 +9,12 @@ namespace SixLabors.ImageSharp.IO
     /// <summary>
     /// Equivalent of <see cref="BinaryWriter"/>, but with either endianness
     /// </summary>
-    internal class EndianBinaryWriter : IDisposable
+    internal abstract class EndianBinaryWriter : IDisposable
     {
         /// <summary>
         /// Buffer used for temporary storage during conversion from primitives
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
-
-        /// <summary>
-        /// The endianness used to write the data
-        /// </summary>
-        private readonly Endianness endianness;
+        protected readonly byte[] buffer = new byte[16];
 
         /// <summary>
         /// Whether or not this writer has been disposed yet.
@@ -29,23 +23,25 @@ namespace SixLabors.ImageSharp.IO
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EndianBinaryWriter"/> class
-        /// with the given bit converter, writing to the given stream, using the given encoding.
         /// </summary>
-        /// <param name="endianness">Endianness to use when writing data</param>
         /// <param name="stream">Stream to write data to</param>
-        public EndianBinaryWriter(Endianness endianness, Stream stream)
+        public EndianBinaryWriter(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.IsTrue(stream.CanWrite, nameof(stream), "Stream isn't writable");
 
             this.BaseStream = stream;
-            this.endianness = endianness;
         }
 
         /// <summary>
         /// Gets the underlying stream of the EndianBinaryWriter.
         /// </summary>
         public Stream BaseStream { get; }
+
+        /// <summary>
+        /// Gets the endianness of the BinaryWriter
+        /// </summary>
+        public abstract Endianness Endianness { get; }
 
         /// <summary>
         /// Closes the writer, including the underlying stream.
@@ -91,134 +87,56 @@ namespace SixLabors.ImageSharp.IO
         /// for this writer. 2 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(short value)
-        {
-            if (this.endianness == Endianness.BigEndian)
-            {
-                BinaryPrimitives.WriteInt16BigEndian(this.buffer, value);
-            }
-            else
-            {
-                BinaryPrimitives.WriteInt16LittleEndian(this.buffer, value);
-            }
-
-            this.WriteInternal(this.buffer, 2);
-        }
+        public abstract void Write(short value);
 
         /// <summary>
         /// Writes a 32-bit signed integer to the stream, using the bit converter
         /// for this writer. 4 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(int value)
-        {
-            if (this.endianness == Endianness.BigEndian)
-            {
-                BinaryPrimitives.WriteInt32BigEndian(this.buffer, value);
-            }
-            else
-            {
-                BinaryPrimitives.WriteInt32LittleEndian(this.buffer, value);
-            }
-
-            this.WriteInternal(this.buffer, 4);
-        }
+        public abstract void Write(int value);
 
         /// <summary>
         /// Writes a 64-bit signed integer to the stream, using the bit converter
         /// for this writer. 8 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(long value)
-        {
-            if (this.endianness == Endianness.BigEndian)
-            {
-                BinaryPrimitives.WriteInt64BigEndian(this.buffer, value);
-            }
-            else
-            {
-                BinaryPrimitives.WriteInt64LittleEndian(this.buffer, value);
-            }
-
-            this.WriteInternal(this.buffer, 8);
-        }
+        public abstract void Write(long value);
 
         /// <summary>
         /// Writes a 16-bit unsigned integer to the stream, using the bit converter
         /// for this writer. 2 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(ushort value)
-        {
-            if (this.endianness == Endianness.BigEndian)
-            {
-                BinaryPrimitives.WriteUInt16BigEndian(this.buffer, value);
-            }
-            else
-            {
-                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, value);
-            }
-
-            this.WriteInternal(this.buffer, 2);
-        }
+        public abstract void Write(ushort value);
 
         /// <summary>
         /// Writes a 32-bit unsigned integer to the stream, using the bit converter
         /// for this writer. 4 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(uint value)
-        {
-            if (this.endianness == Endianness.BigEndian)
-            {
-                BinaryPrimitives.WriteUInt32BigEndian(this.buffer, value);
-            }
-            else
-            {
-                BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
-            }
-
-            this.WriteInternal(this.buffer, 4);
-        }
+        public abstract void Write(uint value);
 
         /// <summary>
         /// Writes a 64-bit unsigned integer to the stream, using the bit converter
         /// for this writer. 8 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(ulong value)
-        {
-            if (this.endianness == Endianness.BigEndian)
-            {
-                BinaryPrimitives.WriteUInt64BigEndian(this.buffer, value);
-            }
-            else
-            {
-                BinaryPrimitives.WriteUInt64LittleEndian(this.buffer, value);
-            }
-
-            this.WriteInternal(this.buffer, 8);
-        }
+        public abstract void Write(ulong value);
 
         /// <summary>
         /// Writes a single-precision floating-point value to the stream, using the bit converter
         /// for this writer. 4 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public unsafe void Write(float value)
-        {
-            this.Write(*((int*)&value));
-        }
+        public abstract void Write(float value);
 
         /// <summary>
         /// Writes a double-precision floating-point value to the stream, using the bit converter
         /// for this writer. 8 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public unsafe void Write(double value)
-        {
-            this.Write(*((long*)&value));
-        }
+        public abstract void Write(double value);
 
         /// <summary>
         /// Writes a signed byte to the stream.
@@ -284,7 +202,7 @@ namespace SixLabors.ImageSharp.IO
         {
             if (this.disposed)
             {
-                throw new ObjectDisposedException(nameof(EndianBinaryWriter));
+                throw new ObjectDisposedException(nameof(BigEndianBinaryWriter));
             }
         }
 
@@ -294,10 +212,22 @@ namespace SixLabors.ImageSharp.IO
         /// </summary>
         /// <param name="bytes">The array of bytes to write from</param>
         /// <param name="length">The number of bytes to write</param>
-        private void WriteInternal(byte[] bytes, int length)
+        protected void WriteInternal(byte[] bytes, int length)
         {
             this.CheckDisposed();
             this.BaseStream.Write(bytes, 0, length);
+        }
+
+        public static EndianBinaryWriter Create(Endianness endianness, Stream stream)
+        {
+            if (endianness == Endianness.BigEndian)
+            {
+                return new BigEndianBinaryWriter(stream);
+            }
+            else
+            {
+                return new LittleEndianBinaryWriter(stream);
+            }
         }
     }
 }

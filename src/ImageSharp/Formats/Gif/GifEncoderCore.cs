@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(stream, nameof(stream));
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
-            var writer = new LittleEndianBinaryWriter(stream);
+            var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
             this.hasFrames = image.Frames.Count > 1;
 
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the file header signature and version to the stream.
         /// </summary>
         /// <param name="writer">The writer to write to the stream with.</param>
-        private void WriteHeader(LittleEndianBinaryWriter writer)
+        private void WriteHeader(EndianBinaryWriter writer)
         {
             writer.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
         }
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The image to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="transparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, LittleEndianBinaryWriter writer, int transparencyIndex)
+        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
             var descriptor = new GifLogicalScreenDescriptor
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
         /// <param name="frames">The number of image frames.</param>
-        private void WriteApplicationExtension(LittleEndianBinaryWriter writer, ushort repeatCount, int frames)
+        private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount, int frames)
         {
             // Application Extension Header
             if (repeatCount != 1 && frames > 0)
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
-        private void WriteComments<TPixel>(Image<TPixel> image, LittleEndianBinaryWriter writer)
+        private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.ignoreMetadata)
@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="metaData">The metadata of the image or frame.</param>
         /// <param name="writer">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, LittleEndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
         {
             var extension = new GifGraphicsControlExtension
             {
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
         /// <param name="writer">The stream to write to.</param>
-        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, LittleEndianBinaryWriter writer)
+        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             writer.Write(GifConstants.ImageDescriptorLabel); // 2c
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="writer">The writer to write to the stream with.</param>
-        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, LittleEndianBinaryWriter writer)
+        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             // Grab the palette and write it to the stream.
@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="QuantizedFrame{TPixel}"/> containing indexed pixels.</param>
         /// <param name="writer">The stream to write to.</param>
-        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, LittleEndianBinaryWriter writer)
+        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var encoder = new LzwEncoder(this.memoryManager, image.Pixels, (byte)this.bitDepth))

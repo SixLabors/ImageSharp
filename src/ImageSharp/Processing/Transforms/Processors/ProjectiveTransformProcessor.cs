@@ -70,6 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 
             // Convert from screen to world space.
             Matrix4x4.Invert(matrix, out matrix);
+            const float Epsilon = 0.0000001F;
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -83,7 +84,8 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 
                         for (int x = 0; x < width; x++)
                         {
-                            var point = Point.Round(Vector2.Transform(new Vector2(x, y), matrix));
+                            var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
+                            var point = Point.Round(new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon));
                             if (sourceBounds.Contains(point.X, point.Y))
                             {
                                 destRow[x] = source[point.X, point.Y];
@@ -125,7 +127,8 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                         {
                             // Use the single precision position to calculate correct bounding pixels
                             // otherwise we get rogue pixels outside of the bounds.
-                            var point = Vector2.Transform(new Vector2(x, y), matrix);
+                            var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
+                            Vector2 point = new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon);
 
                             // Clamp sampling pixel radial extents to the source image edges
                             Vector2 maxXY = point + radius;

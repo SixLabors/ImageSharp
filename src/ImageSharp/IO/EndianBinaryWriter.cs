@@ -9,8 +9,7 @@ using System.Text;
 namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
-    /// Equivalent of <see cref="BinaryWriter"/>, but with either endianness, depending on
-    /// the <see cref="EndianBitConverter"/> it is constructed with.
+    /// Equivalent of <see cref="BinaryWriter"/>, but with either endianness
     /// </summary>
     internal class EndianBinaryWriter : IDisposable
     {

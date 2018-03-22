@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.IO
             {
                 var stream = new MemoryStream();
 
-                using (var writer = new EndianBinaryWriter(endianness, stream))
+                using (var writer = EndianBinaryWriter.Create(endianness, stream))
                 {
                     writer.Write((float)Math.PI);
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.IO
             {
                 var stream = new MemoryStream();
 
-                using (var writer = new EndianBinaryWriter(endianness, stream))
+                using (var writer = EndianBinaryWriter.Create(endianness, stream))
                 {
                     writer.Write(Math.PI);
 
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.IO
             {
                 var stream = new MemoryStream();
 
-                var writer = new EndianBinaryWriter(endianness, stream);
+                var writer = EndianBinaryWriter.Create(endianness, stream);
 
                 writer.Write(true);         // Bool
                 writer.Write((byte)1);      // Byte

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using SixLabors.ImageSharp.IO;
 using Xunit;
@@ -9,6 +10,44 @@ namespace SixLabors.ImageSharp.Tests.IO
 {
     public class EndianBinaryReaderWriterTests
     {
+        [Fact]
+        public void RoundtripSingles()
+        {
+            foreach ((Endianness endianness, byte[] bytes) in new[] {
+                (Endianness.BigEndian, new byte[] { 64, 73, 15, 219 }),
+                (Endianness.LittleEndian, new byte[] { 219, 15, 73, 64 })
+            })
+            {
+                var stream = new MemoryStream();
+
+                using (var writer = new EndianBinaryWriter(endianness, stream))
+                {
+                    writer.Write((float)Math.PI);
+
+                    Assert.Equal(bytes, stream.ToArray());
+                }
+            }
+        }
+
+        [Fact]
+        public void RoundtripDoubles()
+        {
+            foreach ((Endianness endianness, byte[] bytes) in new[] {
+                (Endianness.BigEndian, new byte[] { 64, 9, 33, 251, 84, 68, 45, 24 }),
+                (Endianness.LittleEndian, new byte[] { 24, 45, 68, 84, 251, 33, 9, 64 })
+            })
+            {
+                var stream = new MemoryStream();
+
+                using (var writer = new EndianBinaryWriter(endianness, stream))
+                {
+                    writer.Write(Math.PI);
+
+                    Assert.Equal(bytes, stream.ToArray());
+                }
+            }
+        }
+
         /// <summary>
         /// Ensures that the data written through a binary writer can be read back through the reader
         /// </summary>

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
@@ -22,6 +23,11 @@ namespace SixLabors.ImageSharp.IO
         /// Buffer used for Write(char)
         /// </summary>
         private readonly char[] charBuffer = new char[1];
+
+        /// <summary>
+        /// The endianness used to write the data
+        /// </summary>
+        private readonly Endianness endianness;
 
         /// <summary>
         /// Whether or not this writer has been disposed yet.
@@ -55,8 +61,8 @@ namespace SixLabors.ImageSharp.IO
             Guard.IsTrue(stream.CanWrite, nameof(stream), "Stream isn't writable");
 
             this.BaseStream = stream;
-            this.BitConverter = EndianBitConverter.GetConverter(endianness);
             this.Encoding = encoding;
+            this.endianness = endianness;
         }
 
         /// <summary>
@@ -68,11 +74,6 @@ namespace SixLabors.ImageSharp.IO
         /// Gets the underlying stream of the EndianBinaryWriter.
         /// </summary>
         public Stream BaseStream { get; }
-
-        /// <summary>
-        /// Gets the bit converter used to write values to the stream
-        /// </summary>
-        internal EndianBitConverter BitConverter { get; }
 
         /// <summary>
         /// Closes the writer, including the underlying stream.
@@ -108,7 +109,8 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(bool value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            this.buffer[0] = value ? (byte)1 : (byte)0;
+
             this.WriteInternal(this.buffer, 1);
         }
 
@@ -119,7 +121,15 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(short value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            if (this.endianness == Endianness.BigEndian)
+            {
+                BinaryPrimitives.WriteInt16BigEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt16LittleEndian(this.buffer, value);
+            }
+
             this.WriteInternal(this.buffer, 2);
         }
 
@@ -130,7 +140,15 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(int value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            if (this.endianness == Endianness.BigEndian)
+            {
+                BinaryPrimitives.WriteInt32BigEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(this.buffer, value);
+            }
+
             this.WriteInternal(this.buffer, 4);
         }
 
@@ -141,7 +159,15 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(long value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            if (this.endianness == Endianness.BigEndian)
+            {
+                BinaryPrimitives.WriteInt64BigEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt64LittleEndian(this.buffer, value);
+            }
+
             this.WriteInternal(this.buffer, 8);
         }
 
@@ -152,7 +178,15 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(ushort value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            if (this.endianness == Endianness.BigEndian)
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, value);
+            }
+
             this.WriteInternal(this.buffer, 2);
         }
 
@@ -163,7 +197,15 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(uint value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            if (this.endianness == Endianness.BigEndian)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
+            }
+
             this.WriteInternal(this.buffer, 4);
         }
 
@@ -174,7 +216,15 @@ namespace SixLabors.ImageSharp.IO
         /// <param name="value">The value to write</param>
         public void Write(ulong value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
+            if (this.endianness == Endianness.BigEndian)
+            {
+                BinaryPrimitives.WriteUInt64BigEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(this.buffer, value);
+            }
+
             this.WriteInternal(this.buffer, 8);
         }
 
@@ -183,10 +233,9 @@ namespace SixLabors.ImageSharp.IO
         /// for this writer. 4 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(float value)
+        public unsafe void Write(float value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
-            this.WriteInternal(this.buffer, 4);
+            this.Write(*((int*)&value));
         }
 
         /// <summary>
@@ -194,10 +243,9 @@ namespace SixLabors.ImageSharp.IO
         /// for this writer. 8 bytes are written.
         /// </summary>
         /// <param name="value">The value to write</param>
-        public void Write(double value)
+        public unsafe void Write(double value)
         {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
-            this.WriteInternal(this.buffer, 8);
+            this.Write(*((long*)&value));
         }
 
         /// <summary>

@@ -201,17 +201,6 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <summary>
-        /// Writes a decimal value to the stream, using the bit converter for this writer.
-        /// 16 bytes are written.
-        /// </summary>
-        /// <param name="value">The value to write</param>
-        public void Write(decimal value)
-        {
-            this.BitConverter.CopyBytes(value, this.buffer, 0);
-            this.WriteInternal(this.buffer, 16);
-        }
-
-        /// <summary>
         /// Writes a signed byte to the stream.
         /// </summary>
         /// <param name="value">The value to write</param>

@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         public IRgbWorkingSpace TargetWorkingSpace { get; }
 
         /// <inheritdoc/>
-        public LinearRgb Convert(CieXyz input)
+        public LinearRgb Convert(in CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

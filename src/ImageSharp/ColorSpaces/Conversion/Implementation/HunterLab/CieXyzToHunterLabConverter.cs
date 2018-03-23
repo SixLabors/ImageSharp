@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
         /// </summary>
         /// <param name="labWhitePoint">The hunter Lab white point.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyzToHunterLabConverter(CieXyz labWhitePoint)
+        public CieXyzToHunterLabConverter(in CieXyz labWhitePoint)
         {
             this.HunterLabWhitePoint = labWhitePoint;
         }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public HunterLab Convert(CieXyz input)
+        public HunterLab Convert(in CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

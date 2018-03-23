@@ -1,5 +1,5 @@
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     using System;
     using System.Numerics;

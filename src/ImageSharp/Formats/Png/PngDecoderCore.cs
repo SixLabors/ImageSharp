@@ -349,13 +349,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Converts a byte array to a new array where each value in the original array is represented by the specified number of bits.
         /// </summary>
-        /// <param name="source">The bytes to convert from. Cannot be null.</param>
+        /// <param name="source">The bytes to convert from. Cannot be empty.</param>
         /// <param name="bytesPerScanline">The number of bytes per scanline</param>
         /// <param name="bits">The number of bits per value.</param>
-        /// <returns>The resulting <see cref="Span{Byte}"/> array. Is never null.</returns>
-        /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is null.</exception>
+        /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
         /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
-        private static Span<byte> ToArrayByBitsLength(Span<byte> source, int bytesPerScanline, int bits)
+        private static ReadOnlySpan<byte> ToArrayByBitsLength(ReadOnlySpan<byte> source, int bytesPerScanline, int bits)
         {
             Guard.MustBeGreaterThan(source.Length, 0, nameof(source));
             Guard.MustBeGreaterThan(bits, 0, nameof(bits));
@@ -669,7 +668,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
 
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(this.currentRow);
-                    this.ProcessInterlacedDefilteredScanline(this.scanline.Array, rowSpan, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
+                    this.ProcessInterlacedDefilteredScanline(this.scanline.Span, rowSpan, Adam7FirstColumn[this.pass], Adam7ColumnIncrement[this.pass]);
 
                     this.SwapBuffers();
 
@@ -697,20 +696,20 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="defilteredScanline">The de-filtered scanline</param>
         /// <param name="pixels">The image</param>
-        private void ProcessDefilteredScanline<TPixel>(Span<byte> defilteredScanline, ImageFrame<TPixel> pixels)
+        private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
-            Span<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+            ReadOnlySpan<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    Span<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
+                    ReadOnlySpan<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
 
                     for (int x = 0; x < this.header.Width; x++)
                     {
@@ -794,10 +793,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                         }
                         else
                         {
-                            Span<Rgb24> rgb24Span = scanlineBuffer.NonPortableCast<byte, Rgb24>();
+                            ReadOnlySpan<Rgb24> rgb24Span = scanlineBuffer.NonPortableCast<byte, Rgb24>();
                             for (int x = 0; x < this.header.Width; x++)
                             {
-                                ref Rgb24 rgb24 = ref rgb24Span[x];
+                                ref readonly Rgb24 rgb24 = ref rgb24Span[x];
                                 var rgba32 = default(Rgba32);
                                 rgba32.Rgb = rgb24;
                                 rgba32.A = (byte)(rgb24.Equals(this.rgb24Trans) ? 0 : 255);
@@ -838,7 +837,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="target">The target buffer</param>
         /// <param name="length">The target length</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void From16BitTo8Bit(Span<byte> source, Span<byte> target, int length)
+        private void From16BitTo8Bit(ReadOnlySpan<byte> source, Span<byte> target, int length)
         {
             for (int i = 0, j = 0; i < length; i++, j += 2)
             {
@@ -879,10 +878,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="defilteredScanline">The scanline</param>
         /// <param name="row">Thecurrent  output image row</param>
-        private void ProcessScanlineFromPalette<TPixel>(Span<byte> defilteredScanline, Span<TPixel> row)
+        private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
-            Span<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
+            ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
             byte[] pal = this.palette;
             var color = default(TPixel);
 
@@ -929,19 +928,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="rowSpan">The current image row.</param>
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
-        private void ProcessInterlacedDefilteredScanline<TPixel>(byte[] defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
+        private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
 
             // Trim the first marker byte from the buffer
-            var scanlineBuffer = new Span<byte>(defilteredScanline, 1, defilteredScanline.Length - 1);
+            ReadOnlySpan<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
 
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-                    Span<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
+                    ReadOnlySpan<byte> newScanline1 = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
 
                     for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                     {
@@ -974,7 +973,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.Palette:
 
-                    Span<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
+                    ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
                     var rgba = default(Rgba32);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)

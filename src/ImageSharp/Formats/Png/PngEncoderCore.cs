@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The image row span.</param>
-        private void CollectGrayscaleBytes<TPixel>(Span<TPixel> rowSpan)
+        private void CollectGrayscaleBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
-        private void CollecTPixelBytes<TPixel>(Span<TPixel> rowSpan)
+        private void CollecTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.bytesPerPixel == 4)
@@ -311,7 +311,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="rowSpan">The row span.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private IManagedByteBuffer EncodePixelRow<TPixel>(Span<TPixel> rowSpan, int row)
+        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
@@ -554,15 +554,14 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             byte[] buffer;
             int bufferLength;
-            MemoryStream memoryStream = null;
-            try
+
+            using (var memoryStream = new MemoryStream())
             {
-                memoryStream = new MemoryStream();
                 using (var deflateStream = new ZlibDeflateStream(memoryStream, this.compressionLevel))
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
+                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y).AsReadOnlySpan(), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         IManagedByteBuffer temp = this.rawScanline;
@@ -573,10 +572,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 buffer = memoryStream.ToArray();
                 bufferLength = buffer.Length;
-            }
-            finally
-            {
-                memoryStream?.Dispose();
             }
 
             // Store the chunks in repeated 64k blocks.

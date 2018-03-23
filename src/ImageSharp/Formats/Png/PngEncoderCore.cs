@@ -677,7 +677,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (data != null && length > 0)
             {
-                this.crc.Update(data, offset, length);
+                this.crc.Update(new ReadOnlySpan<byte>(data, offset, length));
             }
 
             WriteInteger(stream, (uint)this.crc.Value);

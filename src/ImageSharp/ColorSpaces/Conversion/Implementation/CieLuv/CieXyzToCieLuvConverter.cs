@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         /// </summary>
         /// <param name="luvWhitePoint">The target reference luv white point</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyzToCieLuvConverter(CieXyz luvWhitePoint)
+        public CieXyzToCieLuvConverter(in CieXyz luvWhitePoint)
         {
             this.LuvWhitePoint = luvWhitePoint;
         }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLuv Convert(CieXyz input)
+        public CieLuv Convert(in CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

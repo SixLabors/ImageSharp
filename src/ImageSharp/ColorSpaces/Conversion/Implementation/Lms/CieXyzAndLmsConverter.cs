@@ -3,7 +3,6 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce
 {
@@ -61,7 +60,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Lms Convert(CieXyz input)
+        public Lms Convert(in CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
 
@@ -71,7 +70,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(Lms input)
+        public CieXyz Convert(in Lms input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

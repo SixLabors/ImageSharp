@@ -1,18 +1,13 @@
-﻿// <copyright file="DecodeJpegMultiple.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
+using System.Collections.Generic;
+using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
+using SDImage = System.Drawing.Image;
 
-namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    using System.Collections.Generic;
-
-    using BenchmarkDotNet.Attributes;
-
-    using CoreImage = SixLabors.ImageSharp.Image;
-
     [Config(typeof(Config.ShortClr))]
     public class DecodeJpegMultiple : MultiImageBenchmarkBase
     {
@@ -27,17 +22,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
         [Benchmark(Description = "DecodeJpegMultiple - ImageSharp")]
         public void DecodeJpegImageSharpNwq()
         {
-            this.ForEachStream(
-                ms => CoreImage.Load<Rgba32>(ms)
-                );
+            this.ForEachStream(ms => Image.Load<Rgba32>(ms));
         }
-        
+
         [Benchmark(Baseline = true, Description = "DecodeJpegMultiple - System.Drawing")]
         public void DecodeJpegSystemDrawing()
         {
-            this.ForEachStream(
-                System.Drawing.Image.FromStream
-                );
+            this.ForEachStream(SDImage.FromStream);
         }
     }
 }

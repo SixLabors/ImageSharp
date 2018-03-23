@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColor
         /// </summary>
         /// <param name="labWhitePoint">The target reference lab white point</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyzToCieLabConverter(in CieXyz labWhitePoint)
+        public CieXyzToCieLabConverter(CieXyz labWhitePoint)
         {
             this.LabWhitePoint = labWhitePoint;
         }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColor
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLab Convert(in CieXyz input)
+        public CieLab Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSap
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb Convert(in Hsl input)
+        public Rgb Convert(Hsl input)
         {
             DebugGuard.NotNull(input, nameof(input));
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HslColorSap
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Hsl Convert(in Rgb input)
+        public Hsl Convert(Rgb input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

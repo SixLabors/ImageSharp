@@ -1,4 +1,4 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
+﻿namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     using System;
     using System.Numerics;

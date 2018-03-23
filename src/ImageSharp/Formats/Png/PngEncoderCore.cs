@@ -659,7 +659,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             BinaryPrimitives.WriteUInt32BigEndian(this.intBuffer, (uint)this.crc.Value);
 
-            stream.Write(intBuffer, 0, 4); // write the crc
+            stream.Write(this.intBuffer, 0, 4); // write the crc
         }
     }
 }

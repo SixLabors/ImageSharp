@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HsvColorSapce
 {
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HsvColorSap
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb Convert(in Hsv input)
+        public Rgb Convert(Hsv input)
         {
             DebugGuard.NotNull(input, nameof(input));
 
@@ -79,7 +80,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HsvColorSap
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Hsv Convert(in Rgb input)
+        public Hsv Convert(Rgb input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

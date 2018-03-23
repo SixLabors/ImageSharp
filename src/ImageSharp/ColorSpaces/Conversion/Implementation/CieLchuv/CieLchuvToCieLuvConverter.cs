@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvColorSapce
 {
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvCol
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLuv Convert(in CieLchuv input)
+        public CieLuv Convert(CieLchuv input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchColor
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLch Convert(in CieLab input)
+        public CieLch Convert(CieLab input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

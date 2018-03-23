@@ -519,14 +519,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (this.writeGamma)
             {
-                int gammaValue = (int)(this.gamma * 100000F);
+                // 4-byte unsigned integer of gamma * 100,000.
+                uint gammaValue = (uint)(this.gamma * 100_000F);
 
-                byte[] size = BitConverter.GetBytes(gammaValue);
-
-                this.chunkDataBuffer[0] = size[3];
-                this.chunkDataBuffer[1] = size[2];
-                this.chunkDataBuffer[2] = size[1];
-                this.chunkDataBuffer[3] = size[0];
+                BinaryPrimitives.WriteUInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), gammaValue);
 
                 this.WriteChunk(stream, PngChunkTypes.Gamma, this.chunkDataBuffer, 0, 4);
             }

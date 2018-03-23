@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The ASCII encoded bytes used to identify the GIF file.
         /// </summary>
-        internal static readonly byte[] MagicNumber = { 71, 73, 70, 56, 57, 97 }; // GIF89a
+        internal static readonly byte[] MagicNumber = Encoding.UTF8.GetBytes(FileType + FileVersion);
 
         /// <summary>
         /// The extension block introducer <value>!</value>.

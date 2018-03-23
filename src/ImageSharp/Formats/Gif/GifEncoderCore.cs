@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="writer">The writer to write to the stream with.</param>
         private void WriteHeader(EndianBinaryWriter writer)
         {
-            writer.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
+            writer.Write(GifConstants.MagicNumber);
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 writer.Write(this.buffer, 0, 3);
 
-                writer.Write(GifConstants.ApplicationIdentificationBytes, 0, GifConstants.ApplicationIdentificationBytes.Length); // NETSCAPE2.0
+                writer.Write(GifConstants.ApplicationIdentificationBytes); // NETSCAPE2.0
                 writer.Write((byte)3); // Application block length
                 writer.Write((byte)1); // Data sub-block index (always 1)
 

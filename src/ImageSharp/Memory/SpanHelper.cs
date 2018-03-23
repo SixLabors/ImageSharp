@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -13,19 +11,6 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     internal static class SpanHelper
     {
-        /// <summary>
-        /// Fetches a <see cref="Vector{T}"/> from the beginning of the span.
-        /// </summary>
-        /// <typeparam name="T">The value type</typeparam>
-        /// <param name="span">The span to fetch the vector from</param>
-        /// <returns>A <see cref="Vector{T}"/> reference to the beginning of the span</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref Vector<T> FetchVector<T>(this Span<T> span)
-            where T : struct
-        {
-            return ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
-        }
-
         /// <summary>
         /// Copy 'count' number of elements of the same type from 'source' to 'dest'
         /// </summary>

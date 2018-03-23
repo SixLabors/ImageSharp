@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Benchmarks.Color.Bulk
+namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     using BenchmarkDotNet.Attributes;
 

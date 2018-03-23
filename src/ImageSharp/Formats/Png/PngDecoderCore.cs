@@ -1261,7 +1261,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.crc.Reset();
             this.crc.Update(this.chunkTypeBuffer);
-            this.crc.Update(chunk.Data.Array, 0, chunk.Length);
+            this.crc.Update(new ReadOnlySpan<byte>(chunk.Data.Array, 0, chunk.Length));
 
             if (this.crc.Value != chunk.Crc && IsCriticalChunk(chunk))
             {

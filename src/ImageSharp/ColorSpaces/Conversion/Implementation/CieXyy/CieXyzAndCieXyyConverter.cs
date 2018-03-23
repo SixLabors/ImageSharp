@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieXyyColor
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyy Convert(in CieXyz input)
+        public CieXyy Convert(CieXyz input)
         {
             DebugGuard.NotNull(input, nameof(input));
 
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieXyyColor
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(in CieXyy input)
+        public CieXyz Convert(CieXyy input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

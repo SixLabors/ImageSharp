@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CmykColorSa
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb Convert(in Cmyk input)
+        public Rgb Convert(Cmyk input)
         {
             float r = (1F - input.C) * (1F - input.K);
             float g = (1F - input.M) * (1F - input.K);
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CmykColorSa
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Cmyk Convert(in Rgb input)
+        public Cmyk Convert(Rgb input)
         {
             // To CMYK
             float c = 1F - input.R;

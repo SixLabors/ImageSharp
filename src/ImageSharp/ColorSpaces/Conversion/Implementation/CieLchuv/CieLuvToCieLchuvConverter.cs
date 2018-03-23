@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchuvCol
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLchuv Convert(in CieLuv input)
+        public CieLchuv Convert(CieLuv input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

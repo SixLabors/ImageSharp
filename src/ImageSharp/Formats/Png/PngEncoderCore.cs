@@ -38,6 +38,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] chunkDataBuffer = new byte[16];
 
         /// <summary>
+        /// Reusable buffer for writing int data.
+        /// </summary>
+        private readonly byte[] intBuffer = new byte[4];
+
+        /// <summary>
         /// Reusable crc for validating chunks.
         /// </summary>
         private readonly Crc32 crc = new Crc32();
@@ -243,34 +248,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.up?.Dispose();
             this.average?.Dispose();
             this.paeth?.Dispose();
-        }
-
-        /// <summary>
-        /// Writes an integer to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(Stream stream, int value)
-        {
-            byte[] buffer = new byte[4];
-
-            BinaryPrimitives.WriteInt32BigEndian(buffer, value);
-
-            stream.Write(buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// Writes an unsigned integer to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(Stream stream, uint value)
-        {
-            byte[] buffer = new byte[4];
-
-            BinaryPrimitives.WriteUInt32BigEndian(buffer, value);
-
-            stream.Write(buffer, 0, 4);
         }
 
         /// <summary>
@@ -658,7 +635,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="length">The of the data to write.</param>
         private void WriteChunk(Stream stream, string type, byte[] data, int offset, int length)
         {
-            WriteInteger(stream, length);
+            BinaryPrimitives.WriteInt32BigEndian(this.intBuffer, length);
+
+            stream.Write(this.intBuffer, 0, 4); // write the length
 
             this.chunkTypeBuffer[0] = (byte)type[0];
             this.chunkTypeBuffer[1] = (byte)type[1];
@@ -667,20 +646,20 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(this.chunkTypeBuffer, 0, 4);
 
-            if (data != null)
-            {
-                stream.Write(data, offset, length);
-            }
-
             this.crc.Reset();
+
             this.crc.Update(this.chunkTypeBuffer);
 
             if (data != null && length > 0)
             {
+                stream.Write(data, offset, length);
+
                 this.crc.Update(new ReadOnlySpan<byte>(data, offset, length));
             }
 
-            WriteInteger(stream, (uint)this.crc.Value);
+            BinaryPrimitives.WriteUInt32BigEndian(this.intBuffer, (uint)this.crc.Value);
+
+            stream.Write(intBuffer, 0, 4); // write the crc
         }
     }
 }

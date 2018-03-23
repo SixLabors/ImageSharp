@@ -1,31 +1,23 @@
-﻿// <copyright file="DecodePng.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
+using System.Drawing;
+using System.IO;
+using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests;
+using CoreSize = SixLabors.Primitives.Size;
+using SDImage = System.Drawing.Image;
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    using System.Drawing;
-    using System.IO;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Tests;
-
-    using CoreImage = ImageSharp.Image;
-
-    using CoreSize = SixLabors.Primitives.Size;
 
     [Config(typeof(Config.ShortClr))]
     public class DecodePng : BenchmarkBase
     {
         private byte[] pngBytes;
 
-        private string TestImageFullPath => Path.Combine(
-            TestEnvironment.InputImagesDirectoryFullPath,
-            this.TestImage);
+        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(TestImages.Png.Splash)]
         public string TestImage { get; set; }
@@ -44,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (var memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (var image = Image.FromStream(memoryStream))
+                using (var image = SDImage.FromStream(memoryStream))
                 {
                     return image.Size;
                 }
@@ -56,9 +48,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (var memoryStream = new MemoryStream(this.pngBytes))
             {
-                using (var image = CoreImage.Load<Rgba32>(memoryStream))
+                using (var image = Image.Load<Rgba32>(memoryStream))
                 {
-                    return new CoreSize(image.Width, image.Height);
+                    return image.Size();
                 }
             }
         }

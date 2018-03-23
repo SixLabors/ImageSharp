@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(HunterLab input)
+        public CieXyz Convert(in HunterLab input)
         {
             DebugGuard.NotNull(input, nameof(input));
 

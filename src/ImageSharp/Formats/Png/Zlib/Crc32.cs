@@ -137,30 +137,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(byte[] buffer)
+        public void Update(ReadOnlySpan<byte> data)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            this.Update(buffer, 0, buffer.Length);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(byte[] buffer, int offset, int count)
-        {
-            DebugGuard.NotNull(buffer, nameof(buffer));
-            DebugGuard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
-            DebugGuard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
-            DebugGuard.MustBeLessThanOrEqualTo(offset + count, buffer.Length, nameof(count));
-
             this.crc ^= CrcSeed;
 
-            while (--count >= 0)
+            for (int i = 0; i < data.Length; i++)
             {
-                this.crc = CrcTable[(this.crc ^ buffer[offset++]) & 0xFF] ^ (this.crc >> 8);
+                this.crc = CrcTable[(this.crc ^ data[i]) & 0xFF] ^ (this.crc >> 8);
             }
 
             this.crc ^= CrcSeed;

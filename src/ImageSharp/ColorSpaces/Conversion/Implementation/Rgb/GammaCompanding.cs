@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
     /// <see href="http://www.brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html"/>
     /// <see href="http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html"/>
     /// </remarks>
-    public class GammaCompanding : ICompanding
+    internal class GammaCompanding : ICompanding
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GammaCompanding"/> class.

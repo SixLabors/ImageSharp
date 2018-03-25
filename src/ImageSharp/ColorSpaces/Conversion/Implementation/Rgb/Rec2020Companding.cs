@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
     /// <see href="http://en.wikipedia.org/wiki/Rec._2020"/>
     /// For 10-bits, companding is identical to <see cref="Rec709Companding"/>
     /// </remarks>
-    public class Rec2020Companding : ICompanding
+    internal class Rec2020Companding : ICompanding
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

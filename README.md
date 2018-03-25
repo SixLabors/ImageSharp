@@ -1,15 +1,21 @@
 <h1 align="center">
-    <img src="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/build/icons/imagesharp-logo-256.png" alt="ImageSharp" width="175"/>
-    <br>
-    ImageSharp
-    <br>
-    <br>
-    <a href="https://raw.githubusercontent.com/SixLabors/ImageSharp/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-blue.svg" alt="GitHub license" data-canonical-src="https://img.shields.io/badge/license-Apache%202-blue.svg" style="max-width:100%;"></a>
-    <a href="https://gitter.im/ImageSharp/General?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Join%20Chat.svg" alt="Gitter" data-canonical-src="https://badges.gitter.im/Join%20Chat.svg" style="max-width:100%;"></a>
-    <a href="https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&amp;text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&amp;url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&amp;via=sixlabors"><img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter" alt="Twitter" data-canonical-src="https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter" style="max-width:100%;"></a>
-    <a href="#backers"><img src="https://opencollective.com/imagesharp/backers/badge.svg" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/backers/badge.svg" style="max-width:100%;"></a>
-    <a href="#sponsors"><img src="https://opencollective.com/imagesharp/sponsors/badge.svg" alt="OpenCollective" data-canonical-src="https://opencollective.com/imagesharp/sponsors/badge.svg" style="max-width:100%;"></a>
+
+<img src="https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.512.png" alt="SixLabors.ImageSharp" width="256"/>
+<br/>
+<br/>
+SixLabors.ImageSharp
 </h1>
+
+
+<div align="center">
+
+[![GitHub license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/SixLabors/ImageSharp/master/LICENSE)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ImageSharp/General?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
+[![OpenCollective](https://opencollective.com/imagesharp/backers/badge.svg)](#backers)
+[![OpenCollective](https://opencollective.com/imagesharp/sponsors/badge.svg)](#sponsors)
+
+</div>
 
 ### **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API. 
 
@@ -21,7 +27,7 @@ Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and emb
 
 ### Installation
 
-Install stable releases via Nuget;evelopment releases are available via MyGet.
+Install stable releases via Nuget; development releases are available via MyGet.
 
 | Package Name                   | Release (NuGet) | Nightly (MyGet) |
 |--------------------------------|-----------------|-----------------|

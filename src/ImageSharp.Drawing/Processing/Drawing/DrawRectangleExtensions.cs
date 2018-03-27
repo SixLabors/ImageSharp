@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Draw<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IPen<TPixel> pen, RectangleF shape)
             where TPixel : struct, IPixel<TPixel>
-            => source.Draw(options, pen, new RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height));
+            => source.Draw(options, pen, new RectangularPolygon(shape.X, shape.Y, shape.Width, shape.Height));
 
         /// <summary>
         /// Draws the outline of the rectangle with the provided pen.

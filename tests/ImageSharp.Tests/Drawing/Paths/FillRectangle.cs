@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(GraphicsOptions.Default, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
             Assert.Equal(this.noneDefault, processor.Options);
 
             ShapeRegion region = Assert.IsType<ShapeRegion>(processor.Region);
-            Shapes.RectangularePolygon rect = Assert.IsType<Shapes.RectangularePolygon>(region.Shape);
+            Shapes.RectangularPolygon rect = Assert.IsType<Shapes.RectangularPolygon>(region.Shape);
             Assert.Equal(rect.Location.X, this.rectangle.X);
             Assert.Equal(rect.Location.Y, this.rectangle.Y);
             Assert.Equal(rect.Size.Width, this.rectangle.Width);

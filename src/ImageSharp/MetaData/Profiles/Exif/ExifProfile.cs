@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the values of this EXIF profile.
         /// </summary>
-        public IEnumerable<ExifValue> Values
+        public IList<ExifValue> Values
         {
             get
             {
@@ -193,16 +193,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <param name="value">The value.</param>
         public void SetValue(ExifTag tag, object value)
         {
-            foreach (ExifValue exifValue in this.Values)
+            for (int i = 0; i < this.Values.Count; i++)
             {
-                if (exifValue.Tag == tag)
+                if (this.Values[i].Tag == tag)
                 {
-                    exifValue.Value = value;
+                    this.Values[i] = this.Values[i].WithValue(value);
                     return;
                 }
             }
 
             var newExifValue = ExifValue.Create(tag, value);
+
             this.values.Add(newExifValue);
         }
 

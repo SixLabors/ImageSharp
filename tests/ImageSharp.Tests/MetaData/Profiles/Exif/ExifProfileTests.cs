@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests
             ExifValue value = image.MetaData.ExifProfile.GetValue(ExifTag.Software);
             TestValue(value, "ImageSharp");
 
-            Assert.Throws<ArgumentException>(() => { value.Value = 15; });
+            Assert.Throws<ArgumentException>(() => { value.WithValue(15); });
 
             image.MetaData.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new SignedRational(75.55));
 
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests
 
             TestValue(value, new SignedRational(7555, 100));
 
-            Assert.Throws<ArgumentException>(() => { value.Value = 75; });
+            Assert.Throws<ArgumentException>(() => { value.WithValue(75); });
 
             image.MetaData.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
 
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests
             value = image.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
             TestValue(value, new Rational(150, 1));
 
-            Assert.Throws<ArgumentException>(() => { value.Value = "ImageSharp"; });
+            Assert.Throws<ArgumentException>(() => { value.WithValue("ImageSharp"); });
 
             image.MetaData.ExifProfile.SetValue(ExifTag.ReferenceBlackWhite, null);
 
@@ -209,11 +209,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Syncs()
         {
-            ExifProfile exifProfile = new ExifProfile();
+            var exifProfile = new ExifProfile();
             exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
             exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-            ImageMetaData metaData = new ImageMetaData();
+            var metaData = new ImageMetaData();
             metaData.ExifProfile = exifProfile;
             metaData.HorizontalResolution = 200;
             metaData.VerticalResolution = 300;

@@ -2,7 +2,6 @@
 
 <img src="https://raw.githubusercontent.com/SixLabors/Branding/master/icons/imagesharp/sixlabors.imagesharp.512.png" alt="SixLabors.ImageSharp" width="256"/>
 <br/>
-<br/>
 SixLabors.ImageSharp
 </h1>
 

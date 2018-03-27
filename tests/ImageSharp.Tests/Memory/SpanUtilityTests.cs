@@ -26,21 +26,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.True(Unsafe.AreSame(ref a, ref bb), "References are not same!");
             }
         }
-
-        [Fact]
-        public void FetchVector()
-        {
-            float[] stuff = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-
-            var span = new Span<float>(stuff);
-
-            ref Vector<float> v = ref span.FetchVector();
-
-            Assert.Equal(0, v[0]);
-            Assert.Equal(1, v[1]);
-            Assert.Equal(2, v[2]);
-            Assert.Equal(3, v[3]);
-        }
         
         public class SpanHelper_Copy
         {

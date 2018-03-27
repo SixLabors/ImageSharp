@@ -3,7 +3,6 @@
 
 using System;
 using System.Text;
-using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -19,11 +18,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// The data that is read
         /// </summary>
         private readonly byte[] data;
-
-        /// <summary>
-        /// The bit converter
-        /// </summary>
-        private readonly EndianBitConverter converter = new BigEndianBitConverter();
 
         /// <summary>
         /// The current reading position

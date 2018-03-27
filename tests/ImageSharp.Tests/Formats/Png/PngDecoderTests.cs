@@ -228,10 +228,10 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImages.Png.Rgb48BppInterlaced, 48)]
         public void DetectPixelSize(string imagePath, int expectedPixelSize)
         {
-            var testFile = TestFile.Create(imagePath);
+            TestFile testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType.BitsPerPixel);
+                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
             }
         }
 

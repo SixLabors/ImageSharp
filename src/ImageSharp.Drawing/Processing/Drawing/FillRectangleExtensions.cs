@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, GraphicsOptions options, IBrush<TPixel> brush, RectangleF shape)
             where TPixel : struct, IPixel<TPixel>
-            => source.Fill(options, brush, new RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height));
+            => source.Fill(options, brush, new RectangularPolygon(shape.X, shape.Y, shape.Width, shape.Height));
 
         /// <summary>
         /// Flood fills the image in the shape of the provided rectangle with the specified brush.
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext<TPixel> Fill<TPixel>(this IImageProcessingContext<TPixel> source, IBrush<TPixel> brush, RectangleF shape)
             where TPixel : struct, IPixel<TPixel>
-            => source.Fill(brush, new RectangularePolygon(shape.X, shape.Y, shape.Width, shape.Height));
+            => source.Fill(brush, new RectangularPolygon(shape.X, shape.Y, shape.Width, shape.Height));
 
         /// <summary>
         /// Flood fills the image in the shape of the provided rectangle with the specified brush.

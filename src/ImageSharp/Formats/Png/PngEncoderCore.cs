@@ -219,8 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 bitDepth: this.bitDepth,
                 filterMethod: 0, // None
                 compressionMethod: 0,
-                interlaceMethod: 0
-            );
+                interlaceMethod: 0);
 
             this.WriteHeaderChunk(stream, header);
 

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
     /// Represents the chromaticity coordinates of RGB primaries.
     /// One of the specifiers of <see cref="IRgbWorkingSpace"/>.
     /// </summary>
-    internal struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>
+    internal readonly struct RgbPrimariesChromaticityCoordinates : IEquatable<RgbPrimariesChromaticityCoordinates>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbPrimariesChromaticityCoordinates"/> struct.
@@ -76,12 +76,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is RgbPrimariesChromaticityCoordinates)
-            {
-                return this.Equals((RgbPrimariesChromaticityCoordinates)obj);
-            }
-
-            return false;
+            return obj is RgbPrimariesChromaticityCoordinates other && this.Equals(other);
         }
 
         /// <inheritdoc/>

@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj?.GetType() == typeof(Bgra32) && this.Equals((Bgra32)obj);
+        public override bool Equals(object obj) => obj is Bgra32 other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()

@@ -397,10 +397,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Snake, 24)]
         public void DetectPixelSize(string imagePath, int expectedPixelSize)
         {
-            TestFile testFile = TestFile.Create(imagePath);
+            var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+                Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType.BitsPerPixel);
             }
         }
     }

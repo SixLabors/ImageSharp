@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector3 vector)
         {
-            Vector4 value = new Vector4(vector, 1);
+            var value = new Vector4(vector, 1);
             return Pack(ref value);
         }
 

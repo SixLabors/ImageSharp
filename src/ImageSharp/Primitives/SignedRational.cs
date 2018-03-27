@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
         public SignedRational(double value, bool bestPrecision)
         {
-            LongRational rational = new LongRational(value, bestPrecision);
+            var rational = new LongRational(value, bestPrecision);
 
             this.Numerator = (int)rational.Numerator;
             this.Denominator = (int)rational.Denominator;
@@ -129,12 +129,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is SignedRational)
-            {
-                return this.Equals((SignedRational)obj);
-            }
-
-            return false;
+            return obj is SignedRational other && Equals(other);
         }
 
         /// <inheritdoc/>
@@ -149,7 +144,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            LongRational self = new LongRational(this.Numerator, this.Denominator);
+            var self = new LongRational(this.Numerator, this.Denominator);
             return self.GetHashCode();
         }
 

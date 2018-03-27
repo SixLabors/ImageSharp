@@ -336,7 +336,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.previousScanline?.Dispose();
             }
 
-            if (this.header == null)
+            if (this.header.Width == 0 && this.header.Height == 0)
             {
                 throw new ImageFormatException("PNG Image does not contain a header chunk");
             }
@@ -1157,16 +1157,15 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:ReadOnlySpan{byte}"/> containing data.</param>
         private void ReadHeaderChunk(ReadOnlySpan<byte> data)
         {
-            this.header = new PngHeader
-            {
-                Width = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
-                Height = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
-                BitDepth = data[8],
-                ColorType = (PngColorType)data[9],
-                CompressionMethod = data[10],
-                FilterMethod = data[11],
-                InterlaceMethod = (PngInterlaceMode)data[12]
-            };
+            this.header = new PngHeader(
+                width: BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)),
+                height: BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)),
+                bitDepth: data[8],
+                colorType: (PngColorType)data[9],
+                compressionMethod: data[10],
+                filterMethod: data[11],
+                interlaceMethod: (PngInterlaceMode)data[12]
+            );
         }
 
         /// <summary>

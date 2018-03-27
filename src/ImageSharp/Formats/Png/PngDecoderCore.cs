@@ -1164,8 +1164,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 colorType: (PngColorType)data[9],
                 compressionMethod: data[10],
                 filterMethod: data[11],
-                interlaceMethod: (PngInterlaceMode)data[12]
-            );
+                interlaceMethod: (PngInterlaceMode)data[12]);
         }
 
         /// <summary>

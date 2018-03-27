@@ -73,8 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 type: 19778, // BM
                 offset: 54,
                 reserved: 0,
-                fileSize: 54 + infoHeader.ImageSize
-            );
+                fileSize: 54 + infoHeader.ImageSize);
 
             WriteHeader(writer, fileHeader);
             this.WriteInfo(writer, infoHeader);

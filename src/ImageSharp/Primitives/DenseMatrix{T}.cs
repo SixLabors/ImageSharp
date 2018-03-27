@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is DenseMatrix<T> matrix && this.Equals(matrix);
+        public override bool Equals(object obj) => obj is DenseMatrix<T> other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode() => this.Data.GetHashCode();

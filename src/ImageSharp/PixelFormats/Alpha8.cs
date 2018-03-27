@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>True if the object is equal to the packed vector.</returns>
         public override bool Equals(object obj)
         {
-            return (obj is Alpha8) && this.Equals((Alpha8)obj);
+            return obj is Alpha8 other && this.Equals(other);
         }
 
         /// <summary>

@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 }
             }
 
-            marker = default(JFifMarker);
+            marker = default;
             return false;
         }
 
@@ -104,12 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            return obj is JFifMarker && this.Equals((JFifMarker)obj);
+            return obj is JFifMarker other && this.Equals(other);
         }
 
         /// <inheritdoc/>

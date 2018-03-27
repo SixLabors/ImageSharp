@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is NormalizedByte4) && this.Equals((NormalizedByte4)obj);
+            return obj is NormalizedByte4 other && this.Equals(other);
         }
 
         /// <inheritdoc />

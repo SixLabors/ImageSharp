@@ -94,12 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            return obj is AdobeMarker && this.Equals((AdobeMarker)obj);
+            return obj is AdobeMarker other && this.Equals(other);
         }
 
         /// <inheritdoc/>

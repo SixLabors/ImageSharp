@@ -77,37 +77,24 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the data type of the exif value.
         /// </summary>
-        public ExifDataType DataType
-        {
-            get;
-        }
+        public ExifDataType DataType { get; }
 
         /// <summary>
         /// Gets a value indicating whether the value is an array.
         /// </summary>
-        public bool IsArray
-        {
-            get;
-        }
+        public bool IsArray { get; }
 
         /// <summary>
         /// Gets the tag of the exif value.
         /// </summary>
-        public ExifTag Tag
-        {
-            get;
-        }
+        public ExifTag Tag { get; }
 
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
         public object Value
         {
-            get
-            {
-                return this.exifValue;
-            }
-
+            get => this.exifValue;
             set
             {
                 this.CheckValue(value);
@@ -217,12 +204,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return this.Equals(obj as ExifValue);
+            return obj is ExifValue other && this.Equals(other);
         }
 
         /// <inheritdoc />

@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj?.GetType() == typeof(Rgb24) && this.Equals((Rgb24)obj);
+            return obj is Rgb24 other && this.Equals(other);
         }
 
         /// <inheritdoc/>

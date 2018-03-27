@@ -110,9 +110,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public override bool Equals(object obj)
         {
-            ImageProperty other = obj as ImageProperty;
-
-            return this.Equals(other);
+            return obj is ImageProperty other && Equals(other);
         }
 
         /// <summary>

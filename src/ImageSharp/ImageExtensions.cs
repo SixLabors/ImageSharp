@@ -35,28 +35,28 @@ namespace SixLabors.ImageSharp
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
             if (format == null)
             {
-                var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
+                var sb = new StringBuilder();
+                sb.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
                 foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
                 {
-                    stringBuilder.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
+                    sb.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
                 }
 
-                throw new NotSupportedException(stringBuilder.ToString());
+                throw new NotSupportedException(sb.ToString());
             }
 
             IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
             if (encoder == null)
             {
-                var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                var sb = new StringBuilder();
+                sb.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
+                    sb.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
                 }
 
-                throw new NotSupportedException(stringBuilder.ToString());
+                throw new NotSupportedException(sb.ToString());
             }
 
             source.Save(filePath, encoder);
@@ -97,15 +97,15 @@ namespace SixLabors.ImageSharp
 
             if (encoder == null)
             {
-                var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
+                var sb = new StringBuilder();
+                sb.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
+                    sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
                 }
 
-                throw new NotSupportedException(stringBuilder.ToString());
+                throw new NotSupportedException(sb.ToString());
             }
 
             source.Save(stream, encoder);

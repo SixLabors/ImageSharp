@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a jpeg file marker
     /// </summary>
-    internal struct PdfJsFileMarker
+    internal readonly struct PdfJsFileMarker
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsFileMarker"/> struct.
@@ -34,9 +34,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the current marker is invalid
+        /// Gets a value indicating whether the current marker is invalid
         /// </summary>
-        public bool Invalid { get; set; }
+        public bool Invalid { get; }
 
         /// <summary>
         /// Gets the position of the marker within a stream

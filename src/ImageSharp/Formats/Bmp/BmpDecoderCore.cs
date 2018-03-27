@@ -581,13 +581,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             this.currentStream.Read(data, 0, BmpFileHeader.Size);
 
-            this.fileHeader = new BmpFileHeader
-            {
-                Type = BitConverter.ToInt16(data, 0),
-                FileSize = BitConverter.ToInt32(data, 2),
-                Reserved = BitConverter.ToInt32(data, 6),
-                Offset = BitConverter.ToInt32(data, 10)
-            };
+            this.fileHeader = new BmpFileHeader(
+                type: BitConverter.ToInt16(data, 0),
+                fileSize: BitConverter.ToInt32(data, 2),
+                reserved: BitConverter.ToInt32(data, 6),
+                offset: BitConverter.ToInt32(data, 10)
+            );
         }
 
         /// <summary>

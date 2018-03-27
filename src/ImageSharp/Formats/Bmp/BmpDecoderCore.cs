@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (var buffer = this.memoryManager.AllocateClean2D<byte>(width, height))
+            using (Buffer2D<byte> buffer = this.memoryManager.AllocateClean2D<byte>(width, height))
             {
                 this.UncompressRle8(width, buffer.Span);
 
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (var buffer = this.memoryManager.AllocateManagedByteBuffer(stride))
+            using (IManagedByteBuffer buffer = this.memoryManager.AllocateManagedByteBuffer(stride))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -585,8 +585,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 type: BitConverter.ToInt16(data, 0),
                 fileSize: BitConverter.ToInt32(data, 2),
                 reserved: BitConverter.ToInt32(data, 6),
-                offset: BitConverter.ToInt32(data, 10)
-            );
+                offset: BitConverter.ToInt32(data, 10));
         }
 
         /// <summary>

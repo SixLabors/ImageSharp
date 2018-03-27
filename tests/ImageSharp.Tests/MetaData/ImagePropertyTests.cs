@@ -18,13 +18,11 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreEqual()
         {
-            ImageProperty property1 = new ImageProperty("Foo", "Bar");
-            ImageProperty property2 = new ImageProperty("Foo", "Bar");
-            ImageProperty property3 = null;
+            var property1 = new ImageProperty("Foo", "Bar");
+            var property2 = new ImageProperty("Foo", "Bar");
 
             Assert.Equal(property1, property2);
             Assert.True(property1 == property2);
-            Assert.Null(property3);
         }
 
         /// <summary>
@@ -33,14 +31,12 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreNotEqual()
         {
-            ImageProperty property1 = new ImageProperty("Foo", "Bar");
-            ImageProperty property2 = new ImageProperty("Foo", "Foo");
-            ImageProperty property3 = new ImageProperty("Bar", "Bar");
-            ImageProperty property4 = new ImageProperty("Foo", null);
+            var property1 = new ImageProperty("Foo", "Bar");
+            var property2 = new ImageProperty("Foo", "Foo");
+            var property3 = new ImageProperty("Bar", "Bar");
+            var property4 = new ImageProperty("Foo", null);
 
             Assert.False(property1.Equals("Foo"));
-
-            Assert.NotNull(property1);
 
             Assert.NotEqual(property1, property2);
             Assert.True(property1 != property2);
@@ -66,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            ImageProperty property = new ImageProperty("Foo", null);
+            var property = new ImageProperty("Foo", null);
             Assert.Equal("Foo", property.Name);
             Assert.Null(property.Value);
 

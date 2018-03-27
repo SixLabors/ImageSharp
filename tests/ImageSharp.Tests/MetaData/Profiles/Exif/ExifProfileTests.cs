@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void WriteTooLargeProfile()
         {
-            StringBuilder junk = new StringBuilder();
+            var junk = new StringBuilder();
             for (int i = 0; i < 65500; i++)
             {
                 junk.Append("I");

@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             foreach (object value in (Array)this.exifValue)
             {
                 sb.Append(this.ToString(value));
-                sb.Append(" ");
+                sb.Append(' ');
             }
 
             return sb.ToString();

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// <remarks>
     /// This is a very simplified implementation of a rational number designed for use with metadata only.
     /// </remarks>
-    public struct SignedRational : IEquatable<SignedRational>
+    public readonly struct SignedRational : IEquatable<SignedRational>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SignedRational"/> struct.
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="simplify">Specified if the rational should be simplified.</param>
         public SignedRational(int numerator, int denominator, bool simplify)
         {
-            LongRational rational = new LongRational(numerator, denominator, simplify);
+            var rational = new LongRational(numerator, denominator, simplify);
 
             this.Numerator = (int)rational.Numerator;
             this.Denominator = (int)rational.Denominator;
@@ -140,8 +140,8 @@ namespace SixLabors.ImageSharp.Primitives
         /// <inheritdoc/>
         public bool Equals(SignedRational other)
         {
-            LongRational left = new LongRational(this.Numerator, this.Denominator);
-            LongRational right = new LongRational(other.Numerator, other.Denominator);
+            var left = new LongRational(this.Numerator, this.Denominator);
+            var right = new LongRational(other.Numerator, other.Denominator);
 
             return left.Equals(right);
         }
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The <see cref="string"/></returns>
         public string ToString(IFormatProvider provider)
         {
-            LongRational rational = new LongRational(this.Numerator, this.Denominator);
+            var rational = new LongRational(this.Numerator, this.Denominator);
             return rational.ToString(provider);
         }
     }

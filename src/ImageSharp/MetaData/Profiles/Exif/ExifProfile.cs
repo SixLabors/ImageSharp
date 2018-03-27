@@ -23,12 +23,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// The collection of EXIF values
         /// </summary>
-        private Collection<ExifValue> values;
+        private List<ExifValue> values;
 
         /// <summary>
         /// The list of invalid EXIF tags
         /// </summary>
-        private List<ExifTag> invalidTags;
+        private IReadOnlyList<ExifTag> invalidTags;
 
         /// <summary>
         /// The thumbnail offset position in the byte stream
@@ -75,8 +75,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.invalidTags = new List<ExifTag>(other.invalidTags);
             if (other.values != null)
             {
-                this.values = new Collection<ExifValue>();
-                foreach (ExifValue value in other.values)
+                this.values = new List<ExifValue>(other.Values.Count);
+
+                foreach (ExifValue value in other.Values)
                 {
                     this.values.Add(new ExifValue(value));
                 }
@@ -92,21 +93,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets or sets which parts will be written when the profile is added to an image.
         /// </summary>
-        public ExifParts Parts
-        {
-            get;
-            set;
-        }
+        public ExifParts Parts { get; set; }
 
         /// <summary>
         /// Gets the tags that where found but contained an invalid value.
         /// </summary>
-        public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
 
         /// <summary>
         /// Gets the values of this EXIF profile.
         /// </summary>
-        public IList<ExifValue> Values
+        public IReadOnlyList<ExifValue> Values
         {
             get
             {
@@ -195,9 +192,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             for (int i = 0; i < this.Values.Count; i++)
             {
-                if (this.Values[i].Tag == tag)
+                if (this.values[i].Tag == tag)
                 {
-                    this.Values[i] = this.Values[i].WithValue(value);
+                    this.values[i] = this.values[i].WithValue(value);
+
                     return;
                 }
             }
@@ -263,7 +261,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             if (this.data == null)
             {
-                this.values = new Collection<ExifValue>();
+                this.values = new List<ExifValue>();
                 return;
             }
 

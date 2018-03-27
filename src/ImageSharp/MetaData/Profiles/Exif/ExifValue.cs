@@ -26,7 +26,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.DataType = other.DataType;
             this.IsArray = other.IsArray;
             this.Tag = other.Tag;
-            
 
             if (!other.IsArray)
             {
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.DataType = dataType;
             this.IsArray = isArray && dataType != ExifDataType.Ascii;
             this.Value = value;
-            
+
             // this.CheckValue(value);
         }
 
@@ -144,7 +143,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public ExifValue WithValue(object value)
         {
             this.CheckValue(value);
-            
+
             return new ExifValue(this.Tag, this.DataType, value, this.IsArray);
         }
 

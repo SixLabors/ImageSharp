@@ -16,6 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// 32 bits per pixel. Each pixel consists of 4 bytes.
         /// </summary>
-        Pixel32 = 4,
+        Pixel32 = 4
     }
 }

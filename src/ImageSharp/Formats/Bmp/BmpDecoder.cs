@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             where TPixel : struct, IPixel<TPixel>
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
             return new BmpDecoderCore(configuration, this).Decode<TPixel>(stream);
         }
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
             return new BmpDecoderCore(configuration, this).Identify(stream);
         }

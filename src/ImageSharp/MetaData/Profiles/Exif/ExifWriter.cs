@@ -294,18 +294,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// Which parts will be written.
         /// </summary>
         private ExifParts allowedParts;
-        private Collection<ExifValue> values;
-        private Collection<int> dataOffsets;
-        private Collection<int> ifdIndexes;
-        private Collection<int> exifIndexes;
-        private Collection<int> gpsIndexes;
+        private IList<ExifValue> values;
+        private IList<int> dataOffsets;
+        private IList<int> ifdIndexes;
+        private IList<int> exifIndexes;
+        private IList<int> gpsIndexes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifWriter"/> class.
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="allowedParts">The allowed parts.</param>
-        public ExifWriter(Collection<ExifValue> values, ExifParts allowedParts)
+        public ExifWriter(IList<ExifValue> values, ExifParts allowedParts)
         {
             this.values = values;
             this.allowedParts = allowedParts;
@@ -377,12 +377,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             if (exifLength > 0)
             {
-                this.values[exifIndex].Value = ifdOffset + ifdLength;
+                this.values[exifIndex] = this.values[exifIndex].WithValue(ifdOffset + ifdLength);
             }
 
             if (gpsLength > 0)
             {
-                this.values[gpsIndex].Value = ifdOffset + ifdLength + exifLength;
+                this.values[gpsIndex] = this.values[gpsIndex].WithValue(ifdOffset + ifdLength + exifLength);
             }
 
             i = Write(BitConverter.GetBytes(ifdOffset), result, i);
@@ -414,7 +414,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return offset + source.Length;
         }
 
-        private int GetIndex(Collection<int> indexes, ExifTag tag)
+        private int GetIndex(IList<int> indexes, ExifTag tag)
         {
             foreach (int index in indexes)
             {
@@ -437,7 +437,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return new Collection<int>();
             }
 
-            Collection<int> result = new Collection<int>();
+            var result = new Collection<int>();
             for (int i = 0; i < this.values.Count; i++)
             {
                 ExifValue value = this.values[i];
@@ -457,7 +457,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return result;
         }
 
-        private uint GetLength(IEnumerable<int> indexes)
+        private uint GetLength(IList<int> indexes)
         {
             uint length = 0;
 
@@ -494,7 +494,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteData(Collection<int> indexes, byte[] destination, int offset)
+        private int WriteData(IList<int> indexes, byte[] destination, int offset)
         {
             if (this.dataOffsets.Count == 0)
             {
@@ -517,9 +517,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteHeaders(Collection<int> indexes, byte[] destination, int offset)
+        private int WriteHeaders(IList<int> indexes, byte[] destination, int offset)
         {
-            this.dataOffsets = new Collection<int>();
+            this.dataOffsets = new List<int>();
 
             int newOffset = Write(BitConverter.GetBytes((ushort)indexes.Count), destination, offset);
 
@@ -550,7 +550,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteRational(Rational value, byte[] destination, int offset)
+        private int WriteRational(in Rational value, byte[] destination, int offset)
         {
             Write(BitConverter.GetBytes(value.Numerator), destination, offset);
             Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
@@ -558,7 +558,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return offset + 8;
         }
 
-        private int WriteSignedRational(SignedRational value, byte[] destination, int offset)
+        private int WriteSignedRational(in SignedRational value, byte[] destination, int offset)
         {
             Write(BitConverter.GetBytes(value.Numerator), destination, offset);
             Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);

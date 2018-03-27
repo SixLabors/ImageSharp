@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is SignedRational other && Equals(other);
+            return obj is SignedRational other && this.Equals(other);
         }
 
         /// <inheritdoc/>

@@ -136,18 +136,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <summary>
-        /// Clones the current value, overwriting the value.
-        /// </summary>
-        /// <param name="value">The value to overwrite.</param>
-        /// <returns><see cref="ExifValue"/></returns>
-        public ExifValue WithValue(object value)
-        {
-            this.CheckValue(value);
-
-            return new ExifValue(this.Tag, this.DataType, value, this.IsArray);
-        }
-
-        /// <summary>
         /// Compares two <see cref="ExifValue"/> objects for equality.
         /// </summary>
         /// <param name="left">
@@ -209,6 +197,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
               this.Tag == other.Tag &&
               this.DataType == other.DataType &&
               object.Equals(this.Value, other.Value);
+        }
+
+        /// <summary>
+        /// Clones the current value, overwriting the value.
+        /// </summary>
+        /// <param name="value">The value to overwrite.</param>
+        /// <returns><see cref="ExifValue"/></returns>
+        public ExifValue WithValue(object value)
+        {
+            this.CheckValue(value);
+
+            return new ExifValue(this.Tag, this.DataType, value, this.IsArray);
         }
 
         /// <inheritdoc/>

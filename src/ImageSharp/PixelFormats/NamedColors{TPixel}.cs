@@ -735,7 +735,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static TPixel[] GetWebSafePalette()
         {
             Rgba32[] constants = ColorConstants.WebSafeColors;
-            TPixel[] safe = new TPixel[constants.Length + 1];
+            var safe = new TPixel[constants.Length + 1];
 
             Span<byte> constantsBytes = constants.AsSpan().NonPortableCast<Rgba32, byte>();
             PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(constantsBytes, safe, constants.Length);

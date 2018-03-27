@@ -10,13 +10,18 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal sealed class PngChunk
     {
+        public PngChunk(int length)
+        {
+            this.Length = length;
+        }
+
         /// <summary>
-        /// Gets or sets the length.
+        /// Gets the length.
         /// An unsigned integer giving the number of bytes in the chunk's
         /// data field. The length counts only the data field, not itself,
         /// the chunk type code, or the CRC. Zero is a valid length
         /// </summary>
-        public int Length { get; set; }
+        public int Length { get; }
 
         /// <summary>
         /// Gets or sets the chunk type as string with 4 chars.

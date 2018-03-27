@@ -6,6 +6,8 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Primitives;
@@ -122,11 +124,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             int length = data.Length / dataTypeSize;
 
             var result = new TDataType[length];
-            var buffer = new byte[dataTypeSize];
 
             for (int i = 0; i < length; i++)
             {
-                data.Slice(i * dataTypeSize, dataTypeSize).CopyTo(buffer);
+                ReadOnlySpan<byte> buffer = data.Slice(i * dataTypeSize, dataTypeSize);
 
                 result.SetValue(converter(buffer), i);
             }
@@ -138,10 +139,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
         {
+#if NETSTANDARD1_1
             byte[] bytes = buffer.ToArray();
 
             string result = Encoding.UTF8.GetString(bytes, 0, buffer.Length);
 
+#else
+            byte* pointer = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+
+            string result = Encoding.UTF8.GetString(pointer, buffer.Length);
+#endif
             int nullCharIndex = result.IndexOf('\0');
             if (nullCharIndex != -1)
             {

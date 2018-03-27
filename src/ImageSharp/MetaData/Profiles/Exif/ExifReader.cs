@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifDataType.Undefined:
                     if (numberOfComponents == 1)
                     {
-                        return ConvertToByte(buffer);
+                        return this.ConvertToByte(buffer);
                     }
 
                     return buffer.ToArray();
@@ -492,8 +492,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            uint numerator = ConvertToUInt64(buffer.Slice(0, 4));
-            uint denominator = ConvertToUInt64(buffer.Slice(4, 4));
+            uint numerator = this.ConvertToUInt64(buffer.Slice(0, 4));
+            uint denominator = this.ConvertToUInt64(buffer.Slice(4, 4));
 
             return new Rational(numerator, denominator, false);
         }

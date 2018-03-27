@@ -33,20 +33,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the thumbnail length in the byte stream
         /// </summary>
-        public uint ThumbnailLength
-        {
-            get;
-            private set;
-        }
+        public uint ThumbnailLength { get; private set; }
 
         /// <summary>
         /// Gets the thumbnail offset position in the byte stream
         /// </summary>
-        public uint ThumbnailOffset
-        {
-            get;
-            private set;
-        }
+        public uint ThumbnailOffset { get; private set; }
 
         /// <summary>
         /// Gets the remaining length.
@@ -124,8 +116,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             int dataTypeSize = (int)ExifValue.GetSize(dataType);
             int length = data.Length / dataTypeSize;
 
-            TDataType[] result = new TDataType[length];
-            byte[] buffer = new byte[dataTypeSize];
+            var result = new TDataType[length];
+            var buffer = new byte[dataTypeSize];
 
             for (int i = 0; i < length; i++)
             {
@@ -423,7 +415,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (!this.ValidateArray(data, 8))
             {
-                return default(double);
+                return default;
             }
 
             return BitConverter.ToDouble(data, 0);
@@ -433,7 +425,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (!this.ValidateArray(data, 4))
             {
-                return default(uint);
+                return default;
             }
 
             return BitConverter.ToUInt32(data, 0);
@@ -443,7 +435,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (!this.ValidateArray(data, 2))
             {
-                return default(ushort);
+                return default;
             }
 
             return BitConverter.ToUInt16(data, 0);
@@ -453,7 +445,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (!this.ValidateArray(data, 4))
             {
-                return default(float);
+                return default;
             }
 
             return BitConverter.ToSingle(data, 0);
@@ -491,7 +483,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (!this.ValidateArray(data, 8, 4))
             {
-                return default(SignedRational);
+                return default;
             }
 
             int numerator = BitConverter.ToInt32(data, 0);
@@ -504,7 +496,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (!this.ValidateArray(data, 2))
             {
-                return default(short);
+                return default;
             }
 
             return BitConverter.ToInt16(data, 0);

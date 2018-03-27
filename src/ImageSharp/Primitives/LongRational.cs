@@ -268,9 +268,9 @@ namespace SixLabors.ImageSharp.Primitives
                 return this.Numerator.ToString(provider);
             }
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(this.Numerator.ToString(provider));
-            sb.Append("/");
+            sb.Append('/');
             sb.Append(this.Denominator.ToString(provider));
             return sb.ToString();
         }

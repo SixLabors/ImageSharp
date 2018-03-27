@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {

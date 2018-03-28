@@ -5,7 +5,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.Image.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     using System.Drawing;
     using System.Drawing.Imaging;

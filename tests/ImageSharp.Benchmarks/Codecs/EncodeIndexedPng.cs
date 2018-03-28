@@ -1,39 +1,32 @@
-﻿// <copyright file="EncodeIndexedPng.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Tests;
 using CoreImage = SixLabors.ImageSharp.Image;
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
     /// <summary>
     /// Benchmarks saving png files using different quantizers. System.Drawing cannot save indexed png files so we cannot compare.
     /// </summary>
+    [Config(typeof(Config.ShortClr))]
     public class EncodeIndexedPng : BenchmarkBase
     {
         // System.Drawing needs this.
         private Stream bmpStream;
         private Image<Rgba32> bmpCore;
 
-        [Params(false)]
-        public bool LargeImage { get; set; }
-
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.bmpStream == null)
             {
-                string path = this.LargeImage
-                    ? "../ImageSharp.Tests/TestImages/Formats/Jpg/baseline/jpeg420exif.jpg"
-                    : "../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp";
-
-                this.bmpStream = File.OpenRead(path);
+                this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Bmp.Car));
                 this.bmpCore = CoreImage.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;
             }
@@ -51,9 +44,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (var memoryStream = new MemoryStream())
             {
-                var encoder = new PngEncoder { Quantizer = new OctreeQuantizer() };
-
-                this.bmpCore.SaveAsPng(memoryStream, encoder);
+                var options = new PngEncoder { Quantizer = KnownQuantizers.Octree };
+                this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }
 
@@ -63,7 +55,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
             using (var memoryStream = new MemoryStream())
             {
                 var options = new PngEncoder { Quantizer = new OctreeQuantizer(false) };
-
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }
@@ -73,8 +64,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (var memoryStream = new MemoryStream())
             {
-                var options = new PngEncoder { Quantizer = new PaletteQuantizer() };
-
+                var options = new PngEncoder { Quantizer = KnownQuantizers.Palette };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }
@@ -85,7 +75,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
             using (var memoryStream = new MemoryStream())
             {
                 var options = new PngEncoder { Quantizer = new PaletteQuantizer(false) };
-
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }
@@ -95,8 +84,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
         {
             using (var memoryStream = new MemoryStream())
             {
-                var options = new PngEncoder { Quantizer = new WuQuantizer() };
-
+                var options = new PngEncoder { Quantizer = KnownQuantizers.Wu };
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }
@@ -107,7 +95,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Image
             using (var memoryStream = new MemoryStream())
             {
                 var options = new PngEncoder { Quantizer = new WuQuantizer(false) };
-
                 this.bmpCore.SaveAsPng(memoryStream, options);
             }
         }

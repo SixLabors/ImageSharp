@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Text;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public ushort ReadUInt16()
         {
-            return this.converter.ToUInt16(this.data, this.AddIndex(2));
+            return BinaryPrimitives.ReadUInt16BigEndian(new Span<byte>(this.data, this.AddIndex(2), 2));
         }
 
         /// <summary>
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public short ReadInt16()
         {
-            return this.converter.ToInt16(this.data, this.AddIndex(2));
+            return BinaryPrimitives.ReadInt16BigEndian(new Span<byte>(this.data, this.AddIndex(2), 2));
         }
 
         /// <summary>
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public uint ReadUInt32()
         {
-            return this.converter.ToUInt32(this.data, this.AddIndex(4));
+            return BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(this.data, this.AddIndex(4), 4));
         }
 
         /// <summary>
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public int ReadInt32()
         {
-            return this.converter.ToInt32(this.data, this.AddIndex(4));
+            return BinaryPrimitives.ReadInt32BigEndian(new Span<byte>(this.data, this.AddIndex(4), 4));
         }
 
         /// <summary>
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public ulong ReadUInt64()
         {
-            return this.converter.ToUInt64(this.data, this.AddIndex(8));
+            return BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(this.data, this.AddIndex(8), 8));
         }
 
         /// <summary>
@@ -62,25 +63,29 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public long ReadInt64()
         {
-            return this.converter.ToInt64(this.data, this.AddIndex(8));
+            return BinaryPrimitives.ReadInt64BigEndian(new Span<byte>(this.data, this.AddIndex(8), 8));
         }
 
         /// <summary>
         /// Reads a float
         /// </summary>
         /// <returns>the value</returns>
-        public float ReadSingle()
+        public unsafe float ReadSingle()
         {
-            return this.converter.ToSingle(this.data, this.AddIndex(4));
+            int intValue = this.ReadInt32();
+
+            return *((float*)&intValue);
         }
 
         /// <summary>
         /// Reads a double
         /// </summary>
         /// <returns>the value</returns>
-        public double ReadDouble()
+        public unsafe double ReadDouble()
         {
-            return this.converter.ToDouble(this.data, this.AddIndex(8));
+            long intValue = this.ReadInt64();
+
+            return *((double*)&intValue);
         }
 
         /// <summary>

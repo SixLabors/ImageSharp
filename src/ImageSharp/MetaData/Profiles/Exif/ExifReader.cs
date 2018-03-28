@@ -19,15 +19,22 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     internal sealed class ExifReader
     {
+        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
+
         private readonly List<ExifTag> invalidTags = new List<ExifTag>();
-        private byte[] exifData;
+        private readonly byte[] exifData;
         private int position;
         private Endianness endianness = Endianness.BigEndian;
         private uint exifOffset;
         private uint gpsOffset;
         private int startIndex;
 
-        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
+        public ExifReader(byte[] exifData)
+        {
+            DebugGuard.NotNull(exifData, nameof(exifData));
+
+            this.exifData = exifData;
+        }
 
         /// <summary>
         /// Gets the invalid tags.
@@ -56,28 +63,23 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                     return 0;
                 }
 
-                return this.exifData.Length - (int)this.position;
+                return this.exifData.Length - this.position;
             }
         }
 
         /// <summary>
         /// Reads and returns the collection of EXIF values.
         /// </summary>
-        /// <param name="data">The data.</param>
         /// <returns>
         /// The <see cref="Collection{ExifValue}"/>.
         /// </returns>
-        public List<ExifValue> Read(byte[] data)
+        public List<ExifValue> ReadValues()
         {
-            DebugGuard.NotNull(data, nameof(data));
-
             var values = new List<ExifValue>();
 
-            this.exifData = data;
-
-            if (this.GetString(4) == "Exif")
+            if (this.ReadString(4) == "Exif")
             {
-                if (this.ReadShort() != 0)
+                if (this.ReadUInt16() != 0)
                 {
                     return values;
                 }
@@ -89,12 +91,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 this.position = 0;
             }
 
-            if (this.GetString(2) == "II")
+            if (this.ReadString(2) == "II")
             {
                 this.endianness = Endianness.LittleEndian;
             }
 
-            if (this.ReadShort() != 0x002A)
+            if (this.ReadUInt16() != 0x002A)
             {
                 return values;
             }
@@ -163,12 +165,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="index">The index.</param>
-        private void AddValues(IList<ExifValue> values, int index)
+        private void AddValues(List<ExifValue> values, int index)
         {
             this.position = this.startIndex + index;
-            ushort count = this.ReadShort();
+            int count = this.ReadUInt16();
 
-            for (ushort i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 if (!this.TryReadValue(out ExifValue value))
                 {
@@ -241,10 +243,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifDataType.Long:
                     if (numberOfComponents == 1)
                     {
-                        return this.ConvertToUInt64(buffer);
+                        return this.ConvertToUInt32(buffer);
                     }
 
-                    return ToArray(dataType, buffer, this.ConvertToUInt64);
+                    return ToArray(dataType, buffer, this.ConvertToUInt32);
                 case ExifDataType.Rational:
                     if (numberOfComponents == 1)
                     {
@@ -269,10 +271,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifDataType.SignedLong:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToInt32(buffer);
+                        return this.ConvertToInt32(buffer);
                     }
 
-                    return ToArray(dataType, buffer, this.ToInt32);
+                    return ToArray(dataType, buffer, this.ConvertToInt32);
                 case ExifDataType.SignedRational:
                     if (numberOfComponents == 1)
                     {
@@ -308,6 +310,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private bool TryReadValue(out ExifValue exifValue)
         {
+            // 2   | 2    | 4     | 4
+            // tag | type | count | value offset
             if (this.RemainingLength < 12)
             {
                 exifValue = default;
@@ -315,16 +319,20 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return false;
             }
 
-            ExifTag tag = this.ToEnum(this.ReadShort(), ExifTag.Unknown);
-            ExifDataType dataType = this.ToEnum(this.ReadShort(), ExifDataType.Unknown);
-            object value;
+            ExifTag tag = this.ToEnum(this.ReadUInt16(), ExifTag.Unknown);
+            uint type = this.ReadUInt16();
 
-            if (dataType == ExifDataType.Unknown)
+            // Ensure that the data type is valid
+            if (type == 0 || type > 12)
             {
-                exifValue = new ExifValue(tag, dataType, null, false);
+                exifValue = new ExifValue(tag, ExifDataType.Unknown, null, false);
 
                 return true;
             }
+
+            var dataType = (ExifDataType)type;
+
+            object value;
 
             uint numberOfComponents = this.ReadUInt32();
 
@@ -337,12 +345,26 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             uint size = numberOfComponents * ExifValue.GetSize(dataType);
 
-            this.TryReadSpan(4, out ReadOnlySpan<byte> data);
+            this.TryReadSpan(4, out ReadOnlySpan<byte> offsetBuffer);
 
             if (size > 4)
             {
                 int oldIndex = this.position;
-                this.position = (int)this.ConvertToUInt64(data) + this.startIndex;
+
+                uint newIndex = this.ConvertToUInt32(offsetBuffer) + (uint)this.startIndex;
+
+                // Ensure that the new index does not overrun the data
+                if (newIndex > int.MaxValue)
+                {
+                    this.invalidTags.Add(tag);
+
+                    exifValue = default;
+
+                    return false;
+                }
+
+                this.position = (int)newIndex;
+
                 if (this.RemainingLength < size)
                 {
                     this.invalidTags.Add(tag);
@@ -353,14 +375,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                     return false;
                 }
 
-                this.TryReadSpan((int)size, out ReadOnlySpan<byte> innerData);
+                this.TryReadSpan((int)size, out ReadOnlySpan<byte> dataBuffer);
 
-                value = this.ConvertValue(dataType, innerData, numberOfComponents);
+                value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
                 this.position = oldIndex;
             }
             else
             {
-                value = this.ConvertValue(dataType, data, numberOfComponents);
+                value = this.ConvertValue(dataType, offsetBuffer, numberOfComponents);
             }
 
             exifValue = new ExifValue(tag, dataType, value, isArray: value != null && numberOfComponents > 1);
@@ -382,7 +404,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private bool TryReadSpan(int length, out ReadOnlySpan<byte> span)
         {
-            if (this.position + length > this.exifData.Length || this.position < 0)
+            if (this.RemainingLength < length)
             {
                 span = default;
 
@@ -390,7 +412,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             span = new ReadOnlySpan<byte>(this.exifData, this.position, length);
-
+           
             this.position += length;
 
             return true;
@@ -400,18 +422,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             // Known as Long in Exif Specification
             return this.TryReadSpan(4, out ReadOnlySpan<byte> span)
-                ? this.ConvertToUInt64(span)
+                ? this.ConvertToUInt32(span)
                 : default;
         }
 
-        private ushort ReadShort()
+        private ushort ReadUInt16()
         {
             return this.TryReadSpan(2, out ReadOnlySpan<byte> span)
                 ? this.ConvertToShort(span)
                 : default;
         }
 
-        private string GetString(int length)
+        private string ReadString(int length)
         {
             if (this.TryReadSpan(length, out ReadOnlySpan<byte> span) && span.Length != 0)
             {
@@ -453,7 +475,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return *((double*)&intValue);
         }
 
-        private uint ConvertToUInt64(ReadOnlySpan<byte> buffer)
+        private uint ConvertToUInt32(ReadOnlySpan<byte> buffer)
         {
             // Known as Long in Exif Specification
             if (buffer.Length < 4)
@@ -499,8 +521,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            uint numerator = this.ConvertToUInt64(buffer.Slice(0, 4));
-            uint denominator = this.ConvertToUInt64(buffer.Slice(4, 4));
+            uint numerator = this.ConvertToUInt32(buffer.Slice(0, 4));
+            uint denominator = this.ConvertToUInt32(buffer.Slice(4, 4));
 
             return new Rational(numerator, denominator, false);
         }
@@ -510,7 +532,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return unchecked((sbyte)buffer[0]);
         }
 
-        private int ToInt32(ReadOnlySpan<byte> buffer) // SignedLong in Exif Specification
+        private int ConvertToInt32(ReadOnlySpan<byte> buffer) // SignedLong in Exif Specification
         {
             if (buffer.Length < 4)
             {
@@ -529,8 +551,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return default;
             }
 
-            int numerator = this.ToInt32(buffer.Slice(0, 4));
-            int denominator = this.ToInt32(buffer.Slice(4, 4));
+            int numerator = this.ConvertToInt32(buffer.Slice(0, 4));
+            int denominator = this.ConvertToInt32(buffer.Slice(4, 4));
 
             return new SignedRational(numerator, denominator, false);
         }

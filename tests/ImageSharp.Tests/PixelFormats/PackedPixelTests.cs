@@ -32,14 +32,26 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(124, new Alpha8(124F / 0xFF).PackedValue);
             Assert.Equal(26, new Alpha8(0.1F).PackedValue);
 
-            // Test ordering
+            // Test ToVector4.
             var vector = new Alpha8(.5F).ToVector4();
-
             Assert.Equal(0, vector.X);
             Assert.Equal(0, vector.Y);
             Assert.Equal(0, vector.Z);
             Assert.Equal(.5F, vector.W, 2);
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new Alpha8(.5F).ToScaledVector4();
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(.5F, scaled.W, 2);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Alpha8);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(128, pixel.PackedValue);
+
+            // Test Rgb conversion
             var rgb = default(Rgb24);
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
@@ -73,6 +85,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.UnitZ, new Argb32(Vector4.UnitZ).ToVector4()));
             Assert.True(Equal(Vector4.UnitW, new Argb32(Vector4.UnitW).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new Argb32(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Argb32);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFFFFFF, pixel.PackedValue);
+
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Argb32(Vector4.One * -1234.0f).ToVector4()));
             Assert.True(Equal(Vector4.One, new Argb32(Vector4.One * +1234.0f).ToVector4()));
@@ -89,6 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+
 
             argb.ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(0x1a, 0, 0x80));
@@ -116,6 +141,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector3.UnitX, new Bgr565(Vector3.UnitX).ToVector3()));
             Assert.True(Equal(Vector3.UnitY, new Bgr565(Vector3.UnitY).ToVector3()));
             Assert.True(Equal(Vector3.UnitZ, new Bgr565(Vector3.UnitZ).ToVector3()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Bgr565(Vector3.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Bgr565);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.True(Equal(Vector3.Zero, new Bgr565(Vector3.One * -1234F).ToVector3()));
@@ -165,6 +202,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.UnitZ, new Bgra4444(Vector4.UnitZ).ToVector4()));
             Assert.True(Equal(Vector4.UnitW, new Bgra4444(Vector4.UnitW).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new Bgra4444(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Bgra4444);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFF, pixel.PackedValue);
+
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Bgra4444(Vector4.One * -1234.0f).ToVector4()));
             Assert.True(Equal(Vector4.One, new Bgra4444(Vector4.One * 1234.0f).ToVector4()));
@@ -210,6 +259,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             // Test ToVector4
             Assert.True(Equal(Vector4.Zero, new Bgra5551(Vector4.Zero).ToVector4()));
             Assert.True(Equal(Vector4.One, new Bgra5551(Vector4.One).ToVector4()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Bgra5551(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Bgra5551);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.Equal(Vector4.Zero, new Bgra5551(Vector4.One * -1234.0f).ToVector4());
@@ -260,6 +321,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.UnitY * 255, new Byte4(Vector4.UnitY * 255).ToVector4()));
             Assert.True(Equal(Vector4.UnitZ * 255, new Byte4(Vector4.UnitZ * 255).ToVector4()));
             Assert.True(Equal(Vector4.UnitW * 255, new Byte4(Vector4.UnitW * 255).ToVector4()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Byte4(Vector4.One * 255).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Byte4);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFFFFFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Byte4(Vector4.One * -1234.0f).ToVector4()));
@@ -318,6 +391,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float x = .5F;
             Assert.True(Equal(new Vector4(x, 0, 0, 1), new HalfSingle(x).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(HalfSingle);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(48128, pixel.PackedValue);
+
             var rgb = default(Rgb24);
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
@@ -349,6 +434,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector2.One, new HalfVector2(Vector2.One).ToVector2()));
             Assert.True(Equal(Vector2.UnitX, new HalfVector2(Vector2.UnitX).ToVector2()));
             Assert.True(Equal(Vector2.UnitY, new HalfVector2(Vector2.UnitY).ToVector2()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new HalfVector2(Vector2.One).ToScaledVector4();
+            Assert.Equal(1F, scaled.X);
+            Assert.Equal(1F, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(HalfVector2);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(1006648320u, pixel.PackedValue);
 
             // Test ordering
             float x = .5F;
@@ -395,6 +492,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.UnitZ, new HalfVector4(Vector4.UnitZ).ToVector4()));
             Assert.True(Equal(Vector4.UnitW, new HalfVector4(Vector4.UnitW).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new HalfVector4(-Vector4.One).ToScaledVector4();
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(0, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(HalfVector4);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(13547034390470638592uL, pixel.PackedValue);
+
             // Test ordering
             float x = .25F;
             float y = .5F;
@@ -438,6 +547,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(new Vector4(1, 1, 0, 1), new NormalizedByte2(Vector2.One).ToVector4()));
             Assert.True(Equal(new Vector4(0, 0, 0, 1), new NormalizedByte2(Vector2.Zero).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new NormalizedByte2(-Vector2.One).ToScaledVector4();
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(1F, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(NormalizedByte2);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0x8181, pixel.PackedValue);
+
             // Test Ordering
             float x = 0.1f;
             float y = -0.3f;
@@ -478,6 +599,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(-Vector4.One, new NormalizedByte4(-Vector4.One).ToVector4()));
             Assert.True(Equal(Vector4.One, new NormalizedByte4(Vector4.One * 1234.0f).ToVector4()));
             Assert.True(Equal(-Vector4.One, new NormalizedByte4(Vector4.One * -1234.0f).ToVector4()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new NormalizedByte4(-Vector4.One).ToScaledVector4();
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(0, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(NormalizedByte4);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0x81818181, pixel.PackedValue);
 
             // Test Ordering
             float x = 0.1f;
@@ -535,6 +668,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(new Vector4(1, 1, 0, 1), (new NormalizedShort2(Vector2.One)).ToVector4()));
             Assert.True(Equal(new Vector4(0, 0, 0, 1), (new NormalizedShort2(Vector2.Zero)).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new NormalizedShort2(-Vector2.One).ToScaledVector4();
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(NormalizedShort2);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0x80018001, pixel.PackedValue);
+
             // Test Ordering
             float x = 0.35f;
             float y = -0.2f;
@@ -584,6 +729,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.One, new NormalizedShort4(Vector4.One * 1234.0f).ToVector4()));
             Assert.True(Equal(-Vector4.One, new NormalizedShort4(Vector4.One * -1234.0f).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new NormalizedShort4(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(NormalizedShort4);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, pixel.PackedValue);
+
             // Test Ordering
             float x = 0.1f;
             float y = -0.3f;
@@ -625,6 +782,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             // Test ToVector2
             Assert.True(Equal(Vector2.Zero, new Rg32(Vector2.Zero).ToVector2()));
             Assert.True(Equal(Vector2.One, new Rg32(Vector2.One).ToVector2()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Rg32(Vector2.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Rg32);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFFFFFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.True(Equal(Vector2.Zero, new Rg32(Vector2.One * -1234.0f).ToVector2()));
@@ -668,6 +837,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.Zero, new Rgba1010102(Vector4.Zero).ToVector4()));
             Assert.True(Equal(Vector4.One, new Rgba1010102(Vector4.One).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new Rgba1010102(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Rgba1010102);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFFFFFF, pixel.PackedValue);
+
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Rgba1010102(Vector4.One * -1234.0f).ToVector4()));
             Assert.True(Equal(Vector4.One, new Rgba1010102(Vector4.One * 1234.0f).ToVector4()));
@@ -709,7 +890,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         }
 
         [Fact]
-        public void Color()
+        public void Rgba32()
         {
             // Test the limits.
             Assert.Equal((uint)0x0, new Rgba32(Vector4.Zero).PackedValue);
@@ -722,6 +903,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(Vector4.UnitY, new Rgba32(Vector4.UnitY).ToVector4()));
             Assert.True(Equal(Vector4.UnitZ, new Rgba32(Vector4.UnitZ).ToVector4()));
             Assert.True(Equal(Vector4.UnitW, new Rgba32(Vector4.UnitW).ToVector4()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Rgba32(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Rgba32);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFFFFFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Rgba32(Vector4.One * -1234.0f).ToVector4()));
@@ -763,6 +956,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             // Test ToVector4
             Assert.True(Equal(Vector4.Zero, new Rgba64(Vector4.Zero).ToVector4()));
             Assert.True(Equal(Vector4.One, new Rgba64(Vector4.One).ToVector4()));
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Rgba64(Vector4.One).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Rgba64);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal(0xFFFFFFFFFFFFFFFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.True(Equal(Vector4.Zero, new Rgba64(Vector4.One * -1234.0f).ToVector4()));
@@ -825,6 +1030,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.True(Equal(new Vector4(0, 0, 0, 1), (new Short2(Vector2.Zero)).ToVector4()));
             Assert.True(Equal(new Vector4(-0x8000, -0x8000, 0, 1), (new Short2(Vector2.One * -0x8000)).ToVector4()));
 
+            // Test ToScaledVector4.
+            Vector4 scaled = new Short2(Vector2.One * 0x7FFF).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Short2);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal((uint)0x7FFF7FFF, pixel.PackedValue);
+
             // Test ordering
             float x = 0x2db1;
             float y = 0x361d;
@@ -872,6 +1089,18 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(Vector4.UnitY * 0x7FFF, new Short4(Vector4.UnitY * 0x7FFF).ToVector4());
             Assert.Equal(Vector4.UnitZ * 0x7FFF, new Short4(Vector4.UnitZ * 0x7FFF).ToVector4());
             Assert.Equal(Vector4.UnitW * 0x7FFF, new Short4(Vector4.UnitW * 0x7FFF).ToVector4());
+
+            // Test ToScaledVector4.
+            Vector4 scaled = new Short4(Vector4.One * 0x7FFF).ToScaledVector4();
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+
+            // Test PackFromScaledVector4.
+            var pixel = default(Short4);
+            pixel.PackFromScaledVector4(scaled);
+            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, pixel.PackedValue);
 
             // Test clamping.
             Assert.Equal(Vector4.One * 0x7FFF, new Short4(Vector4.One * 1234567.0f).ToVector4());

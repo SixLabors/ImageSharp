@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
-            Vector4 vector = this.ToScaledVector4();
+            Vector4 vector = this.ToByteScaledVector4();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = (byte)MathF.Round(vector.Z);
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            Vector4 vector = this.ToScaledVector4();
+            Vector4 vector = this.ToByteScaledVector4();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = (byte)MathF.Round(vector.Z);
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgr24(ref Bgr24 dest)
         {
-            Vector4 vector = this.ToScaledVector4();
+            Vector4 vector = this.ToByteScaledVector4();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = (byte)MathF.Round(vector.Z);
@@ -266,11 +266,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgra32(ref Bgra32 dest)
         {
-            Vector4 vector = this.ToScaledVector4();
+            Vector4 vector = this.ToByteScaledVector4();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = (byte)MathF.Round(vector.Z);
             dest.A = (byte)MathF.Round(vector.W);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
         }
 
         /// <inheritdoc/>
@@ -316,6 +330,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector4 ToScaledVector4() => Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
+        private Vector4 ToByteScaledVector4() => Vector4.Clamp(this.backingVector, Vector4.Zero, Vector4.One) * MaxBytes;
     }
 }

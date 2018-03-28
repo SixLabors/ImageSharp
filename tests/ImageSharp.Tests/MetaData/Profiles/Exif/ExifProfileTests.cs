@@ -261,11 +261,11 @@ namespace SixLabors.ImageSharp.Tests
                 junk.Append("I");
             }
 
-            Image<Rgba32> image = new Image<Rgba32>(100, 100);
+            var image = new Image<Rgba32>(100, 100);
             image.MetaData.ExifProfile = new ExifProfile();
             image.MetaData.ExifProfile.SetValue(ExifTag.ImageDescription, junk.ToString());
 
-            using (MemoryStream memStream = new MemoryStream())
+            using (var memStream = new MemoryStream())
             {
                 Assert.Throws<ImageFormatException>(() => image.SaveAsJpeg(memStream));
             }
@@ -274,6 +274,9 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ExifTypeUndefined()
         {
+            // This image contains an 802 byte EXIF profile
+            // It has a tag with an index offset of 18,481,152 bytes (overrunning the data)
+
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Progressive.Bad.ExifUndefType).CreateImage();
             Assert.NotNull(image);
 

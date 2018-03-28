@@ -265,8 +265,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return;
             }
 
-            var reader = new ExifReader();
-            this.values = reader.Read(this.data);
+            var reader = new ExifReader(this.data);
+
+            this.values = reader.ReadValues();
+
             this.invalidTags = new List<ExifTag>(reader.InvalidTags);
             this.thumbnailOffset = (int)reader.ThumbnailOffset;
             this.thumbnailLength = (int)reader.ThumbnailLength;

@@ -51,8 +51,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.DataType = dataType;
             this.IsArray = isArray && dataType != ExifDataType.Ascii;
             this.Value = value;
-
-            // this.CheckValue(value);
         }
 
         /// <summary>
@@ -698,7 +696,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             {
                 return description;
             }
-
+            
             switch (this.DataType)
             {
                 case ExifDataType.Ascii:

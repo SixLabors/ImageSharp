@@ -118,6 +118,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
             var rgba = default(Rgba32);

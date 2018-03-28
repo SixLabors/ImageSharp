@@ -320,6 +320,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
             this.Pack(ref vector);
@@ -383,7 +397,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>A <see cref="Vector4"/> of values in [0, 255] </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Vector4 ToUnscaledVector4()
+        internal Vector4 ToByteScaledVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A);
         }

@@ -237,6 +237,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations<Argb32>();
 
+                /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
@@ -321,7 +335,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(float x, float y, float z, float w)
         {
-            Vector4 value = new Vector4(x, y, z, w);
+            var value = new Vector4(x, y, z, w);
             return Pack(ref value);
         }
 
@@ -347,7 +361,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint Pack(ref Vector3 vector)
         {
-            Vector4 value = new Vector4(vector, 1);
+            var value = new Vector4(vector, 1);
             return Pack(ref value);
         }
 

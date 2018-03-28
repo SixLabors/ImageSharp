@@ -696,7 +696,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             {
                 return description;
             }
-            
+
             switch (this.DataType)
             {
                 case ExifDataType.Ascii:

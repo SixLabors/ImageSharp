@@ -246,27 +246,23 @@ namespace SixLabors.ImageSharp
                 return this.Clone() as ImageFrame<TPixel2>;
             }
 
-            Func<Vector4, Vector4> scaleFunc = PackedPixelConverterHelper.ComputeScaleFunction<TPixel, TPixel2>();
-
             var target = new ImageFrame<TPixel2>(this.MemoryManager, this.Width, this.Height, this.MetaData.Clone());
 
-            using (PixelAccessor<TPixel> pixels = this.Lock())
-            using (PixelAccessor<TPixel2> targetPixels = target.Lock())
-            {
-                Parallel.For(
-                    0,
-                    target.Height,
-                    Configuration.Default.ParallelOptions,
-                    y =>
+            Parallel.For(
+                0,
+                target.Height,
+                Configuration.Default.ParallelOptions,
+                y =>
+                {
+                    Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
+                    Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
+
+                    for (int x = 0; x < target.Width; x++)
                     {
-                        for (int x = 0; x < target.Width; x++)
-                        {
-                            var color = default(TPixel2);
-                            color.PackFromVector4(scaleFunc(pixels[x, y].ToVector4()));
-                            targetPixels[x, y] = color;
-                        }
-                    });
-            }
+                        ref var pixel = ref targetRow[x];
+                        pixel.PackFromScaledVector4(sourceRow[x].ToScaledVector4());
+                    }
+                });
 
             return target;
         }

@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Text;
 using SixLabors.ImageSharp.Primitives;
 
@@ -24,10 +24,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </summary>
         private ExifParts allowedParts;
         private IList<ExifValue> values;
-        private IList<int> dataOffsets;
-        private IList<int> ifdIndexes;
-        private IList<int> exifIndexes;
-        private IList<int> gpsIndexes;
+        private List<int> dataOffsets;
+        private List<int> ifdIndexes;
+        private List<int> exifIndexes;
+        private List<int> gpsIndexes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifWriter"/> class.
@@ -89,6 +89,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             length += 10 + 4 + 2;
 
             byte[] result = new byte[length];
+
             result[0] = (byte)'E';
             result[1] = (byte)'x';
             result[2] = (byte)'i';
@@ -114,9 +115,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 this.values[gpsIndex] = this.values[gpsIndex].WithValue(ifdOffset + ifdLength + exifLength);
             }
 
-            i = Write(BitConverter.GetBytes(ifdOffset), result, i);
+            i = WriteUInt32(ifdOffset, result, i);
             i = this.WriteHeaders(this.ifdIndexes, result, i);
-            i = Write(BitConverter.GetBytes(thumbnailOffset), result, i);
+            i = WriteUInt32(thumbnailOffset, result, i);
             i = this.WriteData(this.ifdIndexes, result, i);
 
             if (exifLength > 0)
@@ -131,16 +132,58 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 i = this.WriteData(this.gpsIndexes, result, i);
             }
 
-            Write(BitConverter.GetBytes((ushort)0), result, i);
+            WriteUInt16((ushort)0, result, i);
 
             return result;
         }
 
-        private static int Write(byte[] source, byte[] destination, int offset)
+        private static unsafe int WriteSingle(float value, Span<byte> destination, int offset)
         {
-            Buffer.BlockCopy(source, 0, destination, offset, source.Length);
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), *((int*)&value));
+
+            return offset + 4;
+        }
+
+        private static unsafe int WriteDouble(double value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(destination.Slice(offset, 8), *((long*)&value));
+
+            return offset + 8;
+        }
+
+        private static int Write(ReadOnlySpan<byte> source, Span<byte> destination, int offset)
+        {
+            source.CopyTo(destination.Slice(offset, source.Length));
 
             return offset + source.Length;
+        }
+
+        private static int WriteInt16(short value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt16LittleEndian(destination.Slice(offset, 2), value);
+
+            return offset + 2;
+        }
+
+        private static int WriteUInt16(ushort value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(offset, 2), value);
+
+            return offset + 2;
+        }
+
+        private static int WriteUInt32(uint value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(offset, 4), value);
+
+            return offset + 4;
+        }
+
+        private static int WriteInt32(int value, Span<byte> destination, int offset)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(offset, 4), value);
+
+            return offset + 4;
         }
 
         private int GetIndex(IList<int> indexes, ExifTag tag)
@@ -163,7 +206,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (((int)this.allowedParts & (int)part) == 0)
             {
-                return new Collection<int>();
+                return new List<int>();
             }
 
             var result = new List<int>();
@@ -223,7 +266,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteData(IList<int> indexes, byte[] destination, int offset)
+        private int WriteData(List<int> indexes, byte[] destination, int offset)
         {
             if (this.dataOffsets.Count == 0)
             {
@@ -238,7 +281,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 ExifValue value = this.values[index];
                 if (value.Length > 4)
                 {
-                    Write(BitConverter.GetBytes(newOffset - StartIndex), destination, this.dataOffsets[i++]);
+                    WriteUInt32((uint)(newOffset - StartIndex), destination, this.dataOffsets[i++]);
                     newOffset = this.WriteValue(value, destination, newOffset);
                 }
             }
@@ -246,11 +289,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteHeaders(IList<int> indexes, byte[] destination, int offset)
+        private int WriteHeaders(List<int> indexes, byte[] destination, int offset)
         {
             this.dataOffsets = new List<int>();
 
-            int newOffset = Write(BitConverter.GetBytes((ushort)indexes.Count), destination, offset);
+            int newOffset = WriteUInt16((ushort)indexes.Count, destination, offset);
 
             if (indexes.Count == 0)
             {
@@ -260,9 +303,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             foreach (int index in indexes)
             {
                 ExifValue value = this.values[index];
-                newOffset = Write(BitConverter.GetBytes((ushort)value.Tag), destination, newOffset);
-                newOffset = Write(BitConverter.GetBytes((ushort)value.DataType), destination, newOffset);
-                newOffset = Write(BitConverter.GetBytes((uint)value.NumberOfComponents), destination, newOffset);
+                newOffset = WriteUInt16((ushort)value.Tag, destination, newOffset);
+                newOffset = WriteUInt16((ushort)value.DataType, destination, newOffset);
+                newOffset = WriteUInt32((uint)value.NumberOfComponents, destination, newOffset);
 
                 if (value.Length > 4)
                 {
@@ -279,23 +322,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteRational(in Rational value, byte[] destination, int offset)
+        private static void WriteRational(Span<byte> destination, in Rational value)
         {
-            Write(BitConverter.GetBytes(value.Numerator), destination, offset);
-            Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
-
-            return offset + 8;
+            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteUInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
-        private int WriteSignedRational(in SignedRational value, byte[] destination, int offset)
+        private static void WriteSignedRational(Span<byte> destination, in SignedRational value)
         {
-            Write(BitConverter.GetBytes(value.Numerator), destination, offset);
-            Write(BitConverter.GetBytes(value.Denominator), destination, offset + 4);
-
-            return offset + 8;
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(0, 4), value.Numerator);
+            BinaryPrimitives.WriteInt32LittleEndian(destination.Slice(4, 4), value.Denominator);
         }
 
-        private int WriteValue(ExifDataType dataType, object value, byte[] destination, int offset)
+        private int WriteValue(ExifDataType dataType, object value, Span<byte> destination, int offset)
         {
             switch (dataType)
             {
@@ -306,24 +345,26 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                     destination[offset] = (byte)value;
                     return offset + 1;
                 case ExifDataType.DoubleFloat:
-                    return Write(BitConverter.GetBytes((double)value), destination, offset);
+                    return WriteDouble((double)value, destination, offset);
                 case ExifDataType.Short:
-                    return Write(BitConverter.GetBytes((ushort)value), destination, offset);
+                    return WriteUInt16((ushort)value, destination, offset);
                 case ExifDataType.Long:
-                    return Write(BitConverter.GetBytes((uint)value), destination, offset);
+                    return WriteUInt32((uint)value, destination, offset);
                 case ExifDataType.Rational:
-                    return this.WriteRational((Rational)value, destination, offset);
+                    WriteRational(destination.Slice(offset, 8), (Rational)value);
+                    return offset + 8;
                 case ExifDataType.SignedByte:
                     destination[offset] = unchecked((byte)((sbyte)value));
                     return offset + 1;
                 case ExifDataType.SignedLong:
-                    return Write(BitConverter.GetBytes((int)value), destination, offset);
+                    return WriteInt32((int)value, destination, offset);
                 case ExifDataType.SignedShort:
-                    return Write(BitConverter.GetBytes((short)value), destination, offset);
+                    return WriteInt16((short)value, destination, offset);
                 case ExifDataType.SignedRational:
-                    return this.WriteSignedRational((SignedRational)value, destination, offset);
+                    WriteSignedRational(destination.Slice(offset, 8), (SignedRational)value);
+                    return offset + 8;
                 case ExifDataType.SingleFloat:
-                    return Write(BitConverter.GetBytes((float)value), destination, offset);
+                    return WriteSingle((float)value, destination, offset);
                 default:
                     throw new NotImplementedException();
             }

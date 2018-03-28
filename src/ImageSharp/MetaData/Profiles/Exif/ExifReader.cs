@@ -19,8 +19,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     internal sealed class ExifReader
     {
-        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
-
         private readonly List<ExifTag> invalidTags = new List<ExifTag>();
         private readonly byte[] exifData;
         private int position;
@@ -35,6 +33,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             this.exifData = exifData;
         }
+
+        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
 
         /// <summary>
         /// Gets the invalid tags.
@@ -412,7 +412,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             span = new ReadOnlySpan<byte>(this.exifData, this.position, length);
-           
+
             this.position += length;
 
             return true;

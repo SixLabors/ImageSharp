@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -34,6 +36,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reusable buffer for writing chunk data.
         /// </summary>
         private readonly byte[] chunkDataBuffer = new byte[16];
+
+        /// <summary>
+        /// Reusable buffer for writing int data.
+        /// </summary>
+        private readonly byte[] intBuffer = new byte[4];
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -244,51 +251,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Writes an integer to the byte array.
-        /// </summary>
-        /// <param name="data">The <see cref="T:byte[]"/> containing image data.</param>
-        /// <param name="offset">The amount to offset by.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(byte[] data, int offset, int value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            buffer.ReverseBytes();
-            Buffer.BlockCopy(buffer, 0, data, offset, 4);
-        }
-
-        /// <summary>
-        /// Writes an integer to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(Stream stream, int value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            buffer.ReverseBytes();
-            stream.Write(buffer, 0, 4);
-        }
-
-        /// <summary>
-        /// Writes an unsigned integer to the stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <param name="value">The value to write.</param>
-        private static void WriteInteger(Stream stream, uint value)
-        {
-            byte[] buffer = BitConverter.GetBytes(value);
-
-            buffer.ReverseBytes();
-            stream.Write(buffer, 0, 4);
-        }
-
-        /// <summary>
         /// Collects a row of grayscale pixels.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The image row span.</param>
-        private void CollectGrayscaleBytes<TPixel>(Span<TPixel> rowSpan)
+        private void CollectGrayscaleBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
@@ -323,7 +290,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
-        private void CollecTPixelBytes<TPixel>(Span<TPixel> rowSpan)
+        private void CollecTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.bytesPerPixel == 4)
@@ -344,7 +311,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="rowSpan">The row span.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        private IManagedByteBuffer EncodePixelRow<TPixel>(Span<TPixel> rowSpan, int row)
+        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
@@ -450,8 +417,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         private void WriteHeaderChunk(Stream stream, PngHeader header)
         {
-            WriteInteger(this.chunkDataBuffer, 0, header.Width);
-            WriteInteger(this.chunkDataBuffer, 4, header.Height);
+            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), header.Width);
+            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), header.Height);
 
             this.chunkDataBuffer[8] = header.BitDepth;
             this.chunkDataBuffer[9] = (byte)header.ColorType;
@@ -535,8 +502,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
                 int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
 
-                WriteInteger(this.chunkDataBuffer, 0, dpmX);
-                WriteInteger(this.chunkDataBuffer, 4, dpmY);
+                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), dpmX);
+                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), dpmY);
 
                 this.chunkDataBuffer[8] = 1;
 
@@ -552,14 +519,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (this.writeGamma)
             {
-                int gammaValue = (int)(this.gamma * 100000F);
+                // 4-byte unsigned integer of gamma * 100,000.
+                uint gammaValue = (uint)(this.gamma * 100_000F);
 
-                byte[] size = BitConverter.GetBytes(gammaValue);
-
-                this.chunkDataBuffer[0] = size[3];
-                this.chunkDataBuffer[1] = size[2];
-                this.chunkDataBuffer[2] = size[1];
-                this.chunkDataBuffer[3] = size[0];
+                BinaryPrimitives.WriteUInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), gammaValue);
 
                 this.WriteChunk(stream, PngChunkTypes.Gamma, this.chunkDataBuffer, 0, 4);
             }
@@ -591,15 +554,14 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             byte[] buffer;
             int bufferLength;
-            MemoryStream memoryStream = null;
-            try
+
+            using (var memoryStream = new MemoryStream())
             {
-                memoryStream = new MemoryStream();
                 using (var deflateStream = new ZlibDeflateStream(memoryStream, this.compressionLevel))
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y), y);
+                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y).AsReadOnlySpan(), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         IManagedByteBuffer temp = this.rawScanline;
@@ -610,10 +572,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 buffer = memoryStream.ToArray();
                 bufferLength = buffer.Length;
-            }
-            finally
-            {
-                memoryStream?.Dispose();
             }
 
             // Store the chunks in repeated 64k blocks.
@@ -668,7 +626,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="length">The of the data to write.</param>
         private void WriteChunk(Stream stream, string type, byte[] data, int offset, int length)
         {
-            WriteInteger(stream, length);
+            BinaryPrimitives.WriteInt32BigEndian(this.intBuffer, length);
+
+            stream.Write(this.intBuffer, 0, 4); // write the length
 
             this.chunkTypeBuffer[0] = (byte)type[0];
             this.chunkTypeBuffer[1] = (byte)type[1];
@@ -677,20 +637,20 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(this.chunkTypeBuffer, 0, 4);
 
-            if (data != null)
-            {
-                stream.Write(data, offset, length);
-            }
-
             this.crc.Reset();
+
             this.crc.Update(this.chunkTypeBuffer);
 
             if (data != null && length > 0)
             {
-                this.crc.Update(data, offset, length);
+                stream.Write(data, offset, length);
+
+                this.crc.Update(new ReadOnlySpan<byte>(data, offset, length));
             }
 
-            WriteInteger(stream, (uint)this.crc.Value);
+            BinaryPrimitives.WriteUInt32BigEndian(this.intBuffer, (uint)this.crc.Value);
+
+            stream.Write(this.intBuffer, 0, 4); // write the crc
         }
     }
 }

@@ -230,18 +230,36 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Verifies, that the `target` span has the length of 'minSpan', or longer.
+        /// Verifies, that the `source` span has the length of 'minSpan', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
-        /// <param name="target">The target span.</param>
+        /// <param name="source">The source span.</param>
         /// <param name="minLength">The minimum length.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="source"/> is true
         /// </exception>
-        public static void MustBeSizedAtLeast<T>(Span<T> target, int minLength, string parameterName)
+        public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> source, int minLength, string parameterName)
         {
-            if (target.Length < minLength)
+            if (source.Length < minLength)
+            {
+                throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
+            }
+        }
+
+        /// <summary>
+        /// Verifies, that the `source` span has the length of 'minSpan', or longer.
+        /// </summary>
+        /// <typeparam name="T">The element type of the spans</typeparam>
+        /// <param name="source">The target span.</param>
+        /// <param name="minLength">The minimum length.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="source"/> is true
+        /// </exception>
+        public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
+        {
+            if (source.Length < minLength)
             {
                 throw new ArgumentException($"Span-s must be at least of length {minLength}!", parameterName);
             }

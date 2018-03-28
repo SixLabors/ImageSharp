@@ -1,4 +1,4 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.Color
+﻿namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces
 {
     using BenchmarkDotNet.Attributes;
 

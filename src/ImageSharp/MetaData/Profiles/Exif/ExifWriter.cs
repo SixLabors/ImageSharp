@@ -20,277 +20,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         private const int StartIndex = 6;
 
         /// <summary>
-        /// The collection if Image File Directory tags
-        /// </summary>
-        private static readonly ExifTag[] IfdTags =
-        {
-            ExifTag.SubfileType,
-            ExifTag.OldSubfileType,
-            ExifTag.ImageWidth,
-            ExifTag.ImageLength,
-            ExifTag.BitsPerSample,
-            ExifTag.Compression,
-            ExifTag.PhotometricInterpretation,
-            ExifTag.Thresholding,
-            ExifTag.CellWidth,
-            ExifTag.CellLength,
-            ExifTag.FillOrder,
-            ExifTag.DocumentName,
-            ExifTag.ImageDescription,
-            ExifTag.Make,
-            ExifTag.Model,
-            ExifTag.StripOffsets,
-            ExifTag.Orientation,
-            ExifTag.SamplesPerPixel,
-            ExifTag.RowsPerStrip,
-            ExifTag.StripByteCounts,
-            ExifTag.MinSampleValue,
-            ExifTag.MaxSampleValue,
-            ExifTag.XResolution,
-            ExifTag.YResolution,
-            ExifTag.PlanarConfiguration,
-            ExifTag.PageName,
-            ExifTag.XPosition,
-            ExifTag.YPosition,
-            ExifTag.FreeOffsets,
-            ExifTag.FreeByteCounts,
-            ExifTag.GrayResponseUnit,
-            ExifTag.GrayResponseCurve,
-            ExifTag.T4Options,
-            ExifTag.T6Options,
-            ExifTag.ResolutionUnit,
-            ExifTag.PageNumber,
-            ExifTag.ColorResponseUnit,
-            ExifTag.TransferFunction,
-            ExifTag.Software,
-            ExifTag.DateTime,
-            ExifTag.Artist,
-            ExifTag.HostComputer,
-            ExifTag.Predictor,
-            ExifTag.WhitePoint,
-            ExifTag.PrimaryChromaticities,
-            ExifTag.ColorMap,
-            ExifTag.HalftoneHints,
-            ExifTag.TileWidth,
-            ExifTag.TileLength,
-            ExifTag.TileOffsets,
-            ExifTag.TileByteCounts,
-            ExifTag.BadFaxLines,
-            ExifTag.CleanFaxData,
-            ExifTag.ConsecutiveBadFaxLines,
-            ExifTag.InkSet,
-            ExifTag.InkNames,
-            ExifTag.NumberOfInks,
-            ExifTag.DotRange,
-            ExifTag.TargetPrinter,
-            ExifTag.ExtraSamples,
-            ExifTag.SampleFormat,
-            ExifTag.SMinSampleValue,
-            ExifTag.SMaxSampleValue,
-            ExifTag.TransferRange,
-            ExifTag.ClipPath,
-            ExifTag.XClipPathUnits,
-            ExifTag.YClipPathUnits,
-            ExifTag.Indexed,
-            ExifTag.JPEGTables,
-            ExifTag.OPIProxy,
-            ExifTag.ProfileType,
-            ExifTag.FaxProfile,
-            ExifTag.CodingMethods,
-            ExifTag.VersionYear,
-            ExifTag.ModeNumber,
-            ExifTag.Decode,
-            ExifTag.DefaultImageColor,
-            ExifTag.T82ptions,
-            ExifTag.JPEGProc,
-            ExifTag.JPEGInterchangeFormat,
-            ExifTag.JPEGInterchangeFormatLength,
-            ExifTag.JPEGRestartInterval,
-            ExifTag.JPEGLosslessPredictors,
-            ExifTag.JPEGPointTransforms,
-            ExifTag.JPEGQTables,
-            ExifTag.JPEGDCTables,
-            ExifTag.JPEGACTables,
-            ExifTag.YCbCrCoefficients,
-            ExifTag.YCbCrSubsampling,
-            ExifTag.YCbCrSubsampling,
-            ExifTag.YCbCrPositioning,
-            ExifTag.ReferenceBlackWhite,
-            ExifTag.StripRowCounts,
-            ExifTag.XMP,
-            ExifTag.Rating,
-            ExifTag.RatingPercent,
-            ExifTag.ImageID,
-            ExifTag.CFARepeatPatternDim,
-            ExifTag.CFAPattern2,
-            ExifTag.BatteryLevel,
-            ExifTag.Copyright,
-            ExifTag.MDFileTag,
-            ExifTag.MDScalePixel,
-            ExifTag.MDLabName,
-            ExifTag.MDSampleInfo,
-            ExifTag.MDPrepDate,
-            ExifTag.MDPrepTime,
-            ExifTag.MDFileUnits,
-            ExifTag.PixelScale,
-            ExifTag.IntergraphPacketData,
-            ExifTag.IntergraphRegisters,
-            ExifTag.IntergraphMatrix,
-            ExifTag.ModelTiePoint,
-            ExifTag.SEMInfo,
-            ExifTag.ModelTransform,
-            ExifTag.ImageLayer,
-            ExifTag.FaxRecvParams,
-            ExifTag.FaxSubaddress,
-            ExifTag.FaxRecvTime,
-            ExifTag.ImageSourceData,
-            ExifTag.XPTitle,
-            ExifTag.XPComment,
-            ExifTag.XPAuthor,
-            ExifTag.XPKeywords,
-            ExifTag.XPSubject,
-            ExifTag.GDALMetadata,
-            ExifTag.GDALNoData
-        };
-
-        /// <summary>
-        /// The collection of Exif tags
-        /// </summary>
-        private static readonly ExifTag[] ExifTags =
-        {
-            ExifTag.ExposureTime,
-            ExifTag.FNumber,
-            ExifTag.ExposureProgram,
-            ExifTag.SpectralSensitivity,
-            ExifTag.ISOSpeedRatings,
-            ExifTag.OECF,
-            ExifTag.Interlace,
-            ExifTag.TimeZoneOffset,
-            ExifTag.SelfTimerMode,
-            ExifTag.SensitivityType,
-            ExifTag.StandardOutputSensitivity,
-            ExifTag.RecommendedExposureIndex,
-            ExifTag.ISOSpeed,
-            ExifTag.ISOSpeedLatitudeyyy,
-            ExifTag.ISOSpeedLatitudezzz,
-            ExifTag.ExifVersion,
-            ExifTag.DateTimeOriginal,
-            ExifTag.DateTimeDigitized,
-            ExifTag.OffsetTime,
-            ExifTag.OffsetTimeOriginal,
-            ExifTag.OffsetTimeDigitized,
-            ExifTag.ComponentsConfiguration,
-            ExifTag.CompressedBitsPerPixel,
-            ExifTag.ShutterSpeedValue,
-            ExifTag.ApertureValue,
-            ExifTag.BrightnessValue,
-            ExifTag.ExposureBiasValue,
-            ExifTag.MaxApertureValue,
-            ExifTag.SubjectDistance,
-            ExifTag.MeteringMode,
-            ExifTag.LightSource,
-            ExifTag.Flash,
-            ExifTag.FocalLength,
-            ExifTag.FlashEnergy2,
-            ExifTag.SpatialFrequencyResponse2,
-            ExifTag.Noise,
-            ExifTag.FocalPlaneXResolution2,
-            ExifTag.FocalPlaneYResolution2,
-            ExifTag.FocalPlaneResolutionUnit2,
-            ExifTag.ImageNumber,
-            ExifTag.SecurityClassification,
-            ExifTag.ImageHistory,
-            ExifTag.SubjectArea,
-            ExifTag.ExposureIndex2,
-            ExifTag.TIFFEPStandardID,
-            ExifTag.SensingMethod2,
-            ExifTag.MakerNote,
-            ExifTag.UserComment,
-            ExifTag.SubsecTime,
-            ExifTag.SubsecTimeOriginal,
-            ExifTag.SubsecTimeDigitized,
-            ExifTag.AmbientTemperature,
-            ExifTag.Humidity,
-            ExifTag.Pressure,
-            ExifTag.WaterDepth,
-            ExifTag.Acceleration,
-            ExifTag.CameraElevationAngle,
-            ExifTag.FlashpixVersion,
-            ExifTag.ColorSpace,
-            ExifTag.PixelXDimension,
-            ExifTag.PixelYDimension,
-            ExifTag.RelatedSoundFile,
-            ExifTag.FlashEnergy,
-            ExifTag.SpatialFrequencyResponse,
-            ExifTag.FocalPlaneXResolution,
-            ExifTag.FocalPlaneYResolution,
-            ExifTag.FocalPlaneResolutionUnit,
-            ExifTag.SubjectLocation,
-            ExifTag.ExposureIndex,
-            ExifTag.SensingMethod,
-            ExifTag.FileSource,
-            ExifTag.SceneType,
-            ExifTag.CFAPattern,
-            ExifTag.CustomRendered,
-            ExifTag.ExposureMode,
-            ExifTag.WhiteBalance,
-            ExifTag.DigitalZoomRatio,
-            ExifTag.FocalLengthIn35mmFilm,
-            ExifTag.SceneCaptureType,
-            ExifTag.GainControl,
-            ExifTag.Contrast,
-            ExifTag.Saturation,
-            ExifTag.Sharpness,
-            ExifTag.DeviceSettingDescription,
-            ExifTag.SubjectDistanceRange,
-            ExifTag.ImageUniqueID,
-            ExifTag.OwnerName,
-            ExifTag.SerialNumber,
-            ExifTag.LensInfo,
-            ExifTag.LensMake,
-            ExifTag.LensModel,
-            ExifTag.LensSerialNumber
-          };
-
-        /// <summary>
-        /// The collection of GPS tags
-        /// </summary>
-        private static readonly ExifTag[] GPSTags =
-        {
-            ExifTag.GPSVersionID,
-            ExifTag.GPSLatitudeRef,
-            ExifTag.GPSLatitude,
-            ExifTag.GPSLongitudeRef,
-            ExifTag.GPSLongitude,
-            ExifTag.GPSAltitudeRef,
-            ExifTag.GPSAltitude,
-            ExifTag.GPSTimestamp,
-            ExifTag.GPSSatellites,
-            ExifTag.GPSStatus,
-            ExifTag.GPSMeasureMode,
-            ExifTag.GPSDOP,
-            ExifTag.GPSSpeedRef,
-            ExifTag.GPSSpeed,
-            ExifTag.GPSTrackRef,
-            ExifTag.GPSTrack,
-            ExifTag.GPSImgDirectionRef,
-            ExifTag.GPSImgDirection,
-            ExifTag.GPSMapDatum,
-            ExifTag.GPSDestLatitudeRef,
-            ExifTag.GPSDestLatitude,
-            ExifTag.GPSDestLongitudeRef,
-            ExifTag.GPSDestLongitude,
-            ExifTag.GPSDestBearingRef,
-            ExifTag.GPSDestBearing,
-            ExifTag.GPSDestDistanceRef,
-            ExifTag.GPSDestDistance,
-            ExifTag.GPSProcessingMethod,
-            ExifTag.GPSAreaInformation,
-            ExifTag.GPSDateStamp,
-            ExifTag.GPSDifferential
-        };
-
-        /// <summary>
         /// Which parts will be written.
         /// </summary>
         private ExifParts allowedParts;
@@ -309,9 +38,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             this.values = values;
             this.allowedParts = allowedParts;
-            this.ifdIndexes = this.GetIndexes(ExifParts.IfdTags, IfdTags);
-            this.exifIndexes = this.GetIndexes(ExifParts.ExifTags, ExifTags);
-            this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, GPSTags);
+            this.ifdIndexes = this.GetIndexes(ExifParts.IfdTags, ExifTags.Ifd);
+            this.exifIndexes = this.GetIndexes(ExifParts.ExifTags, ExifTags.Exif);
+            this.gpsIndexes = this.GetIndexes(ExifParts.GPSTags, ExifTags.Gps);
         }
 
         /// <summary>
@@ -430,14 +159,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newIndex;
         }
 
-        private Collection<int> GetIndexes(ExifParts part, ExifTag[] tags)
+        private List<int> GetIndexes(ExifParts part, ExifTag[] tags)
         {
             if (((int)this.allowedParts & (int)part) == 0)
             {
                 return new Collection<int>();
             }
 
-            var result = new Collection<int>();
+            var result = new List<int>();
             for (int i = 0; i < this.values.Count; i++)
             {
                 ExifValue value = this.values[i];

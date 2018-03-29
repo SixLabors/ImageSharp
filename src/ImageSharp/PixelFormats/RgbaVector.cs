@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
     /// The color components are stored in red, green, blue, and alpha order.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
+    /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
     /// <remarks>

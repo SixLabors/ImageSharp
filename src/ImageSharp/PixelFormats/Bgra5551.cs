@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing unsigned normalized values ranging from 0 to 1. The x , y and z components use 5 bits, and the w component uses 1 bit.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;1, 1, 1, 1&gt; in vector form.
+    /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
     public struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>

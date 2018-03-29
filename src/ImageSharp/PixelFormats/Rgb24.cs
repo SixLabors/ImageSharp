@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Pixel type containing three 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue order.
+    /// <para>
+    /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
+    /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Rgb24 : IPixel<Rgb24>

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -11,6 +10,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Pixel type containing three 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in blue, green, red order.
+    /// <para>
+    /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
+    /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Bgr24 : IPixel<Bgr24>

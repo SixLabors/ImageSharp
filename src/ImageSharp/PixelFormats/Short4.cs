@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing four 16-bit signed integer values.
     /// <para>
-    /// Ranges from &lt;-37267, -37267, -37267, -37267&gt; to &lt;37267, 37267, 37267, 37267&gt; in vector form.
+    /// Ranges from [-37267, -37267, -37267, -37267] to [37267, 37267, 37267, 37267] in vector form.
     /// </para>
     /// </summary>
     public struct Short4 : IPixel<Short4>, IPackedVector<ulong>

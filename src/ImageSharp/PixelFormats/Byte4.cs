@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;255, 255, 255, 255&gt; in vector form.
+    /// Ranges from [0, 0, 0, 0] to [255, 255, 255, 255] in vector form.
     /// </para>
     /// </summary>
     public struct Byte4 : IPixel<Byte4>, IPackedVector<uint>

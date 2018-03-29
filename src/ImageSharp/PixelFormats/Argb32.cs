@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations<Argb32>();
 
-                /// <inheritdoc/>
+        /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromScaledVector4(Vector4 vector)
         {

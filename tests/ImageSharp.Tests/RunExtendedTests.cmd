@@ -1,3 +1,4 @@
+dotnet build -c Release
 dotnet xunit -nobuild -c Release -f net462
 dotnet xunit -nobuild -c Release -f net462 -x86
 dotnet xunit -nobuild -c Release -f net47

@@ -691,8 +691,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>The <see cref="string"/></returns>
         private string ToString(object value)
         {
-            string description = ExifTagDescriptionAttribute.GetDescription(this.Tag, value);
-            if (description != null)
+            if (ExifTagDescriptionAttribute.GetDescription(this.Tag, value) is string description)
             {
                 return description;
             }

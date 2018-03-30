@@ -427,10 +427,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             if (this.isExif)
             {
-                ExifValue horizontal = this.MetaData.ExifProfile.GetValue(ExifTag.XResolution);
-                ExifValue vertical = this.MetaData.ExifProfile.GetValue(ExifTag.YResolution);
-                double horizontalValue = horizontal != null ? ((Rational)horizontal.Value).ToDouble() : 0;
-                double verticalValue = vertical != null ? ((Rational)vertical.Value).ToDouble() : 0;
+                double horizontalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out var horizonalTag)
+                    ? ((Rational)horizonalTag.Value).ToDouble() 
+                    : 0;
+
+                double verticalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.YResolution, out var verticalTag)
+                    ? ((Rational)verticalTag.Value).ToDouble() 
+                    : 0;
 
                 if (horizontalValue > 0 && verticalValue > 0)
                 {

@@ -41,10 +41,18 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="simplify">Specified if the rational should be simplified.</param>
         public Rational(uint numerator, uint denominator, bool simplify)
         {
-            var rational = new LongRational(numerator, denominator, simplify);
+            if (simplify)
+            {
+                LongRational rational = new LongRational(numerator, denominator).Simplify();
 
-            this.Numerator = (uint)rational.Numerator;
-            this.Denominator = (uint)rational.Denominator;
+                this.Numerator = (uint)rational.Numerator;
+                this.Denominator = (uint)rational.Denominator;
+            }
+            else
+            {
+                this.Numerator = numerator;
+                this.Denominator = denominator;
+            }
         }
 
         /// <summary>
@@ -63,7 +71,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
         public Rational(double value, bool bestPrecision)
         {
-            var rational = new LongRational(Math.Abs(value), bestPrecision);
+            var rational = LongRational.FromDouble(Math.Abs(value), bestPrecision);
 
             this.Numerator = (uint)rational.Numerator;
             this.Denominator = (uint)rational.Denominator;

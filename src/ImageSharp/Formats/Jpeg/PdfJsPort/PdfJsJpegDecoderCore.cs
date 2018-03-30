@@ -380,12 +380,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             if (this.isExif)
             {
-                double horizontalValue = image.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out var horizontalTag)
-                    ? ((Rational)horizontalTag.Value).ToDouble() 
+                double horizontalValue = image.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizontalTag)
+                    ? ((Rational)horizontalTag.Value).ToDouble()
                     : 0;
 
-                double verticalValue = image.MetaData.ExifProfile.TryGetValue(ExifTag.YResolution, out var verticalTag)
-                    ? ((Rational)verticalTag.Value).ToDouble() 
+                double verticalValue = image.MetaData.ExifProfile.TryGetValue(ExifTag.YResolution, out ExifValue verticalTag)
+                    ? ((Rational)verticalTag.Value).ToDouble()
                     : 0;
 
                 if (horizontalValue > 0 && verticalValue > 0)

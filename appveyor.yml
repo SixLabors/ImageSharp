@@ -13,6 +13,9 @@ build_script:
 
 test_script:
 - tests\CodeCoverage\CodeCoverage.cmd
+- cmd: cd .\tests\ImageSharp.Tests
+- .\RunExtendedTests.cmd
+
 
 after_test:
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%APPVEYOR_BUILD_VERSION%.nupkg"

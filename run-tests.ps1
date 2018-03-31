@@ -13,7 +13,16 @@ if ( ($targetFramework -eq "netcoreapp2.0") -and ($env:CI -eq "True") -and ($is3
     $testRunnerCmd = ".\tests\CodeCoverage\CodeCoverage.cmd"
 }
 elseif ($targetFramework -eq "mono") {
-    $testRunnerCmd = "Write-Host '**** placeholder for mono test execution ****'"
+    $testDllPath = "$PSScriptRoot\tests\ImageSharp.Tests\bin\Release\net462\SixLabors.ImageSharp.Tests.dll"
+    cd "$env:HOMEPATH\.nuget\packages\xunit.runner.console\2.3.1\tools\net452\"
+    if ($is32Bit -ne "True") {
+        $monoPath = "$env:PROGRAMFILES\Mono\bin\mono.exe"
+    }
+    else {
+        $monoPath = "${env:ProgramFiles(x86)}\Mono\bin\mono.exe"
+    }
+    
+    $testRunnerCmd = '"$monoPath" .\xunit.console.exe $testDllPath'
 }
 else {
     cd .\tests\ImageSharp.Tests

@@ -97,6 +97,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return ImageComparer.Tolerant(tolerance);
         }
 
+        private static bool SkipTest(ITestImageProvider provider)
+        {
+            string[] largeImagesToSkipOn32Bit =
+                {
+                    TestImages.Jpeg.Baseline.Jpeg420Exif,
+                    TestImages.Jpeg.Issues.BadZigZagProgressive385
+                };
+
+            return TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess
+                                            && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
+        }
+
         public JpegDecoderTests(ITestOutputHelper output)
         {
             this.Output = output;
@@ -129,6 +141,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, bool useOldDecoder)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (SkipTest(provider))
+            {
+                return;
+            }
+
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
@@ -149,6 +166,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (SkipTest(provider))
+            {
+                return;
+            }
+
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
@@ -170,8 +192,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                // skipping to avoid OutOfMemoryException on CI
+                return;
+            }
 
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
@@ -183,8 +208,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     provider,
                     appendPixelTypeToFileName: false);
             }
-
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -203,6 +226,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (SkipTest(provider))
+            {
+                return;
+            }
+
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
@@ -225,8 +253,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                // skipping to avoid OutOfMemoryException on CI
+                return;
+            }
 
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
@@ -238,8 +269,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     provider,
                     appendPixelTypeToFileName: false);
             }
-
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         private string GetDifferenceInPercentageString<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
@@ -291,12 +320,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CompareJpegDecoders_Baseline<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
-
             this.CompareJpegDecodersImpl(provider, DecodeBaselineJpegOutputName);
-
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -304,12 +328,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CompareJpegDecoders_Progressive<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
-
             this.CompareJpegDecodersImpl(provider, DecodeProgressiveJpegOutputName);
-
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]

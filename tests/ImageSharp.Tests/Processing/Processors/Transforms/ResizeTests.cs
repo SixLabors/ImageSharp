@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.01f);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001f);
 
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>

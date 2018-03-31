@@ -19,7 +19,9 @@ namespace SixLabors.ImageSharp.Tests
     {
         PixelTypes PixelType { get; }
         ImagingTestCaseUtility Utility { get; }
+        string SourceFileOrDescription { get; }
     }
+
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>

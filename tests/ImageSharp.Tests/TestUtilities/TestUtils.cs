@@ -165,6 +165,10 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.Tolerant(0.5f / 100);
+            }
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(process);
@@ -173,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests
                 // TODO: Investigate the cause of pixel inaccuracies under Linux
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToReferenceOutput(provider, testOutputDetails);
+                    image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
                 }
             }
         }

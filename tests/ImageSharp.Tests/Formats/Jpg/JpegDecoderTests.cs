@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(provider, ImageComparer.Tolerant(BaselineTolerance_PdfJs), appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance_PdfJs), provider, appendPixelTypeToFileName: false);
             }
         }
 
@@ -148,8 +148,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     this.GetImageComparerForOrigDecoder(provider),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
         }
@@ -165,8 +165,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     ImageComparer.Tolerant(BaselineTolerance_PdfJs),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
         }
@@ -193,8 +193,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     this.GetImageComparerForOrigDecoder(provider),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
         }
@@ -210,8 +210,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     ImageComparer.Tolerant(ProgressiveTolerance_PdfJs),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
         }

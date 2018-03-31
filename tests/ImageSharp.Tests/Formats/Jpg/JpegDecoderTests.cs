@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+    using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -128,6 +129,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, bool useOldDecoder)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             IImageDecoder decoder = useOldDecoder ? OrigJpegDecoder : PdfJsJpegDecoder;
             using (Image<TPixel> image = provider.GetImage(decoder))
             {
@@ -136,6 +140,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance_PdfJs), provider, appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -143,6 +149,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
@@ -152,6 +161,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     provider,
                     appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -159,6 +170,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
@@ -169,6 +183,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     provider,
                     appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -187,6 +203,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
@@ -197,6 +216,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     provider,
                     appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -204,6 +225,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
@@ -214,6 +238,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     provider,
                     appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         private string GetDifferenceInPercentageString<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)
@@ -265,7 +291,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CompareJpegDecoders_Baseline<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             this.CompareJpegDecodersImpl(provider, DecodeBaselineJpegOutputName);
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -273,7 +304,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void CompareJpegDecoders_Progressive<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             this.CompareJpegDecodersImpl(provider, DecodeProgressiveJpegOutputName);
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]

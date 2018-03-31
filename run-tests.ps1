@@ -26,10 +26,10 @@ elseif ($targetFramework -eq "mono") {
 }
 else {
     cd .\tests\ImageSharp.Tests
-    $xunitArgs = "-c Release -framework $targetFramework"
+    $xunitArgs = "-nobuild -c Release -framework $targetFramework"
 
     if ($targetFramework -eq "netcoreapp2.0") {
-        # There are issues matching the correct installed runtime if we do not specify it explicitly:
+        # There were issues matching the correct installed runtime if we do not specify it explicitly:
         $xunitArgs += " --fx-version 2.0.0"
     }
 

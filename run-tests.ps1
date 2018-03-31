@@ -47,3 +47,5 @@ Write-Host "..."
 Invoke-Expression $testRunnerCmd
 
 cd $PSScriptRoot
+
+exit $LASTEXITCODE

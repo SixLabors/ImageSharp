@@ -31,6 +31,11 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [Fact]
             public void ToVector4SimdAligned()
             {
+                if (!Vector.IsHardwareAccelerated)
+                {
+                    return;
+                }
+
                 ImageSharp.PixelFormats.Rgba32[] source = CreatePixelTestData(64);
                 Vector4[] expected = CreateExpectedVector4Data(source);
 

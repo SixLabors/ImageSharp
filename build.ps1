@@ -100,12 +100,16 @@ dotnet build -c Release /p:packageversion=$version
 
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
-if ( $env:CI -ne "True") {
-    cd ./tests/ImageSharp.Tests/
-    dotnet xunit -nobuild -c Release -f netcoreapp2.0 --fx-version 2.0.0
-    ./RunExtendedTests.cmd
-    cd ../..
-}
+#
+# TODO: DO WE NEED TO RUN TESTS IMPLICITLY?
+#
+# if ( $env:CI -ne "True") {
+#     cd ./tests/ImageSharp.Tests/
+#     dotnet xunit -nobuild -c Release -f netcoreapp2.0 --fx-version 2.0.0
+#     ./RunExtendedTests.cmd
+#     cd ../..
+# }
+#
 
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 

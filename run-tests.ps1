@@ -8,6 +8,13 @@ if (!$targetFramework){
     exit 1
 }
 
+function VerifyPath($path, $errorMessage) {
+    if (!(Test-Path -Path $path)) {
+        Write-Host "run-tests.ps1 $errorMessage `n $xunitRunnerPath"
+        exit 1
+    }
+}
+
 if ( ($targetFramework -eq "netcoreapp2.0") -and ($env:CI -eq "True") -and ($is32Bit -ne "True")) {
     # We execute CodeCoverage.cmd only for one specific job on CI (netcoreapp2.0 + 64bit )
     $testRunnerCmd = ".\tests\CodeCoverage\CodeCoverage.cmd"
@@ -25,19 +32,25 @@ elseif ($targetFramework -eq "mono") {
     $testRunnerCmd = '"$monoPath" .\xunit.console.exe $testDllPath'
 }
 else {
-    cd .\tests\ImageSharp.Tests
-    $xunitArgs = "-nobuild -c Release -framework $targetFramework"
+    $testDllPath = "${PSScriptRoot}\AppVeyorDotnetSandbox\bin\Release\net461\AppVeyorDotnetSandbox.dll"
+    VerifyPath($testDllPath, "test dll missing:")
 
-    if ($targetFramework -eq "netcoreapp2.0") {
-        # There were issues matching the correct installed runtime if we do not specify it explicitly:
-        $xunitArgs += " --fx-version 2.0.0"
+    $xunitRunnerPath = "${env:HOMEPATH}\.nuget\packages\xunit.runner.console\2.3.1\tools\net452\"
+    
+    VerifyPath($xunitRunnerPath, "xunit console runner is missing on path:")
+    
+    cd "$xunitRunnerPath"
+
+    if ($is32Bit -ne "True") {
+        $monoPath = "${env:PROGRAMFILES}\Mono\bin\mono.exe"
+    }
+    else {
+        $monoPath = "${env:ProgramFiles(x86)}\Mono\bin\mono.exe"
     }
 
-    if ($is32Bit -eq "True") {
-        $xunitArgs += " -x86"
-    }
-
-    $testRunnerCmd = "dotnet xunit $xunitArgs"
+    VerifyPath($monoPath, "mono runtime missing:")
+    
+    $testRunnerCmd = "& `"${monoPath}`" .\xunit.console.exe `"${testDllPath}`""
 }
 
 Write-Host "running:"

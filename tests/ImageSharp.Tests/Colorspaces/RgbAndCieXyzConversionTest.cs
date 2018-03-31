@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class RgbAndCieXyzConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(6);
+        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(5);
 
         private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
 
@@ -42,10 +42,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb output = converter.ToRgb(input);
 
             // Assert
+
+            IEqualityComparer<float> comparer = TestEnvironment.Is64BitProcess ? FloatRoundingComparer : new FloatRoundingComparer(4);
+
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
-            Assert.Equal(r, output.R, FloatRoundingComparer);
-            Assert.Equal(g, output.G, FloatRoundingComparer);
-            Assert.Equal(b, output.B, FloatRoundingComparer);
+            Assert.Equal(r, output.R, comparer);
+            Assert.Equal(g, output.G, comparer);
+            Assert.Equal(b, output.B, comparer);
         }
 
         /// <summary>
@@ -95,11 +98,12 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
-
+            
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(z, output.Z, FloatRoundingComparer);
+            IEqualityComparer<float> comparer = TestEnvironment.Is64BitProcess ? FloatRoundingComparer : new FloatRoundingComparer(4);
+            Assert.Equal(x, output.X, comparer);
+            Assert.Equal(y, output.Y, comparer);
+            Assert.Equal(z, output.Z, comparer);
         }
 
         /// <summary>

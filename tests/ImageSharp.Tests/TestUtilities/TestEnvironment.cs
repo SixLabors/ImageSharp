@@ -95,6 +95,8 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
+        internal static bool Is64BitProcess => IntPtr.Size == 8;
+
         /// <summary>
         /// Creates the image output directory.
         /// </summary>

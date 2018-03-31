@@ -124,6 +124,12 @@ namespace SixLabors.ImageSharp.Tests
                 // Does DebugSave & load reference CompareToReferenceInput():
                 string actualOutputFile = ((ITestImageProvider)provider).Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 
+                if (TestEnvironment.IsMono)
+                {
+                    // There are bugs in mono's System.Drawing implementation, reference decoders are not always reliable!
+                    return;
+                }
+
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
                 string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", debugInfo, appendPixelType);
 

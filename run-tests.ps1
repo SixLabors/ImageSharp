@@ -21,18 +21,6 @@ if ( ($targetFramework -eq "netcoreapp2.0") -and ($env:CI -eq "True") -and ($is3
 }
 elseif ($targetFramework -eq "mono") {
     $testDllPath = "$PSScriptRoot\tests\ImageSharp.Tests\bin\Release\net462\SixLabors.ImageSharp.Tests.dll"
-    cd "$env:HOMEPATH\.nuget\packages\xunit.runner.console\2.3.1\tools\net452\"
-    if ($is32Bit -ne "True") {
-        $monoPath = "$env:PROGRAMFILES\Mono\bin\mono.exe"
-    }
-    else {
-        $monoPath = "${env:ProgramFiles(x86)}\Mono\bin\mono.exe"
-    }
-    
-    $testRunnerCmd = '"$monoPath" .\xunit.console.exe $testDllPath'
-}
-else {
-    $testDllPath = "${PSScriptRoot}\AppVeyorDotnetSandbox\bin\Release\net461\AppVeyorDotnetSandbox.dll"
     VerifyPath($testDllPath, "test dll missing:")
 
     $xunitRunnerPath = "${env:HOMEPATH}\.nuget\packages\xunit.runner.console\2.3.1\tools\net452\"
@@ -51,6 +39,21 @@ else {
     VerifyPath($monoPath, "mono runtime missing:")
     
     $testRunnerCmd = "& `"${monoPath}`" .\xunit.console.exe `"${testDllPath}`""
+}
+else {
+    cd .\tests\ImageSharp.Tests
+    $xunitArgs = "-nobuild -c Release -framework $targetFramework"
+
+    if ($targetFramework -eq "netcoreapp2.0") {
+        # There were issues matching the correct installed runtime if we do not specify it explicitly:
+        $xunitArgs += " --fx-version 2.0.0"
+    }
+
+    if ($is32Bit -eq "True") {
+        $xunitArgs += " -x86"
+    }
+
+    $testRunnerCmd = "dotnet xunit $xunitArgs"
 }
 
 Write-Host "running:"

@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             if (comparer == null)
             {
-                comparer = ImageComparer.Tolerant(0.5f / 100);
+                comparer = ImageComparer.TolerantPercentage(0.001f);
             }
 
             using (Image<TPixel> image = provider.GetImage())
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             if (comparer == null)
             {
-                comparer = ImageComparer.Tolerant(0.5f / 100);
+                comparer = ImageComparer.TolerantPercentage(0.001f);
             }
 
             using (Image<TPixel> image = provider.GetImage())

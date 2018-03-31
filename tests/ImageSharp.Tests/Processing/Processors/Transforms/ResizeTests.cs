@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001f);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f);
 
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 string details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
-                image.CompareToReferenceOutput(ValidatorComparer, provider, details);
+                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.005f), provider, details);
             }
         }
 

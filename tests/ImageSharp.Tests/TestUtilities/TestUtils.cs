@@ -169,6 +169,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 comparer = ImageComparer.Tolerant(0.5f / 100);
             }
+
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(process);
@@ -192,12 +193,17 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.Tolerant(0.5f / 100);
+            }
+
             using (Image<TPixel> image = provider.GetImage())
             {
                 var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
                 image.Mutate(x => process(x, bounds));
                 image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(provider, testOutputDetails);
+                image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
             }
         }
 

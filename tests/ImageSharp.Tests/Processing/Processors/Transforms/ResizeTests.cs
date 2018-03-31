@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
 
-        private static readonly ImageComparer ResizeValidatorComparer = ImageComparer.Tolerant(0.01f / 100);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.01f);
 
         public static readonly TheoryData<string, IResampler> AllReSamplers =
             new TheoryData<string, IResampler>
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 string details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider, details);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, details);
             }
         }
 
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(image.Size() / 2, true));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2, true));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(image.Width, image.Height, KnownResamplers.Bicubic, sourceRectangle, destRectangle, false));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(image.Width / 3, 0, false));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(0, image.Height / 3, false));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -251,7 +251,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.Mutate(x => x.Resize(options));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ResizeValidatorComparer, provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 

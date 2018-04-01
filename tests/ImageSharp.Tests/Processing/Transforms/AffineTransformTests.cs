@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     {
         private readonly ITestOutputHelper Output;
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
 
         /// <summary>
         /// angleDeg, sx, sy, tx, ty

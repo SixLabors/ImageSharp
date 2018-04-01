@@ -97,11 +97,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         internal static TPixel[] CreateExpectedPixelData(Vector4[] source)
         {
-            TPixel[] expected = new TPixel[source.Length];
+            var expected = new TPixel[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
                 expected[i].PackFromVector4(source[i]);
+            }
+            return expected;
+        }
+
+        internal static TPixel[] CreateScaledExpectedPixelData(Vector4[] source)
+        {
+            var expected = new TPixel[source.Length];
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                expected[i].PackFromScaledVector4(source[i]);
             }
             return expected;
         }
@@ -120,13 +131,38 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             );
         }
 
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackFromScaledVector4(int count)
+        {
+            Vector4[] source = CreateVector4TestData(count);
+            TPixel[] expected = CreateScaledExpectedPixelData(source);
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.PackFromScaledVector4(s, d.Span, count)
+            );
+        }
+
         internal static Vector4[] CreateExpectedVector4Data(TPixel[] source)
         {
-            Vector4[] expected = new Vector4[source.Length];
+            var expected = new Vector4[source.Length];
 
             for (int i = 0; i < expected.Length; i++)
             {
                 expected[i] = source[i].ToVector4();
+            }
+            return expected;
+        }
+
+        internal static Vector4[] CreateExpectedScaledVector4Data(TPixel[] source)
+        {
+            var expected = new Vector4[source.Length];
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                expected[i] = source[i].ToScaledVector4();
             }
             return expected;
         }
@@ -145,13 +181,26 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             );
         }
 
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToScaledVector4(int count)
+        {
+            TPixel[] source = CreateScaledPixelTestData(count);
+            Vector4[] expected = CreateExpectedScaledVector4Data(source);
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToScaledVector4(s, d.Span, count)
+            );
+        }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
         public void PackFromXyzBytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
-            TPixel[] expected = new TPixel[count];
+            var expected = new TPixel[count];
 
             for (int i = 0; i < count; i++)
             {
@@ -196,7 +245,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void PackFromXyzwBytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
-            TPixel[] expected = new TPixel[count];
+            var expected = new TPixel[count];
 
             for (int i = 0; i < count; i++)
             {
@@ -242,7 +291,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void PackFromZyxBytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
-            TPixel[] expected = new TPixel[count];
+            var expected = new TPixel[count];
 
             for (int i = 0; i < count; i++)
             {
@@ -287,7 +336,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void PackFromZyxwBytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
-            TPixel[] expected = new TPixel[count];
+            var expected = new TPixel[count];
 
             for (int i = 0; i < count; i++)
             {
@@ -336,7 +385,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             public TSource[] SourceBuffer { get; }
             public IBuffer<TDest> ActualDestBuffer { get; }
             public TDest[] ExpectedDestBuffer { get; }
-            
+
             public TestBuffers(TSource[] source, TDest[] expectedDest)
             {
                 this.SourceBuffer = source;
@@ -357,7 +406,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDest) == typeof(Vector4))
                 {
-                    
+
                     Span<Vector4> expected = this.ExpectedDestBuffer.AsSpan().NonPortableCast<TDest, Vector4>();
                     Span<Vector4> actual = this.ActualDestBuffer.Span.NonPortableCast<TDest, Vector4>();
 
@@ -396,7 +445,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         internal static Vector4[] CreateVector4TestData(int length)
         {
-            Vector4[] result = new Vector4[length];
+            var result = new Vector4[length];
             var rnd = new Random(42); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
@@ -408,7 +457,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         internal static TPixel[] CreatePixelTestData(int length)
         {
-            TPixel[] result = new TPixel[length];
+            var result = new TPixel[length];
 
             var rnd = new Random(42); // Deterministic random values
 
@@ -416,6 +465,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
                 Vector4 v = GetVector(rnd);
                 result[i].PackFromVector4(v);
+            }
+
+            return result;
+        }
+
+        internal static TPixel[] CreateScaledPixelTestData(int length)
+        {
+            var result = new TPixel[length];
+
+            var rnd = new Random(42); // Deterministic random values
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                Vector4 v = GetVector(rnd);
+                result[i].PackFromScaledVector4(v);
             }
 
             return result;

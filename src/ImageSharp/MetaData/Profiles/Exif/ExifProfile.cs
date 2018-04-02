@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <summary>
-        /// Conditionally the value of the tag if it exists.
+        /// Conditionally returns the value of the tag if it exists.
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
         /// <param name="value">The value of the tag, if found.</param>

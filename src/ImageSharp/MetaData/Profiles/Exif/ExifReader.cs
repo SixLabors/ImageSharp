@@ -6,7 +6,6 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
@@ -39,7 +38,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets the invalid tags.
         /// </summary>
-        public IList<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
 
         /// <summary>
         /// Gets the thumbnail length in the byte stream
@@ -147,9 +146,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             string result = Encoding.UTF8.GetString(bytes, 0, buffer.Length);
 
 #else
-            byte* pointer = (byte*)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            string result;
 
-            string result = Encoding.UTF8.GetString(pointer, buffer.Length);
+            fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
+            {
+                result = Encoding.UTF8.GetString(pointer, buffer.Length);
+            }
 #endif
             int nullCharIndex = result.IndexOf('\0');
             if (nullCharIndex != -1)

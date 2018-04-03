@@ -94,6 +94,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(MaxPooledBufferSizeInBytes + 1)]
         public void LargeBuffersAreNotPooled_OfByte(int size)
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // can lead to OutOfMemoryException
+                return;
+            }
+
             Assert.False(this.CheckIsRentingPooledBuffer<byte>(size));
         }
 
@@ -108,6 +114,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public unsafe void LaregeBuffersAreNotPooled_OfBigValueType()
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // can lead to OutOfMemoryException
+                return;
+            }
+
             int count = MaxPooledBufferSizeInBytes / sizeof(LargeStruct) + 1;
 
             Assert.False(this.CheckIsRentingPooledBuffer<LargeStruct>(count));
@@ -161,6 +173,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void AllocationOverLargeArrayThreshold_UsesDifferentPool()
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // can lead to OutOfMemoryException
+                return;
+            }
+
             int arrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
 
             IBuffer<int> small = this.MemoryManager.Allocate<int>(arrayLengthThreshold - 1);
@@ -175,6 +193,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateWithAggressivePooling()
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // can lead to OutOfMemoryException
+                return;
+            }
+
             this.MemoryManager = ArrayPoolMemoryManager.CreateWithAggressivePooling();
 
             Assert.True(this.CheckIsRentingPooledBuffer<Rgba32>(4096 * 4096));
@@ -183,6 +207,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateDefault()
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // can lead to OutOfMemoryException
+                return;
+            }
+
             this.MemoryManager = ArrayPoolMemoryManager.CreateDefault();
 
             Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2 * 4096 * 4096));
@@ -192,6 +222,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateWithModeratePooling()
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // can lead to OutOfMemoryException
+                return;
+            }
+
             this.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
             Assert.False(this.CheckIsRentingPooledBuffer<Rgba32>(2048 * 2048));

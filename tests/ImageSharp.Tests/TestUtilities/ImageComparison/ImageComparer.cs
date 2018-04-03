@@ -25,6 +25,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             return new TolerantImageComparer(imageThreshold, perPixelManhattanThreshold);
         }
 
+        /// <summary>
+        /// Returns Tolerant(imageThresholdInPercents/100)
+        /// </summary>
+        public static ImageComparer TolerantPercentage(float imageThresholdInPercents,
+                                                       int perPixelManhattanThreshold = 0) =>
+            Tolerant(imageThresholdInPercents / 100f, perPixelManhattanThreshold);
+
         public abstract ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
             ImageFrame<TPixelA> expected,
             ImageFrame<TPixelB> actual)

@@ -33,13 +33,14 @@ namespace SixLabors.ImageSharp.Tests
             float xp = (float)Math.Round(x, this.Precision, MidpointRounding.AwayFromZero);
             float yp = (float)Math.Round(y, this.Precision, MidpointRounding.AwayFromZero);
 
-            return Comparer<float>.Default.Compare(xp, yp) == 0;
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            return xp == yp;
         }
 
         /// <inheritdoc />
         public bool Equals(Vector4 x, Vector4 y)
         {
-            return Equals(x.X, y.X) && Equals(x.Y, y.Y) && Equals(x.Z, y.Z) && Equals(x.W, y.W);
+            return this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z) && this.Equals(x.W, y.W);
         }
 
         /// <inheritdoc />

@@ -139,8 +139,8 @@ namespace SixLabors.ImageSharp.Tests
                     key,
                     fn =>
                         {
-                            TestFile testFile = TestFile.Create(this.FilePath);
-                            return Image.Load<TPixel>(testFile.Bytes, decoder);
+                            var testFile = TestFile.Create(this.FilePath);
+                            return Image.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
                         });
 
                 return cachedImage.Clone();

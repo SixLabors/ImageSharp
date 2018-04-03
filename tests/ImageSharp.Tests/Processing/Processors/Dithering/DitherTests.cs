@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Bike, CommonNonDefaultPixelTypes)]
+        [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
         public void DitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFile(TestImages.Png.Bike, CommonNonDefaultPixelTypes)]
+        [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

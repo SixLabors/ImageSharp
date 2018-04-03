@@ -11,9 +11,12 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     using SixLabors.ImageSharp.Processing.Convolution;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     public class DetectEdgesTest : FileTestBase
     {
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001f);
+
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
 
         public static readonly TheoryData<EdgeDetectionOperators> DetectEdgesFilters = new TheoryData<EdgeDetectionOperators>
@@ -40,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges(detector));
                 image.DebugSave(provider, detector.ToString());
-                image.CompareToReferenceOutput(provider, detector.ToString());
+                image.CompareToReferenceOutput(ValidatorComparer, provider, detector.ToString());
             }
         }
 
@@ -53,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges());
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -80,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
                 image.Mutate(x => x.DetectEdges(bounds));
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
     }

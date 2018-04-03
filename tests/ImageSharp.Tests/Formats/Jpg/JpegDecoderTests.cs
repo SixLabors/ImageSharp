@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     using SixLabors.ImageSharp.Formats.Jpeg;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+    using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.PixelFormats;
     using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -96,6 +97,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             return ImageComparer.Tolerant(tolerance);
         }
 
+        private static bool SkipTest(ITestImageProvider provider)
+        {
+            string[] largeImagesToSkipOn32Bit =
+                {
+                    TestImages.Jpeg.Baseline.Jpeg420Exif,
+                    TestImages.Jpeg.Issues.BadZigZagProgressive385
+                };
+
+            return TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess
+                                            && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
+        }
+
         public JpegDecoderTests(ITestOutputHelper output)
         {
             this.Output = output;
@@ -128,14 +141,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, bool useOldDecoder)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (SkipTest(provider))
+            {
+                return;
+            }
+
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             IImageDecoder decoder = useOldDecoder ? OrigJpegDecoder : PdfJsJpegDecoder;
             using (Image<TPixel> image = provider.GetImage(decoder))
             {
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(provider, ImageComparer.Tolerant(BaselineTolerance_PdfJs), appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance_PdfJs), provider, appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -143,15 +166,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (SkipTest(provider))
+            {
+                return;
+            }
+
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     this.GetImageComparerForOrigDecoder(provider),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -159,14 +192,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeBaselineJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                // skipping to avoid OutOfMemoryException on CI
+                return;
+            }
+
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     ImageComparer.Tolerant(BaselineTolerance_PdfJs),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
         }
@@ -187,16 +226,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (SkipTest(provider))
+            {
+                return;
+            }
+
+            // For 32 bit test enviroments:
+            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+
             using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
             {
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     this.GetImageComparerForOrigDecoder(provider),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
+
+            provider.Configuration.MemoryManager.ReleaseRetainedResources();
         }
 
         [Theory]
@@ -204,14 +253,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                // skipping to avoid OutOfMemoryException on CI
+                return;
+            }
+
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    provider,
                     ImageComparer.Tolerant(ProgressiveTolerance_PdfJs),
+                    provider,
                     appendPixelTypeToFileName: false);
             }
         }

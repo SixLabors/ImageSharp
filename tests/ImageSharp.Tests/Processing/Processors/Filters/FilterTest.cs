@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
     [GroupOutput("Filters")]
     public class FilterTest
     {
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
+
         // Testing the generic FilterProcessor with more than one pixel type intentionally.
         // There is no need to do this with the specialized ones.
         [Theory]
@@ -25,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         {
             Matrix4x4 m = CreateCombinedTestFilterMatrix();
 
-            provider.RunValidatingProcessorTest(x => x.Filter(m));
+            provider.RunValidatingProcessorTest(x => x.Filter(m), comparer: ValidatorComparer);
         }
 
         [Theory]
@@ -35,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         {
             Matrix4x4 m = CreateCombinedTestFilterMatrix();
 
-            provider.RunRectangleConstrainedValidatingProcessorTest((x, b) => x.Filter(m, b));
+            provider.RunRectangleConstrainedValidatingProcessorTest((x, b) => x.Filter(m, b), comparer: ValidatorComparer);
         }
 
         private static Matrix4x4 CreateCombinedTestFilterMatrix()

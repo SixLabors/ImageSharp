@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce
 {
@@ -16,8 +15,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(CieLuv input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Luv_to_XYZ.html
             float l = input.L, u = input.U, v = input.V;
 

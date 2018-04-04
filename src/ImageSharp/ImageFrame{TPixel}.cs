@@ -248,20 +248,20 @@ namespace SixLabors.ImageSharp
 
             var target = new ImageFrame<TPixel2>(this.MemoryManager, this.Width, this.Height, this.MetaData.Clone());
 
-            Parallel.For(
+            // TODO: ImageFrame has no visibility of the current configuration. It should have.
+            ParallelFor.WithTemporaryBuffer(
                 0,
-                target.Height,
-                Configuration.Default.ParallelOptions,
-                y =>
+                this.Height,
+                Configuration.Default,
+                this.Width,
+                (int y, IBuffer<Vector4> tempRowBuffer) =>
                 {
                     Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                     Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
+                    Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
-                    for (int x = 0; x < target.Width; x++)
-                    {
-                        ref var pixel = ref targetRow[x];
-                        pixel.PackFromScaledVector4(sourceRow[x].ToScaledVector4());
-                    }
+                    PixelOperations<TPixel>.Instance.ToScaledVector4(sourceRow, tempRowSpan, sourceRow.Length);
+                    PixelOperations<TPixel2>.Instance.PackFromScaledVector4(tempRowSpan, targetRow, targetRow.Length);
                 });
 
             return target;

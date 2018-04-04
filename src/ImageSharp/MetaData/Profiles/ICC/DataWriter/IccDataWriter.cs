@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     internal sealed partial class IccDataWriter : IDisposable
     {
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
-        private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
+        private static readonly Encoding AsciiEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The underlying stream where the data is written to

@@ -1,14 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace SixLabors.ImageSharp.IO
 {
- #if !NETSTANDARD1_1
     /// <summary>
     /// A wrapper around the local File apis.
     /// </summary>
@@ -26,5 +22,4 @@ namespace SixLabors.ImageSharp.IO
             return File.Create(path);
         }
     }
-#endif
 }

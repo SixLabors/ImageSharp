@@ -18,7 +18,6 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public static partial class ImageExtensions
     {
-#if !NETSTANDARD1_1
         /// <summary>
         /// Saves the image to the given stream using the currently loaded image format.
         /// </summary>
@@ -79,7 +78,6 @@ namespace SixLabors.ImageSharp
                 source.Save(fs, encoder);
             }
         }
-#endif
 
         /// <summary>
         /// Saves the image to the given stream using the currently loaded image format.

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The default encoding for text metadata.
         /// </summary>
-        public static readonly Encoding DefaultEncoding = Encoding.GetEncoding("ASCII");
+        public static readonly Encoding DefaultEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The list of mimetypes that equate to a png.

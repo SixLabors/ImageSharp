@@ -5,7 +5,6 @@ using System.IO;
 
 namespace SixLabors.ImageSharp.IO
 {
- #if !NETSTANDARD1_1
     /// <summary>
     /// A simple interface representing the filesystem.
     /// </summary>
@@ -25,5 +24,4 @@ namespace SixLabors.ImageSharp.IO
         /// <returns>A stream representing the file to open.</returns>
         Stream Create(string path);
     }
-#endif
 }

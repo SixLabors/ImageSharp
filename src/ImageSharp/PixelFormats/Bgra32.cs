@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in blue, green, red, and alpha order.
+    /// <para>
+    /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
+    /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
@@ -114,6 +117,20 @@ namespace SixLabors.ImageSharp.PixelFormats
                 hashCode = (hashCode * 397) ^ this.A;
                 return hashCode;
             }
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
         }
 
         /// <inheritdoc/>

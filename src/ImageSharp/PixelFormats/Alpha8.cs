@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing a single 8 bit normalized W values.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;0, 0, 0, 1&gt; in vector form.
+    /// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
     /// </para>
     /// </summary>
     public struct Alpha8 : IPixel<Alpha8>, IPackedVector<byte>
@@ -61,6 +61,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         public PixelOperations<Alpha8> CreatePixelOperations() => new PixelOperations<Alpha8>();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -304,7 +304,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is RgbaVector) && this.Equals((RgbaVector)obj);
+            return obj is RgbaVector other && this.Equals(other);
         }
 
         /// <inheritdoc/>

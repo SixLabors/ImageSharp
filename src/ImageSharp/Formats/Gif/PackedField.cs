@@ -169,9 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            PackedField? field = obj as PackedField?;
-
-            return this.Byte == field?.Byte;
+            return obj is PackedField other && this.Equals(other);
         }
 
         /// <inheritdoc/>

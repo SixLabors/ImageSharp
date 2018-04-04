@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Short4) && this == (Short4)obj;
+            return obj is Short4 other && this.Equals(other);
         }
 
         /// <inheritdoc />

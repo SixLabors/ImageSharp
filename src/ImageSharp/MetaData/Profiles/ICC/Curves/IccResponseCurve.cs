@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccResponseCurve && this.Equals((IccResponseCurve)obj);
+            return obj is IccResponseCurve other && this.Equals(other);
         }
 
         /// <inheritdoc />

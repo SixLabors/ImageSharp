@@ -132,12 +132,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieXyChromaticityCoordinates)
-            {
-                return this.Equals((CieXyChromaticityCoordinates)obj);
-            }
-
-            return false;
+            return obj is CieXyChromaticityCoordinates other && this.Equals(other);
         }
 
         /// <inheritdoc/>

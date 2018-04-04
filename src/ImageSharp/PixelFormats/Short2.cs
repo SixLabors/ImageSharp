@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing two 16-bit signed integer values.
     /// <para>
-    /// Ranges from &lt;-32767, -32767, 0, 1&gt; to &lt;32767, 32767, 0, 1&gt; in vector form.
+    /// Ranges from [-32767, -32767, 0, 1] to [32767, 32767, 0, 1] in vector form.
     /// </para>
     /// </summary>
     public struct Short2 : IPixel<Short2>, IPackedVector<uint>
@@ -91,6 +91,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public PixelOperations<Short2> CreatePixelOperations() => new PixelOperations<Short2>();
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            Vector2 scaled = new Vector2(vector.X, vector.Y) * 65534F;
+            scaled -= new Vector2(32767F);
+            this.PackedValue = Pack(scaled.X, scaled.Y);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            var scaled = this.ToVector2();
+            scaled += new Vector2(32767F);
+            scaled /= 65534F;
+            return new Vector4(scaled, 0F, 1F);
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
@@ -119,7 +138,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
-            Vector2 vector = this.ToScaledVector2();
+            Vector2 vector = this.ToByteScaledVector2();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = 0;
@@ -129,7 +148,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            Vector2 vector = this.ToScaledVector2();
+            Vector2 vector = this.ToByteScaledVector2();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = 0;
@@ -140,7 +159,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgr24(ref Bgr24 dest)
         {
-            Vector2 vector = this.ToScaledVector2();
+            Vector2 vector = this.ToByteScaledVector2();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = 0;
@@ -150,7 +169,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgra32(ref Bgra32 dest)
         {
-            Vector2 vector = this.ToScaledVector2();
+            Vector2 vector = this.ToByteScaledVector2();
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = 0;
@@ -215,9 +234,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Vector2 ToScaledVector2()
+        private Vector2 ToByteScaledVector2()
         {
-            Vector2 vector = this.ToVector2();
+            var vector = this.ToVector2();
             vector /= 65534;
             vector *= 255;
             vector += Half;

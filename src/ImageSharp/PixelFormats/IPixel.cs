@@ -33,6 +33,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         void PackFromVector4(Vector4 vector);
 
         /// <summary>
+        /// Sets the packed representation from a scaled <see cref="Vector4"/>.
+        /// </summary>
+        /// <param name="vector">The vector to create the packed representation from.</param>
+        void PackFromScaledVector4(Vector4 vector);
+
+        /// <summary>
+        /// Expands the packed representation into a scaled <see cref="Vector4"/>
+        /// with values clamped between <value>0</value> and <value>1</value>.
+        /// The vector components are typically expanded in least to greatest significance order.
+        /// </summary>
+        /// <returns>The <see cref="Vector4"/>.</returns>
+        Vector4 ToScaledVector4();
+
+        /// <summary>
         /// Expands the packed representation into a <see cref="Vector4"/>.
         /// The vector components are typically expanded in least to greatest significance order.
         /// </summary>

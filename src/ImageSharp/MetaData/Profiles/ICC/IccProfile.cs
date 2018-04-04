@@ -3,10 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-
-#if !NETSTANDARD1_1
 using System.Security.Cryptography;
-#endif
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -105,8 +102,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
         }
 
-#if !NETSTANDARD1_1
-
         /// <summary>
         /// Calculates the MD5 hash value of an ICC profile header
         /// </summary>
@@ -117,6 +112,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
 
+            // TODO: stackalloc
             byte[] header = new byte[128];
             Buffer.BlockCopy(data, 0, header, 0, 128);
 
@@ -135,8 +131,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return reader.ReadProfileId();
             }
         }
-
-#endif
 
         /// <summary>
         /// Extends the profile with additional data.

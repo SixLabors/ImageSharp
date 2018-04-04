@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     internal sealed partial class IccDataReader
     {
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
-        private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
+        private static readonly Encoding AsciiEncoding = Encoding.ASCII;
 
         /// <summary>
         /// The data that is read

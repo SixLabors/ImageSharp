@@ -51,12 +51,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             writer.WriteXyzNumber(header.PcsIlluminant);
             writer.WriteAsciiString(header.CreatorSignature, 4, false);
 
-#if !NETSTANDARD1_1
             IccProfileId id = IccProfile.CalculateHash(writer.GetData());
             writer.WriteProfileId(id);
-#else
-            writer.WriteProfileId(IccProfileId.Zero);
-#endif
         }
 
         private void WriteTagTable(IccDataWriter writer, IccTagTableEntry[] table)

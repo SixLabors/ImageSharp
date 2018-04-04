@@ -292,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests
         private static void WriteChunk(MemoryStream memStream, string chunkName)
         {
             memStream.Write(new byte[] { 0, 0, 0, 1 }, 0, 4);
-            memStream.Write(Encoding.GetEncoding("ASCII").GetBytes(chunkName), 0, 4);
+            memStream.Write(Encoding.ASCII.GetBytes(chunkName), 0, 4);
             memStream.Write(new byte[] { 0, 0, 0, 0, 0 }, 0, 5);
         }
 

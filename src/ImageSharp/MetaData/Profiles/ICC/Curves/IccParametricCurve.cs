@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccParametricCurve && this.Equals((IccParametricCurve)obj);
+            return obj is IccParametricCurve other && this.Equals(other);
         }
 
         /// <inheritdoc/>

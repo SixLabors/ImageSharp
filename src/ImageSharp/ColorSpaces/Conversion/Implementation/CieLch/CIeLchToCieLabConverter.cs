@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchColorSapce
 {
@@ -16,8 +15,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLchColor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLab Convert(CieLch input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here:
             // https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC
             float l = input.L, c = input.C, hDegrees = input.H;

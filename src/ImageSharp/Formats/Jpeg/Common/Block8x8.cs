@@ -241,19 +241,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <inheritdoc />
         public override string ToString()
         {
-            var bld = new StringBuilder();
-            bld.Append('[');
+            var sb = new StringBuilder();
+            sb.Append('[');
             for (int i = 0; i < Size; i++)
             {
-                bld.Append(this[i]);
+                sb.Append(this[i]);
                 if (i < Size - 1)
                 {
-                    bld.Append(',');
+                    sb.Append(',');
                 }
             }
 
-            bld.Append(']');
-            return bld.ToString();
+            sb.Append(']');
+            return sb.ToString();
         }
 
         /// <inheritdoc />
@@ -273,12 +273,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            return obj is Block8x8 && this.Equals((Block8x8)obj);
+            return obj is Block8x8 other && this.Equals(other);
         }
 
         /// <inheritdoc />

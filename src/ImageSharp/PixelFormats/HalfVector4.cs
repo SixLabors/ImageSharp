@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is HalfVector4) && this.Equals((HalfVector4)obj);
+            return obj is HalfVector4 other && this.Equals(other);
         }
 
         /// <inheritdoc />

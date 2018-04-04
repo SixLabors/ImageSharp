@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Primitives
     /// <remarks>
     /// This is a very simplified implementation of a rational number designed for use with metadata only.
     /// </remarks>
-    public struct SignedRational : IEquatable<SignedRational>
+    public readonly struct SignedRational : IEquatable<SignedRational>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SignedRational"/> struct.
@@ -41,10 +41,18 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="simplify">Specified if the rational should be simplified.</param>
         public SignedRational(int numerator, int denominator, bool simplify)
         {
-            LongRational rational = new LongRational(numerator, denominator, simplify);
+            if (simplify)
+            {
+                LongRational rational = new LongRational(numerator, denominator).Simplify();
 
-            this.Numerator = (int)rational.Numerator;
-            this.Denominator = (int)rational.Denominator;
+                this.Numerator = (int)rational.Numerator;
+                this.Denominator = (int)rational.Denominator;
+            }
+            else
+            {
+                this.Numerator = numerator;
+                this.Denominator = denominator;
+            }
         }
 
         /// <summary>
@@ -63,7 +71,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
         public SignedRational(double value, bool bestPrecision)
         {
-            LongRational rational = new LongRational(value, bestPrecision);
+            var rational = LongRational.FromDouble(value, bestPrecision);
 
             this.Numerator = (int)rational.Numerator;
             this.Denominator = (int)rational.Denominator;
@@ -129,19 +137,14 @@ namespace SixLabors.ImageSharp.Primitives
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is SignedRational)
-            {
-                return this.Equals((SignedRational)obj);
-            }
-
-            return false;
+            return obj is SignedRational other && this.Equals(other);
         }
 
         /// <inheritdoc/>
         public bool Equals(SignedRational other)
         {
-            LongRational left = new LongRational(this.Numerator, this.Denominator);
-            LongRational right = new LongRational(other.Numerator, other.Denominator);
+            var left = new LongRational(this.Numerator, this.Denominator);
+            var right = new LongRational(other.Numerator, other.Denominator);
 
             return left.Equals(right);
         }
@@ -149,7 +152,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            LongRational self = new LongRational(this.Numerator, this.Denominator);
+            var self = new LongRational(this.Numerator, this.Denominator);
             return self.GetHashCode();
         }
 
@@ -180,7 +183,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The <see cref="string"/></returns>
         public string ToString(IFormatProvider provider)
         {
-            LongRational rational = new LongRational(this.Numerator, this.Denominator);
+            var rational = new LongRational(this.Numerator, this.Denominator);
             return rational.ToString(provider);
         }
     }

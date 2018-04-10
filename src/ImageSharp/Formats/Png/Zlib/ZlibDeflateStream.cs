@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.deflateStream.Write(buffer, offset, count);
-            this.adler32.Update(buffer, offset, count);
+            this.adler32.Update(new ReadOnlySpan<byte>(buffer, offset, count));
         }
 
         /// <inheritdoc/>

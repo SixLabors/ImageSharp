@@ -5,7 +5,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Benchmarks.Image
+namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
     using System;
     using System.Threading.Tasks;

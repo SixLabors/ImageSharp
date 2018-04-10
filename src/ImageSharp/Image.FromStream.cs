@@ -183,15 +183,15 @@ namespace SixLabors.ImageSharp
                 return data.img;
             }
 
-            var stringBuilder = new StringBuilder();
-            stringBuilder.AppendLine("Image cannot be loaded. Available decoders:");
+            var sb = new StringBuilder();
+            sb.AppendLine("Image cannot be loaded. Available decoders:");
 
             foreach (KeyValuePair<IImageFormat, IImageDecoder> val in config.ImageFormatsManager.ImageDecoders)
             {
-                stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
+                sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
             }
 
-            throw new NotSupportedException(stringBuilder.ToString());
+            throw new NotSupportedException(sb.ToString());
         }
 
         private static T WithSeekableStream<T>(Configuration config, Stream stream, Func<Stream, T> action)

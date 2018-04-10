@@ -13,13 +13,18 @@ namespace SixLabors.ImageSharp.Tests
 {
     using Castle.Core.Internal;
 
+    using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.Processing;
 
     public interface ITestImageProvider
     {
         PixelTypes PixelType { get; }
         ImagingTestCaseUtility Utility { get; }
+        string SourceFileOrDescription { get; }
+
+        Configuration Configuration { get; set; }
     }
+
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
@@ -30,6 +35,8 @@ namespace SixLabors.ImageSharp.Tests
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
 
         public virtual string SourceFileOrDescription => "";
+
+        public Configuration Configuration { get; set; } = Configuration.Default.ShallowCopy();
 
         /// <summary>
         /// Utility instance to provide informations about the test image & manage input/output

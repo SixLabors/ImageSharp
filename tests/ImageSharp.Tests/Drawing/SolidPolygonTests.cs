@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
-                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.RectangularePolygon(10, 10, 190, 140)));
+                    .Fill(Rgba32.HotPink, new SixLabors.Shapes.RectangularPolygon(10, 10, 190, 140)));
                 image.Save($"{path}/Rectangle.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())

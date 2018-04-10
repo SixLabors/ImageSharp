@@ -22,6 +22,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public const string FileVersion = "89a";
 
         /// <summary>
+        /// The ASCII encoded bytes used to identify the GIF file.
+        /// </summary>
+        internal static readonly byte[] MagicNumber = Encoding.UTF8.GetBytes(FileType + FileVersion);
+
+        /// <summary>
         /// The extension block introducer <value>!</value>.
         /// </summary>
         public const byte ExtensionIntroducer = 0x21;
@@ -40,6 +45,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The application identification.
         /// </summary>
         public const string ApplicationIdentification = "NETSCAPE2.0";
+
+        /// <summary>
+        /// The ASCII encoded application identification bytes.
+        /// </summary>
+        internal static readonly byte[] ApplicationIdentificationBytes = Encoding.UTF8.GetBytes(ApplicationIdentification);
 
         /// <summary>
         /// The application block size.

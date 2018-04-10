@@ -13,39 +13,6 @@ namespace SixLabors.ImageSharp
     internal static class ByteExtensions
     {
         /// <summary>
-        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
-        /// </summary>
-        /// <param name="source">The byte array.</param>
-        public static void ReverseBytes(this byte[] source)
-        {
-            ReverseBytes(source, 0, source.Length);
-        }
-
-        /// <summary>
-        /// Optimized <see cref="T:byte[]"/> reversal algorithm.
-        /// </summary>
-        /// <param name="source">The byte array.</param>
-        /// <param name="index">The index.</param>
-        /// <param name="length">The length.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is null.</exception>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReverseBytes(this byte[] source, int index, int length)
-        {
-            Guard.NotNull(source, nameof(source));
-
-            int i = index;
-            int j = index + length - 1;
-            while (i < j)
-            {
-                byte temp = source[i];
-                source[i] = source[j];
-                source[j] = temp;
-                i++;
-                j--;
-            }
-        }
-
-        /// <summary>
         /// Returns a reference to the given position of the array unsafe casted to <see cref="ImageSharp.PixelFormats.Rgb24"/>.
         /// </summary>
         /// <param name="bytes">The byte array.</param>

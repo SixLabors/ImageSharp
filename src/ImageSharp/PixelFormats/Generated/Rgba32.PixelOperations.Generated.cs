@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
 			
 			/// <inheritdoc />
-            internal override void PackFromRgb24(Span<Rgb24> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromRgb24(ReadOnlySpan<Rgb24> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToRgb24(Span<Rgba32> sourcePixels, Span<Rgb24> dest, int count)
+            internal override void ToRgb24(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgb24> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void PackFromBgr24(Span<Bgr24> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromBgr24(ReadOnlySpan<Bgr24> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgr24(Span<Rgba32> sourcePixels, Span<Bgr24> dest, int count)
+            internal override void ToBgr24(ReadOnlySpan<Rgba32> sourcePixels, Span<Bgr24> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void PackFromBgra32(Span<Bgra32> source, Span<Rgba32> destPixels, int count)
+            internal override void PackFromBgra32(ReadOnlySpan<Bgra32> source, Span<Rgba32> destPixels, int count)
             {
                 GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 		
 			/// <inheritdoc />
-            internal override void ToBgra32(Span<Rgba32> sourcePixels, Span<Bgra32> dest, int count)
+            internal override void ToBgra32(ReadOnlySpan<Rgba32> sourcePixels, Span<Bgra32> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
@@ -123,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (value == 0)
             {
-                return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, (int)stream.Length - 2);
+                return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, stream.Length - 2);
             }
 
             if (marker[0] == PdfJsJpegConstants.Markers.Prefix)
@@ -135,16 +136,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     int suffix = stream.ReadByte();
                     if (suffix == -1)
                     {
-                        return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, (int)stream.Length - 2);
+                        return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, stream.Length - 2);
                     }
 
                     marker[1] = (byte)suffix;
                 }
 
-                return new PdfJsFileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
+                return new PdfJsFileMarker(BinaryPrimitives.ReadUInt16BigEndian(marker), stream.Position - 2);
             }
 
-            return new PdfJsFileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2), true);
+            return new PdfJsFileMarker(BinaryPrimitives.ReadUInt16BigEndian(marker), stream.Position - 2, true);
         }
 
         /// <summary>
@@ -172,8 +173,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             this.Frame?.Dispose();
             this.components?.Dispose();
             this.quantizationTables?.Dispose();
-            this.dcHuffmanTables?.Dispose();
-            this.acHuffmanTables?.Dispose();
             this.pixelArea.Dispose();
 
             // Set large fields to null.
@@ -827,6 +826,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="index">The table index</param>
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
             tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
@@ -938,7 +938,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private ushort ReadUint16()
         {
             this.InputStream.Read(this.markerBuffer, 0, 2);
-            return (ushort)((this.markerBuffer[0] << 8) | this.markerBuffer[1]);
+            return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
         }
     }
 }

@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.DebugSave(provider);
-                image.CompareFirstFrameToReferenceOutput(provider, ImageComparer.Exact);
+                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
             }
         }
 
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Equal(expectedFrameCount, image.Frames.Count);
                 image.DebugSave(provider);
-                image.CompareFirstFrameToReferenceOutput(provider, ImageComparer.Exact);
+                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
             }
         }
         

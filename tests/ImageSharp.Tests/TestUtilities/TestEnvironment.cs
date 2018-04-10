@@ -92,8 +92,12 @@ namespace SixLabors.ImageSharp.Tests
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+        
+        internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        internal static bool Is64BitProcess => IntPtr.Size == 8;
 
         /// <summary>
         /// Creates the image output directory.

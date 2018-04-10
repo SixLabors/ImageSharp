@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
     /// DISCo, Department of Informatics, Systems and Communication, University of Milan-Bicocca, viale Sarca 336, 20126 Milan, Italy
     /// https://web.stanford.edu/~sujason/ColorBalancing/Papers/Two%20New%20von%20Kries%20Based%20Chromatic%20Adaptation.pdf
     /// </remarks>
-    public static class LmsAdaptationMatrix
+    internal static class LmsAdaptationMatrix
     {
         /// <summary>
         /// Von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez adjusted for D65)

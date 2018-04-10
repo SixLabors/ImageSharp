@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColorSapce
 {
@@ -44,8 +43,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLabColor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLab Convert(CieXyz input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Lab.html
             float wx = this.LabWhitePoint.X, wy = this.LabWhitePoint.Y, wz = this.LabWhitePoint.Z;
 

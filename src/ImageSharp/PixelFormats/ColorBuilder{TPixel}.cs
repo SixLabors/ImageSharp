@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.PixelFormats
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
             }
 
-            TPixel result = default(TPixel);
-            Rgba32 rgba = new Rgba32(
+            TPixel result = default;
+            var rgba = new Rgba32(
                 (byte)(packedValue >> 24),
                 (byte)(packedValue >> 16),
                 (byte)(packedValue >> 8),
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA values.</returns>
         public static TPixel FromRGBA(byte red, byte green, byte blue, byte alpha)
         {
-            TPixel color = default(TPixel);
+            TPixel color = default;
             color.PackFromRgba32(new Rgba32(red, green, blue, alpha));
             return color;
         }

@@ -23,12 +23,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// The collection of EXIF values
         /// </summary>
-        private Collection<ExifValue> values;
+        private List<ExifValue> values;
 
         /// <summary>
         /// The list of invalid EXIF tags
         /// </summary>
-        private List<ExifTag> invalidTags;
+        private IReadOnlyList<ExifTag> invalidTags;
 
         /// <summary>
         /// The thumbnail offset position in the byte stream
@@ -75,8 +75,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             this.invalidTags = new List<ExifTag>(other.invalidTags);
             if (other.values != null)
             {
-                this.values = new Collection<ExifValue>();
-                foreach (ExifValue value in other.values)
+                this.values = new List<ExifValue>(other.Values.Count);
+
+                foreach (ExifValue value in other.Values)
                 {
                     this.values.Add(new ExifValue(value));
                 }
@@ -92,21 +93,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Gets or sets which parts will be written when the profile is added to an image.
         /// </summary>
-        public ExifParts Parts
-        {
-            get;
-            set;
-        }
+        public ExifParts Parts { get; set; }
 
         /// <summary>
         /// Gets the tags that where found but contained an invalid value.
         /// </summary>
-        public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
 
         /// <summary>
         /// Gets the values of this EXIF profile.
         /// </summary>
-        public IEnumerable<ExifValue> Values
+        public IReadOnlyList<ExifValue> Values
         {
             get
             {
@@ -164,6 +161,31 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <summary>
+        /// Conditionally returns the value of the tag if it exists.
+        /// </summary>
+        /// <param name="tag">The tag of the EXIF value.</param>
+        /// <param name="value">The value of the tag, if found.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        public bool TryGetValue(ExifTag tag, out ExifValue value)
+        {
+            foreach (ExifValue exifValue in this.Values)
+            {
+                if (exifValue.Tag == tag)
+                {
+                    value = exifValue;
+
+                    return true;
+                }
+            }
+
+            value = default;
+
+            return false;
+        }
+
+        /// <summary>
         /// Removes the value with the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the EXIF value.</param>
@@ -193,16 +215,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <param name="value">The value.</param>
         public void SetValue(ExifTag tag, object value)
         {
-            foreach (ExifValue exifValue in this.Values)
+            for (int i = 0; i < this.Values.Count; i++)
             {
-                if (exifValue.Tag == tag)
+                if (this.values[i].Tag == tag)
                 {
-                    exifValue.Value = value;
+                    this.values[i] = this.values[i].WithValue(value);
+
                     return;
                 }
             }
 
             var newExifValue = ExifValue.Create(tag, value);
+
             this.values.Add(newExifValue);
         }
 
@@ -262,12 +286,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             if (this.data == null)
             {
-                this.values = new Collection<ExifValue>();
+                this.values = new List<ExifValue>();
                 return;
             }
 
-            var reader = new ExifReader();
-            this.values = reader.Read(this.data);
+            var reader = new ExifReader(this.data);
+
+            this.values = reader.ReadValues();
+
             this.invalidTags = new List<ExifTag>(reader.InvalidTags);
             this.thumbnailOffset = (int)reader.ThumbnailOffset;
             this.thumbnailLength = (int)reader.ThumbnailLength;

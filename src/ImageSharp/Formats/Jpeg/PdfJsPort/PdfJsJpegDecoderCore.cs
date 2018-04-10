@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
@@ -336,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             }
 
             this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.NumberOfComponents);
-            this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
+            this.pixelArea.LinearizeBlockData(this.components);
 
             if (this.NumberOfComponents == 1)
             {
@@ -838,13 +839,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
+                ref byte areaRowRef = ref MemoryMarshal.GetReference(this.pixelArea.GetRowSpan(y));
 
                 for (int x = 0; x < image.Width; x++)
                 {
-                    ref byte luminance = ref areaRowSpan[x];
-                    ref TPixel pixel = ref imageRowSpan[x];
+                    ref byte luminance = ref Unsafe.Add(ref areaRowRef, x);
+                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
                     var rgba = new Rgba32(luminance, luminance, luminance);
                     pixel.PackFromRgba32(rgba);
                 }
@@ -857,14 +858,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
+                ref byte areaRowRef = ref MemoryMarshal.GetReference(this.pixelArea.GetRowSpan(y));
+
                 for (int x = 0, o = 0; x < image.Width; x++, o += 3)
                 {
-                    ref byte yy = ref areaRowSpan[o];
-                    ref byte cb = ref areaRowSpan[o + 1];
-                    ref byte cr = ref areaRowSpan[o + 2];
-                    ref TPixel pixel = ref imageRowSpan[x];
+                    ref byte yy = ref Unsafe.Add(ref areaRowRef, o);
+                    ref byte cb = ref Unsafe.Add(ref areaRowRef, o + 1);
+                    ref byte cr = ref Unsafe.Add(ref areaRowRef, o + 2);
+                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
                     PdfJsYCbCrToRgbTables.PackYCbCr(ref pixel, yy, cb, cr);
                 }
             }
@@ -876,16 +878,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
+                ref byte areaRowRef = ref MemoryMarshal.GetReference(this.pixelArea.GetRowSpan(y));
+
                 for (int x = 0, o = 0; x < image.Width; x++, o += 4)
                 {
-                    ref byte yy = ref areaRowSpan[o];
-                    ref byte cb = ref areaRowSpan[o + 1];
-                    ref byte cr = ref areaRowSpan[o + 2];
-                    ref byte k = ref areaRowSpan[o + 3];
+                    ref byte yy = ref Unsafe.Add(ref areaRowRef, o);
+                    ref byte cb = ref Unsafe.Add(ref areaRowRef, o + 1);
+                    ref byte cr = ref Unsafe.Add(ref areaRowRef, o + 2);
+                    ref byte k = ref Unsafe.Add(ref areaRowRef, o + 3);
 
-                    ref TPixel pixel = ref imageRowSpan[x];
+                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
                     PdfJsYCbCrToRgbTables.PackYccK(ref pixel, yy, cb, cr, k);
                 }
             }
@@ -897,20 +900,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             for (int y = 0; y < image.Height; y++)
             {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
+                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
+                ref byte areaRowRef = ref MemoryMarshal.GetReference(this.pixelArea.GetRowSpan(y));
+
                 for (int x = 0, o = 0; x < image.Width; x++, o += 4)
                 {
-                    ref byte c = ref areaRowSpan[o];
-                    ref byte m = ref areaRowSpan[o + 1];
-                    ref byte cy = ref areaRowSpan[o + 2];
-                    ref byte k = ref areaRowSpan[o + 3];
+                    ref byte c = ref Unsafe.Add(ref areaRowRef, o);
+                    ref byte m = ref Unsafe.Add(ref areaRowRef, o + 1);
+                    ref byte cy = ref Unsafe.Add(ref areaRowRef, o + 2);
+                    ref byte k = ref Unsafe.Add(ref areaRowRef, o + 3);
 
                     byte r = (byte)((c * k) / 255);
                     byte g = (byte)((m * k) / 255);
                     byte b = (byte)((cy * k) / 255);
 
-                    ref TPixel pixel = ref imageRowSpan[x];
+                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
                     var rgba = new Rgba32(r, g, b);
                     pixel.PackFromRgba32(rgba);
                 }

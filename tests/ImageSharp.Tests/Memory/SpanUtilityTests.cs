@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-
+    using System.Runtime.InteropServices;
     using SixLabors.ImageSharp.Memory;
     using SixLabors.ImageSharp.Tests.Common;
 
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public void GenericToOwnType_Aligned(int count)
             {
                 TestStructs.AlignedFoo[] source = TestStructs.AlignedFoo.CreateArray(count + 2);
-                TestStructs.AlignedFoo[] dest = new TestStructs.AlignedFoo[count + 5];
+                var dest = new TestStructs.AlignedFoo[count + 5];
 
                 var apSource = new Span<TestStructs.AlignedFoo>(source, 1, source.Length - 1);
                 var apDest = new Span<TestStructs.AlignedFoo>(dest, 1, dest.Length - 1);
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 var apSource = new Span<TestStructs.Foo>(source, 1, source.Length - 1);
                 var apDest = new Span<byte>(dest, sizeof(TestStructs.Foo), dest.Length - sizeof(TestStructs.Foo));
 
-                apSource.AsBytes().Slice(0, (count - 1) * sizeof(TestStructs.Foo)).CopyTo(apDest);
+                MemoryMarshal.AsBytes(apSource).Slice(0, (count - 1) * sizeof(TestStructs.Foo)).CopyTo(apDest);
 
                 AssertNotDefault(source, 1);
 
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 var apSource = new Span<TestStructs.AlignedFoo>(source, 1, source.Length - 1);
                 var apDest = new Span<byte>(dest, sizeof(TestStructs.AlignedFoo), dest.Length - sizeof(TestStructs.AlignedFoo));
 
-                apSource.AsBytes().Slice(0, (count - 1) * sizeof(TestStructs.AlignedFoo)).CopyTo(apDest);
+                MemoryMarshal.AsBytes(apSource).Slice(0, (count - 1) * sizeof(TestStructs.AlignedFoo)).CopyTo(apDest);
 
                 AssertNotDefault(source, 1);
 
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 var apSource = new Span<int>(source);
                 var apDest = new Span<byte>(dest);
 
-                apSource.AsBytes().Slice(0, count * sizeof(int)).CopyTo(apDest);
+                MemoryMarshal.AsBytes(apSource).Slice(0, count * sizeof(int)).CopyTo(apDest);
 
                 AssertNotDefault(source, 1);
 
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 var apSource = new Span<byte>(source);
                 var apDest = new Span<TestStructs.Foo>(dest);
 
-                apSource.Slice(0, count * sizeof(TestStructs.Foo)).CopyTo(apDest.AsBytes());
+                apSource.Slice(0, count * sizeof(TestStructs.Foo)).CopyTo(MemoryMarshal.AsBytes(apDest));
 
                 AssertNotDefault(source, sizeof(TestStructs.Foo) + 1);
                 AssertNotDefault(dest, 1);

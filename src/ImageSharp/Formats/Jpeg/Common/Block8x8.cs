@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public Block8x8(Span<short> coefficients)
         {
             ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
-            ref byte sourceRef = ref MemoryMarshal.GetReference(coefficients.NonPortableCast<short, byte>());
+            ref byte sourceRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<short, byte>(coefficients));
             Unsafe.CopyBlock(ref selfRef, ref sourceRef, Size * sizeof(short));
         }
 
@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void CopyTo(Span<short> destination)
         {
             ref byte selfRef = ref Unsafe.As<Block8x8, byte>(ref this);
-            ref byte destRef = ref MemoryMarshal.GetReference(destination.NonPortableCast<short, byte>());
+            ref byte destRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<short, byte>(destination));
             Unsafe.CopyBlock(ref destRef, ref selfRef, Size * sizeof(short));
         }
 

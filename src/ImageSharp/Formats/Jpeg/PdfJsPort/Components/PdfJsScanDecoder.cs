@@ -759,7 +759,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     break;
                 }
 
-                byte z = PdfJsQuantizationTables.DctZigZag[k];
+                ref byte z = ref PdfJsQuantizationTables.DctZigZag[k];
                 short re = (short)this.ReceiveAndExtend(s, stream);
                 Unsafe.Add(ref blockDataRef, offset + z) = re;
                 k++;
@@ -842,7 +842,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             while (k <= e)
             {
-                byte z = PdfJsQuantizationTables.DctZigZag[k];
+                ref byte z = ref PdfJsQuantizationTables.DctZigZag[k];
                 switch (this.successiveACState)
                 {
                     case 0: // Initial state

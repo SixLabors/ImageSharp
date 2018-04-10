@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
@@ -10,12 +9,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a Huffman Table
     /// </summary>
-    internal struct PdfJsHuffmanTable : IDisposable
+    internal unsafe struct PdfJsHuffmanTable
     {
-        private BasicArrayBuffer<short> lookahead;
-        private BasicArrayBuffer<short> valOffset;
-        private BasicArrayBuffer<long> maxcode;
-        private IManagedByteBuffer huffval;
+        /// <summary>
+        /// Gets the max code array
+        /// </summary>
+        public FixedInt64Buffer18 MaxCode;
+
+        /// <summary>
+        /// Gets the value offset array
+        /// </summary>
+        public FixedInt16Buffer18 ValOffset;
+
+        /// <summary>
+        /// Gets the huffman value array
+        /// </summary>
+        public FixedByteBuffer256 HuffVal;
+
+        /// <summary>
+        /// Gets the lookahead array
+        /// </summary>
+        public FixedInt16Buffer256 Lookahead;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
@@ -25,77 +39,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="values">The huffman values</param>
         public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)
         {
-            // TODO: Replace FakeBuffer<T> usages with standard or array orfixed-sized arrays
-            this.lookahead = memoryManager.AllocateFake<short>(256);
-            this.valOffset = memoryManager.AllocateFake<short>(18);
-            this.maxcode = memoryManager.AllocateFake<long>(18);
-
             using (IBuffer<short> huffsize = memoryManager.Allocate<short>(257))
             using (IBuffer<short> huffcode = memoryManager.Allocate<short>(257))
             {
                 GenerateSizeTable(lengths, huffsize.Span);
                 GenerateCodeTable(huffsize.Span, huffcode.Span);
-                GenerateDecoderTables(lengths, huffcode.Span, this.valOffset.Span, this.maxcode.Span);
-                GenerateLookaheadTables(lengths, values, this.lookahead.Span);
+                this.GenerateDecoderTables(lengths, huffcode.Span);
+                this.GenerateLookaheadTables(lengths, values);
             }
 
-            this.huffval = memoryManager.AllocateManagedByteBuffer(values.Length, true);
-            Buffer.BlockCopy(values, 0, this.huffval.Array, 0, values.Length);
-
-            this.MaxCode = this.maxcode.Array;
-            this.ValOffset = this.valOffset.Array;
-            this.HuffVal = this.huffval.Array;
-            this.Lookahead = this.lookahead.Array;
-        }
-
-        /// <summary>
-        /// Gets the max code array
-        /// </summary>
-        public long[] MaxCode
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
-
-        /// <summary>
-        /// Gets the value offset array
-        /// </summary>
-        public short[] ValOffset
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
-
-        /// <summary>
-        /// Gets the huffman value array
-        /// </summary>
-        public byte[] HuffVal
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
-
-        /// <summary>
-        /// Gets the lookahead array
-        /// </summary>
-        public short[] Lookahead
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
-
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.lookahead?.Dispose();
-            this.valOffset?.Dispose();
-            this.maxcode?.Dispose();
-            this.huffval?.Dispose();
-
-            this.lookahead = null;
-            this.valOffset = null;
-            this.maxcode = null;
-            this.huffval = null;
+            fixed (byte* huffValRef = this.HuffVal.Data)
+            {
+                for (int i = 0; i < values.Length; i++)
+                {
+                    huffValRef[i] = values[i];
+                }
+            }
         }
 
         /// <summary>
@@ -148,29 +107,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffcode">The huffman code span</param>
-        /// <param name="valOffset">The value offset span</param>
-        /// <param name="maxcode">The max code span</param>
-        private static void GenerateDecoderTables(byte[] lengths, Span<short> huffcode, Span<short> valOffset, Span<long> maxcode)
+        private void GenerateDecoderTables(byte[] lengths, Span<short> huffcode)
         {
-            short bitcount = 0;
-            for (int i = 1; i <= 16; i++)
+            fixed (short* valOffsetRef = this.ValOffset.Data)
+            fixed (long* maxcodeRef = this.MaxCode.Data)
             {
-                if (lengths[i] != 0)
+                short bitcount = 0;
+                for (int i = 1; i <= 16; i++)
                 {
-                    // valoffset[l] = huffval[] index of 1st symbol of code length i,
-                    // minus the minimum code of length i
-                    valOffset[i] = (short)(bitcount - huffcode[bitcount]);
-                    bitcount += lengths[i];
-                    maxcode[i] = huffcode[bitcount - 1]; // maximum code of length i
+                    if (lengths[i] != 0)
+                    {
+                        // valOffsetRef[l] = huffval[] index of 1st symbol of code length i, minus the minimum code of length i
+                        valOffsetRef[i] = (short)(bitcount - huffcode[bitcount]);
+                        bitcount += lengths[i];
+                        maxcodeRef[i] = huffcode[bitcount - 1]; // maximum code of length i
+                    }
+                    else
+                    {
+                        maxcodeRef[i] = -1; // -1 if no codes of this length
+                    }
                 }
-                else
-                {
-                    maxcode[i] = -1; // -1 if no codes of this length
-                }
-            }
 
-            valOffset[17] = 0;
-            maxcode[17] = 0xFFFFFL;
+                valOffsetRef[17] = 0;
+                maxcodeRef[17] = 0xFFFFFL;
+            }
         }
 
         /// <summary>
@@ -178,32 +138,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffval">The huffman value array</param>
-        /// <param name="lookahead">The lookahead span</param>
-        private static void GenerateLookaheadTables(byte[] lengths, byte[] huffval, Span<short> lookahead)
+        private void GenerateLookaheadTables(byte[] lengths, byte[] huffval)
         {
-            int x = 0, code = 0;
-
-            for (int i = 0; i < 8; i++)
+            fixed (short* lookaheadRef = this.Lookahead.Data)
             {
-                code <<= 1;
+                int x = 0, code = 0;
 
-                for (int j = 0; j < lengths[i + 1]; j++)
+                for (int i = 0; i < 8; i++)
                 {
-                    // The codeLength is 1+i, so shift code by 8-(1+i) to
-                    // calculate the high bits for every 8-bit sequence
-                    // whose codeLength's high bits matches code.
-                    // The high 8 bits of lutValue are the encoded value.
-                    // The low 8 bits are 1 plus the codeLength.
-                    byte base2 = (byte)(code << (7 - i));
-                    short lutValue = (short)((short)(huffval[x] << 8) | (short)(2 + i));
+                    code <<= 1;
 
-                    for (int k = 0; k < 1 << (7 - i); k++)
+                    for (int j = 0; j < lengths[i + 1]; j++)
                     {
-                        lookahead[base2 | k] = lutValue;
-                    }
+                        // The codeLength is 1+i, so shift code by 8-(1+i) to
+                        // calculate the high bits for every 8-bit sequence
+                        // whose codeLength's high bits matches code.
+                        // The high 8 bits of lutValue are the encoded value.
+                        // The low 8 bits are 1 plus the codeLength.
+                        byte base2 = (byte)(code << (7 - i));
+                        short lutValue = (short)((short)(huffval[x] << 8) | (short)(2 + i));
 
-                    code++;
-                    x++;
+                        for (int k = 0; k < 1 << (7 - i); k++)
+                        {
+                            lookaheadRef[base2 | k] = lutValue;
+                        }
+
+                        code++;
+                        x++;
+                    }
                 }
             }
         }

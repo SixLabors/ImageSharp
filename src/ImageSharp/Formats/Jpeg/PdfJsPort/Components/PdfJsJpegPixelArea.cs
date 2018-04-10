@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
@@ -16,13 +17,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     {
         private readonly MemoryManager memoryManager;
 
-        private readonly int imageWidth;
-
-        private readonly int imageHeight;
-
         private IBuffer<byte> componentData;
 
         private int rowStride;
+
+        /// <summary>
+        /// Gets the number of components
+        /// </summary>
+        public int NumberOfComponents;
+
+        /// <summary>
+        /// Gets the width
+        /// </summary>
+        public int Width;
+
+        /// <summary>
+        /// Gets the height
+        /// </summary>
+        public int Height;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsJpegPixelArea"/> struct.
@@ -34,77 +46,52 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public PdfJsJpegPixelArea(MemoryManager memoryManager, int imageWidth, int imageHeight, int numberOfComponents)
         {
             this.memoryManager = memoryManager;
-            this.imageWidth = imageWidth;
-            this.imageHeight = imageHeight;
-            this.Width = 0;
-            this.Height = 0;
+            this.Width = imageWidth;
+            this.Height = imageHeight;
             this.NumberOfComponents = numberOfComponents;
             this.componentData = null;
-            this.rowStride = 0;
+            this.rowStride = this.Width * this.NumberOfComponents;
+            this.componentData = this.memoryManager.Allocate<byte>(this.Width * this.Height * this.NumberOfComponents);
         }
-
-        /// <summary>
-        /// Gets the number of components
-        /// </summary>
-        public int NumberOfComponents { get; }
-
-        /// <summary>
-        /// Gets the width
-        /// </summary>
-        public int Width { get; private set; }
-
-        /// <summary>
-        /// Gets the height
-        /// </summary>
-        public int Height { get; private set; }
 
         /// <summary>
         /// Organsizes the decoded jpeg components into a linear array ordered by component.
         /// This must be called before attempting to retrieve the data.
         /// </summary>
         /// <param name="components">The jpeg component blocks</param>
-        /// <param name="width">The pixel area width</param>
-        /// <param name="height">The pixel area height</param>
-        public void LinearizeBlockData(PdfJsComponentBlocks components, int width, int height)
+        public void LinearizeBlockData(PdfJsComponentBlocks components)
         {
-            this.Width = width;
-            this.Height = height;
-            int numberOfComponents = this.NumberOfComponents;
-            this.rowStride = width * numberOfComponents;
-            var scale = new Vector2(this.imageWidth / (float)width, this.imageHeight / (float)height);
-
-            this.componentData = this.memoryManager.Allocate<byte>(width * height * numberOfComponents);
-            Span<byte> componentDataSpan = this.componentData.Span;
+            ref byte componentDataRef = ref MemoryMarshal.GetReference(this.componentData.Span);
             const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
-            using (IBuffer<int> xScaleBlockOffset = this.memoryManager.Allocate<int>(width))
+            using (IBuffer<int> xScaleBlockOffset = this.memoryManager.Allocate<int>(this.Width))
             {
-                Span<int> xScaleBlockOffsetSpan = xScaleBlockOffset.Span;
-                for (int i = 0; i < numberOfComponents; i++)
+                ref int xScaleBlockOffsetRef = ref MemoryMarshal.GetReference(xScaleBlockOffset.Span);
+                for (int i = 0; i < this.NumberOfComponents; i++)
                 {
                     ref PdfJsComponent component = ref components.Components[i];
-                    Vector2 componentScale = component.Scale * scale;
-                    int offset = i;
-                    Span<short> output = component.Output.Span;
+                    ref short outputRef = ref MemoryMarshal.GetReference(component.Output.Span);
+                    Vector2 componentScale = component.Scale;
                     int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
 
                     // Precalculate the xScaleBlockOffset
                     int j;
-                    for (int x = 0; x < width; x++)
+                    for (int x = 0; x < this.Width; x++)
                     {
                         j = (int)(x * componentScale.X);
-                        xScaleBlockOffsetSpan[x] = (int)((j & Mask3Lsb) << 3) | (j & 7);
+                        Unsafe.Add(ref xScaleBlockOffsetRef, x) = (int)((j & Mask3Lsb) << 3) | (j & 7);
                     }
 
                     // Linearize the blocks of the component
-                    for (int y = 0; y < height; y++)
+                    int offset = i;
+                    for (int y = 0; y < this.Height; y++)
                     {
                         j = (int)(y * componentScale.Y);
                         int index = blocksPerScanline * (int)(j & Mask3Lsb) | ((j & 7) << 3);
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < this.Width; x++)
                         {
-                            componentDataSpan[offset] = (byte)output[index + xScaleBlockOffsetSpan[x]];
-                            offset += numberOfComponents;
+                            Unsafe.Add(ref componentDataRef, offset) = (byte)Unsafe.Add(ref outputRef, index + Unsafe.Add(ref xScaleBlockOffsetRef, x));
+                            offset += this.NumberOfComponents;
                         }
                     }
                 }

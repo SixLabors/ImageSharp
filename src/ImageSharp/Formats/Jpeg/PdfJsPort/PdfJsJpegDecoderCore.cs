@@ -793,26 +793,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             using (IBuffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             using (IBuffer<short> multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             {
-                Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
-                Span<short> computationBufferSpan = computationBuffer.Span;
+                ref short quantizationTableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex));
+                ref short computationBufferSpan = ref MemoryMarshal.GetReference(computationBuffer.Span);
 
-                // For AA&N IDCT method, multiplier are equal to quantization
-                // coefficients scaled by scalefactor[row]*scalefactor[col], where
-                //   scalefactor[0] = 1
-                //   scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
-                // For integer operation, the multiplier table is to be scaled by 12.
-                Span<short> multiplierSpan = multiplicationBuffer.Span;
-
-                // for (int i = 0; i < 64; i++)
-                // {
-                //    multiplierSpan[i] = (short)IDCT.Descale(quantizationTable[i] * IDCT.Aanscales[i], 12);
-                // }
                 for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
                 {
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
                         int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        PdfJsIDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTable);
+                        PdfJsIDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTableRef);
                     }
                 }
             }

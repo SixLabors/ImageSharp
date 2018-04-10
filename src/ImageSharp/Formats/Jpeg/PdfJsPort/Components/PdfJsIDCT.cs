@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// 'Practical Fast 1-D DCT Algorithms with 11 Multiplications',
         /// IEEE Intl. Conf. on Acoustics, Speech &amp; Signal Processing, 1989, 988-991.
         /// </summary>
-        /// <param name="component">The fram component</param>
+        /// <param name="component">The frame component</param>
         /// <param name="blockBufferOffset">The block buffer offset</param>
         /// <param name="computationBuffer">The computational buffer for holding temp values</param>
         /// <param name="quantizationTable">The quantization table</param>
@@ -255,18 +255,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 Unsafe.Add(ref blockDataRef, col + 48) = (short)p6;
                 Unsafe.Add(ref blockDataRef, col + 56) = (short)p7;
             }
-        }
-
-        /// <summary>
-        /// Right-shifts the value by the given amount
-        /// </summary>
-        /// <param name="value">The value</param>
-        /// <param name="shift">The amount to shift by</param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int RightShift(int value, int shift)
-        {
-            return value >> shift;
         }
     }
 }

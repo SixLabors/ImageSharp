@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (this.NumberOfComponents == 3)
             {
-                if (this.adobe.Equals(default(AdobeMarker)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                if (this.adobe.Equals(default) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
                     this.FillYCbCrImage(image);
                 }
@@ -561,10 +561,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
+                            ref short tableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15));
                             for (int j = 0; j < 64; j++)
                             {
-                                tableSpan[PdfJsQuantizationTables.DctZigZag[j]] = this.temp[j];
+                                Unsafe.Add(ref tableRef, PdfJsQuantizationTables.DctZigZag[j]) = this.temp[j];
                             }
                         }
 
@@ -581,10 +581,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
+                            ref short tableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15));
                             for (int j = 0; j < 64; j++)
                             {
-                                tableSpan[PdfJsQuantizationTables.DctZigZag[j]] = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);
+                                Unsafe.Add(ref tableRef, PdfJsQuantizationTables.DctZigZag[j]) = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);
                             }
                         }
 
@@ -679,7 +679,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
             {
-                Span<byte> huffmanSpan = huffmanData.Span;
+                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.Span);
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
@@ -687,12 +687,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
                     using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
                     {
-                        Span<byte> codeLengthsSpan = codeLengths.Span;
+                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.Span);
                         int codeLengthSum = 0;
 
                         for (int j = 1; j < 17; j++)
                         {
-                            codeLengthSum += codeLengthsSpan[j] = huffmanSpan[j - 1];
+                            codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
                         using (IManagedByteBuffer huffmanValues = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))

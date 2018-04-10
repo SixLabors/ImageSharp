@@ -2,11 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -46,7 +42,8 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
             var image = new ImageFrame<TPixel>(memoryManager, width, height);
-            SpanHelper.Copy(data, image.GetPixelSpan(), count);
+
+            data.Slice(0, count).CopyTo(image.GetPixelSpan());
 
             return image;
         }

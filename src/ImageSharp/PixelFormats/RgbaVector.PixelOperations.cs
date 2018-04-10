@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -18,11 +17,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            internal override unsafe void ToVector4(Span<RgbaVector> sourceColors, Span<Vector4> destVectors, int count)
+            internal override unsafe void ToVector4(ReadOnlySpan<RgbaVector> sourceColors, Span<Vector4> destVectors, int count)
             {
                 GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
-                SpanHelper.Copy(sourceColors.NonPortableCast<RgbaVector, Vector4>(), destVectors, count);
+                sourceColors.NonPortableCast<RgbaVector, Vector4>().Slice(0, count).CopyTo(destVectors);
             }
         }
     }

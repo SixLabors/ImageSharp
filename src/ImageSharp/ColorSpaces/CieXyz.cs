@@ -148,12 +148,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieXyz)
-            {
-                return this.Equals((CieXyz)obj);
-            }
-
-            return false;
+            return obj is CieXyz other && this.Equals(other);
         }
 
         /// <inheritdoc/>

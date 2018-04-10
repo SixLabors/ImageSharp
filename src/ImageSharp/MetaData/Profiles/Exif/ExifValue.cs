@@ -14,11 +14,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     public sealed class ExifValue : IEquatable<ExifValue>
     {
         /// <summary>
-        /// The exif value.
-        /// </summary>
-        private object exifValue;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ExifValue"/> class
         /// by making a copy from another exif value.
         /// </summary>
@@ -34,30 +29,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             if (!other.IsArray)
             {
-                this.exifValue = other.exifValue;
+                this.Value = other.Value;
             }
             else
             {
-                var array = (Array)other.exifValue;
-                this.exifValue = array.Clone();
-            }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ExifValue"/> class.
-        /// </summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="dataType">The data type.</param>
-        /// <param name="isArray">Whether the value is an array.</param>
-        internal ExifValue(ExifTag tag, ExifDataType dataType, bool isArray)
-        {
-            this.Tag = tag;
-            this.DataType = dataType;
-            this.IsArray = isArray;
-
-            if (dataType == ExifDataType.Ascii)
-            {
-                this.IsArray = false;
+                var array = (Array)other.Value;
+                this.Value = array.Clone();
             }
         }
 
@@ -69,51 +46,32 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <param name="value">The value.</param>
         /// <param name="isArray">Whether the value is an array.</param>
         internal ExifValue(ExifTag tag, ExifDataType dataType, object value, bool isArray)
-          : this(tag, dataType, isArray)
         {
-            this.exifValue = value;
+            this.Tag = tag;
+            this.DataType = dataType;
+            this.IsArray = isArray && dataType != ExifDataType.Ascii;
+            this.Value = value;
         }
 
         /// <summary>
         /// Gets the data type of the exif value.
         /// </summary>
-        public ExifDataType DataType
-        {
-            get;
-        }
+        public ExifDataType DataType { get; }
 
         /// <summary>
         /// Gets a value indicating whether the value is an array.
         /// </summary>
-        public bool IsArray
-        {
-            get;
-        }
+        public bool IsArray { get; }
 
         /// <summary>
         /// Gets the tag of the exif value.
         /// </summary>
-        public ExifTag Tag
-        {
-            get;
-        }
+        public ExifTag Tag { get; }
 
         /// <summary>
-        /// Gets or sets the value.
+        /// Gets the value.
         /// </summary>
-        public object Value
-        {
-            get
-            {
-                return this.exifValue;
-            }
-
-            set
-            {
-                this.CheckValue(value);
-                this.exifValue = value;
-            }
-        }
+        public object Value { get; }
 
         /// <summary>
         /// Gets a value indicating whether the EXIF value has a value.
@@ -122,14 +80,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             get
             {
-                if (this.exifValue == null)
+                if (this.Value == null)
                 {
                     return false;
                 }
 
                 if (this.DataType == ExifDataType.Ascii)
                 {
-                    return ((string)this.exifValue).Length > 0;
+                    return ((string)this.Value).Length > 0;
                 }
 
                 return true;
@@ -143,7 +101,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             get
             {
-                if (this.exifValue == null)
+                if (this.Value == null)
                 {
                     return 4;
                 }
@@ -163,12 +121,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             {
                 if (this.DataType == ExifDataType.Ascii)
                 {
-                    return Encoding.UTF8.GetBytes((string)this.exifValue).Length;
+                    return Encoding.UTF8.GetBytes((string)this.Value).Length;
                 }
 
                 if (this.IsArray)
                 {
-                    return ((Array)this.exifValue).Length;
+                    return ((Array)this.Value).Length;
                 }
 
                 return 1;
@@ -217,12 +175,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return this.Equals(obj as ExifValue);
+            return obj is ExifValue other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -241,7 +194,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return
               this.Tag == other.Tag &&
               this.DataType == other.DataType &&
-              object.Equals(this.exifValue, other.exifValue);
+              object.Equals(this.Value, other.Value);
+        }
+
+        /// <summary>
+        /// Clones the current value, overwriting the value.
+        /// </summary>
+        /// <param name="value">The value to overwrite.</param>
+        /// <returns><see cref="ExifValue"/></returns>
+        public ExifValue WithValue(object value)
+        {
+            this.CheckValue(value);
+
+            return new ExifValue(this.Tag, this.DataType, value, this.IsArray);
         }
 
         /// <inheritdoc/>
@@ -253,26 +218,26 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.exifValue == null)
+            if (this.Value == null)
             {
                 return null;
             }
 
             if (this.DataType == ExifDataType.Ascii)
             {
-                return (string)this.exifValue;
+                return (string)this.Value;
             }
 
             if (!this.IsArray)
             {
-                return this.ToString(this.exifValue);
+                return this.ToString(this.Value);
             }
 
             var sb = new StringBuilder();
-            foreach (object value in (Array)this.exifValue)
+            foreach (object value in (Array)this.Value)
             {
                 sb.Append(this.ToString(value));
-                sb.Append(" ");
+                sb.Append(' ');
             }
 
             return sb.ToString();
@@ -292,13 +257,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         internal static ExifValue Create(ExifTag tag, object value)
         {
             Guard.IsFalse(tag == ExifTag.Unknown, nameof(tag), "Invalid Tag");
-
-            ExifValue exifValue;
-            Type type = value?.GetType();
-            if (type != null && type.IsArray)
-            {
-                type = type.GetElementType();
-            }
 
             switch (tag)
             {
@@ -355,8 +313,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.GPSDestBearingRef:
                 case ExifTag.GPSDestDistanceRef:
                 case ExifTag.GPSDateStamp:
-                    exifValue = new ExifValue(tag, ExifDataType.Ascii, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Ascii, value, true);
 
                 case ExifTag.ClipPath:
                 case ExifTag.VersionYear:
@@ -369,13 +326,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.XPKeywords:
                 case ExifTag.XPSubject:
                 case ExifTag.GPSVersionID:
-                    exifValue = new ExifValue(tag, ExifDataType.Byte, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Byte, value, true);
+
                 case ExifTag.FaxProfile:
                 case ExifTag.ModeNumber:
                 case ExifTag.GPSAltitudeRef:
-                    exifValue = new ExifValue(tag, ExifDataType.Byte, false);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Byte, value, false);
 
                 case ExifTag.FreeOffsets:
                 case ExifTag.FreeByteCounts:
@@ -389,8 +345,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.StripRowCounts:
                 case ExifTag.IntergraphRegisters:
                 case ExifTag.TimeZoneOffset:
-                    exifValue = new ExifValue(tag, ExifDataType.Long, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Long, value, true);
                 case ExifTag.SubfileType:
                 case ExifTag.SubIFDOffset:
                 case ExifTag.GPSIFDOffset:
@@ -412,8 +367,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.FaxRecvParams:
                 case ExifTag.FaxRecvTime:
                 case ExifTag.ImageNumber:
-                    exifValue = new ExifValue(tag, ExifDataType.Long, false);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Long, value, false);
 
                 case ExifTag.WhitePoint:
                 case ExifTag.PrimaryChromaticities:
@@ -428,8 +382,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.GPSTimestamp:
                 case ExifTag.GPSDestLatitude:
                 case ExifTag.GPSDestLongitude:
-                    exifValue = new ExifValue(tag, ExifDataType.Rational, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Rational, value, true);
+
                 case ExifTag.XPosition:
                 case ExifTag.YPosition:
                 case ExifTag.XResolution:
@@ -463,8 +417,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.GPSImgDirection:
                 case ExifTag.GPSDestBearing:
                 case ExifTag.GPSDestDistance:
-                    exifValue = new ExifValue(tag, ExifDataType.Rational, false);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Rational, value, false);
 
                 case ExifTag.BitsPerSample:
                 case ExifTag.MinSampleValue:
@@ -487,8 +440,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.ISOSpeedRatings:
                 case ExifTag.SubjectArea:
                 case ExifTag.SubjectLocation:
-                    exifValue = new ExifValue(tag, ExifDataType.Short, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Short, value, true);
+
                 case ExifTag.OldSubfileType:
                 case ExifTag.Compression:
                 case ExifTag.PhotometricInterpretation:
@@ -535,20 +488,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.Sharpness:
                 case ExifTag.SubjectDistanceRange:
                 case ExifTag.GPSDifferential:
-                    exifValue = new ExifValue(tag, ExifDataType.Short, false);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Short, value, false);
 
                 case ExifTag.Decode:
-                    exifValue = new ExifValue(tag, ExifDataType.SignedRational, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.SignedRational, value, true);
+
                 case ExifTag.ShutterSpeedValue:
                 case ExifTag.BrightnessValue:
                 case ExifTag.ExposureBiasValue:
                 case ExifTag.AmbientTemperature:
                 case ExifTag.WaterDepth:
                 case ExifTag.CameraElevationAngle:
-                    exifValue = new ExifValue(tag, ExifDataType.SignedRational, false);
-                    break;
+                    return new ExifValue(tag, ExifDataType.SignedRational, value, false);
 
                 case ExifTag.JPEGTables:
                 case ExifTag.OECF:
@@ -565,18 +516,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.ImageSourceData:
                 case ExifTag.GPSProcessingMethod:
                 case ExifTag.GPSAreaInformation:
-                    exifValue = new ExifValue(tag, ExifDataType.Undefined, true);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Undefined, value, true);
+
                 case ExifTag.FileSource:
                 case ExifTag.SceneType:
-                    exifValue = new ExifValue(tag, ExifDataType.Undefined, false);
-                    break;
+                    return new ExifValue(tag, ExifDataType.Undefined, value, false);
 
                 case ExifTag.StripOffsets:
                 case ExifTag.TileByteCounts:
                 case ExifTag.ImageLayer:
-                    exifValue = CreateNumber(tag, type, true);
-                    break;
+                    return CreateNumber(tag, value, true);
+
                 case ExifTag.ImageWidth:
                 case ExifTag.ImageLength:
                 case ExifTag.TileWidth:
@@ -585,15 +535,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifTag.ConsecutiveBadFaxLines:
                 case ExifTag.PixelXDimension:
                 case ExifTag.PixelYDimension:
-                    exifValue = CreateNumber(tag, type, false);
-                    break;
+                    return CreateNumber(tag, value, false);
 
                 default:
                     throw new NotSupportedException();
             }
-
-            exifValue.Value = value;
-            return exifValue;
         }
 
         /// <summary>
@@ -635,29 +581,35 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// Returns an EXIF value with a numeric type for the given tag.
         /// </summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="type">The numeric type.</param>
+        /// <param name="value">The value.</param>
         /// <param name="isArray">Whether the value is an array.</param>
         /// <returns>
         /// The <see cref="ExifValue"/>.
         /// </returns>
-        private static ExifValue CreateNumber(ExifTag tag, Type type, bool isArray)
+        private static ExifValue CreateNumber(ExifTag tag, object value, bool isArray)
         {
+            Type type = value?.GetType();
+            if (type != null && type.IsArray)
+            {
+                type = type.GetElementType();
+            }
+
             if (type == null || type == typeof(ushort))
             {
-                return new ExifValue(tag, ExifDataType.Short, isArray);
+                return new ExifValue(tag, ExifDataType.Short, value, isArray);
             }
 
             if (type == typeof(short))
             {
-                return new ExifValue(tag, ExifDataType.SignedShort, isArray);
+                return new ExifValue(tag, ExifDataType.SignedShort, value, isArray);
             }
 
             if (type == typeof(uint))
             {
-                return new ExifValue(tag, ExifDataType.Long, isArray);
+                return new ExifValue(tag, ExifDataType.Long, value, isArray);
             }
 
-            return new ExifValue(tag, ExifDataType.SignedLong, isArray);
+            return new ExifValue(tag, ExifDataType.SignedLong, value, isArray);
         }
 
         /// <summary>
@@ -739,8 +691,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>The <see cref="string"/></returns>
         private string ToString(object value)
         {
-            string description = ExifTagDescriptionAttribute.GetDescription(this.Tag, value);
-            if (description != null)
+            if (ExifTagDescriptionAttribute.GetDescription(this.Tag, value) is string description)
             {
                 return description;
             }
@@ -788,7 +739,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         private int GetHashCode(ExifValue exif)
         {
             int hashCode = exif.Tag.GetHashCode() ^ exif.DataType.GetHashCode();
-            return hashCode ^ exif.exifValue?.GetHashCode() ?? hashCode;
+            return hashCode ^ exif.Value?.GetHashCode() ?? hashCode;
         }
     }
 }

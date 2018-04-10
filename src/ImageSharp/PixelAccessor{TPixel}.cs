@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            SpanHelper.Copy(this.PixelBuffer.Span, target.PixelBuffer.Span);
+            this.PixelBuffer.Span.CopyTo(target.PixelBuffer.Span);
         }
 
         /// <summary>

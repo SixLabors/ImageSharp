@@ -843,7 +843,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             while (k <= e)
             {
                 int offsetZ = offset + PdfJsQuantizationTables.DctZigZag[k];
-                int sign = Unsafe.Add(ref blockDataRef, offsetZ) < 0 ? -1 : 1;
+                ref short blockOffsetZRef = ref Unsafe.Add(ref blockDataRef, offsetZ);
+                int sign = blockOffsetZRef < 0 ? -1 : 1;
 
                 switch (this.successiveACState)
                 {
@@ -883,8 +884,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         continue;
                     case 1: // Skipping r zero items
                     case 2:
-                        ref short blockRef = ref Unsafe.Add(ref blockDataRef, offsetZ);
-                        if (blockRef != 0)
+                        if (blockOffsetZRef != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -892,7 +892,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 return;
                             }
 
-                            blockRef += (short)(sign * (bit << this.successiveState));
+                            blockOffsetZRef += (short)(sign * (bit << this.successiveState));
                         }
                         else
                         {
@@ -905,8 +905,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                         break;
                     case 3: // Set value for a zero item
-                        ref short blockRef2 = ref Unsafe.Add(ref blockDataRef, offsetZ);
-                        if (blockRef2 != 0)
+                        if (blockOffsetZRef != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -914,18 +913,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 return;
                             }
 
-                            blockRef2 += (short)(sign * (bit << this.successiveState));
+                            blockOffsetZRef += (short)(sign * (bit << this.successiveState));
                         }
                         else
                         {
-                            blockRef2 = (short)(this.successiveACNextValue << this.successiveState);
+                            blockOffsetZRef = (short)(this.successiveACNextValue << this.successiveState);
                             this.successiveACState = 0;
                         }
 
                         break;
                     case 4: // Eob
-                        ref short blockRef3 = ref Unsafe.Add(ref blockDataRef, offsetZ);
-                        if (blockRef3 != 0)
+                        if (blockOffsetZRef != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -933,7 +931,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 return;
                             }
 
-                            blockRef3 += (short)(sign * (bit << this.successiveState));
+                            blockOffsetZRef += (short)(sign * (bit << this.successiveState));
                         }
 
                         break;

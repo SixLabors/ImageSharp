@@ -6,6 +6,7 @@
         <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
         <Authors>SixLabors and contributors</Authors>
         <TargetFrameworks>netstandard1.1;netstandard2.0</TargetFrameworks>
+        <LangVersion>7.2</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AssemblyName>SixLabors.ImageSharp.Drawing</AssemblyName>

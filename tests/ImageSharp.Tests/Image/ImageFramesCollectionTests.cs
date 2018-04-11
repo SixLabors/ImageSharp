@@ -39,7 +39,6 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AddNewFrame_Frame_FramesNotBeNull()
         {
-
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
                 this.collection.AddFrame((ImageFrame<Rgba32>)null);
@@ -49,12 +48,13 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void AddNewFrame_PixelBuffer_FramesNotBeNull()
+        public void AddNewFrame_PixelBuffer_DataMustNotBeNull()
         {
+            Rgba32[] data = null;
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
-                this.collection.AddFrame((Rgba32[])null);
+                this.collection.AddFrame(data);
             });
 
             Assert.StartsWith("Value cannot be null.", ex.Message);
@@ -63,7 +63,6 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AddNewFrame_PixelBuffer_BufferIncorrectSize()
         {
-
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 this.collection.AddFrame(new Rgba32[0]);
@@ -75,7 +74,6 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void InsertNewFrame_FramesMustHaveSameSize()
         {
-
             ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             {
                 this.collection.InsertFrame(1, new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, 1, 1));
@@ -87,7 +85,6 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void InsertNewFrame_FramesNotBeNull()
         {
-
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(() =>
             {
                 this.collection.InsertFrame(1, null);
@@ -99,7 +96,6 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Constructor_FramesMustHaveSameSize()
         {
-
             ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             {
                 var collection = new ImageFrameCollection<Rgba32>(this.image, new[] {
@@ -198,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> img = provider.GetImage())
             {
-                img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default.MemoryManager,10, 10));// add a frame anyway
+                img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default.MemoryManager, 10, 10));// add a frame anyway
                 using (Image<TPixel> cloned = img.Frames.CloneFrame(0))
                 {
                     Assert.Equal(2, img.Frames.Count);
@@ -216,7 +212,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var sourcePixelData = img.GetPixelSpan().ToArray();
 
-                img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default.MemoryManager,10, 10));
+                img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default.MemoryManager, 10, 10));
                 using (Image<TPixel> cloned = img.Frames.ExportFrame(0))
                 {
                     Assert.Equal(1, img.Frames.Count);
@@ -244,7 +240,7 @@ namespace SixLabors.ImageSharp.Tests
         public void AddFrame_clones_sourceFrame()
         {
             var pixelData = this.image.Frames.RootFrame.GetPixelSpan().ToArray();
-            var otherFRame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager,10, 10);
+            var otherFRame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, 10, 10);
             var addedFrame = this.image.Frames.AddFrame(otherFRame);
             addedFrame.ComparePixelBufferTo(otherFRame.GetPixelSpan());
             Assert.NotEqual(otherFRame, addedFrame);
@@ -254,7 +250,7 @@ namespace SixLabors.ImageSharp.Tests
         public void InsertFrame_clones_sourceFrame()
         {
             var pixelData = this.image.Frames.RootFrame.GetPixelSpan().ToArray();
-            var otherFRame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager,10, 10);
+            var otherFRame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, 10, 10);
             var addedFrame = this.image.Frames.InsertFrame(0, otherFRame);
             addedFrame.ComparePixelBufferTo(otherFRame.GetPixelSpan());
             Assert.NotEqual(otherFRame, addedFrame);
@@ -308,7 +304,7 @@ namespace SixLabors.ImageSharp.Tests
                 this.image.Frames.CreateFrame();
             }
 
-            var frame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager,10, 10);
+            var frame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, 10, 10);
             Assert.False(this.image.Frames.Contains(frame));
         }
 

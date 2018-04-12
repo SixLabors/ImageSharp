@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
             };
 
-        public static readonly string[] ProgressiveTestJpegs = 
+        public static readonly string[] ProgressiveTestJpegs =
             {
                 TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
                 TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             };
 
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
-        
+
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void PdfJsDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             double averageDifference = 0;
             double totalDifference = 0;
-            double tolerance = 0; 
+            double tolerance = 0;
 
             this.Output.WriteLine("*** Differences ***");
             for (int i = 0; i < componentCount; i++)
@@ -116,11 +116,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"AVERAGE: {averageDifference}");
             this.Output.WriteLine($"TOTAL: {totalDifference}");
             this.Output.WriteLine($"TOLERANCE = totalNumOfBlocks / 64 = {tolerance}");
-            
+
             Assert.True(totalDifference < tolerance);
         }
 
-        [Theory(Skip = "Debug/Comparison only")]
+        [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void VerifySpectralCorrectness_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 decoder.ParseStream(ms);
                 var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-                
+
                 this.VerifySpectralCorrectness<TPixel>(provider, imageSharpData);
             }
         }

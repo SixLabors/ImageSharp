@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -412,8 +413,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 if (typeof(TDest) == typeof(Vector4))
                 {
 
-                    Span<Vector4> expected = this.ExpectedDestBuffer.AsSpan().NonPortableCast<TDest, Vector4>();
-                    Span<Vector4> actual = this.ActualDestBuffer.Span.NonPortableCast<TDest, Vector4>();
+                    Span<Vector4> expected = MemoryMarshal.Cast<TDest, Vector4>(this.ExpectedDestBuffer.AsSpan());
+                    Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.Span);
 
                     for (int i = 0; i < count; i++)
                     {

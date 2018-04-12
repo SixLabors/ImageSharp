@@ -14,6 +14,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests
 {
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Tests the <see cref="Image"/> class.
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel[] buffer = new TPixel[image.Width * image.Height];
+                var buffer = new TPixel[image.Width * image.Height];
                 image.SavePixelData(buffer);
 
                 image.ComparePixelBufferTo(buffer);
@@ -74,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 image.SavePixelData(buffer);
 
-                image.ComparePixelBufferTo(buffer.AsSpan().NonPortableCast<byte, TPixel>());
+                image.ComparePixelBufferTo(MemoryMarshal.Cast<byte, TPixel>(buffer.AsSpan()));
             }
         }
 

@@ -8,11 +8,14 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Stores header information about a chunk.
     /// </summary>
-    internal sealed class PngChunk
+    internal readonly struct PngChunk
     {
-        public PngChunk(int length)
+        public PngChunk(int length, string type, IManagedByteBuffer data = null, uint crc = default)
         {
             this.Length = length;
+            this.Type = type;
+            this.Data = data;
+            this.Crc = crc;
         }
 
         /// <summary>
@@ -24,21 +27,30 @@ namespace SixLabors.ImageSharp.Formats.Png
         public int Length { get; }
 
         /// <summary>
-        /// Gets or sets the chunk type as string with 4 chars.
+        /// Gets the chunk type as string with 4 chars.
         /// </summary>
-        public string Type { get; set; }
+        public string Type { get; }
 
         /// <summary>
-        /// Gets or sets the data bytes appropriate to the chunk type, if any.
-        /// This field can be of zero length.
+        /// Gets the data bytes appropriate to the chunk type, if any.
+        /// This field can be of zero length or null.
         /// </summary>
-        public IManagedByteBuffer Data { get; set; }
+        public IManagedByteBuffer Data { get; }
 
         /// <summary>
-        /// Gets or sets a CRC (Cyclic Redundancy Check) calculated on the preceding bytes in the chunk,
+        /// Gets a CRC (Cyclic Redundancy Check) calculated on the preceding bytes in the chunk,
         /// including the chunk type code and chunk data fields, but not including the length field.
         /// The CRC is always present, even for chunks containing no data
         /// </summary>
-        public uint Crc { get; set; }
+        public uint Crc { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the given chunk is critical to decoding
+        /// </summary>
+        public bool IsCritical =>
+            this.Type == PngChunkTypes.Header ||
+            this.Type == PngChunkTypes.Palette ||
+            this.Type == PngChunkTypes.Data ||
+            this.Type == PngChunkTypes.End;
     }
 }

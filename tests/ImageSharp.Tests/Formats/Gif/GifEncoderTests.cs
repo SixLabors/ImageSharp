@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder() { Quantizer = new PaletteQuantizer() });
+                provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder());
             }
         }
 

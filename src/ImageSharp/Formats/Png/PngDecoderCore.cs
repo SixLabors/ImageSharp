@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -776,7 +777,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 // TODO: Should we use pack from vector here instead?
                                 this.From16BitTo8Bit(scanlineBuffer, compressed.Span, length);
 
-                                Span<Rgb24> rgb24Span = compressed.Span.NonPortableCast<byte, Rgb24>();
+                                Span<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(compressed.Span);
                                 for (int x = 0; x < this.header.Width; x++)
                                 {
                                     ref Rgb24 rgb24 = ref rgb24Span[x];
@@ -791,7 +792,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         }
                         else
                         {
-                            ReadOnlySpan<Rgb24> rgb24Span = scanlineBuffer.NonPortableCast<byte, Rgb24>();
+                            ReadOnlySpan<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(scanlineBuffer);
                             for (int x = 0; x < this.header.Width; x++)
                             {
                                 ref readonly Rgb24 rgb24 = ref rgb24Span[x];

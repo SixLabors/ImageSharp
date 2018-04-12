@@ -131,8 +131,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 if (alignedCount > 0)
                 {
-                    ReadOnlySpan<float> flatSrc = sourceVectors.Slice(0, alignedCount).NonPortableCast<Vector4, float>();
-                    Span<byte> flatDest = destColors.NonPortableCast<Rgba32, byte>();
+                    ReadOnlySpan<float> flatSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
+                    Span<byte> flatDest = MemoryMarshal.Cast<Rgba32, byte>(destColors);
 
                     SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(flatSrc, flatDest);
                 }

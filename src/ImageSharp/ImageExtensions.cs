@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -112,7 +113,7 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        ///  Saves the raw image pixels to a byte array in row-major order.
+        /// Saves the raw image pixels to a byte array in row-major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static byte[] SavePixelData<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => source.GetPixelSpan().AsBytes().ToArray();
+         => MemoryMarshal.AsBytes(source.GetPixelSpan()).ToArray();
 
         /// <summary>
         /// Saves the raw image pixels to the given byte array in row-major order.
@@ -131,7 +132,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, byte[] buffer)
             where TPixel : struct, IPixel<TPixel>
-            => SavePixelData(source, buffer.AsSpan().NonPortableCast<byte, TPixel>());
+            => SavePixelData(source, MemoryMarshal.Cast<byte, TPixel>(buffer.AsSpan()));
 
         /// <summary>
         /// Saves the raw image pixels to the given TPixel array in row-major order.
@@ -205,7 +206,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         internal static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
             where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.SavePixelData(buffer.NonPortableCast<byte, TPixel>());
+            => source.Frames.RootFrame.SavePixelData(MemoryMarshal.Cast<byte, TPixel>(buffer));
 
         /// <summary>
         /// Saves the raw image to the given bytes.

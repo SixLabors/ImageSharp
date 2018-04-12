@@ -559,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y).AsReadOnlySpan(), y);
+                        IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         IManagedByteBuffer temp = this.rawScanline;

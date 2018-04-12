@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -23,38 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private const int DctSqrt1D2 = 2896;  // sqrt(2) / 2
         private const int MaxJSample = 255;
         private const int CenterJSample = 128;
-        private const int RangeCenter = (MaxJSample * 2) + 2;
-
-        // First segment of range limit table: limit[x] = 0 for x < 0
-        // allow negative subscripts of simple table
-        private const int TableOffset = 2 * (MaxJSample + 1);
-        private const int LimitOffset = TableOffset - (RangeCenter - CenterJSample);
-
-        // Each IDCT routine is responsible for range-limiting its results and
-        // converting them to unsigned form (0..MaxJSample).  The raw outputs could
-        // be quite far out of range if the input data is corrupt, so a bulletproof
-        // range-limiting step is required.  We use a mask-and-table-lookup method
-        // to do the combined operations quickly, assuming that MaxJSample+1
-        // is a power of 2.
-        private const int RangeMask = (MaxJSample * 4) + 3; // 2 bits wider than legal samples
-
-        private static readonly byte[] Limit = new byte[5 * (MaxJSample + 1)];
-
-        static PdfJsIDCT()
-        {
-            // Main part of range limit table: limit[x] = x
-            int i;
-            for (i = 0; i <= MaxJSample; i++)
-            {
-                Limit[TableOffset + i] = (byte)i;
-            }
-
-            // End of range limit table: Limit[x] = MaxJSample for x > MaxJSample
-            for (; i < 3 * (MaxJSample + 1); i++)
-            {
-                Limit[TableOffset + i] = MaxJSample;
-            }
-        }
 
         /// <summary>
         /// A port of Poppler's IDCT method which in turn is taken from:
@@ -64,9 +31,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="component">The frame component</param>
         /// <param name="blockBufferOffset">The block buffer offset</param>
-        /// <param name="computationBuffer">The computational buffer for holding temp values</param>
-        /// <param name="quantizationTable">The quantization table</param>
-        public static void QuantizeAndInverse(PdfJsFrameComponent component, int blockBufferOffset, ref short computationBuffer, ref short quantizationTable)
+        /// <param name="computationBufferRef">The computational buffer for holding temp values ref</param>
+        /// <param name="quantizationTableRef">The quantization table ref</param>
+        public static void QuantizeAndInverse(PdfJsFrameComponent component, int blockBufferOffset, ref short computationBufferRef, ref short quantizationTableRef)
         {
             ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Slice(blockBufferOffset));
             int v0, v1, v2, v3, v4, v5, v6, v7;
@@ -87,48 +54,48 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 p7 = Unsafe.Add(ref blockDataRef, row + 7);
 
                 // dequant p0
-                p0 *= Unsafe.Add(ref quantizationTable, row);
+                p0 *= Unsafe.Add(ref quantizationTableRef, row);
 
                 // check for all-zero AC coefficients
                 if ((p1 | p2 | p3 | p4 | p5 | p6 | p7) == 0)
                 {
                     t = ((DctSqrt2 * p0) + 512) >> 10;
                     short st = (short)t;
-                    Unsafe.Add(ref computationBuffer, row) = st;
-                    Unsafe.Add(ref computationBuffer, row + 1) = st;
-                    Unsafe.Add(ref computationBuffer, row + 2) = st;
-                    Unsafe.Add(ref computationBuffer, row + 3) = st;
-                    Unsafe.Add(ref computationBuffer, row + 4) = st;
-                    Unsafe.Add(ref computationBuffer, row + 5) = st;
-                    Unsafe.Add(ref computationBuffer, row + 6) = st;
-                    Unsafe.Add(ref computationBuffer, row + 7) = st;
+                    Unsafe.Add(ref computationBufferRef, row) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 1) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 2) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 3) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 4) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 5) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 6) = st;
+                    Unsafe.Add(ref computationBufferRef, row + 7) = st;
                     continue;
                 }
 
                 // dequant p1 ... p7
-                p1 *= Unsafe.Add(ref quantizationTable, row + 1);
-                p2 *= Unsafe.Add(ref quantizationTable, row + 2);
-                p3 *= Unsafe.Add(ref quantizationTable, row + 3);
-                p4 *= Unsafe.Add(ref quantizationTable, row + 4);
-                p5 *= Unsafe.Add(ref quantizationTable, row + 5);
-                p6 *= Unsafe.Add(ref quantizationTable, row + 6);
-                p7 *= Unsafe.Add(ref quantizationTable, row + 7);
+                p1 *= Unsafe.Add(ref quantizationTableRef, row + 1);
+                p2 *= Unsafe.Add(ref quantizationTableRef, row + 2);
+                p3 *= Unsafe.Add(ref quantizationTableRef, row + 3);
+                p4 *= Unsafe.Add(ref quantizationTableRef, row + 4);
+                p5 *= Unsafe.Add(ref quantizationTableRef, row + 5);
+                p6 *= Unsafe.Add(ref quantizationTableRef, row + 6);
+                p7 *= Unsafe.Add(ref quantizationTableRef, row + 7);
 
                 // stage 4
-                v0 = ((DctSqrt2 * p0) + 128) >> 8;
-                v1 = ((DctSqrt2 * p4) + 128) >> 8;
+                v0 = ((DctSqrt2 * p0) + CenterJSample) >> 8;
+                v1 = ((DctSqrt2 * p4) + CenterJSample) >> 8;
                 v2 = p2;
                 v3 = p6;
-                v4 = ((DctSqrt1D2 * (p1 - p7)) + 128) >> 8;
-                v7 = ((DctSqrt1D2 * (p1 + p7)) + 128) >> 8;
+                v4 = ((DctSqrt1D2 * (p1 - p7)) + CenterJSample) >> 8;
+                v7 = ((DctSqrt1D2 * (p1 + p7)) + CenterJSample) >> 8;
                 v5 = p3 << 4;
                 v6 = p5 << 4;
 
                 // stage 3
                 v0 = (v0 + v1 + 1) >> 1;
                 v1 = v0 - v1;
-                t = ((v2 * DctSin6) + (v3 * DctCos6) + 128) >> 8;
-                v2 = ((v2 * DctCos6) - (v3 * DctSin6) + 128) >> 8;
+                t = ((v2 * DctSin6) + (v3 * DctCos6) + CenterJSample) >> 8;
+                v2 = ((v2 * DctCos6) - (v3 * DctSin6) + CenterJSample) >> 8;
                 v3 = t;
                 v4 = (v4 + v6 + 1) >> 1;
                 v6 = v4 - v6;
@@ -148,27 +115,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 v6 = t;
 
                 // stage 1
-                Unsafe.Add(ref computationBuffer, row) = (short)(v0 + v7);
-                Unsafe.Add(ref computationBuffer, row + 7) = (short)(v0 - v7);
-                Unsafe.Add(ref computationBuffer, row + 1) = (short)(v1 + v6);
-                Unsafe.Add(ref computationBuffer, row + 6) = (short)(v1 - v6);
-                Unsafe.Add(ref computationBuffer, row + 2) = (short)(v2 + v5);
-                Unsafe.Add(ref computationBuffer, row + 5) = (short)(v2 - v5);
-                Unsafe.Add(ref computationBuffer, row + 3) = (short)(v3 + v4);
-                Unsafe.Add(ref computationBuffer, row + 4) = (short)(v3 - v4);
+                Unsafe.Add(ref computationBufferRef, row) = (short)(v0 + v7);
+                Unsafe.Add(ref computationBufferRef, row + 7) = (short)(v0 - v7);
+                Unsafe.Add(ref computationBufferRef, row + 1) = (short)(v1 + v6);
+                Unsafe.Add(ref computationBufferRef, row + 6) = (short)(v1 - v6);
+                Unsafe.Add(ref computationBufferRef, row + 2) = (short)(v2 + v5);
+                Unsafe.Add(ref computationBufferRef, row + 5) = (short)(v2 - v5);
+                Unsafe.Add(ref computationBufferRef, row + 3) = (short)(v3 + v4);
+                Unsafe.Add(ref computationBufferRef, row + 4) = (short)(v3 - v4);
             }
 
             // inverse DCT on columns
             for (int col = 0; col < 8; ++col)
             {
-                p0 = Unsafe.Add(ref computationBuffer, col);
-                p1 = Unsafe.Add(ref computationBuffer, col + 8);
-                p2 = Unsafe.Add(ref computationBuffer, col + 16);
-                p3 = Unsafe.Add(ref computationBuffer, col + 24);
-                p4 = Unsafe.Add(ref computationBuffer, col + 32);
-                p5 = Unsafe.Add(ref computationBuffer, col + 40);
-                p6 = Unsafe.Add(ref computationBuffer, col + 48);
-                p7 = Unsafe.Add(ref computationBuffer, col + 56);
+                p0 = Unsafe.Add(ref computationBufferRef, col);
+                p1 = Unsafe.Add(ref computationBufferRef, col + 8);
+                p2 = Unsafe.Add(ref computationBufferRef, col + 16);
+                p3 = Unsafe.Add(ref computationBufferRef, col + 24);
+                p4 = Unsafe.Add(ref computationBufferRef, col + 32);
+                p5 = Unsafe.Add(ref computationBufferRef, col + 40);
+                p6 = Unsafe.Add(ref computationBufferRef, col + 48);
+                p7 = Unsafe.Add(ref computationBufferRef, col + 56);
 
                 // check for all-zero AC coefficients
                 if ((p1 | p2 | p3 | p4 | p5 | p6 | p7) == 0)

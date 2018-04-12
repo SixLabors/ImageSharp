@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static ImageFrame<TPixel> LoadPixelData<TPixel>(MemoryManager memoryManager, Span<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-            => LoadPixelData(memoryManager, data.NonPortableCast<byte, TPixel>(), width, height);
+            => LoadPixelData(memoryManager, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the raw <typeparamref name="TPixel"/> data.

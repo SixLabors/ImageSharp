@@ -358,12 +358,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             this.acHuffmanTables = null;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBlockBufferOffset(ref PdfJsComponent component, int row, int col)
-        {
-            return 64 * (((component.BlocksPerLine + 1) * row) + col);
-        }
-
         internal void QuantizeAndInverseAllComponents()
         {
             for (int i = 0; i < this.components.Components.Length; i++)
@@ -692,8 +686,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             for (int i = 0; i < this.Frame.Components.Length; i++)
             {
-                int h = this.temp[index + 1] >> 4;
-                int v = this.temp[index + 1] & 15;
+                byte hv = this.temp[index + 1];
+                int h = hv >> 4;
+                int v = hv & 15;
 
                 if (maxH < h)
                 {
@@ -852,7 +847,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 {
                     for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
                     {
-                        int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
+                        int offset = 64 * (((blocksPerLine + 1) * blockRow) + blockCol);
                         PdfJsIDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTableRef);
                     }
                 }

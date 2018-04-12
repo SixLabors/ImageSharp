@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// <summary>
     /// Represents a Huffman Table
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct PdfJsHuffmanTable
     {
         /// <summary>

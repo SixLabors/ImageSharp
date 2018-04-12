@@ -77,6 +77,8 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public ImageFrame<TPixel> AddFrame(TPixel[] data)
         {
+            Guard.NotNull(data, nameof(data));
+
             var frame = ImageFrame.LoadPixelData(
                 this.parent.GetMemoryManager(),
                 new Span<TPixel>(data),

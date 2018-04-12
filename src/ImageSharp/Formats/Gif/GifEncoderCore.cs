@@ -4,6 +4,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -132,17 +134,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
             var trans = default(Rgba32);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(quantized.Palette.AsSpan());
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToRgba32(ref trans);
-
-                if (trans.Equals(default(Rgba32)))
+                ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
+                entry.ToRgba32(ref trans);
+                if (trans.Equals(default))
                 {
                     index = i;
                 }
@@ -155,6 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the file header signature and version to the stream.
         /// </summary>
         /// <param name="writer">The writer to write to the stream with.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteHeader(EndianBinaryWriter writer)
         {
             writer.Write(GifConstants.MagicNumber);
@@ -336,15 +341,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
             var rgb = default(Rgb24);
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
-                Span<byte> colorTableSpan = colorTable.Span;
+                // TODO: Pixel operations?
+                ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
+                ref byte colorTableRef = ref MemoryMarshal.GetReference(colorTable.Span);
 
                 for (int i = 0; i < pixelCount; i++)
                 {
                     int offset = i * 3;
-                    image.Palette[i].ToRgb24(ref rgb);
-                    colorTableSpan[offset] = rgb.R;
-                    colorTableSpan[offset + 1] = rgb.G;
-                    colorTableSpan[offset + 2] = rgb.B;
+                    ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
+                    entry.ToRgb24(ref rgb);
+
+                    Unsafe.Add(ref colorTableRef, offset) = rgb.R;
+                    Unsafe.Add(ref colorTableRef, offset + 1) = rgb.G;
+                    Unsafe.Add(ref colorTableRef, offset + 2) = rgb.B;
                 }
 
                 writer.Write(colorTable.Array, 0, colorTableLength);

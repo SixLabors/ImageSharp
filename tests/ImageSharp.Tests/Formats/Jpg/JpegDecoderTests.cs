@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private const float BaselineTolerance_PdfJs = 0.005f;
 
         private const float ProgressiveTolerance_Orig = 0.2f / 100;
-        private const float ProgressiveTolerance_PdfJs = 1.5f / 100; // PDF.js Progressive output is wrong on spectral level!
+        private const float ProgressiveTolerance_PdfJs = 0.33f / 100;
 
         private ImageComparer GetImageComparerForOrigDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

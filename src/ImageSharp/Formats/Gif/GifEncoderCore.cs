@@ -51,11 +51,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitDepth;
 
         /// <summary>
-        /// Whether the current image has multiple frames.
-        /// </summary>
-        private bool hasFrames;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>

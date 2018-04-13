@@ -4,9 +4,9 @@
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// Contains a list of possible chunk type identifiers.
+    /// Contains a list of possible chunk type identifier names.
     /// </summary>
-    internal static class PngChunkTypes
+    internal static class PngChunkTypeNames
     {
         /// <summary>
         /// The first chunk in a png file. Can only exists once. Contains

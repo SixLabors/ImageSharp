@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal readonly struct PngChunk
     {
-        public PngChunk(int length, string type, IManagedByteBuffer data = null, uint crc = default)
+        public PngChunk(int length, PngChunkType type, IManagedByteBuffer data = null, uint crc = default)
         {
             this.Length = length;
             this.Type = type;
@@ -27,9 +27,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         public int Length { get; }
 
         /// <summary>
-        /// Gets the chunk type as string with 4 chars.
+        /// Gets the chunk type.
+        /// The chunk type value the UInt32BigEndian encoding of its 4 ASCII characters.
         /// </summary>
-        public string Type { get; }
+        public PngChunkType Type { get; }
 
         /// <summary>
         /// Gets the data bytes appropriate to the chunk type, if any.
@@ -48,9 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets a value indicating whether the given chunk is critical to decoding
         /// </summary>
         public bool IsCritical =>
-            this.Type == PngChunkTypes.Header ||
-            this.Type == PngChunkTypes.Palette ||
-            this.Type == PngChunkTypes.Data ||
-            this.Type == PngChunkTypes.End;
+            this.Type == PngChunkType.Header ||
+            this.Type == PngChunkType.Palette ||
+            this.Type == PngChunkType.Data ||
+            this.Type == PngChunkType.End;
     }
 }

@@ -27,9 +27,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         private const int MaxBlockSize = 65535;
 
         /// <summary>
-        /// Reusable buffer for writing chunk types.
+        /// Reusable buffer for writing general data.
         /// </summary>
-        private readonly byte[] chunkTypeBuffer = new byte[4];
+        private readonly byte[] buffer = new byte[8];
 
         /// <summary>
         /// Reusable buffer for writing chunk data.
@@ -423,7 +423,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.chunkDataBuffer[11] = header.FilterMethod;
             this.chunkDataBuffer[12] = (byte)header.InterlaceMethod;
 
-            this.WriteChunk(stream, PngChunkTypes.Header, this.chunkDataBuffer, 0, 13);
+            this.WriteChunk(stream, PngChunkType.Header, this.chunkDataBuffer, 0, 13);
         }
 
         /// <summary>
@@ -474,12 +474,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable.Array, 0, colorTableLength);
+                this.WriteChunk(stream, PngChunkType.Palette, colorTable.Array, 0, colorTableLength);
 
                 // Write the transparency data
                 if (anyAlpha)
                 {
-                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable.Array, 0, pixelCount);
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaTable.Array, 0, pixelCount);
                 }
             }
         }
@@ -504,7 +504,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 this.chunkDataBuffer[8] = 1;
 
-                this.WriteChunk(stream, PngChunkTypes.Physical, this.chunkDataBuffer, 0, 9);
+                this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
             }
         }
 
@@ -521,7 +521,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), gammaValue);
 
-                this.WriteChunk(stream, PngChunkTypes.Gamma, this.chunkDataBuffer, 0, 4);
+                this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer, 0, 4);
             }
         }
 
@@ -589,7 +589,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     length = MaxBlockSize;
                 }
 
-                this.WriteChunk(stream, PngChunkTypes.Data, buffer, i * MaxBlockSize, length);
+                this.WriteChunk(stream, PngChunkType.Data, buffer, i * MaxBlockSize, length);
             }
         }
 
@@ -599,7 +599,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteEndChunk(Stream stream)
         {
-            this.WriteChunk(stream, PngChunkTypes.End, null);
+            this.WriteChunk(stream, PngChunkType.End, null);
         }
 
         /// <summary>
@@ -608,7 +608,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="type">The type of chunk to write.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-        private void WriteChunk(Stream stream, string type, byte[] data)
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data)
         {
             this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
         }
@@ -621,22 +621,16 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
         /// <param name="offset">The position to offset the data at.</param>
         /// <param name="length">The of the data to write.</param>
-        private void WriteChunk(Stream stream, string type, byte[] data, int offset, int length)
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data, int offset, int length)
         {
-            BinaryPrimitives.WriteInt32BigEndian(this.intBuffer, length);
+            BinaryPrimitives.WriteInt32BigEndian(this.buffer, length);
+            BinaryPrimitives.WriteUInt32BigEndian(this.buffer.AsSpan(4, 4), (uint)type);
 
-            stream.Write(this.intBuffer, 0, 4); // write the length
-
-            this.chunkTypeBuffer[0] = (byte)type[0];
-            this.chunkTypeBuffer[1] = (byte)type[1];
-            this.chunkTypeBuffer[2] = (byte)type[2];
-            this.chunkTypeBuffer[3] = (byte)type[3];
-
-            stream.Write(this.chunkTypeBuffer, 0, 4);
+            stream.Write(this.buffer, 0, 8);
 
             this.crc.Reset();
 
-            this.crc.Update(this.chunkTypeBuffer);
+            this.crc.Update(this.buffer.AsSpan(4, 4)); // Write the type buffer
 
             if (data != null && length > 0)
             {

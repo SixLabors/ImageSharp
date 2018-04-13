@@ -72,11 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] crcBuffer = new byte[4];
 
         /// <summary>
-        /// Reusable buffer for reading char arrays.
-        /// </summary>
-        private readonly char[] chars = new char[4];
-
-        /// <summary>
         /// Reusable crc for validating chunks.
         /// </summary>
         private readonly Crc32 crc = new Crc32();
@@ -224,14 +219,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                         {
                             switch (chunk.Type)
                             {
-                                case PngChunkTypes.Header:
+                                case PngChunkType.Header:
                                     this.ReadHeaderChunk(chunk.Data.Array);
                                     this.ValidateHeader();
                                     break;
-                                case PngChunkTypes.Physical:
+                                case PngChunkType.Physical:
                                     this.ReadPhysicalChunk(metadata, chunk.Data.Array);
                                     break;
-                                case PngChunkTypes.Data:
+                                case PngChunkType.Data:
                                     if (image == null)
                                     {
                                         this.InitializeImage(metadata, out image);
@@ -241,21 +236,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.ReadScanlines(deframeStream.CompressedStream, image.Frames.RootFrame);
                                     this.currentStream.Read(this.crcBuffer, 0, 4);
                                     break;
-                                case PngChunkTypes.Palette:
+                                case PngChunkType.Palette:
                                     byte[] pal = new byte[chunk.Length];
                                     Buffer.BlockCopy(chunk.Data.Array, 0, pal, 0, chunk.Length);
                                     this.palette = pal;
                                     break;
-                                case PngChunkTypes.PaletteAlpha:
+                                case PngChunkType.PaletteAlpha:
                                     byte[] alpha = new byte[chunk.Length];
                                     Buffer.BlockCopy(chunk.Data.Array, 0, alpha, 0, chunk.Length);
                                     this.paletteAlpha = alpha;
                                     this.AssignTransparentMarkers(alpha);
                                     break;
-                                case PngChunkTypes.Text:
+                                case PngChunkType.Text:
                                     this.ReadTextChunk(metadata, chunk.Data.Array, chunk.Length);
                                     break;
-                                case PngChunkTypes.End:
+                                case PngChunkType.End:
                                     this.isEndChunkReached = true;
                                     break;
                             }
@@ -298,20 +293,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         switch (chunk.Type)
                         {
-                            case PngChunkTypes.Header:
+                            case PngChunkType.Header:
                                 this.ReadHeaderChunk(chunk.Data.Array);
                                 this.ValidateHeader();
                                 break;
-                            case PngChunkTypes.Physical:
+                            case PngChunkType.Physical:
                                 this.ReadPhysicalChunk(metadata, chunk.Data.Array);
                                 break;
-                            case PngChunkTypes.Data:
+                            case PngChunkType.Data:
                                 this.SkipChunkDataAndCrc(chunk);
                                 break;
-                            case PngChunkTypes.Text:
+                            case PngChunkType.Text:
                                 this.ReadTextChunk(metadata, chunk.Data.Array, chunk.Length);
                                 break;
-                            case PngChunkTypes.End:
+                            case PngChunkType.End:
                                 this.isEndChunkReached = true;
                                 break;
                         }
@@ -1214,10 +1209,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                 }
             }
 
-            string type = this.ReadChunkType();
+            PngChunkType type = this.ReadChunkType();
 
             // NOTE: Reading the chunk data is the responsible of the caller
-            if (type == PngChunkTypes.Data)
+            if (type == PngChunkType.Data)
             {
                 chunk = new PngChunk(length, type);
 
@@ -1246,7 +1241,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.crc.Value != chunk.Crc)
             {
-                throw new ImageFormatException($"CRC Error. PNG {chunk.Type} chunk is corrupt!");
+                string chunkName = Encoding.UTF8.GetString(this.chunkTypeBuffer, 0, 4);
+
+                throw new ImageFormatException($"CRC Error. PNG {chunkName} chunk is corrupt!");
             }
         }
 
@@ -1297,20 +1294,16 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <exception cref="ImageFormatException">
         /// Thrown if the input stream is not valid.
         /// </exception>
-        private string ReadChunkType()
+        private PngChunkType ReadChunkType()
         {
             int numBytes = this.currentStream.Read(this.chunkTypeBuffer, 0, 4);
+
             if (numBytes >= 1 && numBytes <= 3)
             {
                 throw new ImageFormatException("Image stream is not valid!");
             }
 
-            this.chars[0] = (char)this.chunkTypeBuffer[0];
-            this.chars[1] = (char)this.chunkTypeBuffer[1];
-            this.chars[2] = (char)this.chunkTypeBuffer[2];
-            this.chars[3] = (char)this.chunkTypeBuffer[3];
-
-            return new string(this.chars);
+            return (PngChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.chunkTypeBuffer.AsSpan());
         }
 
         /// <summary>

@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -415,8 +414,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         private void WriteHeaderChunk(Stream stream, in PngHeader header)
         {
-            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), header.Width);
-            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), header.Height);
+            BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), header.Width);
+            BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(4, 4), header.Height);
 
             this.chunkDataBuffer[8] = header.BitDepth;
             this.chunkDataBuffer[9] = (byte)header.ColorType;
@@ -500,8 +499,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
                 int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
 
-                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), dpmX);
-                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), dpmY);
+                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), dpmX);
+                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(4, 4), dpmY);
 
                 this.chunkDataBuffer[8] = 1;
 
@@ -520,7 +519,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // 4-byte unsigned integer of gamma * 100,000.
                 uint gammaValue = (uint)(this.gamma * 100_000F);
 
-                BinaryPrimitives.WriteUInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), gammaValue);
+                BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), gammaValue);
 
                 this.WriteChunk(stream, PngChunkTypes.Gamma, this.chunkDataBuffer, 0, 4);
             }
@@ -643,7 +642,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 stream.Write(data, offset, length);
 
-                this.crc.Update(new ReadOnlySpan<byte>(data, offset, length));
+                this.crc.Update(data.AsSpan(offset, length));
             }
 
             BinaryPrimitives.WriteUInt32BigEndian(this.intBuffer, (uint)this.crc.Value);

@@ -1216,8 +1216,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             string type = this.ReadChunkType();
 
-            // NOTE: Handling the chunk data is the responsible of the caller
-            // It is currently either skipped (in identification) or read during decoding
+            // NOTE: Reading the chunk data is the responsible of the caller
             if (type == PngChunkTypes.Data)
             {
                 chunk = new PngChunk(length, type);
@@ -1231,7 +1230,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                 data: this.ReadChunkData(length),
                 crc: this.ReadChunkCrc());
 
-            this.ValidateChunk(chunk);
+            if (chunk.IsCritical)
+            {
+                this.ValidateChunk(chunk);
+            }
 
             return true;
         }
@@ -1240,9 +1242,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.crc.Reset();
             this.crc.Update(this.chunkTypeBuffer);
-            this.crc.Update(new ReadOnlySpan<byte>(chunk.Data.Array, 0, chunk.Length));
+            this.crc.Update(chunk.Data.Span);
 
-            if (this.crc.Value != chunk.Crc && chunk.IsCritical)
+            if (this.crc.Value != chunk.Crc)
             {
                 throw new ImageFormatException($"CRC Error. PNG {chunk.Type} chunk is corrupt!");
             }

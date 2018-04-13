@@ -13,6 +13,9 @@ using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
 
+// TODO: This is causing more GC collections than I'm happy with.
+// This is likely due to the number of short writes to the stream we are doing.
+// We should investigate reducing them since we know the length of the byte array we require for multiple parts.
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
@@ -80,8 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            this.hasFrames = image.Frames.Count > 1;
-
             // Quantize the image returning a palette.
             QuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
 
@@ -100,9 +101,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteComments(image, writer);
 
             // Write additional frames.
-            if (this.hasFrames)
+            if (image.Frames.Count > 1)
             {
-                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
+                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount);
             }
 
             foreach (ImageFrame<TPixel> frame in image.Frames)
@@ -134,7 +135,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -206,11 +206,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
-        /// <param name="frames">The number of image frames.</param>
-        private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount, int frames)
+        private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount)
         {
             // Application Extension Header
-            if (repeatCount != 1 && frames > 0)
+            if (repeatCount != 1)
             {
                 this.buffer[0] = GifConstants.ExtensionIntroducer;
                 this.buffer[1] = GifConstants.ApplicationExtensionLabel;
@@ -341,19 +340,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             var rgb = default(Rgb24);
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
-                // TODO: Pixel operations?
                 ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
-                ref byte colorTableRef = ref MemoryMarshal.GetReference(colorTable.Span);
+                ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.Span));
 
                 for (int i = 0; i < pixelCount; i++)
                 {
-                    int offset = i * 3;
                     ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
                     entry.ToRgb24(ref rgb);
-
-                    Unsafe.Add(ref colorTableRef, offset) = rgb.R;
-                    Unsafe.Add(ref colorTableRef, offset + 1) = rgb.G;
-                    Unsafe.Add(ref colorTableRef, offset + 2) = rgb.B;
+                    Unsafe.Add(ref rgb24Ref, i);
                 }
 
                 writer.Write(colorTable.Array, 0, colorTableLength);

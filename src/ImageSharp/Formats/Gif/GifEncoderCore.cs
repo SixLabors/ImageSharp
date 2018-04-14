@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
                     entry.ToRgb24(ref rgb);
-                    Unsafe.Add(ref rgb24Ref, i);
+                    Unsafe.Add(ref rgb24Ref, i) = rgb;
                 }
 
                 writer.Write(colorTable.Array, 0, colorTableLength);

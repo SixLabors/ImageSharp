@@ -49,24 +49,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int VerticalSamplingFactor { get; }
 
-        Buffer2D<Block8x8> IJpegComponent.SpectralBlocks => throw new NotImplementedException();
+        /// <inheritdoc />
+        public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
-        // TODO: Should be derived from PdfJsComponent.Scale
-        public Size SubSamplingDivisors => throw new NotImplementedException();
+        /// <inheritdoc />
+        public Size SubSamplingDivisors { get; private set; }
 
         /// <inheritdoc />
         public int QuantizationTableIndex { get; }
 
-        /// <summary>
-        /// Gets the block data
-        /// </summary>
-        public IBuffer<short> BlockData { get; private set; }
-
         /// <inheritdoc />
         public int Index { get; }
 
+        /// <inheritdoc />
         public Size SizeInBlocks => new Size(this.WidthInBlocks, this.HeightInBlocks);
 
+        /// <inheritdoc />
         public Size SamplingFactors => new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
 
         /// <summary>
@@ -98,8 +96,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.BlockData?.Dispose();
-            this.BlockData = null;
+            this.SpectralBlocks?.Dispose();
+            this.SpectralBlocks = null;
         }
 
         public void Init()
@@ -113,22 +111,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.BlocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
             this.BlocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
 
-            int blocksBufferSize = 64 * this.BlocksPerColumnForMcu * (this.BlocksPerLineForMcu + 1);
+            // For 4-component images (either CMYK or YCbCrK), we only support two
+            // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
+            // Theoretically, 4-component JPEG images could mix and match hv values
+            // but in practice, those two combinations are the only ones in use,
+            // and it simplifies the applyBlack code below if we can assume that:
+            // - for CMYK, the C and K channels have full samples, and if the M
+            // and Y channels subsample, they subsample both horizontally and
+            // vertically.
+            // - for YCbCrK, the Y and K channels have full samples.
+            if (this.Index == 0 || this.Index == 3)
+            {
+                this.SubSamplingDivisors = new Size(1, 1);
+            }
+            else
+            {
+                // TODO: Check division accuracy here. May need to divide by float
+                this.SubSamplingDivisors = this.SamplingFactors.DivideBy(new Size(this.Frame.MaxHorizontalFactor, this.Frame.MaxVerticalFactor));
+            }
 
-            // Pooled. Disposed via frame disposal
-            this.BlockData = this.memoryManager.Allocate<short>(blocksBufferSize, true);
+            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetBlockBufferOffset(int row, int col)
         {
             return 64 * (((this.WidthInBlocks + 1) * row) + col);
-        }
-
-        public Span<short> GetBlockBuffer(int row, int col)
-        {
-            int offset = this.GetBlockBufferOffset(row, col);
-            return this.BlockData.Span.Slice(offset, 64);
         }
     }
 }

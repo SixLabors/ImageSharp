@@ -37,11 +37,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] chunkDataBuffer = new byte[16];
 
         /// <summary>
-        /// Reusable buffer for writing int data.
-        /// </summary>
-        private readonly byte[] intBuffer = new byte[4];
-
-        /// <summary>
         /// Reusable crc for validating chunks.
         /// </summary>
         private readonly Crc32 crc = new Crc32();
@@ -442,7 +437,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             bool anyAlpha = false;
 
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
@@ -639,9 +634,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.crc.Update(data.AsSpan(offset, length));
             }
 
-            BinaryPrimitives.WriteUInt32BigEndian(this.intBuffer, (uint)this.crc.Value);
+            BinaryPrimitives.WriteUInt32BigEndian(this.buffer, (uint)this.crc.Value);
 
-            stream.Write(this.intBuffer, 0, 4); // write the crc
+            stream.Write(this.buffer, 0, 4); // write the crc
         }
     }
 }

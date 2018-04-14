@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     public class GifEncoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001F);
 
         [Theory]
         [WithTestPatternImages(100, 100, TestPixelTypes)]
@@ -23,7 +24,22 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder());
+                var encoder = new GifEncoder()
+                {
+                    // Use the palette quantizer without dithering to ensure results 
+                    // are consistant
+                    Quantizer = new PaletteQuantizer(false)
+                };
+
+                // Always save as we need to compare the encoded output.
+                provider.Utility.SaveTestOutputFile(image, "gif", encoder);
+            }
+
+            // Compare encoded result
+            string path = provider.Utility.GetTestOutputFileName("gif", null, true);
+            using (var encoded = Image.Load(path))
+            {
+                encoded.CompareToReferenceOutput(ValidatorComparer, provider, null, "gif");
             }
         }
 

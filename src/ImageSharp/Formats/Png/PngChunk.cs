@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal readonly struct PngChunk
     {
-        public PngChunk(int length, PngChunkType type, IManagedByteBuffer data = null, uint crc = default)
+        public PngChunk(int length, PngChunkType type, IManagedByteBuffer data = null, uint crc = 0)
         {
             this.Length = length;
             this.Type = type;
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Gets the chunk type.
-        /// The chunk type value the UInt32BigEndian encoding of its 4 ASCII characters.
+        /// The value is the equal to the UInt32BigEndian encoding of its 4 ASCII characters.
         /// </summary>
         public PngChunkType Type { get; }
 

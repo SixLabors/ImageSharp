@@ -43,15 +43,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // inverse DCT on rows
             for (int row = 0; row < 64; row += 8)
             {
+                int r1 = row + 1;
+                int r2 = row + 2;
+                int r3 = row + 3;
+                int r4 = row + 4;
+                int r5 = row + 5;
+                int r6 = row + 6;
+                int r7 = row + 7;
+
                 // gather block data
                 p0 = Unsafe.Add(ref blockDataRef, row);
-                p1 = Unsafe.Add(ref blockDataRef, row + 1);
-                p2 = Unsafe.Add(ref blockDataRef, row + 2);
-                p3 = Unsafe.Add(ref blockDataRef, row + 3);
-                p4 = Unsafe.Add(ref blockDataRef, row + 4);
-                p5 = Unsafe.Add(ref blockDataRef, row + 5);
-                p6 = Unsafe.Add(ref blockDataRef, row + 6);
-                p7 = Unsafe.Add(ref blockDataRef, row + 7);
+                p1 = Unsafe.Add(ref blockDataRef, r1);
+                p2 = Unsafe.Add(ref blockDataRef, r2);
+                p3 = Unsafe.Add(ref blockDataRef, r3);
+                p4 = Unsafe.Add(ref blockDataRef, r4);
+                p5 = Unsafe.Add(ref blockDataRef, r5);
+                p6 = Unsafe.Add(ref blockDataRef, r6);
+                p7 = Unsafe.Add(ref blockDataRef, r7);
 
                 // dequant p0
                 p0 *= Unsafe.Add(ref quantizationTableRef, row);
@@ -62,24 +70,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     t = ((DctSqrt2 * p0) + 512) >> 10;
                     short st = (short)t;
                     Unsafe.Add(ref computationBufferRef, row) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 1) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 2) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 3) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 4) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 5) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 6) = st;
-                    Unsafe.Add(ref computationBufferRef, row + 7) = st;
+                    Unsafe.Add(ref computationBufferRef, r1) = st;
+                    Unsafe.Add(ref computationBufferRef, r2) = st;
+                    Unsafe.Add(ref computationBufferRef, r3) = st;
+                    Unsafe.Add(ref computationBufferRef, r4) = st;
+                    Unsafe.Add(ref computationBufferRef, r5) = st;
+                    Unsafe.Add(ref computationBufferRef, r6) = st;
+                    Unsafe.Add(ref computationBufferRef, r7) = st;
                     continue;
                 }
 
                 // dequant p1 ... p7
-                p1 *= Unsafe.Add(ref quantizationTableRef, row + 1);
-                p2 *= Unsafe.Add(ref quantizationTableRef, row + 2);
-                p3 *= Unsafe.Add(ref quantizationTableRef, row + 3);
-                p4 *= Unsafe.Add(ref quantizationTableRef, row + 4);
-                p5 *= Unsafe.Add(ref quantizationTableRef, row + 5);
-                p6 *= Unsafe.Add(ref quantizationTableRef, row + 6);
-                p7 *= Unsafe.Add(ref quantizationTableRef, row + 7);
+                p1 *= Unsafe.Add(ref quantizationTableRef, r1);
+                p2 *= Unsafe.Add(ref quantizationTableRef, r2);
+                p3 *= Unsafe.Add(ref quantizationTableRef, r3);
+                p4 *= Unsafe.Add(ref quantizationTableRef, r4);
+                p5 *= Unsafe.Add(ref quantizationTableRef, r5);
+                p6 *= Unsafe.Add(ref quantizationTableRef, r6);
+                p7 *= Unsafe.Add(ref quantizationTableRef, r7);
 
                 // stage 4
                 v0 = ((DctSqrt2 * p0) + CenterJSample) >> 8;
@@ -128,14 +136,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // inverse DCT on columns
             for (int col = 0; col < 8; ++col)
             {
+                int c8 = col + 8;
+                int c16 = col + 16;
+                int c24 = col + 24;
+                int c32 = col + 32;
+                int c40 = col + 40;
+                int c48 = col + 48;
+                int c56 = col + 56;
+
                 p0 = Unsafe.Add(ref computationBufferRef, col);
-                p1 = Unsafe.Add(ref computationBufferRef, col + 8);
-                p2 = Unsafe.Add(ref computationBufferRef, col + 16);
-                p3 = Unsafe.Add(ref computationBufferRef, col + 24);
-                p4 = Unsafe.Add(ref computationBufferRef, col + 32);
-                p5 = Unsafe.Add(ref computationBufferRef, col + 40);
-                p6 = Unsafe.Add(ref computationBufferRef, col + 48);
-                p7 = Unsafe.Add(ref computationBufferRef, col + 56);
+                p1 = Unsafe.Add(ref computationBufferRef, c8);
+                p2 = Unsafe.Add(ref computationBufferRef, c16);
+                p3 = Unsafe.Add(ref computationBufferRef, c24);
+                p4 = Unsafe.Add(ref computationBufferRef, c32);
+                p5 = Unsafe.Add(ref computationBufferRef, c40);
+                p6 = Unsafe.Add(ref computationBufferRef, c48);
+                p7 = Unsafe.Add(ref computationBufferRef, c56);
 
                 // check for all-zero AC coefficients
                 if ((p1 | p2 | p3 | p4 | p5 | p6 | p7) == 0)
@@ -147,13 +163,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     short st = (short)t;
 
                     Unsafe.Add(ref blockDataRef, col) = st;
-                    Unsafe.Add(ref blockDataRef, col + 8) = st;
-                    Unsafe.Add(ref blockDataRef, col + 16) = st;
-                    Unsafe.Add(ref blockDataRef, col + 24) = st;
-                    Unsafe.Add(ref blockDataRef, col + 32) = st;
-                    Unsafe.Add(ref blockDataRef, col + 40) = st;
-                    Unsafe.Add(ref blockDataRef, col + 48) = st;
-                    Unsafe.Add(ref blockDataRef, col + 56) = st;
+                    Unsafe.Add(ref blockDataRef, c8) = st;
+                    Unsafe.Add(ref blockDataRef, c16) = st;
+                    Unsafe.Add(ref blockDataRef, c24) = st;
+                    Unsafe.Add(ref blockDataRef, c32) = st;
+                    Unsafe.Add(ref blockDataRef, c40) = st;
+                    Unsafe.Add(ref blockDataRef, c48) = st;
+                    Unsafe.Add(ref blockDataRef, c56) = st;
                     continue;
                 }
 
@@ -213,14 +229,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 p7 = (p7 < 16) ? 0 : (p7 >= 4080) ? MaxJSample : p7 >> 4;
 
                 // store block data
-                Unsafe.Add(ref blockDataRef, col) = (short)p0;
-                Unsafe.Add(ref blockDataRef, col + 8) = (short)p1;
-                Unsafe.Add(ref blockDataRef, col + 16) = (short)p2;
-                Unsafe.Add(ref blockDataRef, col + 24) = (short)p3;
-                Unsafe.Add(ref blockDataRef, col + 32) = (short)p4;
-                Unsafe.Add(ref blockDataRef, col + 40) = (short)p5;
-                Unsafe.Add(ref blockDataRef, col + 48) = (short)p6;
-                Unsafe.Add(ref blockDataRef, col + 56) = (short)p7;
+                Unsafe.Add(ref blockDataRef, col) = Unsafe.As<int, short>(ref Unsafe.AsRef(p0));
+                Unsafe.Add(ref blockDataRef, c8) = Unsafe.As<int, short>(ref Unsafe.AsRef(p1));
+                Unsafe.Add(ref blockDataRef, c16) = Unsafe.As<int, short>(ref Unsafe.AsRef(p2));
+                Unsafe.Add(ref blockDataRef, c24) = Unsafe.As<int, short>(ref Unsafe.AsRef(p3));
+                Unsafe.Add(ref blockDataRef, c32) = Unsafe.As<int, short>(ref Unsafe.AsRef(p4));
+                Unsafe.Add(ref blockDataRef, c40) = Unsafe.As<int, short>(ref Unsafe.AsRef(p5));
+                Unsafe.Add(ref blockDataRef, c48) = Unsafe.As<int, short>(ref Unsafe.AsRef(p6));
+                Unsafe.Add(ref blockDataRef, c56) = Unsafe.As<int, short>(ref Unsafe.AsRef(p7));
             }
         }
     }

@@ -39,9 +39,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public Size SubSamplingDivisors => throw new NotSupportedException();
 
             public int HeightInBlocks { get; }
-            
+
             public int WidthInBlocks { get; }
-            
+
             public int QuantizationTableIndex => throw new NotSupportedException();
 
             public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public short MinVal { get; private set; } = short.MaxValue;
 
             public short MaxVal { get; private set; } = short.MinValue;
-            
+
             internal void MakeBlock(short[] data, int y, int x)
             {
                 this.MinVal = Math.Min((short)this.MinVal, data.Min());
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 {
                     for (int x = 0; x < result.WidthInBlocks; x++)
                     {
-                        short[] data = c.GetBlockBuffer(y, x).ToArray();
+                        short[] data = c.GetBlockReference(x, y).ToArray();
                         result.MakeBlock(data, y, x);
                     }
                 }
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public Image<Rgba32> CreateGrayScaleImage()
             {
                 Image<Rgba32> result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
-                
+
                 for (int by = 0; by < this.HeightInBlocks; by++)
                 {
                     for (int bx = 0; bx < this.WidthInBlocks; bx++)
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             internal void WriteToImage(int bx, int by, Image<Rgba32> image)
             {
                 Block8x8 block = this.SpectralBlocks[bx, by];
-                
+
                 for (int y = 0; y < 8; y++)
                 {
                     for (int x = 0; x < 8; x++)

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
@@ -202,7 +203,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+
+                // TODO: This is where our error is happening.
+                // We can't simply cast the span as I think the scan decoder expects data to be laid out in linear order
+                // rather than in the column major order expected by the Block8x8 struct and anything reading it down the pipeline.
+                // Ask Anton about this. It might be a lost cause.
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
 
@@ -224,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                         ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
@@ -262,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
 
                 for (int n = 0; n < mcuToRead; n++)
@@ -283,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                         ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -319,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
 
                 for (int n = 0; n < mcuToRead; n++)
                 {
@@ -341,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         PdfJsFrameComponent component = components[i];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
 
                         for (int j = 0; j < v; j++)
                         {
@@ -375,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
 
                 for (int n = 0; n < mcuToRead; n++)
@@ -396,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -433,7 +439,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
 
                 for (int n = 0; n < mcuToRead; n++)
@@ -454,7 +460,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(component.BlockData.Span);
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;

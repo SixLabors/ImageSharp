@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
+    /// <summary>
+    /// Contains a list of possible chunk types.
+    /// </summary>
     internal enum PngChunkType : uint
     {
         Header = 1229472850U,       // IHDR

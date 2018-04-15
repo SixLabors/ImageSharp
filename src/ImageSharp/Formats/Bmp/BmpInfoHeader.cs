@@ -1,5 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+using System;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
@@ -8,8 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// the screen.
     /// <see href="https://en.wikipedia.org/wiki/BMP_file_format"/>
     /// </summary>
-    internal sealed class BmpInfoHeader
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal struct BmpInfoHeader
     {
+        // TODO: Make readonly
+
         /// <summary>
         /// Defines the size of the BITMAPINFOHEADER data structure in the bitmap file.
         /// </summary>
@@ -91,5 +97,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// or 0 when every color is important{ get; set; } generally ignored.
         /// </summary>
         public int ClrImportant { get; set; }
+
+        public unsafe void WriteTo(Span<byte> buffer)
+        {
+            fixed (BmpInfoHeader* pointer = &this)
+            {
+                MemoryMarshal.AsBytes(new ReadOnlySpan<BmpInfoHeader>(pointer, 1)).CopyTo(buffer);
+            }
+
+            // TODO: Big Endian Platforms
+        }
     }
 }

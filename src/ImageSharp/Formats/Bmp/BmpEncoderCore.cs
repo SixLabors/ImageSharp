@@ -15,6 +15,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal sealed class BmpEncoderCore
     {
         /// <summary>
+        /// A general use buffer for reading and writing data.
+        /// </summary>
+        private byte[] buffer = new byte[16];
+
+        /// <summary>
         /// The amount to pad each row by.
         /// </summary>
         private int padding;
@@ -75,28 +80,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 reserved: 0,
                 fileSize: 54 + infoHeader.ImageSize);
 
-            WriteHeader(writer, fileHeader);
+            fileHeader.WriteTo(this.buffer);
+
+            stream.Write(this.buffer, 0, BmpFileHeader.Size);
+
             this.WriteInfo(writer, infoHeader);
             this.WriteImage(writer, image.Frames.RootFrame);
 
             writer.Flush();
-        }
-
-        /// <summary>
-        /// Writes the bitmap header data to the binary stream.
-        /// </summary>
-        /// <param name="writer">
-        /// The <see cref="EndianBinaryWriter"/> containing the stream to write to.
-        /// </param>
-        /// <param name="fileHeader">
-        /// The <see cref="BmpFileHeader"/> containing the header data.
-        /// </param>
-        private static void WriteHeader(EndianBinaryWriter writer, in BmpFileHeader fileHeader)
-        {
-            writer.Write(fileHeader.Type);
-            writer.Write(fileHeader.FileSize);
-            writer.Write(fileHeader.Reserved);
-            writer.Write(fileHeader.Offset);
         }
 
         /// <summary>

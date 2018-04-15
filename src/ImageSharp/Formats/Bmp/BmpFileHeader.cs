@@ -59,21 +59,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         public unsafe void WriteTo(Span<byte> buffer)
         {
-            if (BitConverter.IsLittleEndian)
+            fixed (BmpFileHeader* pointer = &this)
             {
-                fixed (BmpFileHeader* pointer = &this)
-                {
-                    MemoryMarshal.AsBytes(new ReadOnlySpan<BmpFileHeader>(pointer, 1)).CopyTo(buffer);
-                }
+                MemoryMarshal.AsBytes(new ReadOnlySpan<BmpFileHeader>(pointer, 1)).CopyTo(buffer);
             }
-            else
-            {
-                // Big Endian Platform
-                BinaryPrimitives.WriteInt16LittleEndian(buffer.Slice(0, 2), this.Type);
-                BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(2, 4), this.FileSize);
-                BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(6, 4), this.Reserved);
-                BinaryPrimitives.WriteInt32LittleEndian(buffer.Slice(10, 4), this.Offset);
-            }
+
+            // TODO: Big Endian Platforms
         }
     }
 }

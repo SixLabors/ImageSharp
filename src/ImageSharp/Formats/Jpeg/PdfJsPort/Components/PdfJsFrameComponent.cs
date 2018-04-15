@@ -136,7 +136,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetBlockBufferOffset(int row, int col)
         {
-            return 64 * (((this.WidthInBlocks + 1) * row) + col);
+            // return 64 * (((this.WidthInBlocks + 1) * row) + col);
+            return 64 * ((this.SpectralBlocks.Width * row) + col);
         }
     }
 }

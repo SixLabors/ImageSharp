@@ -123,7 +123,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public int ClrImportant { get; set; }
 
-
         /// <summary>
         /// Parses the full BITMAPINFOHEADER header (40 bytes).
         /// </summary>

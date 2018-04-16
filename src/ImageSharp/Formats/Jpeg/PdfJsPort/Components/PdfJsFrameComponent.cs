@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
@@ -130,14 +131,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
+            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(this.BlocksPerColumnForMcu, this.BlocksPerLineForMcu + 1, true);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref Block8x8 GetBlockReference(int column, int row)
+        {
+            int offset = ((this.WidthInBlocks + 1) * row) + column;
+            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.Span), offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetBlockBufferOffset(int row, int col)
         {
-            // return 64 * (((this.WidthInBlocks + 1) * row) + col);
-            return 64 * ((this.WidthInBlocks * row) + col);
+            return 64 * (((this.WidthInBlocks + 1) * row) + col);
         }
     }
 }

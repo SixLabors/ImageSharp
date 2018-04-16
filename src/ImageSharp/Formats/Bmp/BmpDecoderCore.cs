@@ -526,64 +526,57 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             this.stream = stream;
 
-            try
+            this.ReadFileHeader();
+            this.ReadInfoHeader();
+
+            // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
+            // If the height is negative, then this is a Windows bitmap whose origin
+            // is the upper-left corner and not the lower-left. The inverted flag
+            // indicates a lower-left origin.Our code will be outputting an
+            // upper-left origin pixel array.
+            inverted = false;
+            if (this.infoHeader.Height < 0)
             {
-                this.ReadFileHeader();
-                this.ReadInfoHeader();
+                inverted = true;
+                this.infoHeader.Height = -this.infoHeader.Height;
+            }
 
-                // see http://www.drdobbs.com/architecture-and-design/the-bmp-file-format-part-1/184409517
-                // If the height is negative, then this is a Windows bitmap whose origin
-                // is the upper-left corner and not the lower-left.The inverted flag
-                // indicates a lower-left origin.Our code will be outputting an
-                // upper-left origin pixel array.
-                inverted = false;
-                if (this.infoHeader.Height < 0)
+            int colorMapSize = -1;
+
+            if (this.infoHeader.ClrUsed == 0)
+            {
+                if (this.infoHeader.BitsPerPixel == 1 ||
+                    this.infoHeader.BitsPerPixel == 4 ||
+                    this.infoHeader.BitsPerPixel == 8)
                 {
-                    inverted = true;
-                    this.infoHeader.Height = -this.infoHeader.Height;
-                }
-
-                int colorMapSize = -1;
-
-                if (this.infoHeader.ClrUsed == 0)
-                {
-                    if (this.infoHeader.BitsPerPixel == 1 ||
-                        this.infoHeader.BitsPerPixel == 4 ||
-                        this.infoHeader.BitsPerPixel == 8)
-                    {
-                        colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
-                    }
-                }
-                else
-                {
-                    colorMapSize = this.infoHeader.ClrUsed * 4;
-                }
-
-                palette = null;
-
-                if (colorMapSize > 0)
-                {
-                    // 256 * 4
-                    if (colorMapSize > 1024)
-                    {
-                        throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
-                    }
-
-                    palette = new byte[colorMapSize];
-
-                    this.stream.Read(palette, 0, colorMapSize);
-                }
-
-                if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
-                {
-                    throw new ArgumentOutOfRangeException(
-                        $"The input bmp '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
-                        + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
+                    colorMapSize = (int)Math.Pow(2, this.infoHeader.BitsPerPixel) * 4;
                 }
             }
-            catch (IndexOutOfRangeException e)
+            else
             {
-                throw new ImageFormatException("Bitmap does not have a valid format.", e);
+                colorMapSize = this.infoHeader.ClrUsed * 4;
+            }
+
+            palette = null;
+
+            if (colorMapSize > 0)
+            {
+                // 256 * 4
+                if (colorMapSize > 1024)
+                {
+                    throw new ImageFormatException($"Invalid bmp colormap size '{colorMapSize}'");
+                }
+
+                palette = new byte[colorMapSize];
+
+                this.stream.Read(palette, 0, colorMapSize);
+            }
+
+            if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"The input bmp '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
+                    + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
             }
         }
     }

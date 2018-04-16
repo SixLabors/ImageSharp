@@ -18,9 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private int padding;
 
-        /// <summary>
-        /// Gets or sets the number of bits per pixel.
-        /// </summary>
         private readonly BmpBitsPerPixel bitsPerPixel;
 
         private readonly MemoryManager memoryManager;
@@ -53,17 +50,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
-            var infoHeader = new BmpInfoHeader
-            {
-                HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
-                Height = image.Height,
-                Width = image.Width,
-                BitsPerPixel = bpp,
-                Planes = 1,
-                ImageSize = image.Height * bytesPerLine,
-                ClrUsed = 0,
-                ClrImportant = 0
-            };
+            var infoHeader = new BmpInfoHeader(
+                headerSize: BmpInfoHeader.Size,
+                height: image.Height,
+                width: image.Width,
+                bitsPerPixel: bpp,
+                planes: 1,
+                imageSize: image.Height * bytesPerLine,
+                clrUsed: 0,
+                clrImportant: 0);
 
             var fileHeader = new BmpFileHeader(
                 type: 19778, // BM

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 using System;
+using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -14,27 +15,51 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct BmpInfoHeader
     {
-        // TODO: Make readonly
-
         /// <summary>
         /// Defines the size of the BITMAPINFOHEADER data structure in the bitmap file.
         /// </summary>
-        public const int BitmapInfoHeaderSize = 40;
+        public const int Size = 40;
 
         /// <summary>
         /// Defines the size of the BITMAPCOREHEADER data structure in the bitmap file.
         /// </summary>
-        public const int BitmapCoreHeaderSize = 12;
+        public const int CoreSize = 12;
 
         /// <summary>
         /// Defines the size of the biggest supported header data structure in the bitmap file.
         /// </summary>
-        public const int MaxHeaderSize = BitmapInfoHeaderSize;
+        public const int MaxHeaderSize = Size;
 
         /// <summary>
         /// Defines the size of the <see cref="HeaderSize"/> field.
         /// </summary>
         public const int HeaderSizeSize = 4;
+
+        public BmpInfoHeader(
+            int headerSize,
+            int width,
+            int height,
+            short planes,
+            short bitsPerPixel,
+            BmpCompression compression = default,
+            int imageSize = 0,
+            int xPelsPerMeter = 0,
+            int yPelsPerMeter = 0,
+            int clrUsed = 0,
+            int clrImportant = 0)
+        {
+            this.HeaderSize = headerSize;
+            this.Width = width;
+            this.Height = height;
+            this.Planes = planes;
+            this.BitsPerPixel = bitsPerPixel;
+            this.Compression = compression;
+            this.ImageSize = imageSize;
+            this.XPelsPerMeter = xPelsPerMeter;
+            this.YPelsPerMeter = yPelsPerMeter;
+            this.ClrUsed = clrUsed;
+            this.ClrImportant = clrImportant;
+        }
 
         /// <summary>
         /// Gets or sets the size of this header
@@ -98,14 +123,40 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         public int ClrImportant { get; set; }
 
+
+        /// <summary>
+        /// Parses the full BITMAPINFOHEADER header (40 bytes).
+        /// </summary>
+        /// <param name="data">The data to parse.</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
+        public static BmpInfoHeader Parse(ReadOnlySpan<byte> data)
+        {
+            return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
+        }
+
+        /// <summary>
+        /// Parses the BITMAPCOREHEADER consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
+        /// </summary>
+        /// <param name="data">The data to parse,</param>
+        /// <returns>Parsed header</returns>
+        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
+        public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data)
+        {
+            return new BmpInfoHeader(
+                headerSize: BinaryPrimitives.ReadInt32LittleEndian(data.Slice(0, 4)),
+                width: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(4, 2)),
+                height: BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(6, 2)),
+                planes: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(8, 2)),
+                bitsPerPixel: BinaryPrimitives.ReadInt16LittleEndian(data.Slice(10, 2)));
+        }
+
         public unsafe void WriteTo(Span<byte> buffer)
         {
             fixed (BmpInfoHeader* pointer = &this)
             {
                 MemoryMarshal.AsBytes(new ReadOnlySpan<BmpInfoHeader>(pointer, 1)).CopyTo(buffer);
             }
-
-            // TODO: Big Endian Platforms
         }
     }
 }

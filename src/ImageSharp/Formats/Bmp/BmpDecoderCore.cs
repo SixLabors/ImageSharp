@@ -34,29 +34,29 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private const int Rgb16BMask = 0x1F;
 
         /// <summary>
-        /// RLE8 flag value that indicates following byte has special meaning
+        /// RLE8 flag value that indicates following byte has special meaning.
         /// </summary>
         private const int RleCommand = 0x00;
 
         /// <summary>
-        /// RLE8 flag value marking end of a scan line
+        /// RLE8 flag value marking end of a scan line.
         /// </summary>
         private const int RleEndOfLine = 0x00;
 
         /// <summary>
-        /// RLE8 flag value marking end of bitmap data
+        /// RLE8 flag value marking end of bitmap data.
         /// </summary>
         private const int RleEndOfBitmap = 0x01;
 
         /// <summary>
-        /// RLE8 flag value marking the start of [x,y] offset instruction
+        /// RLE8 flag value marking the start of [x,y] offset instruction.
         /// </summary>
         private const int RleDelta = 0x02;
 
         /// <summary>
         /// The stream to decode from.
         /// </summary>
-        private Stream currentStream;
+        private Stream stream;
 
         /// <summary>
         /// The file header containing general information.
@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             while (count < buffer.Length)
             {
-                if (this.currentStream.Read(cmd, 0, cmd.Length) != 2)
+                if (this.stream.Read(cmd, 0, cmd.Length) != 2)
                 {
                     throw new Exception("Failed to read 2 bytes from stream");
                 }
@@ -283,8 +283,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             break;
 
                         case RleDelta:
-                            int dx = this.currentStream.ReadByte();
-                            int dy = this.currentStream.ReadByte();
+                            int dx = this.stream.ReadByte();
+                            int dy = this.stream.ReadByte();
                             count += (w * dy) + dx;
 
                             break;
@@ -299,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             length += length & 1;
 
                             byte[] run = new byte[length];
-                            this.currentStream.Read(run, 0, run.Length);
+                            this.stream.Read(run, 0, run.Length);
                             for (int i = 0; i < copyLength; i++)
                             {
                                 buffer[count++] = run[i];
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
-                    this.currentStream.Read(row.Array, 0, row.Length());
+                    this.stream.Read(row.Array, 0, row.Length());
                     int offset = 0;
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
@@ -402,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = 0; y < height; y++)
                 {
-                    this.currentStream.Read(buffer.Array, 0, stride);
+                    this.stream.Read(buffer.Array, 0, stride);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
@@ -440,7 +440,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = 0; y < height; y++)
                 {
-                    this.currentStream.Read(row);
+                    this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.Span, pixelSpan, width);
@@ -465,7 +465,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = 0; y < height; y++)
                 {
-                    this.currentStream.Read(row);
+                    this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.Span, pixelSpan, width);
@@ -478,98 +478,43 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] data = new byte[BmpInfoHeader.MaxHeaderSize];
+            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize]; // TODO: Stackalloc
 
             // read header size
-            this.currentStream.Read(data, 0, BmpInfoHeader.HeaderSizeSize);
-            int headerSize = BitConverter.ToInt32(data, 0);
-            if (headerSize < BmpInfoHeader.BitmapCoreHeaderSize)
+            this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
+            int headerSize = BitConverter.ToInt32(buffer, 0);
+            if (headerSize < BmpInfoHeader.CoreSize)
             {
                 throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
             }
 
-            int skipAmmount = 0;
+            int skipAmount = 0;
             if (headerSize > BmpInfoHeader.MaxHeaderSize)
             {
-                skipAmmount = headerSize - BmpInfoHeader.MaxHeaderSize;
+                skipAmount = headerSize - BmpInfoHeader.MaxHeaderSize;
                 headerSize = BmpInfoHeader.MaxHeaderSize;
             }
 
             // read the rest of the header
-            this.currentStream.Read(data, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
+            this.stream.Read(buffer, BmpInfoHeader.HeaderSizeSize, headerSize - BmpInfoHeader.HeaderSizeSize);
 
-            switch (headerSize)
+            if (headerSize == BmpInfoHeader.CoreSize)
             {
-                case BmpInfoHeader.BitmapCoreHeaderSize:
-                    this.infoHeader = this.ParseBitmapCoreHeader(data);
-                    break;
-                case BmpInfoHeader.BitmapInfoHeaderSize:
-                    this.infoHeader = this.ParseBitmapInfoHeader(data);
-                    break;
-                default:
-                    if (headerSize > BmpInfoHeader.BitmapInfoHeaderSize)
-                    {
-                        this.infoHeader = this.ParseBitmapInfoHeader(data);
-                        break;
-                    }
-                    else
-                    {
-                        throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
-                    }
+                // 12 bytes
+                this.infoHeader = BmpInfoHeader.ParseCore(buffer);
+            }
+            else if (headerSize >= BmpInfoHeader.Size)
+            {
+                // >= 40 bytes
+                this.infoHeader = BmpInfoHeader.Parse(buffer);
+            }
+            else
+            {
+                throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
             }
 
             // skip the remaining header because we can't read those parts
-            this.currentStream.Skip(skipAmmount);
-        }
-
-        /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPCOREHEADER format.
-        /// </summary>
-        /// <param name="data">Header bytes read from the stream</param>
-        /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
-        private BmpInfoHeader ParseBitmapCoreHeader(byte[] data)
-        {
-            return new BmpInfoHeader
-            {
-                HeaderSize = BitConverter.ToInt32(data, 0),
-                Width = BitConverter.ToUInt16(data, 4),
-                Height = BitConverter.ToUInt16(data, 6),
-                Planes = BitConverter.ToInt16(data, 8),
-                BitsPerPixel = BitConverter.ToInt16(data, 10),
-
-                // the rest is not present in the core header
-                ImageSize = 0,
-                XPelsPerMeter = 0,
-                YPelsPerMeter = 0,
-                ClrUsed = 0,
-                ClrImportant = 0,
-                Compression = BmpCompression.RGB
-            };
-        }
-
-        /// <summary>
-        /// Parses the <see cref="BmpInfoHeader"/> from the stream, assuming it uses the BITMAPINFOHEADER format.
-        /// </summary>
-        /// <param name="data">Header bytes read from the stream</param>
-        /// <returns>Parsed header</returns>
-        /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
-        private BmpInfoHeader ParseBitmapInfoHeader(byte[] data)
-        {
-            return new BmpInfoHeader
-            {
-                HeaderSize = BitConverter.ToInt32(data, 0),
-                Width = BitConverter.ToInt32(data, 4),
-                Height = BitConverter.ToInt32(data, 8),
-                Planes = BitConverter.ToInt16(data, 12),
-                BitsPerPixel = BitConverter.ToInt16(data, 14),
-                ImageSize = BitConverter.ToInt32(data, 20),
-                XPelsPerMeter = BitConverter.ToInt32(data, 24),
-                YPelsPerMeter = BitConverter.ToInt32(data, 28),
-                ClrUsed = BitConverter.ToInt32(data, 32),
-                ClrImportant = BitConverter.ToInt32(data, 36),
-                Compression = (BmpCompression)BitConverter.ToInt32(data, 16)
-            };
+            this.stream.Skip(skipAmount);
         }
 
         /// <summary>
@@ -577,15 +522,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadFileHeader()
         {
-            byte[] data = new byte[BmpFileHeader.Size];
+            byte[] data = new byte[BmpFileHeader.Size]; // TODO: Stackalloc
 
-            this.currentStream.Read(data, 0, BmpFileHeader.Size);
+            this.stream.Read(data, 0, BmpFileHeader.Size);
 
-            this.fileHeader = new BmpFileHeader(
-                type: BitConverter.ToInt16(data, 0),
-                fileSize: BitConverter.ToInt32(data, 2),
-                reserved: BitConverter.ToInt32(data, 6),
-                offset: BitConverter.ToInt32(data, 10));
+            this.fileHeader = BmpFileHeader.Parse(data);
         }
 
         /// <summary>
@@ -593,7 +534,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadImageHeaders(Stream stream, out bool inverted, out byte[] palette)
         {
-            this.currentStream = stream;
+            this.stream = stream;
 
             try
             {
@@ -640,7 +581,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                     palette = new byte[colorMapSize];
 
-                    this.currentStream.Read(palette, 0, colorMapSize);
+                    this.stream.Read(palette, 0, colorMapSize);
                 }
 
                 if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)

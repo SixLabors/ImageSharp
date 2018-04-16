@@ -163,18 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Invert(int y, int height, bool inverted)
         {
-            int row;
-
-            if (!inverted)
-            {
-                row = height - y - 1;
-            }
-            else
-            {
-                row = y;
-            }
-
-            return row;
+            return (!inverted) ? height - y - 1 : y;
         }
 
         /// <summary>
@@ -348,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             using (IManagedByteBuffer row = this.memoryManager.AllocateCleanManagedByteBuffer(arrayWidth + padding))
             {
-                var color = default(TPixel);
+                TPixel color = default;
                 var rgba = new Rgba32(0, 0, 0, 255);
 
                 Span<byte> rowSpan = row.Span;
@@ -478,14 +467,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize]; // TODO: Stackalloc
+            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize]; // TODO: stackalloc
 
             // read header size
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
+
             int headerSize = BitConverter.ToInt32(buffer, 0);
             if (headerSize < BmpInfoHeader.CoreSize)
             {
-                throw new NotSupportedException($"This kind of bitmap files (header size $headerSize) is not supported.");
+                throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
             }
 
             int skipAmount = 0;
@@ -522,11 +512,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadFileHeader()
         {
-            byte[] data = new byte[BmpFileHeader.Size]; // TODO: Stackalloc
+            byte[] buffer = new byte[BmpFileHeader.Size]; // TODO: stackalloc
 
-            this.stream.Read(data, 0, BmpFileHeader.Size);
+            this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
-            this.fileHeader = BmpFileHeader.Parse(data);
+            this.fileHeader = BmpFileHeader.Parse(buffer);
         }
 
         /// <summary>
@@ -587,7 +577,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
                 {
                     throw new ArgumentOutOfRangeException(
-                        $"The input bitmap '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
+                        $"The input bmp '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
                         + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
                 }
             }

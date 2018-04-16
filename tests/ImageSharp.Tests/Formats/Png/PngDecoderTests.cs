@@ -242,10 +242,10 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(PngChunkTypeNames.Header)]
-        [InlineData(PngChunkTypeNames.Palette)]
+        [InlineData("IHDR")] // Header
+        [InlineData("PLTE")] // Palette
         // [InlineData(PngChunkTypes.Data)] //TODO: Figure out how to test this
-        [InlineData(PngChunkTypeNames.End)]
+        [InlineData("IEND")] // End
         public void Decode_IncorrectCRCForCriticalChunk_ExceptionIsThrown(string chunkName)
         {
             using (var memStream = new MemoryStream())
@@ -266,9 +266,9 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(PngChunkTypeNames.Gamma)]
-        [InlineData(PngChunkTypeNames.PaletteAlpha)]
-        [InlineData(PngChunkTypeNames.Physical)] // It's ok to test physical as we don't throw for duplicate chunks.
+        [InlineData("gAMA")] // Gamma
+        [InlineData("tRNS")] // PaletteAlpha
+        [InlineData("pHYs")] // Pysical: It's ok to test physical as we don't throw for duplicate chunks.
         //[InlineData(PngChunkTypes.Text)] //TODO: Figure out how to test this
         public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(string chunkName)
         {

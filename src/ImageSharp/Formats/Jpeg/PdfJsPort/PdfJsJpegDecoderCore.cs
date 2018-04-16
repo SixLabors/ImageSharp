@@ -3,10 +3,12 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 using SixLabors.ImageSharp.Memory;
@@ -15,6 +17,7 @@ using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 {
@@ -22,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors
     /// </summary>
-    internal sealed class PdfJsJpegDecoderCore : IDisposable
+    internal sealed class PdfJsJpegDecoderCore : IRawJpegData
     {
         /// <summary>
         /// The only supported precision
@@ -42,8 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
         private readonly byte[] markerBuffer = new byte[2];
 
-        private PdfJsQuantizationTables quantizationTables;
-
+        // private PdfJsQuantizationTables quantizationTables;
         private PdfJsHuffmanTables dcHuffmanTables;
 
         private PdfJsHuffmanTables acHuffmanTables;
@@ -104,14 +106,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public int ImageHeight { get; private set; }
 
         /// <summary>
-        /// Gets the number of components
-        /// </summary>
-        public int NumberOfComponents { get; private set; }
-
-        /// <summary>
         /// Gets the color depth, in number of bits per pixel.
         /// </summary>
-        public int BitsPerPixel => this.NumberOfComponents * SupportedPrecision;
+        public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
 
         /// <summary>
         /// Gets the input stream.
@@ -127,6 +124,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// Gets the <see cref="ImageMetaData"/> decoded by this decoder instance.
         /// </summary>
         public ImageMetaData MetaData { get; private set; }
+
+        /// <inheritdoc/>
+        public Size ImageSizeInPixels => new Size(this.ImageWidth, this.ImageHeight);
+
+        /// <inheritdoc/>
+        public int ComponentCount { get; private set; }
+
+        /// <inheritdoc/>
+        public JpegColorSpace ColorSpace { get; private set; }
+
+        /// <inheritdoc/>
+        public IEnumerable<IJpegComponent> Components => this.Frame.Components;
+
+        public Block8x8F[] QuantizationTables { get; private set; }
 
         /// <summary>
         /// Finds the next file marker within the byte stream.
@@ -174,10 +185,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
-            this.QuantizeAndInverseAllComponents();
 
-            var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
-            this.FillPixelData(image.Frames.RootFrame);
+            Image<TPixel> image = this.PostProcessIntoImage<TPixel>();
+
+            // this.QuantizeAndInverseAllComponents();
+            // var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
+            // this.FillPixelData(image.Frames.RootFrame);
             this.AssignResolution();
             return image;
         }
@@ -213,7 +226,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             ushort marker = this.ReadUint16();
             fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
 
-            this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
+            this.QuantizationTables = new Block8x8F[4];
+
+            // this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
             this.dcHuffmanTables = new PdfJsHuffmanTables();
             this.acHuffmanTables = new PdfJsHuffmanTables();
 
@@ -339,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 this.components.Components[i] = component;
             }
 
-            this.NumberOfComponents = this.components.Components.Length;
+            this.ComponentCount = this.components.Components.Length;
         }
 
         /// <inheritdoc/>
@@ -347,13 +362,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             this.Frame?.Dispose();
             this.components?.Dispose();
-            this.quantizationTables?.Dispose();
+
+            // this.quantizationTables?.Dispose();
             this.pixelArea.Dispose();
 
             // Set large fields to null.
             this.Frame = null;
             this.components = null;
-            this.quantizationTables = null;
+
+            // this.quantizationTables = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
         }
@@ -377,21 +394,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private void FillPixelData<TPixel>(ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.NumberOfComponents > 4)
+            if (this.ComponentCount > 4)
             {
-                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.NumberOfComponents}");
+                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
             }
 
-            this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.NumberOfComponents);
+            this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.ComponentCount);
             this.pixelArea.LinearizeBlockData(this.components);
 
-            if (this.NumberOfComponents == 1)
+            if (this.ComponentCount == 1)
             {
                 this.FillGrayScaleImage(image);
                 return;
             }
 
-            if (this.NumberOfComponents == 3)
+            if (this.ComponentCount == 3)
             {
                 if (this.adobe.Equals(default) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
@@ -403,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 }
             }
 
-            if (this.NumberOfComponents == 4)
+            if (this.ComponentCount == 4)
             {
                 if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
                 {
@@ -414,6 +431,40 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     this.FillCmykImage(image);
                 }
             }
+        }
+
+        private JpegColorSpace DeduceJpegColorSpace()
+        {
+            if (this.ComponentCount == 1)
+            {
+                return JpegColorSpace.Grayscale;
+            }
+
+            if (this.ComponentCount == 3)
+            {
+                if (this.adobe.Equals(default) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                {
+                    return JpegColorSpace.YCbCr;
+                }
+                else if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformUnknown)
+                {
+                    return JpegColorSpace.RGB;
+                }
+            }
+
+            if (this.ComponentCount == 4)
+            {
+                if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
+                {
+                    return JpegColorSpace.Ycck;
+                }
+                else
+                {
+                    return JpegColorSpace.Cmyk;
+                }
+            }
+
+            throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
         }
 
         /// <summary>
@@ -602,10 +653,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            ref short tableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15));
+                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
                             for (int j = 0; j < 64; j++)
                             {
-                                Unsafe.Add(ref tableRef, PdfJsQuantizationTables.DctZigZag[j]) = this.temp[j];
+                                table[j] = this.temp[j];
                             }
                         }
 
@@ -622,10 +673,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            ref short tableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15));
+                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
                             for (int j = 0; j < 64; j++)
                             {
-                                Unsafe.Add(ref tableRef, PdfJsQuantizationTables.DctZigZag[j]) = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);
+                                table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
                             }
                         }
 
@@ -840,20 +891,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int blocksPerColumn = component.BlocksPerColumn;
             using (IBuffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
             {
-                ref short quantizationTableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex));
-                ref short computationBufferSpan = ref MemoryMarshal.GetReference(computationBuffer.Span);
-
-                for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
-                {
-                    for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
-                    {
-                        int offset = 64 * (((blocksPerLine + 1) * blockRow) + blockCol);
-                        PdfJsIDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTableRef);
-                    }
-                }
+                // ref short quantizationTableRef = ref MemoryMarshal.GetReference(this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex));
+                // ref short computationBufferSpan = ref MemoryMarshal.GetReference(computationBuffer.Span);
+                //
+                // for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
+                // {
+                //    for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
+                //    {
+                //        int offset = 64 * (((blocksPerLine + 1) * blockRow) + blockCol);
+                //        PdfJsIDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTableRef);
+                //    }
+                // }
             }
 
-            component.Output = frameComponent.BlockData;
+            // component.Output = frameComponent.BlockData;
         }
 
         /// <summary>
@@ -972,6 +1023,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             this.InputStream.Read(this.markerBuffer, 0, 2);
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
+        }
+
+        private Image<TPixel> PostProcessIntoImage<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            this.ColorSpace = this.DeduceJpegColorSpace();
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
+            {
+                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
+                postProcessor.PostProcess(image.Frames.RootFrame);
+                return image;
+            }
         }
     }
 }

@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.Id = id;
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
+            this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
             this.QuantizationTableIndex = quantizationTableIndex;
             this.Index = index;
         }
@@ -63,10 +64,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public int Index { get; }
 
         /// <inheritdoc />
-        public Size SizeInBlocks => new Size(this.WidthInBlocks, this.HeightInBlocks);
+        public Size SizeInBlocks { get; private set; }
 
         /// <inheritdoc />
-        public Size SamplingFactors => new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+        public Size SamplingFactors { get; set; }
 
         /// <summary>
         /// Gets the number of blocks per line
@@ -88,10 +89,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int ACHuffmanTableId { get; set; }
 
-        internal int BlocksPerLineForMcu { get; private set; }
-
-        internal int BlocksPerColumnForMcu { get; private set; }
-
         public PdfJsFrame Frame { get; }
 
         /// <inheritdoc/>
@@ -109,8 +106,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.HeightInBlocks = (int)MathF.Ceiling(
                 MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
 
-            this.BlocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
-            this.BlocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
+            int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
+            int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
+            this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
             // For 4-component images (either CMYK or YCbCrK), we only support two
             // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
@@ -131,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(this.BlocksPerColumnForMcu, this.BlocksPerLineForMcu + 1, true);
+            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, true);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

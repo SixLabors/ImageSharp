@@ -653,7 +653,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            Block8x8F table = this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = this.temp[j];
@@ -673,7 +673,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            Block8x8F table = this.QuantizationTables[quantizationTableSpec & 15];
+                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
                             for (int j = 0; j < 64; j++)
                             {
                                 table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];

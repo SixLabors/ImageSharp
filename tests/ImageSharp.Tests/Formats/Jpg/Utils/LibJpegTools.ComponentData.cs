@@ -184,6 +184,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 }
             }
 
+            public ref Block8x8 GetBlockReference(int column, int row)
+            {
+                throw new NotImplementedException();
+            }
+
             public static bool operator ==(ComponentData left, ComponentData right)
             {
                 return Object.Equals(left, right);

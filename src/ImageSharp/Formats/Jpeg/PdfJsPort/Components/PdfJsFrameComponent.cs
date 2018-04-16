@@ -126,8 +126,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
             else
             {
-                // TODO: Check division accuracy here. May need to divide by float
-                this.SubSamplingDivisors = this.SamplingFactors.DivideBy(new Size(this.Frame.MaxHorizontalFactor, this.Frame.MaxVerticalFactor));
+                PdfJsFrameComponent c0 = this.Frame.Components[0];
+                this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
             this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public int GetBlockBufferOffset(int row, int col)
         {
             // return 64 * (((this.WidthInBlocks + 1) * row) + col);
-            return 64 * ((this.SpectralBlocks.Width * row) + col);
+            return 64 * ((this.WidthInBlocks * row) + col);
         }
     }
 }

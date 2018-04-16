@@ -6,7 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    public class PngChunkTests
+    public class PngChunkTypeTests
     {
         [Fact]
         public void ChunkTypeIdsAreCorrect()

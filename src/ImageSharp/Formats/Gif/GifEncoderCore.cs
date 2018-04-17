@@ -275,13 +275,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
+            byte packedValue = GifImageDescriptor.GetPackedValue(
+                localColorTableFlag: true,
+                interfaceFlag: false,
+                sortFlag: false,
+                localColorTableSize: this.bitDepth); // Note: we subtract 1 from the colorTableSize writing
+
             var descriptor = new GifImageDescriptor(
                 left: 0,
                 top: 0,
                 width: (ushort)image.Width,
                 height: (ushort)image.Height,
-                localColorTableFlag: true,
-                localColorTableSize: this.bitDepth); // Note: we subtract 1 from the colorTableSize writing
+                packed: packedValue);
 
             descriptor.WriteTo(this.buffer);
 

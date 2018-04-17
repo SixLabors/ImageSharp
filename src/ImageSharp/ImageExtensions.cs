@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -35,28 +36,28 @@ namespace SixLabors.ImageSharp
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
             if (format == null)
             {
-                var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
+                var sb = new StringBuilder();
+                sb.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
                 foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
                 {
-                    stringBuilder.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
+                    sb.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
                 }
 
-                throw new NotSupportedException(stringBuilder.ToString());
+                throw new NotSupportedException(sb.ToString());
             }
 
             IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
             if (encoder == null)
             {
-                var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                var sb = new StringBuilder();
+                sb.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    stringBuilder.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
+                    sb.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
                 }
 
-                throw new NotSupportedException(stringBuilder.ToString());
+                throw new NotSupportedException(sb.ToString());
             }
 
             source.Save(filePath, encoder);
@@ -97,22 +98,22 @@ namespace SixLabors.ImageSharp
 
             if (encoder == null)
             {
-                var stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine("Can't find encoder for provided mime type. Available encoded:");
+                var sb = new StringBuilder();
+                sb.AppendLine("Can't find encoder for provided mime type. Available encoded:");
 
                 foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
                 {
-                    stringBuilder.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
+                    sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
                 }
 
-                throw new NotSupportedException(stringBuilder.ToString());
+                throw new NotSupportedException(sb.ToString());
             }
 
             source.Save(stream, encoder);
         }
 
         /// <summary>
-        ///  Saves the raw image pixels to a byte array in row-major order.
+        /// Saves the raw image pixels to a byte array in row-major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
@@ -120,7 +121,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static byte[] SavePixelData<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => source.GetPixelSpan().AsBytes().ToArray();
+         => MemoryMarshal.AsBytes(source.GetPixelSpan()).ToArray();
 
         /// <summary>
         /// Saves the raw image pixels to the given byte array in row-major order.
@@ -131,7 +132,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, byte[] buffer)
             where TPixel : struct, IPixel<TPixel>
-            => SavePixelData(source, buffer.AsSpan().NonPortableCast<byte, TPixel>());
+            => SavePixelData(source, MemoryMarshal.Cast<byte, TPixel>(buffer.AsSpan()));
 
         /// <summary>
         /// Saves the raw image pixels to the given TPixel array in row-major order.
@@ -205,7 +206,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         internal static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
             where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.SavePixelData(buffer.NonPortableCast<byte, TPixel>());
+            => source.Frames.RootFrame.SavePixelData(MemoryMarshal.Cast<byte, TPixel>(buffer));
 
         /// <summary>
         /// Saves the raw image to the given bytes.

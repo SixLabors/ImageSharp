@@ -11,6 +11,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Pixel type containing three 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in red, green, blue order.
+    /// <para>
+    /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
+    /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct Rgb24 : IPixel<Rgb24>
@@ -57,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj?.GetType() == typeof(Rgb24) && this.Equals((Rgb24)obj);
+            return obj is Rgb24 other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -78,6 +81,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void PackFromRgba32(Rgba32 source)
         {
             this = Unsafe.As<Rgba32, Rgb24>(ref source);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
         }
 
         /// <inheritdoc/>

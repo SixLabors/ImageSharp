@@ -5,6 +5,7 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
@@ -20,6 +21,8 @@
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-preview1-26216-02" />
     <PackageReference Include="BenchmarkDotNet" Version="0.10.13" />
     <PackageReference Include="Colourful" Version="1.2.1" />
+    <PackageReference Include="System.Memory" Version="4.5.0-preview2-26406-04" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-preview2-26406-04" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />

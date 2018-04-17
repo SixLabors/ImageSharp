@@ -12,20 +12,6 @@ namespace SixLabors.ImageSharp.Memory
     internal static class SpanHelper
     {
         /// <summary>
-        /// Copy 'count' number of elements of the same type from 'source' to 'dest'
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="source">The <see cref="Span{T}"/> to copy elements from.</param>
-        /// <param name="destination">The destination <see cref="Span{T}"/>.</param>
-        /// <param name="count">The number of elements to copy</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void Copy<T>(ReadOnlySpan<T> source, Span<T> destination, int count)
-            where T : struct
-        {
-            source.Slice(0, count).CopyTo(destination);
-        }
-
-        /// <summary>
         /// Copy all elements of 'source' into 'destination'.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
@@ -35,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory
         public static void Copy<T>(ReadOnlySpan<T> source, Span<T> destination)
             where T : struct
         {
-            Copy(source, destination, Math.Min(source.Length, destination.Length));
+            source.Slice(0, Math.Min(source.Length, destination.Length)).CopyTo(destination);
         }
 
         /// <summary>

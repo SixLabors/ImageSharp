@@ -36,5 +36,10 @@ namespace SixLabors.ImageSharp.Formats.Png
              0x1A, // EOF
              0x0A // LF
         };
+
+        /// <summary>
+        /// The header bytes as a big endian coded ulong.
+        /// </summary>
+        public const ulong HeaderValue = 0x89504E470D0A1A0AUL;
     }
 }

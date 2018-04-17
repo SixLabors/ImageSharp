@@ -1,61 +1,62 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+using Xunit;
+using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
-
-using System;
-
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-    using SixLabors.Primitives;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     // TODO: Scatter test cases into multiple test classes
     public class JpegDecoderTests
     {
         public static string[] BaselineTestJpegs =
-            {
-                TestImages.Jpeg.Baseline.Calliphora,
-                TestImages.Jpeg.Baseline.Cmyk,
-                TestImages.Jpeg.Baseline.Ycck,
-                TestImages.Jpeg.Baseline.Jpeg400,
-                TestImages.Jpeg.Baseline.Testorig420,
+        {
+            TestImages.Jpeg.Baseline.Calliphora,
+            TestImages.Jpeg.Baseline.Cmyk,
+            TestImages.Jpeg.Baseline.Ycck,
+            TestImages.Jpeg.Baseline.Jpeg400,
+            TestImages.Jpeg.Baseline.Testorig420,
                 
-                // BUG: The following image has a high difference compared to the expected output:
-                //TestImages.Jpeg.Baseline.Jpeg420Small,
+            // BUG: The following image has a high difference compared to the expected output:
+            // TestImages.Jpeg.Baseline.Jpeg420Small,
 
-                TestImages.Jpeg.Baseline.Jpeg444,
-                TestImages.Jpeg.Baseline.Bad.BadEOF,
-                TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
-                TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
-                TestImages.Jpeg.Baseline.Bad.BadRST
-            };
+            TestImages.Jpeg.Baseline.Jpeg444,
+            TestImages.Jpeg.Baseline.Bad.BadEOF,
+            TestImages.Jpeg.Issues.MultiHuffmanBaseline394,
+            TestImages.Jpeg.Baseline.MultiScanBaselineCMYK,
+            TestImages.Jpeg.Baseline.Bad.BadRST
+        };
 
         public static string[] ProgressiveTestJpegs =
-            {
-                TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
-                TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-                TestImages.Jpeg.Issues.BadCoeffsProgressive178,
-                TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
-                TestImages.Jpeg.Issues.BadZigZagProgressive385,
-                TestImages.Jpeg.Progressive.Bad.ExifUndefType
-            };
+        {
+            TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
+            TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
+            TestImages.Jpeg.Issues.BadCoeffsProgressive178,
+            TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
+            TestImages.Jpeg.Issues.BadZigZagProgressive385,
+            TestImages.Jpeg.Progressive.Bad.ExifUndefType
+        };
+
+        public static string[] FalsePositiveIssueJpegs =
+        {
+            TestImages.Jpeg.Issues.NoEOI517,
+            TestImages.Jpeg.Issues.BadRST518,
+        };
 
         private static readonly Dictionary<string, float> CustomToleranceValues = new Dictionary<string, float>
         {
@@ -78,11 +79,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
 
-        private const float BaselineTolerance_Orig = 0.001f / 100;
-        private const float BaselineTolerance_PdfJs = 0.005f;
-
-        private const float ProgressiveTolerance_Orig = 0.2f / 100;
-        private const float ProgressiveTolerance_PdfJs = 0.33f / 100;
+        private const float BaselineTolerance_Orig = 0.001F / 100;
+        private const float BaselineTolerance_PdfJs = 0.005F;
+        private const float ProgressiveTolerance_Orig = 0.2F / 100;
+        private const float ProgressiveTolerance_PdfJs = 0.33F / 100;
 
         private ImageComparer GetImageComparerForOrigDecoder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance_PdfJs), provider, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance_Orig), provider, appendPixelTypeToFileName: false);
             }
 
             provider.Configuration.MemoryManager.ReleaseRetainedResources();
@@ -210,6 +210,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     ImageComparer.Tolerant(BaselineTolerance_PdfJs),
                     provider,
                     appendPixelTypeToFileName: false);
+            }
+        }
+
+        /// <summary>
+        /// Only <see cref="PdfJsJpegDecoder"/> can decode these images.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format</typeparam>
+        /// <param name="provider">The test image provider</param>
+        [Theory]
+        [WithFileCollection(nameof(FalsePositiveIssueJpegs), PixelTypes.Rgba32)]
+        public void DecodeFalsePositiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                // skipping to avoid OutOfMemoryException on CI
+                return;
+            }
+
+            using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(
+                    ImageComparer.Tolerant(BaselineTolerance_Orig),
+                    provider,
+                    appendPixelTypeToFileName: true);
             }
         }
 

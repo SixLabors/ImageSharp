@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using System.Buffers.Binary;
     using System.Linq;
 
     using SixLabors.ImageSharp.Formats.Png;
@@ -242,12 +243,14 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("IHDR")] // Header
-        [InlineData("PLTE")] // Palette
+        [InlineData((uint)PngChunkType.Header)] // IHDR
+        [InlineData((uint)PngChunkType.Palette)] // PLTE
         // [InlineData(PngChunkTypes.Data)] //TODO: Figure out how to test this
-        [InlineData("IEND")] // End
-        public void Decode_IncorrectCRCForCriticalChunk_ExceptionIsThrown(string chunkName)
+        [InlineData((uint)PngChunkType.End)] // IEND
+        public void Decode_IncorrectCRCForCriticalChunk_ExceptionIsThrown(uint chunkType)
         {
+            string chunkName = GetChunkTypeName(chunkType);
+
             using (var memStream = new MemoryStream())
             {
                 WriteHeaderChunk(memStream);
@@ -266,12 +269,14 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("gAMA")] // Gamma
-        [InlineData("tRNS")] // PaletteAlpha
-        [InlineData("pHYs")] // Pysical: It's ok to test physical as we don't throw for duplicate chunks.
+        [InlineData((uint)PngChunkType.Gamma)] // gAMA
+        [InlineData((uint)PngChunkType.PaletteAlpha)] // tRNS
+        [InlineData((uint)PngChunkType.Physical)] // pHYs: It's ok to test physical as we don't throw for duplicate chunks.
         //[InlineData(PngChunkTypes.Text)] //TODO: Figure out how to test this
-        public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(string chunkName)
+        public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(uint chunkType)
         {
+            string chunkName = GetChunkTypeName(chunkType);
+
             using (var memStream = new MemoryStream())
             {
                 WriteHeaderChunk(memStream);
@@ -281,6 +286,15 @@ namespace SixLabors.ImageSharp.Tests
                 var decoder = new PngDecoder();
                 decoder.Decode<Rgb24>(null, memStream);
             }
+        }
+
+        private static string GetChunkTypeName(uint value)
+        {
+            byte[] data = new byte[4];
+
+            BinaryPrimitives.WriteUInt32BigEndian(data, value);
+
+            return Encoding.ASCII.GetString(data);
         }
 
         private static void WriteHeaderChunk(MemoryStream memStream)

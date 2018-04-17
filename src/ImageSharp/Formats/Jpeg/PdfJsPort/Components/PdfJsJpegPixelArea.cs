@@ -54,55 +54,55 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.componentData = this.memoryManager.Allocate<byte>(this.Width * this.Height * this.NumberOfComponents);
         }
 
-        /// <summary>
-        /// Organsizes the decoded jpeg components into a linear array ordered by component.
-        /// This must be called before attempting to retrieve the data.
-        /// </summary>
-        /// <param name="components">The jpeg component blocks</param>
-        public void LinearizeBlockData(PdfJsComponentBlocks components)
-        {
-            ref byte componentDataRef = ref MemoryMarshal.GetReference(this.componentData.Span);
-            const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
+        //// <summary>
+        //// Organsizes the decoded jpeg components into a linear array ordered by component.
+        //// This must be called before attempting to retrieve the data.
+        //// </summary>
+        //// <param name="components">The jpeg component blocks</param>
+        // public void LinearizeBlockData(PdfJsComponentBlocks components)
+        // {
+        // ref byte componentDataRef = ref MemoryMarshal.GetReference(this.componentData.Span);
+        // const uint Mask3Lsb = 0xFFFFFFF8; // Used to clear the 3 LSBs
 
-            using (IBuffer<int> xScaleBlockOffset = this.memoryManager.Allocate<int>(this.Width))
-            {
-                ref int xScaleBlockOffsetRef = ref MemoryMarshal.GetReference(xScaleBlockOffset.Span);
-                int numberOfComponents = this.NumberOfComponents;
-                int width = this.Width;
-                int height = this.Height;
-
-                for (int i = 0; i < numberOfComponents; i++)
-                {
-                    ref PdfJsComponent component = ref components.Components[i];
-                    ref short outputRef = ref MemoryMarshal.GetReference(component.Output.Span);
-                    Vector2 componentScale = component.Scale;
-                    float cX = componentScale.X;
-                    float cY = componentScale.Y;
-                    int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
-
-                    // Precalculate the xScaleBlockOffset
-                    int j;
-                    for (int x = 0; x < width; x++)
-                    {
-                        j = (int)(x * cX);
-                        Unsafe.Add(ref xScaleBlockOffsetRef, x) = (int)((j & Mask3Lsb) << 3) | (j & 7);
-                    }
-
-                    // Linearize the blocks of the component
-                    int offset = i;
-                    for (int y = 0; y < height; y++)
-                    {
-                        j = (int)(y * cY);
-                        int index = blocksPerScanline * (int)(j & Mask3Lsb) | ((j & 7) << 3);
-                        for (int x = 0; x < width; x++)
-                        {
-                            Unsafe.Add(ref componentDataRef, offset) = (byte)Unsafe.Add(ref outputRef, index + Unsafe.Add(ref xScaleBlockOffsetRef, x));
-                            offset += numberOfComponents;
-                        }
-                    }
-                }
-            }
-        }
+        // using (IBuffer<int> xScaleBlockOffset = this.memoryManager.Allocate<int>(this.Width))
+        // {
+        //    ref int xScaleBlockOffsetRef = ref MemoryMarshal.GetReference(xScaleBlockOffset.Span);
+        //    int numberOfComponents = this.NumberOfComponents;
+        //    int width = this.Width;
+        //    int height = this.Height;
+        //
+        //    for (int i = 0; i < numberOfComponents; i++)
+        //    {
+        //        ref PdfJsComponent component = ref components.Components[i];
+        //        ref short outputRef = ref MemoryMarshal.GetReference(component.Output.Span);
+        //        Vector2 componentScale = component.Scale;
+        //        float cX = componentScale.X;
+        //        float cY = componentScale.Y;
+        //        int blocksPerScanline = (component.BlocksPerLine + 1) << 3;
+        //
+        //        // Precalculate the xScaleBlockOffset
+        //        int j;
+        //        for (int x = 0; x < width; x++)
+        //        {
+        //            j = (int)(x * cX);
+        //            Unsafe.Add(ref xScaleBlockOffsetRef, x) = (int)((j & Mask3Lsb) << 3) | (j & 7);
+        //        }
+        //
+        //        // Linearize the blocks of the component
+        //        int offset = i;
+        //        for (int y = 0; y < height; y++)
+        //        {
+        //            j = (int)(y * cY);
+        //            int index = blocksPerScanline * (int)(j & Mask3Lsb) | ((j & 7) << 3);
+        //            for (int x = 0; x < width; x++)
+        //            {
+        //                Unsafe.Add(ref componentDataRef, offset) = (byte)Unsafe.Add(ref outputRef, index + Unsafe.Add(ref xScaleBlockOffsetRef, x));
+        //                offset += numberOfComponents;
+        //            }
+        //        }
+        //    }
+        // }
+        // }
 
         /// <summary>
         /// Gets a <see cref="Span{Byte}"/> representing the row 'y' beginning from the the first byte on that row.

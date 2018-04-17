@@ -241,13 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             byte packed = this.buffer[1];
 
-            this.graphicsControlExtension = new GifGraphicsControlExtension
-            {
-                DelayTime = BitConverter.ToInt16(this.buffer, 2),
-                TransparencyIndex = this.buffer[4],
-                TransparencyFlag = (packed & 0x01) == 1,
-                DisposalMethod = (DisposalMethod)((packed & 0x1C) >> 2)
-            };
+            this.graphicsControlExtension = GifGraphicsControlExtension.Parse(this.buffer);
         }
 
         /// <summary>
@@ -430,8 +424,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
             else
             {
-                if (this.graphicsControlExtension != null &&
-                    this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {
                     prevFrame = previousFrame;
                 }
@@ -494,8 +487,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     int index = Unsafe.Add(ref indicesRef, i);
 
-                    if (this.graphicsControlExtension == null ||
-                        this.graphicsControlExtension.TransparencyFlag == false ||
+                    if (this.graphicsControlExtension.TransparencyFlag == false ||
                         this.graphicsControlExtension.TransparencyIndex != index)
                     {
                         int indexOffset = index * 3;
@@ -518,8 +510,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             previousFrame = currentFrame ?? image.Frames.RootFrame;
 
-            if (this.graphicsControlExtension != null &&
-                this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
+            if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
             {
                 this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
             }
@@ -550,16 +541,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="meta">The meta data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetaData(ImageFrameMetaData meta)
-        {
-            if (this.graphicsControlExtension != null)
+        {  
+            if (this.graphicsControlExtension.DelayTime > 0)
             {
-                if (this.graphicsControlExtension.DelayTime > 0)
-                {
-                    meta.FrameDelay = this.graphicsControlExtension.DelayTime;
-                }
-
-                meta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+                meta.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
+
+            meta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
         }
 
         /// <summary>

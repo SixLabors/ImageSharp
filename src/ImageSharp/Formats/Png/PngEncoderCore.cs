@@ -167,17 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.width = image.Width;
             this.height = image.Height;
 
-            // Write the png header.
-            this.chunkDataBuffer[0] = 0x89; // Set the high bit.
-            this.chunkDataBuffer[1] = 0x50; // P
-            this.chunkDataBuffer[2] = 0x4E; // N
-            this.chunkDataBuffer[3] = 0x47; // G
-            this.chunkDataBuffer[4] = 0x0D; // Line ending CRLF
-            this.chunkDataBuffer[5] = 0x0A; // Line ending CRLF
-            this.chunkDataBuffer[6] = 0x1A; // EOF
-            this.chunkDataBuffer[7] = 0x0A; // LF
-
-            stream.Write(this.chunkDataBuffer, 0, 8);
+            stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             QuantizedFrame<TPixel> quantized = null;
             if (this.pngColorType == PngColorType.Palette)

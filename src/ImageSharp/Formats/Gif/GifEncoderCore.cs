@@ -175,13 +175,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 pixelAspectRatio: 0,
                 globalColorTableFlag: false, // TODO: Always false for now.
                 globalColorTableSize: this.bitDepth - 1,
-                backgroundColorIndex: unchecked((byte)transparencyIndex)
-            );
+                backgroundColorIndex: unchecked((byte)transparencyIndex));
 
             descriptor.WriteTo(this.buffer);
 
             stream.Write(this.buffer, 0, GifLogicalScreenDescriptor.Size);
-
         }
 
         /// <summary>
@@ -261,8 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 disposalMethod: metaData.DisposalMethod,
                 transparencyFlag: transparencyIndex > -1,
                 transparencyIndex: unchecked((byte)transparencyIndex),
-                delayTime: (ushort)metaData.FrameDelay
-            );
+                delayTime: (ushort)metaData.FrameDelay);
 
             extension.WriteTo(this.buffer);
 

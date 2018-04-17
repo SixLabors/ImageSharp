@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,6 +17,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsScanDecoder
     {
+        /// <summary>
+        /// Gets the ZigZag scan table
+        /// </summary>
+        private static readonly byte[] DctZigZag =
+        {
+            0,
+            1, 8,
+            16, 9, 2,
+            3, 10, 17, 24,
+            32, 25, 18, 11, 4,
+            5, 12, 19, 26, 33, 40,
+            48, 41, 34, 27, 20, 13, 6,
+            7, 14, 21, 28, 35, 42, 49, 56,
+            57, 50, 43, 36, 29, 22, 15,
+            23, 30, 37, 44, 51, 58,
+            59, 52, 45, 38, 31,
+            39, 46, 53, 60,
+            61, 54, 47,
+            55, 62,
+            63
+        };
+
         private byte[] markerBuffer;
 
         private int bitsData;
@@ -203,11 +227,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-
-                // TODO: This is where our error is happening.
-                // We can't simply cast the span as I think the scan decoder expects data to be laid out in linear order
-                // rather than in the column major order expected by the Block8x8 struct and anything reading it down the pipeline.
-                // Ask Anton about this. It might be a lost cause.
                 ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
@@ -765,7 +784,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     break;
                 }
 
-                ref byte z = ref PdfJsQuantizationTables.DctZigZag[k];
+                ref byte z = ref DctZigZag[k];
                 short re = (short)this.ReceiveAndExtend(s, stream);
                 Unsafe.Add(ref blockDataRef, offset + z) = re;
                 k++;
@@ -833,7 +852,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 k += r;
 
-                ref byte z = ref PdfJsQuantizationTables.DctZigZag[k];
+                ref byte z = ref DctZigZag[k];
                 Unsafe.Add(ref blockDataRef, offset + z) = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
                 k++;
             }
@@ -848,7 +867,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             while (k <= e)
             {
-                int offsetZ = offset + PdfJsQuantizationTables.DctZigZag[k];
+                int offsetZ = offset + DctZigZag[k];
                 ref short blockOffsetZRef = ref Unsafe.Add(ref blockDataRef, offsetZ);
                 int sign = blockOffsetZRef < 0 ? -1 : 1;
 

@@ -10,10 +10,10 @@ namespace SixLabors.ImageSharp.MetaData
     /// the copyright information, the date, where the image was created
     /// or some other information.
     /// </summary>
-    public class ImageProperty : IEquatable<ImageProperty>
+    public readonly struct ImageProperty : IEquatable<ImageProperty>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageProperty"/> class.
+        /// Initializes a new instance of the <see cref="ImageProperty"/> struct.
         /// </summary>
         /// <param name="name">The name of the property.</param>
         /// <param name="value">The value of the property.</param>
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.MetaData
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageProperty"/> class
+        /// Initializes a new instance of the <see cref="ImageProperty"/> struct
         /// by making a copy from another property.
         /// </summary>
         /// <param name="other">
@@ -71,11 +71,6 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public static bool operator ==(ImageProperty left, ImageProperty right)
         {
-            if (ReferenceEquals(left, right))
-            {
-                return true;
-            }
-
             return left.Equals(right);
         }
 
@@ -110,9 +105,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// </returns>
         public override bool Equals(object obj)
         {
-            ImageProperty other = obj as ImageProperty;
-
-            return this.Equals(other);
+            return obj is ImageProperty other && this.Equals(other);
         }
 
         /// <summary>
@@ -155,16 +148,6 @@ namespace SixLabors.ImageSharp.MetaData
         /// <param name="other">An object to compare with this object.</param>
         public bool Equals(ImageProperty other)
         {
-            if (ReferenceEquals(other, null))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
             return this.Name.Equals(other.Name) && Equals(this.Value, other.Value);
         }
     }

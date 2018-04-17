@@ -33,11 +33,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             internal override IBuffer<T> Allocate<T>(int length, bool clear)
             {
-                T[] array = new T[length + 42];
+                var array = new T[length + 42];
 
                 if (!clear)
                 {
-                    Span<byte> data = array.AsSpan().NonPortableCast<T, byte>();
+                    Span<byte> data = MemoryMarshal.Cast<T, byte>(array.AsSpan());
                     for (int i = 0; i < data.Length; i++)
                     {
                         data[i] = 42;

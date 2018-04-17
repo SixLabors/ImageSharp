@@ -4,6 +4,39 @@ image: Visual Studio 2017
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
 
+environment:
+  matrix:
+    - target_framework: net471
+      is_32bit: True
+    - target_framework: net462
+      is_32bit: False
+    - target_framework: net462
+      is_32bit: True
+    - target_framework: net471
+      is_32bit: False
+    - target_framework: netcoreapp2.0
+      is_32bit: False
+    #- target_framework: netcoreapp2.0 # As far as I understand, 32 bit test execution is not supported by "dotnet xunit"
+    #  is_32bit: True
+    #- target_framework: mono
+    #  is_32bit: False
+    #- target_framework: mono
+    #  is_32bit: True
+    #- target_framework: net47
+    #  is_32bit: False
+    #- target_framework: net47
+    #  is_32bit: True
+
+install:
+  - ps: |
+        if ($env:target_framework -eq "mono") { 
+          if ($env:is_32bit -eq "True") { 
+            cinst mono --x86
+          } else { 
+            cinst mono
+          }
+        }
+
 before_build:
   - git submodule -q update --init
   - cmd: dotnet --version
@@ -12,7 +45,7 @@ build_script:
 - cmd: build.cmd
 
 test_script:
-- tests\CodeCoverage\CodeCoverage.cmd
+- ps: .\run-tests.ps1 $env:target_framework $env:is_32bit
 
 after_test:
   - cmd: appveyor PushArtifact "artifacts\SixLabors.ImageSharp.%APPVEYOR_BUILD_VERSION%.nupkg"

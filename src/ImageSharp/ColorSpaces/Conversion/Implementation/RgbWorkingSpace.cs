@@ -73,12 +73,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is RgbWorkingSpace space)
-            {
-                return this.Equals(space);
-            }
-
-            return false;
+            return obj is RgbWorkingSpace other && this.Equals(other);
         }
 
         /// <inheritdoc/>

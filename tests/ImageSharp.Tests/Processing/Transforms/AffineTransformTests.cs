@@ -12,10 +12,13 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     using SixLabors.ImageSharp.Processing.Transforms;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     public class AffineTransformTests
     {
         private readonly ITestOutputHelper Output;
+
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
 
         /// <summary>
         /// angleDeg, sx, sy, tx, ty
@@ -117,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 string testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
                 image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(provider, testOutputDetails);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
             }
         }
         
@@ -134,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 string testOutputDetails = $"R({angleDeg})_S({s})";
                 image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(provider, testOutputDetails);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
             }
         }
 
@@ -166,7 +169,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -184,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -204,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                     });
 
                 image.DebugSave(provider, resamplerName);
-                image.CompareToReferenceOutput(provider, resamplerName);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
             }
         }
 

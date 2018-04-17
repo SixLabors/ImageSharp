@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
                 }
 
-                this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));
+                this.WriteGraphicalControlExtension(frame.MetaData, stream, this.GetTransparentIndex(quantized));
                 this.WriteImageDescriptor(frame, writer);
                 this.WriteColorTable(quantized, writer);
                 this.WriteImageData(quantized, writer);
@@ -261,35 +261,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the graphics control extension to the stream.
         /// </summary>
         /// <param name="metaData">The metadata of the image or frame.</param>
-        /// <param name="writer">The stream to write to.</param>
+        /// <param name="stream">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, Stream stream, int transparencyIndex)
         {
-            var extension = new GifGraphicsControlExtension
-            {
-                DisposalMethod = metaData.DisposalMethod,
-                TransparencyFlag = transparencyIndex > -1,
-                TransparencyIndex = unchecked((byte)transparencyIndex),
-                DelayTime = metaData.FrameDelay
-            };
+            var extension = new GifGraphicsControlExtension(
+                disposalMethod: metaData.DisposalMethod,
+                transparencyFlag: transparencyIndex > -1,
+                transparencyIndex: unchecked((byte)transparencyIndex),
+                delayTime: (ushort)metaData.FrameDelay
+            );
 
-            // Write the intro.
-            this.buffer[0] = GifConstants.ExtensionIntroducer;
-            this.buffer[1] = GifConstants.GraphicControlLabel;
-            this.buffer[2] = 4;
-            writer.Write(this.buffer, 0, 3);
+            extension.WriteTo(this.buffer);
 
-            var field = default(PackedField);
-            field.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
-
-            // TODO: Allow this as an option.
-            field.SetBit(6, false); // 7 : User input - 0 = none
-            field.SetBit(7, extension.TransparencyFlag); // 8: Has transparent.
-
-            writer.Write(field.Byte);
-            writer.Write((ushort)extension.DelayTime);
-            writer.Write(extension.TransparencyIndex);
-            writer.Write(GifConstants.Terminator);
+            stream.Write(this.buffer, 0, GifGraphicsControlExtension.Size);
+           
         }
 
         /// <summary>

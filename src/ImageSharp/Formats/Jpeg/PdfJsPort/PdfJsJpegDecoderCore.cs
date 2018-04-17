@@ -58,8 +58,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         private PdfJsHuffmanTables acHuffmanTables;
 
-        private PdfJsJpegPixelArea pixelArea;
-
+        /// <summary>
+        /// The reset interval determined by RST markers
+        /// </summary>
         private ushort resetInterval;
 
         /// <summary>
@@ -76,14 +77,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// Contains information about the Adobe marker
         /// </summary>
         private AdobeMarker adobe;
-
-        /// <summary>
-        /// Initializes static members of the <see cref="PdfJsJpegDecoderCore"/> class.
-        /// </summary>
-        static PdfJsJpegDecoderCore()
-        {
-            PdfJsYCbCrToRgbTables.Create();
-        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsJpegDecoderCore" /> class.
@@ -143,6 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <inheritdoc/>
         public IEnumerable<IJpegComponent> Components => this.Frame.Components;
 
+        /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }
 
         /// <summary>
@@ -341,59 +335,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public void Dispose()
         {
             this.Frame?.Dispose();
-            this.pixelArea.Dispose();
 
             // Set large fields to null.
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
-        }
-
-        /// <summary>
-        /// Fills the given image with the color data. TODO: Delete ME!!
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image</param>
-        private void FillPixelData<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (this.ComponentCount > 4)
-            {
-                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
-            }
-
-            this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.ComponentCount);
-
-            // this.pixelArea.LinearizeBlockData(this.components);
-            if (this.ComponentCount == 1)
-            {
-                this.FillGrayScaleImage(image);
-                return;
-            }
-
-            if (this.ComponentCount == 3)
-            {
-                if (this.adobe.Equals(default) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
-                {
-                    this.FillYCbCrImage(image);
-                }
-                else if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformUnknown)
-                {
-                    this.FillRgbImage(image);
-                }
-            }
-
-            if (this.ComponentCount == 4)
-            {
-                if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
-                {
-                    this.FillYcckImage(image);
-                }
-                else
-                {
-                    this.FillCmykImage(image);
-                }
-            }
         }
 
         /// <summary>
@@ -842,100 +788,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
             tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillGrayScaleImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
-                ref byte areaRowRef = ref MemoryMarshal.GetReference(this.pixelArea.GetRowSpan(y));
-
-                for (int x = 0; x < image.Width; x++)
-                {
-                    ref byte luminance = ref Unsafe.Add(ref areaRowRef, x);
-                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
-                    var rgba = new Rgba32(luminance, luminance, luminance);
-                    pixel.PackFromRgba32(rgba);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillYCbCrImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
-                ref ThreeByte areaRowRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, ThreeByte>(this.pixelArea.GetRowSpan(y)));
-
-                for (int x = 0; x < image.Width; x++)
-                {
-                    ref ThreeByte ycbcr = ref Unsafe.Add(ref areaRowRef, x);
-                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
-                    PdfJsYCbCrToRgbTables.PackYCbCr(ref pixel, ycbcr.X, ycbcr.Y, ycbcr.Z);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillYcckImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
-                ref FourByte areaRowRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, FourByte>(this.pixelArea.GetRowSpan(y)));
-
-                for (int x = 0; x < image.Width; x++)
-                {
-                    ref FourByte ycbcrk = ref Unsafe.Add(ref areaRowRef, x);
-                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
-                    PdfJsYCbCrToRgbTables.PackYccK(ref pixel, ycbcrk.X, ycbcrk.Y, ycbcrk.Z, ycbcrk.W);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillCmykImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                ref TPixel imageRowRef = ref MemoryMarshal.GetReference(image.GetPixelRowSpan(y));
-                ref FourByte areaRowRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, FourByte>(this.pixelArea.GetRowSpan(y)));
-
-                for (int x = 0; x < image.Width; x++)
-                {
-                    ref FourByte cmyk = ref Unsafe.Add(ref areaRowRef, x);
-                    byte k = cmyk.W;
-
-                    // TODO: We should see if Vector3 breaks this.
-                    byte r = (byte)((cmyk.X * k) / 255);
-                    byte g = (byte)((cmyk.Y * k) / 255);
-                    byte b = (byte)((cmyk.Z * k) / 255);
-
-                    ref TPixel pixel = ref Unsafe.Add(ref imageRowRef, x);
-                    var rgba = new Rgba32(r, g, b);
-                    pixel.PackFromRgba32(rgba);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillRgbImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
-
-                PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(areaRowSpan, imageRowSpan, image.Width);
-            }
         }
 
         /// <summary>

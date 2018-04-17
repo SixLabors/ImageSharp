@@ -2,7 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -12,6 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// Each image must fit within the boundaries of the
     /// Logical Screen, as defined in the Logical Screen Descriptor.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct GifImageDescriptor
     {
         public const int Size = 10;
@@ -21,19 +23,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ushort top,
             ushort width,
             ushort height,
-            bool localColorTableFlag,
-            int localColorTableSize,
-            bool interlaceFlag = false,
-            bool sortFlag = false)
+            byte packed)
         {
             this.Left = left;
             this.Top = top;
             this.Width = width;
             this.Height = height;
-            this.LocalColorTableFlag = localColorTableFlag;
-            this.LocalColorTableSize = localColorTableSize;
-            this.InterlaceFlag = interlaceFlag;
-            this.SortFlag = sortFlag;
+            this.Packed = packed;
         }
 
         /// <summary>
@@ -61,63 +57,41 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public ushort Height { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the presence of a Local Color Table immediately
-        /// follows this Image Descriptor.
+        /// Gets the packed value of localColorTableFlag, interlaceFlag, sortFlag, and localColorTableSize.
         /// </summary>
-        public bool LocalColorTableFlag { get; }
+        public byte Packed { get; }
 
-        /// <summary>
-        /// Gets the local color table size.
-        /// If the Local Color Table Flag is set to 1, the value in this field
-        /// is used to calculate the number of bytes contained in the Local Color Table.
-        /// </summary>
-        public int LocalColorTableSize { get; }
+        public bool LocalColorTableFlag => ((this.Packed & 0x80) >> 7) == 1;
 
-        /// <summary>
-        /// Gets a value indicating whether the image is to be interlaced.
-        /// An image is interlaced in a four-pass interlace pattern.
-        /// </summary>
-        public bool InterlaceFlag { get; }
+        public int LocalColorTableSize => 2 << (this.Packed & 0x07);
 
-        /// <summary>
-        /// Gets a value indicating whether the Global Color Table is sorted.
-        /// </summary>
-        public bool SortFlag { get; }
-
-        public byte PackFields()
-        {
-            var field = default(PackedField);
-
-            field.SetBit(0, this.LocalColorTableFlag);          // 0: Local color table flag = 1 (LCT used)
-            field.SetBit(1, this.InterlaceFlag);                // 1: Interlace flag 0
-            field.SetBit(2, this.SortFlag);                     // 2: Sort flag 0
-            field.SetBits(5, 3, this.LocalColorTableSize - 1);  // 3-4: Reserved, 5-7 : LCT size. 2^(N+1)
-
-            return field.Byte;
-        }
+        public bool InterlaceFlag => ((this.Packed & 0x40) >> 6) == 1;
 
         public void WriteTo(Span<byte> buffer)
         {
-            buffer[0] = GifConstants.ImageDescriptorLabel;                              // Image Separator (0x2C)
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(1, 2), this.Left);    // Image Left Position
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(3, 2), this.Top);     // Image Top Position
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(5, 2), this.Width);   // Image Width
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(7, 2), this.Height);  // Image Height
-            buffer[9] = this.PackFields();                                              // Packed Fields
+            buffer[0] = GifConstants.ImageDescriptorLabel;
+
+            ref GifImageDescriptor dest = ref Unsafe.As<byte, GifImageDescriptor>(ref MemoryMarshal.GetReference(buffer.Slice(1)));
+
+            dest = this;
         }
 
         public static GifImageDescriptor Parse(ReadOnlySpan<byte> buffer)
         {
-            byte packed = buffer[8];
+            return MemoryMarshal.Cast<byte, GifImageDescriptor>(buffer)[0];
+        }
 
-            return new GifImageDescriptor(
-                 left: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(0, 2)),
-                 top: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2, 2)),
-                 width: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(4, 2)),
-                 height: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(6, 2)),
-                 localColorTableFlag: ((packed & 0x80) >> 7) == 1,
-                 localColorTableSize: 2 << (packed & 0x07),
-                 interlaceFlag: ((packed & 0x40) >> 6) == 1);
+        public static byte GetPackedValue(bool localColorTableFlag, bool interfaceFlag, bool sortFlag, int localColorTableSize)
+        {
+            var field = default(PackedField);
+
+            field.SetBit(0, localColorTableFlag);          // 0: Local color table flag = 1 (LCT used)
+            field.SetBit(1, interfaceFlag);                // 1: Interlace flag 0
+            field.SetBit(2, sortFlag);                     // 2: Sort flag 0
+            field.SetBits(5, 3, localColorTableSize - 1);  // 3-4: Reserved, 5-7 : LCT size. 2^(N+1)
+
+            return field.Byte;
         }
     }
+
 }

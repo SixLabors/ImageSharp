@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -239,8 +238,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.currentStream.Read(this.buffer, 0, 6);
 
-            byte packed = this.buffer[1];
-
             this.graphicsControlExtension = GifGraphicsControlExtension.Parse(this.buffer);
         }
 
@@ -355,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
         /// <param name="indices">The pixel array to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadFrameIndices(GifImageDescriptor imageDescriptor, Span<byte> indices)
+        private void ReadFrameIndices(in GifImageDescriptor imageDescriptor, Span<byte> indices)
         {
             int dataSize = this.currentStream.ReadByte();
             using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryManager, this.currentStream))
@@ -373,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, Span<byte> colorTable, GifImageDescriptor descriptor)
+        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, Span<byte> colorTable, in GifImageDescriptor descriptor)
             where TPixel : struct, IPixel<TPixel>
         {
             ref byte indicesRef = ref MemoryMarshal.GetReference(indices);

@@ -139,28 +139,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
                 else
                 {
-                    if (this.specStart == 0)
-                    {
-                        if (successivePrev == 0)
-                        {
-                            this.DecodeScanDCFirst(dcHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                        else
-                        {
-                            this.DecodeScanDCSuccessive(components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                    }
-                    else
-                    {
-                        if (successivePrev == 0)
-                        {
-                            this.DecodeScanACFirst(acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                        else
-                        {
-                            this.DecodeScanACSuccessive(acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                    }
+                    bool isAc = this.specStart != 0;
+                    bool isFirst = successivePrev == 0;
+                    PdfJsHuffmanTables huffmanTables = isAc ? acHuffmanTables : dcHuffmanTables;
+                    this.DecodeScanProgressive(huffmanTables, isAc, isFirst, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
                 }
 
                 // Find marker
@@ -275,8 +257,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanDCFirst(
-            PdfJsHuffmanTables dcHuffmanTables,
+        private void DecodeScanProgressive(
+            PdfJsHuffmanTables huffmanTables,
+            bool isAC,
+            bool isFirst,
             PdfJsFrameComponent[] components,
             int componentsLength,
             int mcusPerLine,
@@ -288,7 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             {
                 PdfJsFrameComponent component = components[this.compIndex];
                 ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                ref PdfJsHuffmanTable huffmanTable = ref huffmanTables[isAC ? component.ACHuffmanTableId : component.DCHuffmanTableId];
 
                 for (int n = 0; n < mcuToRead; n++)
                 {
@@ -297,123 +281,32 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         continue;
                     }
 
-                    this.DecodeBlockDCFirst(ref dcHuffmanTable, component, ref blockDataRef, mcu, stream);
-                    mcu++;
-                }
-            }
-            else
-            {
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    for (int i = 0; i < componentsLength; i++)
+                    if (isAC)
                     {
-                        PdfJsFrameComponent component = components[i];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                        ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                        int h = component.HorizontalSamplingFactor;
-                        int v = component.VerticalSamplingFactor;
-
-                        for (int j = 0; j < v; j++)
+                        if (isFirst)
                         {
-                            for (int k = 0; k < h; k++)
-                            {
-                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                                {
-                                    continue;
-                                }
-
-                                this.DecodeMcuDCFirst(ref dcHuffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
-                            }
+                            this.DecodeBlockACFirst(ref huffmanTable, component, ref blockDataRef, mcu, stream);
+                        }
+                        else
+                        {
+                            this.DecodeBlockACSuccessive(ref huffmanTable, component, ref blockDataRef, mcu, stream);
+                        }
+                    }
+                    else
+                    {
+                        if (isFirst)
+                        {
+                            this.DecodeBlockDCFirst(ref huffmanTable, component, ref blockDataRef, mcu, stream);
+                        }
+                        else
+                        {
+                            this.DecodeBlockDCSuccessive(component, ref blockDataRef, mcu, stream);
                         }
                     }
 
                     mcu++;
                 }
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanDCSuccessive(
-            PdfJsFrameComponent[] components,
-            int componentsLength,
-            int mcusPerLine,
-            int mcuToRead,
-            ref int mcu,
-            Stream stream)
-        {
-            if (componentsLength == 1)
-            {
-                PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                    {
-                        continue;
-                    }
-
-                    this.DecodeBlockDCSuccessive(component, ref blockDataRef, mcu, stream);
-                    mcu++;
-                }
-            }
-            else
-            {
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    for (int i = 0; i < componentsLength; i++)
-                    {
-                        PdfJsFrameComponent component = components[i];
-                        int h = component.HorizontalSamplingFactor;
-                        int v = component.VerticalSamplingFactor;
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-
-                        for (int j = 0; j < v; j++)
-                        {
-                            for (int k = 0; k < h; k++)
-                            {
-                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                                {
-                                    continue;
-                                }
-
-                                this.DecodeMcuDCSuccessive(component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
-                            }
-                        }
-                    }
-
-                    mcu++;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanACFirst(
-            PdfJsHuffmanTables acHuffmanTables,
-            PdfJsFrameComponent[] components,
-            int componentsLength,
-            int mcusPerLine,
-            int mcuToRead,
-            ref int mcu,
-            Stream stream)
-        {
-            if (componentsLength == 1)
-            {
-                PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                    {
-                        continue;
-                    }
-
-                    this.DecodeBlockACFirst(ref acHuffmanTable, component, ref blockDataRef, mcu, stream);
-                    mcu++;
-                }
-            }
             else
             {
                 for (int n = 0; n < mcuToRead; n++)
@@ -422,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         PdfJsFrameComponent component = components[i];
                         ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                        ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                        ref PdfJsHuffmanTable huffmanTable = ref huffmanTables[isAC ? component.ACHuffmanTableId : component.DCHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
@@ -435,65 +328,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                     continue;
                                 }
 
-                                this.DecodeMcuACFirst(ref acHuffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
-                            }
-                        }
-                    }
-
-                    mcu++;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanACSuccessive(
-            PdfJsHuffmanTables acHuffmanTables,
-            PdfJsFrameComponent[] components,
-            int componentsLength,
-            int mcusPerLine,
-            int mcuToRead,
-            ref int mcu,
-            Stream stream)
-        {
-            if (componentsLength == 1)
-            {
-                PdfJsFrameComponent component = components[this.compIndex];
-                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                    {
-                        continue;
-                    }
-
-                    this.DecodeBlockACSuccessive(ref acHuffmanTable, component, ref blockDataRef, mcu, stream);
-                    mcu++;
-                }
-            }
-            else
-            {
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    for (int i = 0; i < componentsLength; i++)
-                    {
-                        PdfJsFrameComponent component = components[i];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                        ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        int h = component.HorizontalSamplingFactor;
-                        int v = component.VerticalSamplingFactor;
-
-                        for (int j = 0; j < v; j++)
-                        {
-                            for (int k = 0; k < h; k++)
-                            {
-                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                                if (isAC)
                                 {
-                                    continue;
+                                    if (isFirst)
+                                    {
+                                        this.DecodeMcuACFirst(ref huffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
+                                    else
+                                    {
+                                        this.DecodeMcuACSuccessive(ref huffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
                                 }
-
-                                this.DecodeMcuACSuccessive(ref acHuffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                else
+                                {
+                                    if (isFirst)
+                                    {
+                                        this.DecodeMcuDCFirst(ref huffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
+                                    else
+                                    {
+                                        this.DecodeMcuDCSuccessive(component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
+                                }
                             }
                         }
                     }

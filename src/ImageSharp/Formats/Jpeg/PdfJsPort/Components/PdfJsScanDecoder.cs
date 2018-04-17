@@ -17,27 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsScanDecoder
     {
-        /// <summary>
-        /// Gets the ZigZag scan table
-        /// </summary>
-        private static readonly byte[] DctZigZag =
-        {
-            0,
-            1, 8,
-            16, 9, 2,
-            3, 10, 17, 24,
-            32, 25, 18, 11, 4,
-            5, 12, 19, 26, 33, 40,
-            48, 41, 34, 27, 20, 13, 6,
-            7, 14, 21, 28, 35, 42, 49, 56,
-            57, 50, 43, 36, 29, 22, 15,
-            23, 30, 37, 44, 51, 58,
-            59, 52, 45, 38, 31,
-            39, 46, 53, 60,
-            61, 54, 47,
-            55, 62,
-            63
-        };
+        private ZigZag dctZigZag;
 
         private byte[] markerBuffer;
 
@@ -98,6 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             int successivePrev,
             int successive)
         {
+            this.dctZigZag = ZigZag.CreateUnzigTable();
             this.markerBuffer = new byte[2];
             this.compIndex = componentIndex;
             this.specStart = spectralStart;
@@ -195,7 +176,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeScanBaseline(
             PdfJsHuffmanTables dcHuffmanTables,
             PdfJsHuffmanTables acHuffmanTables,
@@ -256,7 +236,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeScanProgressive(
             PdfJsHuffmanTables huffmanTables,
             bool isAC,
@@ -598,7 +577,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return n + (-1 << length) + 1;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeBaseline(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
             short t = this.DecodeHuffman(ref dcHuffmanTable, stream);
@@ -640,7 +618,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     break;
                 }
 
-                ref byte z = ref DctZigZag[k];
+                byte z = this.dctZigZag[k];
                 short re = (short)this.ReceiveAndExtend(s, stream);
                 Unsafe.Add(ref blockDataRef, offset + z) = re;
                 k++;
@@ -672,7 +650,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             Unsafe.Add(ref blockDataRef, offset) |= (short)(bit << this.successiveState);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeACFirst(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
             if (this.eobrun > 0)
@@ -708,13 +685,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 k += r;
 
-                ref byte z = ref DctZigZag[k];
+                byte z = this.dctZigZag[k];
                 Unsafe.Add(ref blockDataRef, offset + z) = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
                 k++;
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeACSuccessive(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
             int k = this.specStart;
@@ -723,7 +699,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             while (k <= e)
             {
-                int offsetZ = offset + DctZigZag[k];
+                int offsetZ = offset + this.dctZigZag[k];
                 ref short blockOffsetZRef = ref Unsafe.Add(ref blockDataRef, offsetZ);
                 int sign = blockOffsetZRef < 0 ? -1 : 1;
 

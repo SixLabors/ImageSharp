@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -410,13 +411,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, Span<byte> colorTable, GifImageDescriptor descriptor)
             where TPixel : struct, IPixel<TPixel>
         {
+            ref byte indicesRef = ref MemoryMarshal.GetReference(indices);
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
             ImageFrame<TPixel> prevFrame = null;
-
             ImageFrame<TPixel> currentFrame = null;
-
             ImageFrame<TPixel> imageFrame;
 
             if (previousFrame == null)
@@ -479,7 +479,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
 
                     writeY = interlaceY + descriptor.Top;
-
                     interlaceY += interlaceIncrement;
                 }
                 else
@@ -487,14 +486,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
-                Span<TPixel> rowSpan = imageFrame.GetPixelRowSpan(writeY);
-
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
                 var rgba = new Rgba32(0, 0, 0, 255);
 
                 // #403 The left + width value can be larger than the image width
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < rowSpan.Length; x++)
+                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
                 {
-                    int index = indices[i];
+                    int index = Unsafe.Add(ref indicesRef, i);
 
                     if (this.graphicsControlExtension == null ||
                         this.graphicsControlExtension.TransparencyFlag == false ||
@@ -502,7 +500,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     {
                         int indexOffset = index * 3;
 
-                        ref TPixel pixel = ref rowSpan[x];
+                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         rgba.Rgb = colorTable.GetRgb24(indexOffset);
 
                         pixel.PackFromRgba32(rgba);

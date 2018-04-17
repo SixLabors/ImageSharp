@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -21,6 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public byte Byte
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 int returnValue = 0;
@@ -53,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>The <see cref="PackedField"/></returns>
         public static PackedField FromInt(byte value)
         {
-            PackedField packed = default(PackedField);
+            PackedField packed = default;
             packed.SetBits(0, 8, value);
             return packed;
         }
@@ -70,12 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </param>
         public void SetBit(int index, bool valueToSet)
         {
-            if (index < 0 || index > 7)
-            {
-                string message = $"Index must be between 0 and 7. Supplied index: {index}";
-                throw new ArgumentOutOfRangeException(nameof(index), message);
-            }
-
+            DebugGuard.MustBeBetweenOrEqualTo(index, 0, 7, nameof(index));
             Bits[index] = valueToSet;
         }
 
@@ -88,18 +86,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="valueToSet">The value to set the bits to.</param>
         public void SetBits(int startIndex, int length, int valueToSet)
         {
-            if (startIndex < 0 || startIndex > 7)
-            {
-                string message = $"Start index must be between 0 and 7. Supplied index: {startIndex}";
-                throw new ArgumentOutOfRangeException(nameof(startIndex), message);
-            }
-
-            if (length < 1 || startIndex + length > 8)
-            {
-                string message = "Length must be greater than zero and the sum of length and start index must be less than 8. "
-                                 + $"Supplied length: {length}. Supplied start index: {startIndex}";
-                throw new ArgumentOutOfRangeException(nameof(length), message);
-            }
+            DebugGuard.MustBeBetweenOrEqualTo(startIndex, 0, 7, nameof(startIndex));
+            DebugCheckLength(startIndex, length);
 
             int bitShift = length - 1;
             for (int i = startIndex; i < startIndex + length; i++)
@@ -121,12 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </returns>
         public bool GetBit(int index)
         {
-            if (index < 0 || index > 7)
-            {
-                string message = $"Index must be between 0 and 7. Supplied index: {index}";
-                throw new ArgumentOutOfRangeException(nameof(index), message);
-            }
-
+            DebugGuard.MustBeBetweenOrEqualTo(index, 0, 7, nameof(index));
             return Bits[index];
         }
 
@@ -140,19 +123,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </returns>
         public int GetBits(int startIndex, int length)
         {
-            if (startIndex < 0 || startIndex > 7)
-            {
-                string message = $"Start index must be between 0 and 7. Supplied index: {startIndex}";
-                throw new ArgumentOutOfRangeException(nameof(startIndex), message);
-            }
-
-            if (length < 1 || startIndex + length > 8)
-            {
-                string message = "Length must be greater than zero and the sum of length and start index must be less than 8. "
-                                 + $"Supplied length: {length}. Supplied start index: {startIndex}";
-
-                throw new ArgumentOutOfRangeException(nameof(length), message);
-            }
+            DebugGuard.MustBeBetweenOrEqualTo(startIndex, 1, 8, nameof(startIndex));
+            DebugCheckLength(startIndex, length);
 
             int returnValue = 0;
             int bitShift = length - 1;
@@ -188,6 +160,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public override int GetHashCode()
         {
             return this.Byte.GetHashCode();
+        }
+
+        [Conditional("DEBUG")]
+        private static void DebugCheckLength(int startIndex, int length)
+        {
+            if (length < 1 || startIndex + length > 8)
+            {
+                string message = "Length must be greater than zero and the sum of length and start index must be less than 8. "
+                                 + $"Supplied length: {length}. Supplied start index: {startIndex}";
+
+                throw new ArgumentOutOfRangeException(nameof(length), message);
+            }
         }
     }
 }

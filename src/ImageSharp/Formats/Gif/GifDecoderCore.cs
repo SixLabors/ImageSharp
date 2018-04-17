@@ -252,20 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.currentStream.Read(this.buffer, 0, 9);
 
-            byte packed = this.buffer[8];
-
-            var imageDescriptor = new GifImageDescriptor
-            {
-                Left = BitConverter.ToInt16(this.buffer, 0),
-                Top = BitConverter.ToInt16(this.buffer, 2),
-                Width = BitConverter.ToInt16(this.buffer, 4),
-                Height = BitConverter.ToInt16(this.buffer, 6),
-                LocalColorTableFlag = ((packed & 0x80) >> 7) == 1,
-                LocalColorTableSize = 2 << (packed & 0x07),
-                InterlaceFlag = ((packed & 0x40) >> 6) == 1
-            };
-
-            return imageDescriptor;
+            return GifImageDescriptor.Parse(this.buffer);
         }
 
         /// <summary>

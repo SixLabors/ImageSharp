@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 this.WriteGraphicalControlExtension(frame.MetaData, stream, this.GetTransparentIndex(quantized));
-                this.WriteImageDescriptor(frame, writer);
+                this.WriteImageDescriptor(frame, stream);
                 this.WriteColorTable(quantized, writer);
                 this.WriteImageData(quantized, writer);
 
@@ -275,7 +275,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             extension.WriteTo(this.buffer);
 
             stream.Write(this.buffer, 0, GifGraphicsControlExtension.Size);
-           
         }
 
         /// <summary>
@@ -283,25 +282,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
-        /// <param name="writer">The stream to write to.</param>
-        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, EndianBinaryWriter writer)
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            writer.Write(GifConstants.ImageDescriptorLabel); // 2c
+            var descriptor = new GifImageDescriptor(
+                left: 0,
+                top: 0,
+                width: (ushort)image.Width,
+                height: (ushort)image.Height,
+                localColorTableFlag: true,
+                localColorTableSize: this.bitDepth); // Note: we subtract 1 from the colorTableSize writing
 
-            // TODO: Can we capture this?
-            writer.Write((ushort)0); // Left position
-            writer.Write((ushort)0); // Top position
-            writer.Write((ushort)image.Width);
-            writer.Write((ushort)image.Height);
+            descriptor.WriteTo(this.buffer);
 
-            var field = default(PackedField);
-            field.SetBit(0, true); // 1: Local color table flag = 1 (LCT used)
-            field.SetBit(1, false); // 2: Interlace flag 0
-            field.SetBit(2, false); // 3: Sort flag 0
-            field.SetBits(5, 3, this.bitDepth - 1); // 4-5: Reserved, 6-8 : LCT size. 2^(N+1)
-
-            writer.Write(field.Byte);
+            stream.Write(this.buffer, 0, GifImageDescriptor.Size);
         }
 
         /// <summary>

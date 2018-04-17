@@ -498,7 +498,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             else if (headerSize >= BmpInfoHeader.Size)
             {
                 // >= 40 bytes
-                this.infoHeader = BmpInfoHeader.Parse(buffer);
+                this.infoHeader = BmpInfoHeader.Parse(buffer.AsSpan(0, 40));
             }
             else
             {

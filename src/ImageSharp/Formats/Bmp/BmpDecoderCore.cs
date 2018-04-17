@@ -285,12 +285,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                             byte[] run = new byte[length];
 
-                            this.stream.Read(run, 0, length);
+                            this.stream.Read(run, 0, run.Length);
 
-                            run.AsSpan().CopyTo(buffer);
+                            run.AsSpan().CopyTo(buffer.Slice(count));
+
+                            count += run.Length;
 
                             // Absolute mode data is aligned to two-byte word-boundary
-                            int padding = length & 0;
+                            int padding = length & 1;
 
                             this.stream.Skip(padding);
 

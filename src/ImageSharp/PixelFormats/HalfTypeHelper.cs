@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ushort Pack(float value)
         {
-            Uif uif = new Uif { F = value };
+            var uif = new Uif { F = value };
             return Pack(uif.I);
         }
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 result = ((((uint)value & 0x8000) << 16) | ((((((uint)value >> 10) & 0x1f) - 15) + 127) << 23)) | (mantissa << 13);
             }
 
-            Uif uif = new Uif { U = result };
+            var uif = new Uif { U = result };
             return uif.F;
         }
 

@@ -55,9 +55,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
             // Do not use IDisposable pattern here as we want to preserve the stream.
-            EndianBinaryWriter writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
+            var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            BmpInfoHeader infoHeader = new BmpInfoHeader
+            var infoHeader = new BmpInfoHeader
             {
                 HeaderSize = BmpInfoHeader.BitmapInfoHeaderSize,
                 Height = image.Height,
@@ -69,12 +69,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 ClrImportant = 0
             };
 
-            BmpFileHeader fileHeader = new BmpFileHeader
-            {
-                Type = 19778, // BM
-                Offset = 54,
-                FileSize = 54 + infoHeader.ImageSize
-            };
+            var fileHeader = new BmpFileHeader(
+                type: 19778, // BM
+                offset: 54,
+                reserved: 0,
+                fileSize: 54 + infoHeader.ImageSize);
 
             WriteHeader(writer, fileHeader);
             this.WriteInfo(writer, infoHeader);
@@ -92,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="fileHeader">
         /// The <see cref="BmpFileHeader"/> containing the header data.
         /// </param>
-        private static void WriteHeader(EndianBinaryWriter writer, BmpFileHeader fileHeader)
+        private static void WriteHeader(EndianBinaryWriter writer, in BmpFileHeader fileHeader)
         {
             writer.Write(fileHeader.Type);
             writer.Write(fileHeader.FileSize);

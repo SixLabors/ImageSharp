@@ -212,16 +212,14 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.bytesPerPixel = this.CalculateBytesPerPixel();
 
-            var header = new PngHeader
-            {
-                Width = image.Width,
-                Height = image.Height,
-                ColorType = this.pngColorType,
-                BitDepth = this.bitDepth,
-                FilterMethod = 0, // None
-                CompressionMethod = 0,
-                InterlaceMethod = 0
-            };
+            var header = new PngHeader(
+                width: image.Width,
+                height: image.Height,
+                colorType: this.pngColorType,
+                bitDepth: this.bitDepth,
+                filterMethod: 0, // None
+                compressionMethod: 0,
+                interlaceMethod: 0);
 
             this.WriteHeaderChunk(stream, header);
 
@@ -415,7 +413,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
-        private void WriteHeaderChunk(Stream stream, PngHeader header)
+        private void WriteHeaderChunk(Stream stream, in PngHeader header)
         {
             BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), header.Width);
             BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), header.Height);
@@ -436,7 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         /// <param name="quantized">The quantized frame.</param>
-        private void WritePaletteChunk<TPixel>(Stream stream, PngHeader header, QuantizedFrame<TPixel> quantized)
+        private void WritePaletteChunk<TPixel>(Stream stream, in PngHeader header, QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Grab the palette and write it to the stream.
@@ -561,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        IManagedByteBuffer r = this.EncodePixelRow(pixels.GetPixelRowSpan(y).AsReadOnlySpan(), y);
+                        IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         IManagedByteBuffer temp = this.rawScanline;

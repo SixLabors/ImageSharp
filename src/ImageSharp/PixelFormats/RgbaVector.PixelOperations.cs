@@ -3,7 +3,7 @@
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Memory;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 GuardSpans(sourceColors, nameof(sourceColors), destVectors, nameof(destVectors), count);
 
-                sourceColors.NonPortableCast<RgbaVector, Vector4>().Slice(0, count).CopyTo(destVectors);
+                MemoryMarshal.Cast<RgbaVector, Vector4>(sourceColors).Slice(0, count).CopyTo(destVectors);
             }
         }
     }

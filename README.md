@@ -24,6 +24,10 @@ Compared to `System.Drawing` we have been able to develop something much more fl
 
 Built against .Net Standard 1.1 ImageSharp can be used in device, cloud, and embedded/IoT scenarios. 
 
+### Documentation
+For all SixLabors projects, including ImageSharp:
+https://sixlabors.github.io/docs/
+
 ### Installation
 
 Install stable releases via Nuget; development releases are available via MyGet.
@@ -60,8 +64,6 @@ The **ImageSharp** library is made up of multiple packages:
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
 ### API 
-
-API documentation is available at [https://sixlabors.github.io/docs/](https://sixlabors.github.io/docs/)
 
 Our API is designed to be simple to consume. Here's an example of the code required to resize an image using the default Bicubic resampler then turn the colors into their grayscale equivalent using the BT709 standard matrix.
 
@@ -106,7 +108,10 @@ using (Image<Rgba32> image = new Image<Rgba32>(400, 400))
 
 `Rgba32` is our default PixelFormat, equivalent to `System.Drawing Color`. For advanced pixel format usage there are multiple [PixelFormat implementations](https://github.com/SixLabors/ImageSharp/tree/master/src/ImageSharp/PixelFormats) available allowing developers to implement their own color models in the same manner as Microsoft XNA Game Studio and MonoGame. 
 
-**Check out this [blog post](https://sixlabors.com/blog/announcing-imagesharp-beta-1/) or our [Samples Repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp) for more examples!**
+For more examples check out: 
+- [Our Documentation](https://sixlabors.github.io/docs/)
+- Our [Samples Repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp)
+- The [beta1 blog post](https://sixlabors.com/blog/announcing-imagesharp-beta-1/)
 
 ### Manual build
 

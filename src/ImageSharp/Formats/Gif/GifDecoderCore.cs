@@ -262,23 +262,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.currentStream.Read(this.buffer, 0, 7);
 
-            byte packed = this.buffer[4];
-
-            this.logicalScreenDescriptor = new GifLogicalScreenDescriptor
-            {
-                Width = BitConverter.ToInt16(this.buffer, 0),
-                Height = BitConverter.ToInt16(this.buffer, 2),
-                BitsPerPixel = (this.buffer[4] & 0x07) + 1,  // The lowest 3 bits represent the bit depth minus 1
-                BackgroundColorIndex = this.buffer[5],
-                PixelAspectRatio = this.buffer[6],
-                GlobalColorTableFlag = ((packed & 0x80) >> 7) == 1,
-                GlobalColorTableSize = 2 << (packed & 0x07)
-            };
-
-            if (this.logicalScreenDescriptor.GlobalColorTableSize > 255 * 4)
-            {
-                throw new ImageFormatException($"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
-            }
+            this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
         }
 
         /// <summary>
@@ -528,7 +512,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="meta">The meta data.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetaData(ImageFrameMetaData meta)
-        {  
+        {
             if (this.graphicsControlExtension.DelayTime > 0)
             {
                 meta.FrameDelay = this.graphicsControlExtension.DelayTime;

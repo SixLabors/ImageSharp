@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteHeader(writer);
 
             // Write the LSD. We'll use local color tables for now.
-            this.WriteLogicalScreenDescriptor(image, writer, index);
+            this.WriteLogicalScreenDescriptor(image, stream, index);
 
             // Write the first frame.
             this.WriteComments(image, writer);
@@ -165,35 +165,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to encode.</param>
-        /// <param name="writer">The writer to write to the stream with.</param>
+        /// <param name="stream">The stream to write to.</param>
         /// <param name="transparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, Stream stream, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
-            var descriptor = new GifLogicalScreenDescriptor
-            {
-                Width = (short)image.Width,
-                Height = (short)image.Height,
-                GlobalColorTableFlag = false, // TODO: Always false for now.
-                GlobalColorTableSize = this.bitDepth - 1,
-                BackgroundColorIndex = unchecked((byte)transparencyIndex)
-            };
+            var descriptor = new GifLogicalScreenDescriptor(
+                width: (ushort)image.Width,
+                height: (ushort)image.Height,
+                bitsPerPixel: 0,
+                pixelAspectRatio: 0,
+                globalColorTableFlag: false, // TODO: Always false for now.
+                globalColorTableSize: this.bitDepth - 1,
+                backgroundColorIndex: unchecked((byte)transparencyIndex)
+            );
 
-            writer.Write((ushort)descriptor.Width);
-            writer.Write((ushort)descriptor.Height);
+            descriptor.WriteTo(this.buffer);
 
-            var field = default(PackedField);
-            field.SetBit(0, descriptor.GlobalColorTableFlag);  // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
-            field.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
-            field.SetBit(4, false); // 5   : GCT sort flag = 0
-            field.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
+            stream.Write(this.buffer, 0, GifLogicalScreenDescriptor.Size);
 
-            // Reduce the number of writes
-            this.buffer[0] = field.Byte;
-            this.buffer[1] = descriptor.BackgroundColorIndex; // Background Color Index
-            this.buffer[2] = descriptor.PixelAspectRatio; // Pixel aspect ratio. Assume 1:1
-
-            writer.Write(this.buffer, 0, 3);
         }
 
         /// <summary>
@@ -229,7 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
-        /// <param name="writer">The stream to write to.</param>
+        /// <param name="stream">The stream to write to.</param>
         private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
             where TPixel : struct, IPixel<TPixel>
         {

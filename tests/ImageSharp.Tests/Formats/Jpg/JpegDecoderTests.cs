@@ -79,19 +79,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
 
-        private const float BaselineTolerance_Orig = 0.001F / 100;
-        private const float BaselineTolerance_PdfJs = 0.005F;
-        private const float ProgressiveTolerance_Orig = 0.2F / 100;
-        private const float ProgressiveTolerance_PdfJs = 0.33F / 100;
+        private const float BaselineTolerance = 0.001F / 100;
+        private const float ProgressiveTolerance = 0.2F / 100;
 
-        private ImageComparer GetImageComparerForOrigDecoder<TPixel>(TestImageProvider<TPixel> provider)
+        private ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             string file = provider.SourceFileOrDescription;
 
             if (!CustomToleranceValues.TryGetValue(file, out float tolerance))
             {
-                tolerance = file.ToLower().Contains("baseline") ? BaselineTolerance_Orig : ProgressiveTolerance_Orig;
+                bool baseline = file.ToLower().Contains("baseline");
+                tolerance = baseline ? BaselineTolerance : ProgressiveTolerance;
             }
 
             return ImageComparer.Tolerant(tolerance);
@@ -158,7 +157,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance_Orig), provider, appendPixelTypeToFileName: false);
+                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance), provider, appendPixelTypeToFileName: false);
             }
 
             provider.Configuration.MemoryManager.ReleaseRetainedResources();
@@ -182,7 +181,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.DebugSave(provider);
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    this.GetImageComparerForOrigDecoder(provider),
+                    this.GetImageComparer(provider),
                     provider,
                     appendPixelTypeToFileName: false);
             }
@@ -207,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    ImageComparer.Tolerant(BaselineTolerance_PdfJs),
+                    this.GetImageComparer(provider),
                     provider,
                     appendPixelTypeToFileName: false);
             }
@@ -233,7 +232,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 image.DebugSave(provider);
                 image.CompareToReferenceOutput(
-                    ImageComparer.Tolerant(BaselineTolerance_Orig),
+                    ImageComparer.Tolerant(BaselineTolerance),
                     provider,
                     appendPixelTypeToFileName: true);
             }
@@ -269,7 +268,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    this.GetImageComparerForOrigDecoder(provider),
+                    this.GetImageComparer(provider),
                     provider,
                     appendPixelTypeToFileName: false);
             }
@@ -294,7 +293,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    ImageComparer.Tolerant(ProgressiveTolerance_PdfJs),
+                    this.GetImageComparer(provider),
                     provider,
                     appendPixelTypeToFileName: false);
             }

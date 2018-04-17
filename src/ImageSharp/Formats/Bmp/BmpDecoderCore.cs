@@ -279,20 +279,20 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                             break;
 
                         default:
-                            // If the second byte > 2, signals 'absolute mode'
+                            // If the second byte > 2, we are in 'absolute mode'
                             // Take this number of bytes from the stream as uncompressed data
                             int length = cmd[1];
-                            int copyLength = length;
-
-                            // Absolute mode data is aligned to two-byte word-boundary
-                            length += length & 1;
 
                             byte[] run = new byte[length];
-                            this.stream.Read(run, 0, run.Length);
-                            for (int i = 0; i < copyLength; i++)
-                            {
-                                buffer[count++] = run[i];
-                            }
+
+                            this.stream.Read(run, 0, length);
+
+                            run.AsSpan().CopyTo(buffer);
+
+                            // Absolute mode data is aligned to two-byte word-boundary
+                            int padding = length & 0;
+
+                            this.stream.Skip(padding);
 
                             break;
                     }
@@ -467,7 +467,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
-            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize]; // TODO: stackalloc
+            byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize];
 
             // read header size
             this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
@@ -512,7 +512,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadFileHeader()
         {
-            byte[] buffer = new byte[BmpFileHeader.Size]; // TODO: stackalloc
+            byte[] buffer = new byte[BmpFileHeader.Size];
 
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 

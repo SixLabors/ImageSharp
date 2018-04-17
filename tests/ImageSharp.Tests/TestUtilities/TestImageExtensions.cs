@@ -87,6 +87,37 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        /// <summary>
+        /// Saves the image only when not running in the CI server.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format</typeparam>
+        /// <param name="image">The image</param>
+        /// <param name="provider">The image provider</param>
+        /// <param name="encoder">The image encoder</param>
+        /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
+        /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
+        public static Image<TPixel> DebugSave<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            IImageEncoder encoder,
+            object testOutputDetails = null,
+            bool appendPixelTypeToFileName = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (TestEnvironment.RunsOnCI)
+            {
+                return image;
+            }
+
+            // We are running locally then we want to save it out
+            provider.Utility.SaveTestOutputFile(
+                image,
+                encoder: encoder,
+                testOutputDetails: testOutputDetails,
+                appendPixelTypeToFileName: appendPixelTypeToFileName);
+            return image;
+        }
+
         public static Image<TPixel> DebugSaveMultiFrame<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
@@ -168,7 +199,7 @@ namespace SixLabors.ImageSharp.Tests
                 provider,
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName)) 
+                appendPixelTypeToFileName))
             {
                 comparer.VerifySimilarity(referenceImage, image);
             }
@@ -272,7 +303,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             Image<TPixel> firstTemp = temporaryFrameImages[0];
-            
+
             var result = new Image<TPixel>(firstTemp.Width, firstTemp.Height);
 
             foreach (Image<TPixel> fi in temporaryFrameImages)
@@ -345,7 +376,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             return CompareToOriginal(image, provider, ImageComparer.Tolerant());
         }
-        
+
         public static Image<TPixel> CompareToOriginal<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,

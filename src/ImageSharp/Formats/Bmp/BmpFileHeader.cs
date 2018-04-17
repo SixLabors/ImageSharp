@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -63,10 +64,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         public unsafe void WriteTo(Span<byte> buffer)
         {
-            fixed (BmpFileHeader* pointer = &this)
-            {
-                MemoryMarshal.AsBytes(new ReadOnlySpan<BmpFileHeader>(pointer, 1)).CopyTo(buffer);
-            }
+            ref BmpFileHeader dest = ref Unsafe.As<byte, BmpFileHeader>(ref MemoryMarshal.GetReference(buffer));
+
+            dest = this;
         }
     }
 }

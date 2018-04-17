@@ -4,6 +4,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -11,6 +13,9 @@ using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
 
+// TODO: This is causing more GC collections than I'm happy with.
+// This is likely due to the number of short writes to the stream we are doing.
+// We should investigate reducing them since we know the length of the byte array we require for multiple parts.
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
@@ -46,11 +51,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitDepth;
 
         /// <summary>
-        /// Whether the current image has multiple frames.
-        /// </summary>
-        private bool hasFrames;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
@@ -78,8 +78,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Do not use IDisposable pattern here as we want to preserve the stream.
             var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
 
-            this.hasFrames = image.Frames.Count > 1;
-
             // Quantize the image returning a palette.
             QuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
 
@@ -98,9 +96,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteComments(image, writer);
 
             // Write additional frames.
-            if (this.hasFrames)
+            if (image.Frames.Count > 1)
             {
-                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount, image.Frames.Count);
+                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount);
             }
 
             foreach (ImageFrame<TPixel> frame in image.Frames)
@@ -138,11 +136,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
             var trans = default(Rgba32);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(quantized.Palette.AsSpan());
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToRgba32(ref trans);
-
-                if (trans.Equals(default(Rgba32)))
+                ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
+                entry.ToRgba32(ref trans);
+                if (trans.Equals(default))
                 {
                     index = i;
                 }
@@ -155,6 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the file header signature and version to the stream.
         /// </summary>
         /// <param name="writer">The writer to write to the stream with.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteHeader(EndianBinaryWriter writer)
         {
             writer.Write(GifConstants.MagicNumber);
@@ -201,11 +201,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="writer">The writer to write to the stream with.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
-        /// <param name="frames">The number of image frames.</param>
-        private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount, int frames)
+        private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount)
         {
             // Application Extension Header
-            if (repeatCount != 1 && frames > 0)
+            if (repeatCount != 1)
             {
                 this.buffer[0] = GifConstants.ExtensionIntroducer;
                 this.buffer[1] = GifConstants.ApplicationExtensionLabel;
@@ -336,15 +335,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             var rgb = default(Rgb24);
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
-                Span<byte> colorTableSpan = colorTable.Span;
+                ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
+                ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.Span));
 
                 for (int i = 0; i < pixelCount; i++)
                 {
-                    int offset = i * 3;
-                    image.Palette[i].ToRgb24(ref rgb);
-                    colorTableSpan[offset] = rgb.R;
-                    colorTableSpan[offset + 1] = rgb.G;
-                    colorTableSpan[offset + 2] = rgb.B;
+                    ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
+                    entry.ToRgb24(ref rgb);
+                    Unsafe.Add(ref rgb24Ref, i) = rgb;
                 }
 
                 writer.Write(colorTable.Array, 0, colorTableLength);

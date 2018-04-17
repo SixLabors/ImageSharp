@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -14,6 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     public class GifEncoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001F);
 
         [Theory]
         [WithTestPatternImages(100, 100, TestPixelTypes)]
@@ -22,28 +24,43 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder());
+                var encoder = new GifEncoder()
+                {
+                    // Use the palette quantizer without dithering to ensure results 
+                    // are consistant
+                    Quantizer = new PaletteQuantizer(false)
+                };
+
+                // Always save as we need to compare the encoded output.
+                provider.Utility.SaveTestOutputFile(image, "gif", encoder);
+            }
+
+            // Compare encoded result
+            string path = provider.Utility.GetTestOutputFileName("gif", null, true);
+            using (var encoded = Image.Load(path))
+            {
+                encoded.CompareToReferenceOutput(ValidatorComparer, provider, null, "gif");
             }
         }
 
         [Fact]
         public void Encode_IgnoreMetadataIsFalse_CommentsAreWritten()
         {
-            GifEncoder options = new GifEncoder()
+            var options = new GifEncoder()
             {
                 IgnoreMetadata = false
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
+            var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
-                using (MemoryStream memStream = new MemoryStream())
+                using (var memStream = new MemoryStream())
                 {
                     input.Save(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
+                    using (var output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);
@@ -56,21 +73,21 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Encode_IgnoreMetadataIsTrue_CommentsAreNotWritten()
         {
-            GifEncoder options = new GifEncoder()
+            var options = new GifEncoder()
             {
                 IgnoreMetadata = true
             };
 
-            TestFile testFile = TestFile.Create(TestImages.Gif.Rings);
+            var testFile = TestFile.Create(TestImages.Gif.Rings);
 
             using (Image<Rgba32> input = testFile.CreateImage())
             {
-                using (MemoryStream memStream = new MemoryStream())
+                using (var memStream = new MemoryStream())
                 {
                     input.SaveAsGif(memStream, options);
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
+                    using (var output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(0, output.MetaData.Properties.Count);
                     }
@@ -81,17 +98,17 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Encode_WhenCommentIsTooLong_CommentIsTrimmed()
         {
-            using (Image<Rgba32> input = new Image<Rgba32>(1, 1))
+            using (var input = new Image<Rgba32>(1, 1))
             {
                 string comments = new string('c', 256);
                 input.MetaData.Properties.Add(new ImageProperty("Comments", comments));
 
-                using (MemoryStream memStream = new MemoryStream())
+                using (var memStream = new MemoryStream())
                 {
                     input.Save(memStream, new GifEncoder());
 
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
+                    using (var output = Image.Load<Rgba32>(memStream))
                     {
                         Assert.Equal(1, output.MetaData.Properties.Count);
                         Assert.Equal("Comments", output.MetaData.Properties[0].Name);

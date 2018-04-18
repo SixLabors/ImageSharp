@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// Represents a byte of data in a GIF data stream which contains a number
     /// of data items.
     /// </summary>
-    internal readonly struct PackedField : IEquatable<PackedField>
+    internal readonly struct PackedField
     {
         /// <summary>
         /// The individual bits representing the packed byte.
@@ -46,19 +46,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 return Convert.ToByte(returnValue & 0xFF);
             }
-        }
-
-        /// <summary>
-        /// Returns a new <see cref="PackedField"/>  with the bits in the packed fields to
-        /// the corresponding bits from the supplied byte.
-        /// </summary>
-        /// <param name="value">The value to pack.</param>
-        /// <returns>The <see cref="PackedField"/></returns>
-        public static PackedField FromInt(byte value)
-        {
-            PackedField packed = default;
-            packed.SetBits(0, 8, value);
-            return packed;
         }
 
         /// <summary>
@@ -111,55 +98,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             DebugGuard.MustBeBetweenOrEqualTo(index, 0, 7, nameof(index));
             return Bits[index];
-        }
-
-        /// <summary>
-        /// Gets the value of the specified bits within the byte.
-        /// </summary>
-        /// <param name="startIndex">The zero-based index of the first bit to get.</param>
-        /// <param name="length">The number of bits to get.</param>
-        /// <returns>
-        /// The value of the specified bits within the byte.
-        /// </returns>
-        public int GetBits(int startIndex, int length)
-        {
-            DebugGuard.MustBeBetweenOrEqualTo(startIndex, 1, 8, nameof(startIndex));
-            DebugCheckLength(startIndex, length);
-
-            int returnValue = 0;
-            int bitShift = length - 1;
-            for (int i = startIndex; i < startIndex + length; i++)
-            {
-                int bitValue = (Bits[i] ? 1 : 0) << bitShift;
-                returnValue += bitValue;
-                bitShift--;
-            }
-
-            return returnValue;
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is PackedField other && this.Equals(other);
-        }
-
-        /// <inheritdoc/>
-        public bool Equals(PackedField other)
-        {
-            return this.Byte.Equals(other.Byte);
-        }
-
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"PackedField [ Byte={this.Byte} ]";
-        }
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this.Byte.GetHashCode();
         }
 
         [Conditional("DEBUG")]

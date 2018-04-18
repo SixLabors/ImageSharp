@@ -280,7 +280,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.buffer[extensionSize + 2] = GifConstants.Terminator;
 
-            stream.Write(this.buffer, 0, 8);
+            stream.Write(this.buffer, 0, extensionSize + 3);
         }
 
         /// <summary>

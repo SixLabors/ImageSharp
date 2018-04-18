@@ -15,8 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct GifGraphicsControlExtension : IGifExtension
     {
-        public const int Size = 4;
-
         public GifGraphicsControlExtension(
             byte packed,
             ushort delayTime,

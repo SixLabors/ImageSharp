@@ -133,6 +133,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
                 public const string BadZigZagProgressive385 = "Jpg/issues/Issue385-BadZigZag-Progressive.jpg";
                 public const string MultiHuffmanBaseline394 = "Jpg/issues/Issue394-MultiHuffmanBaseline-Speakers.jpg";
+                public const string NoEOI517 = "Jpg/issues/Issue517-No-EOI.jpg";
+                public const string BadRST518 = "Jpg/issues/Issue518-Bad-RST.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The graphics control extension.
         /// </summary>
-        private GifGraphicsControlExtension graphicsControlExtension;
+        private GifGraphicControlExtension graphicsControlExtension;
 
         /// <summary>
         /// The metadata
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.stream.Read(this.buffer, 0, 6);
 
-            this.graphicsControlExtension = GifGraphicsControlExtension.Parse(this.buffer);
+            this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer);
         }
 
         /// <summary>

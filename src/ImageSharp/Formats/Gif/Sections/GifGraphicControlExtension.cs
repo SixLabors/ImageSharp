@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// processing a graphic rendering block.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal readonly struct GifGraphicsControlExtension : IGifExtension
+    internal readonly struct GifGraphicControlExtension : IGifExtension
     {
-        public GifGraphicsControlExtension(
+        public GifGraphicControlExtension(
             byte packed,
             ushort delayTime,
             byte transparencyIndex)
@@ -36,9 +36,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public byte Packed { get; }
 
         /// <summary>
-        /// Gets the delay time.
-        /// If not 0, this field specifies the number of hundredths (1/100) of a second to
-        /// wait before continuing with the processing of the Data Stream.
+        /// Gets the delay time in of hundredths (1/100) of a second
+        /// to wait before continuing with the processing of the Data Stream.
         /// The clock starts ticking immediately after the graphic is rendered.
         /// </summary>
         public ushort DelayTime { get; }
@@ -59,7 +58,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets a value indicating whether transparency flag is to be set.
         /// This indicates whether a transparency index is given in the Transparent Index field.
-        /// (This field is the least significant bit of the byte.)
         /// </summary>
         public bool TransparencyFlag => (this.Packed & 0x01) == 1;
 
@@ -67,16 +65,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         public int WriteTo(Span<byte> buffer)
         {
-            ref GifGraphicsControlExtension dest = ref Unsafe.As<byte, GifGraphicsControlExtension>(ref MemoryMarshal.GetReference(buffer));
+            ref GifGraphicControlExtension dest = ref Unsafe.As<byte, GifGraphicControlExtension>(ref MemoryMarshal.GetReference(buffer));
 
             dest = this;
 
             return 5;
         }
 
-        public static GifGraphicsControlExtension Parse(ReadOnlySpan<byte> buffer)
+        public static GifGraphicControlExtension Parse(ReadOnlySpan<byte> buffer)
         {
-            return MemoryMarshal.Cast<byte, GifGraphicsControlExtension>(buffer)[0];
+            return MemoryMarshal.Cast<byte, GifGraphicControlExtension>(buffer)[0];
         }
 
         public static byte GetPackedValue(DisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)

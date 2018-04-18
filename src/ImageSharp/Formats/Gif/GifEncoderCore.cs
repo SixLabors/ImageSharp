@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteLogicalScreenDescriptor(image, stream, index);
 
             // Write the first frame.
-            this.WriteComments(image, stream);
+            this.WriteComments(image.MetaData, stream);
 
             // Write additional frames.
             if (image.Frames.Count > 1)
@@ -212,18 +212,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Writes the image comments to the stream.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
+        /// <param name="metadata">The metadata to be extract the comment data.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteComments<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        private void WriteComments(ImageMetaData metadata, Stream stream)
         {
             if (this.ignoreMetadata)
             {
                 return;
             }
-
-            ImageProperty property = image.MetaData.Properties.FirstOrDefault(p => p.Name == GifConstants.Comments);
+            
+            ImageProperty property = metadata.Properties.FirstOrDefault(p => p.Name == GifConstants.Comments);
             if (property == null || string.IsNullOrEmpty(property.Value))
             {
                 return;

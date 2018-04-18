@@ -84,19 +84,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] accumulators = new byte[256];
 
         /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
-        /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second
-        /// time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose()
-        /// method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        private bool isDisposed;
-
-        /// <summary>
         /// The current pixel
         /// </summary>
         private int position;
@@ -471,28 +458,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <inheritdoc />
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
-        }
-
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        private void Dispose(bool disposing)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.hashTable?.Dispose();
-                this.codeTable?.Dispose();
-            }
-
-            this.isDisposed = true;
+            this.hashTable?.Dispose();
+            this.codeTable?.Dispose();
         }
     }
 }

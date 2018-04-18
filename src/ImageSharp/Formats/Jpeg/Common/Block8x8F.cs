@@ -353,13 +353,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, int* unzigPtr)
+        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
             for (int qtIndex = 0; qtIndex < Size; qtIndex++)
             {
-                int blockIndex = unzigPtr[qtIndex];
+                byte blockIndex = unzigPtr[qtIndex];
                 float* unzigPos = b + blockIndex;
 
                 float val = *unzigPos;
@@ -381,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             Block8x8F* block,
             Block8x8F* dest,
             Block8x8F* qt,
-            int* unzigPtr)
+            byte* unzigPtr)
         {
             float* s = (float*)block;
             float* d = (float*)dest;

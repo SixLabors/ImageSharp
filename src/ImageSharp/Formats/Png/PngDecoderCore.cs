@@ -313,11 +313,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                     finally
                     {
-                        // Data is rented in ReadChunkData()
-                        if (chunk.Data != null)
-                        {
-                            ArrayPool<byte>.Shared.Return(chunk.Data.Array);
-                        }
+                        chunk.Data?.Dispose(); // Data is rented in ReadChunkData()
                     }
                 }
             }

@@ -45,19 +45,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly IBuffer<int> pixelStack;
 
         /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
-        /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second
-        /// time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose()
-        /// method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        private bool isDisposed;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
@@ -225,13 +212,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
         }
 
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
-        }
-
         /// <summary>
         /// Reads the next data block from the stream. A data block begins with a byte,
         /// which defines the size of the block, followed by the block itself.
@@ -253,25 +233,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return count != bufferSize ? 0 : bufferSize;
         }
 
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        private void Dispose(bool disposing)
+        /// <inheritdoc />
+        public void Dispose()
         {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.prefix?.Dispose();
-                this.suffix?.Dispose();
-                this.pixelStack?.Dispose();
-            }
-
-            this.isDisposed = true;
+            this.prefix.Dispose();
+            this.suffix.Dispose();
+            this.pixelStack.Dispose();
         }
     }
 }

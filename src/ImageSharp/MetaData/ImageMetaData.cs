@@ -43,10 +43,8 @@ namespace SixLabors.ImageSharp.MetaData
         /// <param name="other">
         /// The other <see cref="ImageMetaData"/> to create this instance from.
         /// </param>
-        internal ImageMetaData(ImageMetaData other)
+        private ImageMetaData(ImageMetaData other)
         {
-            DebugGuard.NotNull(other, nameof(other));
-
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
             this.RepeatCount = other.RepeatCount;

@@ -168,13 +168,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, Stream stream, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
+            byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(false, this.bitDepth - 1, false, this.bitDepth - 1);
+
             var descriptor = new GifLogicalScreenDescriptor(
                 width: (ushort)image.Width,
                 height: (ushort)image.Height,
-                bitsPerPixel: 0,
-                pixelAspectRatio: 0,
-                globalColorTableFlag: false, // TODO: Always false for now.
-                globalColorTableSize: this.bitDepth - 1,
+                packed: packedValue,
                 backgroundColorIndex: unchecked((byte)transparencyIndex));
 
             descriptor.WriteTo(this.buffer);

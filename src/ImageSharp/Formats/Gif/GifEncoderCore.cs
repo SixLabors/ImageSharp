@@ -27,22 +27,22 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] buffer = new byte[20];
 
         /// <summary>
-        /// Gets the TextEncoding
+        /// Gets the text encoding used to write comments.
         /// </summary>
         private readonly Encoding textEncoding;
 
         /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
+        /// Gets or sets the quantizer used to generate the color palette.
         /// </summary>
         private readonly IQuantizer quantizer;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// A flag indicating whether to ingore the metadata when writing the image.
         /// </summary>
         private readonly bool ignoreMetadata;
 
         /// <summary>
-        /// The number of bits requires to store the image palette.
+        /// The number of bits requires to store the color palette.
         /// </summary>
         private int bitDepth;
 

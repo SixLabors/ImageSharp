@@ -248,11 +248,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, Stream stream, int transparencyIndex)
         {
-            byte packedValue = GifGraphicsControlExtension.GetPackedValue(
+            byte packedValue = GifGraphicControlExtension.GetPackedValue(
                 disposalMethod: metaData.DisposalMethod,
                 transparencyFlag: transparencyIndex > -1);
 
-            var extension = new GifGraphicsControlExtension(
+            var extension = new GifGraphicControlExtension(
                 packed: packedValue,
                 transparencyIndex: unchecked((byte)transparencyIndex),
                 delayTime: (ushort)metaData.FrameDelay);

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 GenerateSizeTable(lengths, ref huffsizeRef);
                 GenerateCodeTable(ref huffsizeRef, ref huffcodeRef, length);
                 this.GenerateDecoderTables(lengths, ref huffcodeRef);
-                this.GenerateLookaheadTables(lengths, values);
+                this.GenerateLookaheadTables(lengths, values, ref huffcodeRef);
             }
 
             fixed (byte* huffValRef = this.HuffVal.Data)
@@ -145,33 +146,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffval">The huffman value array</param>
-        private void GenerateLookaheadTables(byte[] lengths, byte[] huffval)
+        /// <param name="huffcodeRef">The huffman code span ref</param>
+        private void GenerateLookaheadTables(byte[] lengths, byte[] huffval, ref short huffcodeRef)
         {
+            // TODO: This generation code matches the libJpeg code but the lookahead table is not actually used yet.
+            // To use it we need to implement fast lookup path in PdfJsScanDecoder.DecodeHuffman
+            // This should yield much faster scan decoding as usually, more than 95% of the Huffman codes
+            // will be 8 or fewer bits long and can be handled without looping.
             fixed (short* lookaheadRef = this.Lookahead.Data)
             {
-                int x = 0, code = 0;
-
-                for (int i = 0; i < 8; i++)
+                for (int i = 0; i < 256; i++)
                 {
-                    code <<= 1;
+                    lookaheadRef[i] = 2034; // 9 << 8;
+                }
 
-                    for (int j = 0; j < lengths[i + 1]; j++)
+                int p = 0;
+                for (int l = 1; l <= 8; l++)
+                {
+                    for (int i = 1; i <= lengths[l]; i++, p++)
                     {
-                        // The codeLength is 1+i, so shift code by 8-(1+i) to
-                        // calculate the high bits for every 8-bit sequence
-                        // whose codeLength's high bits matches code.
-                        // The high 8 bits of lutValue are the encoded value.
-                        // The low 8 bits are 1 plus the codeLength.
-                        byte base2 = (byte)(code << (7 - i));
-                        short lutValue = (short)((short)(huffval[x] << 8) | (short)(2 + i));
-
-                        for (int k = 0; k < 1 << (7 - i); k++)
+                        // l = current code's length, p = its index in huffcode[] & huffval[].
+                        // Generate left-justified code followed by all possible bit sequences
+                        int lookBits = Unsafe.Add(ref huffcodeRef, p) << (8 - l);
+                        for (int ctr = 1 << (8 - l); ctr > 0; ctr--)
                         {
-                            lookaheadRef[base2 | k] = lutValue;
+                            lookaheadRef[lookBits] = (short)((l << 8) | huffval[p]);
+                            lookBits++;
                         }
-
-                        code++;
-                        x++;
                     }
                 }
             }

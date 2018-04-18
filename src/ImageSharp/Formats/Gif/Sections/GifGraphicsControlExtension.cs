@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets the size of the block.
         /// </summary>
-        public int BlockSize { get; }
+        public byte BlockSize { get; }
 
         /// <summary>
         /// Gets the packed disposalMethod and transparencyFlag value.

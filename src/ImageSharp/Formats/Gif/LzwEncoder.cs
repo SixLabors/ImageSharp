@@ -54,6 +54,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private const int MaxBits = 12;
 
         /// <summary>
+        /// Should NEVER generate this code.
+        /// </summary>
+        private const int MaxMaxCode = 1 << MaxBits;
+
+        /// <summary>
         /// The working pixel array.
         /// </summary>
         private readonly byte[] pixelArray;
@@ -92,11 +97,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// maximum code, given bitCount
         /// </summary>
         private int maxCode;
-
-        /// <summary>
-        /// should NEVER generate this code
-        /// </summary>
-        private int maxmaxcode = 1 << MaxBits;
 
         /// <summary>
         /// For dynamic table sizing
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 this.Output(ent, stream);
                 ent = c;
-                if (this.freeEntry < this.maxmaxcode)
+                if (this.freeEntry < MaxMaxCode)
                 {
                     Unsafe.Add(ref codeTableRef, i) = this.freeEntry++; // code -> hashtable
                     Unsafe.Add(ref hashTableRef, i) = fcode;
@@ -423,7 +423,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     ++this.bitCount;
                     this.maxCode = this.bitCount == MaxBits
-                        ? this.maxmaxcode
+                        ? MaxMaxCode
                         : GetMaxcode(this.bitCount);
                 }
             }

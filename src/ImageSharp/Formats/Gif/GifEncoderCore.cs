@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 return;
             }
-            
+
             ImageProperty property = metadata.Properties.FirstOrDefault(p => p.Name == GifConstants.Comments);
             if (property == null || string.IsNullOrEmpty(property.Value))
             {

@@ -17,10 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Gets the data checksum computed so far.
         /// </summary>
-        long Value
-        {
-            get;
-        }
+        long Value { get; }
 
         /// <summary>
         /// Resets the data checksum as if no update was ever called.

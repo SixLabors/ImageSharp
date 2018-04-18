@@ -254,15 +254,33 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, Stream stream, int transparencyIndex)
         {
-            var extension = new GifGraphicsControlExtension(
+            byte packedValue = GifGraphicsControlExtension.GetPackedValue(
                 disposalMethod: metaData.DisposalMethod,
-                transparencyFlag: transparencyIndex > -1,
+                transparencyFlag: transparencyIndex > -1);
+
+            var extension = new GifGraphicsControlExtension(
+                packed: packedValue,
                 transparencyIndex: unchecked((byte)transparencyIndex),
                 delayTime: (ushort)metaData.FrameDelay);
 
-            extension.WriteTo(this.buffer);
+            this.WriteExtension(extension, stream);
+        }
 
-            stream.Write(this.buffer, 0, GifGraphicsControlExtension.Size);
+        /// <summary>
+        /// Writes the provided extension to the stream.
+        /// </summary>
+        /// <param name="extension">The extension to write to the stream.</param>
+        /// <param name="stream">The stream to write to.</param>
+        public void WriteExtension(IGifExtension extension, Stream stream)
+        {
+            this.buffer[0] = GifConstants.ExtensionIntroducer;
+            this.buffer[1] = extension.Label;
+
+            int extensionSize = extension.WriteTo(this.buffer.AsSpan(2));
+
+            this.buffer[extensionSize + 2] = GifConstants.Terminator;
+
+            stream.Write(this.buffer, 0, 8);
         }
 
         /// <summary>

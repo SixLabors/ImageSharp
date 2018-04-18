@@ -121,6 +121,29 @@ namespace SixLabors.ImageSharp.MetaData
         public ushort RepeatCount { get; set; }
 
         /// <summary>
+        /// Looks up a property with the provided name.
+        /// </summary>
+        /// <param name="name">The name of the property to lookup.</param>
+        /// <param name="result">The property, if found, with the provided name.</param>
+        /// <returns>Whether the property was found.</returns>
+        internal bool TryGetProperty(string name, out ImageProperty result)
+        {
+            foreach (ImageProperty property in this.Properties)
+            {
+                if (property.Name == name)
+                {
+                    result = property;
+
+                    return true;
+                }
+            }
+
+            result = default;
+
+            return false;
+        }
+
+        /// <summary>
         /// Clones this into a new instance
         /// </summary>
         /// <returns>The cloned metadata instance</returns>

@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly MemoryManager memoryManager;
 
         /// <summary>
-        /// The temp buffer used to reduce allocations.
+        /// A reusable buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
 
@@ -129,7 +128,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
-            var trans = default(Rgba32);
+            Rgba32 trans = default;
+
             ref TPixel paletteRef = ref MemoryMarshal.GetReference(quantized.Palette.AsSpan());
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
@@ -221,8 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            ImageProperty property = metadata.Properties.FirstOrDefault(p => p.Name == GifConstants.Comments);
-            if (property == null || string.IsNullOrEmpty(property.Value))
+            if (!metadata.TryGetProperty(GifConstants.Comments, out ImageProperty property) || string.IsNullOrEmpty(property.Value))
             {
                 return;
             }
@@ -313,17 +312,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Grab the palette and write it to the stream.
             int pixelCount = image.Palette.Length;
 
-            // Get max colors for bit depth.
-            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
-            var rgb = default(Rgb24);
+            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3; // The maximium number of colors for the bit depth
+            Rgb24 rgb = default;
+
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
                 ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
                 ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.Span));
-
                 for (int i = 0; i < pixelCount; i++)
                 {
                     ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
@@ -331,6 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     Unsafe.Add(ref rgb24Ref, i) = rgb;
                 }
 
+                // Write the palette to the stream
                 stream.Write(colorTable.Array, 0, colorTableLength);
             }
         }

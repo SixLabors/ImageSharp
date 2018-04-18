@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Processing.Quantization;
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
-    /// The configuration options used for encoding gifs
+    /// The configuration options used for encoding gifs.
     /// </summary>
     internal interface IGifEncoderOptions
     {

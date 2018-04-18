@@ -104,14 +104,30 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         public static byte GetPackedValue(bool globalColorTableFlag, int colorResolution, bool sortFlag, int globalColorTableSize)
         {
-            PackedField field = default;
+            /*
+            Global Color Table Flag    | 1 Bit
+            Color Resolution           | 3 Bits
+            Sort Flag                  | 1 Bit
+            Size of Global Color Table | 3 Bits
+            */
 
-            field.SetBit(0, globalColorTableFlag);     // 0   : Global Color Table Flag     | 1 bit
-            field.SetBits(1, 3, globalColorTableSize); // 1-3 : Color Resolution            | 3 bits
-            field.SetBit(4, sortFlag);                 // 4   : Sort Flag                   | 1 bits
-            field.SetBits(5, 3, globalColorTableSize); // 5-7 : Size of Global Color Table  | 3 bits
+            byte value = 0;
 
-            return field.Byte;
+            if (globalColorTableFlag)
+            {
+                value |= 1 << 7;
+            }
+
+            value |= (byte)(colorResolution << 4);
+
+            if (sortFlag)
+            {
+                value |= 1 << 3;
+            }
+
+            value |= (byte)globalColorTableSize;
+
+            return value;
         }
     }
 }

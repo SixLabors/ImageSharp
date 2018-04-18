@@ -2,7 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -11,29 +12,23 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// necessary to define the area of the display device
     /// within which the images will be rendered
     /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct GifLogicalScreenDescriptor
     {
-        /// <summary>
-        /// The size of the written structure.
-        /// </summary>
         public const int Size = 7;
 
         public GifLogicalScreenDescriptor(
             ushort width,
             ushort height,
-            int bitsPerPixel,
+            byte packed,
             byte backgroundColorIndex,
-            byte pixelAspectRatio,
-            bool globalColorTableFlag,
-            int globalColorTableSize)
+            byte pixelAspectRatio = 0)
         {
             this.Width = width;
             this.Height = height;
-            this.BitsPerPixel = bitsPerPixel;
+            this.Packed = packed;
             this.BackgroundColorIndex = backgroundColorIndex;
             this.PixelAspectRatio = pixelAspectRatio;
-            this.GlobalColorTableFlag = globalColorTableFlag;
-            this.GlobalColorTableSize = globalColorTableSize;
         }
 
         /// <summary>
@@ -49,9 +44,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public ushort Height { get; }
 
         /// <summary>
-        /// Gets the color depth, in number of bits per pixel.
+        /// Gets the packed value consisting of:
+        /// globalColorTableFlag, colorResolution, sortFlag, and sizeOfGlobalColorTable.
         /// </summary>
-        public int BitsPerPixel { get; }
+        public byte Packed { get; }
 
         /// <summary>
         /// Gets the index at the Global Color Table for the Background Color.
@@ -61,59 +57,42 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public byte BackgroundColorIndex { get; }
 
         /// <summary>
-        /// Gets the pixel aspect ratio. Default to 0.
+        /// Gets the pixel aspect ratio.
         /// </summary>
         public byte PixelAspectRatio { get; }
 
         /// <summary>
         /// Gets a value indicating whether a flag denoting the presence of a Global Color Table
         /// should be set.
-        /// If the flag is set, the Global Color Table will immediately
-        /// follow the Logical Screen Descriptor.
+        /// If the flag is set, the Global Color Table will included after
+        /// the Logical Screen Descriptor.
         /// </summary>
-        public bool GlobalColorTableFlag { get; }
+        public bool GlobalColorTableFlag => ((this.Packed & 0x80) >> 7) == 1;
 
         /// <summary>
         /// Gets the global color table size.
-        /// If the Global Color Table Flag is set to 1,
+        /// If the Global Color Table Flag is set,
         /// the value in this field is used to calculate the number of
         /// bytes contained in the Global Color Table.
         /// </summary>
-        public int GlobalColorTableSize { get; }
+        public int GlobalColorTableSize => 2 << (this.Packed & 0x07);
 
-        public byte PackFields()
-        {
-            PackedField field = default;
-
-            field.SetBit(0, this.GlobalColorTableFlag);     // 0   : Global Color Table Flag     | 1 bit
-            field.SetBits(1, 3, this.GlobalColorTableSize); // 1-3 : Color Resolution            | 3 bits
-            field.SetBit(4, false);                         // 4   : Sort Flag                   | 1 bits
-            field.SetBits(5, 3, this.GlobalColorTableSize); // 5-7 : Size of Global Color Table  | 3 bits
-
-            return field.Byte;
-        }
+        /// <summary>
+        /// Gets the color depth, in number of bits per pixel.
+        /// The lowest 3 packed bits represent the bit depth minus 1.
+        /// </summary>
+        public int BitsPerPixel => (this.Packed & 0x07) + 1;
 
         public void WriteTo(Span<byte> buffer)
         {
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(0, 2), this.Width);  // Logical Screen Width
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(2, 2), this.Height); // Logical Screen Height
-            buffer[4] = this.PackFields();                                             // Packed Fields
-            buffer[5] = this.BackgroundColorIndex;                                     // Background Color Index
-            buffer[6] = this.PixelAspectRatio;                                         // Pixel Aspect Ratio
+            ref GifLogicalScreenDescriptor dest = ref Unsafe.As<byte, GifLogicalScreenDescriptor>(ref MemoryMarshal.GetReference(buffer));
+
+            dest = this;
         }
 
         public static GifLogicalScreenDescriptor Parse(ReadOnlySpan<byte> buffer)
         {
-            byte packed = buffer[4];
-
-            var result = new GifLogicalScreenDescriptor(
-                width: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(0, 2)),
-                height: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2, 2)),
-                bitsPerPixel: (buffer[4] & 0x07) + 1,  // The lowest 3 bits represent the bit depth minus 1
-                backgroundColorIndex: buffer[5],
-                pixelAspectRatio: buffer[6],
-                globalColorTableFlag: ((packed & 0x80) >> 7) == 1,
-                globalColorTableSize: 2 << (packed & 0x07));
+            GifLogicalScreenDescriptor result = MemoryMarshal.Cast<byte, GifLogicalScreenDescriptor>(buffer)[0];
 
             if (result.GlobalColorTableSize > 255 * 4)
             {
@@ -121,6 +100,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             return result;
+        }
+
+        public static byte GetPackedValue(bool globalColorTableFlag, int colorResolution, bool sortFlag, int globalColorTableSize)
+        {
+            PackedField field = default;
+
+            field.SetBit(0, globalColorTableFlag);     // 0   : Global Color Table Flag     | 1 bit
+            field.SetBits(1, 3, globalColorTableSize); // 1-3 : Color Resolution            | 3 bits
+            field.SetBit(4, sortFlag);                 // 4   : Sort Flag                   | 1 bits
+            field.SetBits(5, 3, globalColorTableSize); // 5-7 : Size of Global Color Table  | 3 bits
+
+            return field.Byte;
         }
     }
 }

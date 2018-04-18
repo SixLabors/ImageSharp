@@ -35,11 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     internal sealed class LzwEncoder : IDisposable
     {
         /// <summary>
-        /// The maximum number of bits.
-        /// </summary>
-        private const int Bits = 12;
-
-        /// <summary>
         /// 80% occupancy
         /// </summary>
         private const int HashSize = 5003;
@@ -52,6 +47,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
             0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF,
             0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF
         };
+
+        /// <summary>
+        /// The maximium number of bits/code.
+        /// </summary>
+        private const int MaxBits = 12;
 
         /// <summary>
         /// The working pixel array.
@@ -89,11 +89,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitCount;
 
         /// <summary>
-        /// User settable max # bits/code
-        /// </summary>
-        private int maxBits = Bits;
-
-        /// <summary>
         /// maximum code, given bitCount
         /// </summary>
         private int maxCode;
@@ -101,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// should NEVER generate this code
         /// </summary>
-        private int maxmaxcode = 1 << Bits;
+        private int maxmaxcode = 1 << MaxBits;
 
         /// <summary>
         /// For dynamic table sizing
@@ -305,7 +300,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 c = this.NextPixel();
 
-                fcode = (c << this.maxBits) + ent;
+                fcode = (c << MaxBits) + ent;
                 int i = (c << hshift) ^ ent /* = 0 */;
 
                 if (Unsafe.Add(ref hashTableRef, i) == fcode)
@@ -427,7 +422,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 else
                 {
                     ++this.bitCount;
-                    this.maxCode = this.bitCount == this.maxBits
+                    this.maxCode = this.bitCount == MaxBits
                         ? this.maxmaxcode
                         : GetMaxcode(this.bitCount);
                 }

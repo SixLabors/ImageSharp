@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, nameof(QuantizerNames), PixelTypes.Rgba32)]
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
-            where TPixel:struct,IPixel<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(c => c.Quantize(quantizer));
-                image.DebugSave(provider);
+                image.DebugSave(provider, new PngEncoder() { PngColorType = PngColorType.Palette }, testOutputDetails: quantizerName);
             }
 
             provider.Configuration.MemoryManager.ReleaseRetainedResources();
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests
         private static IQuantizer GetQuantizer(string name)
         {
             PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
-            return (IQuantizer) property.GetMethod.Invoke(null, new object[0]);
+            return (IQuantizer)property.GetMethod.Invoke(null, new object[0]);
         }
 
         [Fact]
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [InlineData(10, 10, "png")]
         [InlineData(100, 100, "png")]
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Tests
                     memoryStream.Position = 0;
 
                     var imageInfo = Image.Identify(memoryStream);
-                    
+
                     Assert.Equal(imageInfo.Width, width);
                     Assert.Equal(imageInfo.Height, height);
                 }

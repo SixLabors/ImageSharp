@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         };
 
         /// <summary>
-        /// The working pixel array
+        /// The working pixel array.
         /// </summary>
         private readonly byte[] pixelArray;
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The current pixel
         /// </summary>
-        private int currentPixel;
+        private int position;
 
         /// <summary>
         /// Number of bits/code
@@ -212,20 +212,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Write "initial code size" byte
             stream.WriteByte((byte)this.initialCodeSize);
 
-            this.currentPixel = 0;
+            this.position = 0;
 
             // Compress and write the pixel data
             this.Compress(this.initialCodeSize + 1, stream);
 
             // Write block terminator
             stream.WriteByte(GifConstants.Terminator);
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
         }
 
         /// <summary>
@@ -326,8 +319,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.Span);
             ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.Span);
 
-            while ((c = this.NextPixel()) != Eof)
+            while (this.position < this.pixelArray.Length)
             {
+                c = this.NextPixel();
+
                 fcode = (c << this.maxbits) + ent;
                 int i = (c << hshift) ^ ent /* = 0 */;
 
@@ -404,15 +399,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int NextPixel()
         {
-            if (this.currentPixel == this.pixelArray.Length)
-            {
-                return Eof;
-            }
-
-            this.currentPixel++;
-            return this.pixelArray[this.currentPixel - 1] & 0xff;
+            return this.pixelArray[this.position++] & 0xff;
         }
 
         /// <summary>
@@ -476,6 +466,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     this.FlushPacket(outs);
                 }
             }
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            this.Dispose(true);
         }
 
         /// <summary>

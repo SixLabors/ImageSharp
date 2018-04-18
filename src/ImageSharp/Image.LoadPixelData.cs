@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            return LoadPixelData(config, new Span<TPixel>(data), width, height);
+            return LoadPixelData(config, data.AsSpan(), width, height);
         }
 
         /// <summary>

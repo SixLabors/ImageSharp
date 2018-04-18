@@ -8,19 +8,15 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
 
-// TODO: This is causing more GC collections than I'm happy with.
-// This is likely due to the number of short writes to the stream we are doing.
-// We should investigate reducing them since we know the length of the byte array we require for multiple parts.
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
-    /// Performs the gif encoding operation.
+    /// Implements the GIF encoding protocol.
     /// </summary>
     internal sealed class GifEncoderCore
     {
@@ -29,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The temp buffer used to reduce allocations.
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
+        private readonly byte[] buffer = new byte[20];
 
         /// <summary>
         /// Gets the TextEncoding
@@ -195,21 +191,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.buffer[1] = GifConstants.ApplicationExtensionLabel;
                 this.buffer[2] = GifConstants.ApplicationBlockSize;
 
-                stream.Write(this.buffer, 0, 3);
+                // Write NETSCAPE2.0
+                GifConstants.ApplicationIdentificationBytes.AsSpan().CopyTo(this.buffer.AsSpan(3, 11));
 
-                stream.Write(GifConstants.ApplicationIdentificationBytes, 0, 11); // NETSCAPE2.0
-
-                this.buffer[0] = 3; // Application block length
-                this.buffer[1] = 1; // Data sub-block index (always 1)
+                // Application Data ----
+                this.buffer[14] = 3; // Application block length
+                this.buffer[15] = 1; // Data sub-block index (always 1)
 
                 // 0 means loop indefinitely. Count is set as play n + 1 times.
                 repeatCount = (ushort)Math.Max(0, repeatCount - 1);
 
-                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer.AsSpan(2, 2), repeatCount); // Repeat count for images.
+                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer.AsSpan(16, 2), repeatCount); // Repeat count for images.
 
-                this.buffer[4] = GifConstants.Terminator; // Terminator
+                this.buffer[18] = GifConstants.Terminator; // Terminator
 
-                stream.Write(this.buffer, 0, 5);
+                stream.Write(this.buffer, 0, 19);
             }
         }
 

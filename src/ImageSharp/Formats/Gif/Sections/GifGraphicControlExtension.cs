@@ -79,14 +79,28 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         public static byte GetPackedValue(DisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)
         {
-            PackedField field = default;
+            /*
+            Reserved               | 3 Bits
+            Disposal Method        | 3 Bits
+            User Input Flag        | 1 Bit
+            Transparent Color Flag | 1 Bit
+            */
 
-            // --------------------------------------- // Reserved               | 3 bits
-            field.SetBits(3, 3, (int)disposalMethod);  // Disposal Method        | 3 bits
-            field.SetBit(6, userInputFlag);            // User Input Flag        | 1 bit
-            field.SetBit(7, transparencyFlag);         // Transparent Color Flag | 1 bit
+            byte value = 0;
 
-            return field.Byte;
+            value |= (byte)((int)disposalMethod << 2);
+
+            if (userInputFlag)
+            {
+                value |= 1 << 1;
+            }
+
+            if (transparencyFlag)
+            {
+                value |= 1;
+            }
+
+            return value;
         }
     }
 }

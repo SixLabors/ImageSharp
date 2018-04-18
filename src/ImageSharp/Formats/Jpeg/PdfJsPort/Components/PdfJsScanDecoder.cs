@@ -25,12 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         private int bitsCount;
 
-#pragma warning disable 414
-        private int bitsUnRead;
-
-        private int accumulator;
-#pragma warning restore 414
-
         private int specStart;
 
         private int specEnd;
@@ -128,8 +122,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 // Find marker
                 this.bitsCount = 0;
-                this.accumulator = 0;
-                this.bitsUnRead = 0;
                 fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
                 // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
@@ -481,44 +473,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private short DecodeHuffman(ref PdfJsHuffmanTable tree, Stream stream)
         {
-            short code = -1;
-
-            // TODO: Adding this code introduces error into the decoder.
+            // TODO: Implement fast Huffman decoding.
             // NOTES # During investigation of the libjpeg implementation it appears that they pull 32bits at a time and operate on those bits
-            //         using 3 methods: FillBits, PeekBits, and ReadBits. We should attempt to do the same.
-            // It doesn't appear to speed anything up either.
-            //  if (this.bitsUnRead < 8)
-            //  {
-            //    if (this.bitsCount <= 0)
-            //    {
-            //        code = (short)this.ReadBit(stream);
-            //        if (this.endOfStreamReached || this.unexpectedMarkerReached)
-            //        {
-            //            return -1;
-            //        }
-            //
-            //        this.bitsUnRead += 8;
-            //    }
-            //
-            //    this.accumulator = (this.accumulator << 8) | this.bitsData;
-            //    int lutIndex = (this.accumulator >> (8 - this.bitsUnRead)) & 0xFF;
-            //    int v = tree.Lookahead[lutIndex];
-            //    if (v != 0)
-            //    {
-            //        int nb = (v & 0xFF) - 1;
-            //        this.bitsCount -= nb - 1;
-            //        this.bitsUnRead -= nb;
-            //        v = v >> 8;
-            //        return (short)v;
-            //    }
-            //  }
-            if (code == -1)
+            // using 3 methods: FillBits, PeekBits, and ReadBits. We should attempt to do the same.
+            short code = (short)this.ReadBit(stream);
+            if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
-                code = (short)this.ReadBit(stream);
-                if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                {
-                    return -1;
-                }
+                return -1;
             }
 
             // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81

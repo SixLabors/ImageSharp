@@ -93,5 +93,4 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return field.Byte;
         }
     }
-
 }

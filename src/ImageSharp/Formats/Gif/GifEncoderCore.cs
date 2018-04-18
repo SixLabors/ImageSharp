@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -75,9 +76,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            // Do not use IDisposable pattern here as we want to preserve the stream.
-            var writer = new EndianBinaryWriter(Endianness.LittleEndian, stream);
-
             // Quantize the image returning a palette.
             QuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
 
@@ -87,18 +85,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int index = this.GetTransparentIndex(quantized);
 
             // Write the header.
-            this.WriteHeader(writer);
+            this.WriteHeader(stream);
 
             // Write the LSD. We'll use local color tables for now.
-            this.WriteLogicalScreenDescriptor(image, writer, index);
+            this.WriteLogicalScreenDescriptor(image, stream, index);
 
             // Write the first frame.
-            this.WriteComments(image, writer);
+            this.WriteComments(image, stream);
 
             // Write additional frames.
             if (image.Frames.Count > 1)
             {
-                this.WriteApplicationExtension(writer, image.MetaData.RepeatCount);
+                this.WriteApplicationExtension(stream, image.MetaData.RepeatCount);
             }
 
             foreach (ImageFrame<TPixel> frame in image.Frames)
@@ -108,16 +106,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
                 }
 
-                this.WriteGraphicalControlExtension(frame.MetaData, writer, this.GetTransparentIndex(quantized));
-                this.WriteImageDescriptor(frame, writer);
-                this.WriteColorTable(quantized, writer);
-                this.WriteImageData(quantized, writer);
+                this.WriteGraphicalControlExtension(frame.MetaData, stream, this.GetTransparentIndex(quantized));
+                this.WriteImageDescriptor(frame, stream);
+                this.WriteColorTable(quantized, stream);
+                this.WriteImageData(quantized, stream);
 
                 quantized = null; // So next frame can regenerate it
             }
 
             // TODO: Write extension etc
-            writer.Write(GifConstants.EndIntroducer);
+            stream.WriteByte(GifConstants.EndIntroducer);
         }
 
         /// <summary>
@@ -153,11 +151,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Writes the file header signature and version to the stream.
         /// </summary>
-        /// <param name="writer">The writer to write to the stream with.</param>
+        /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHeader(EndianBinaryWriter writer)
+        private void WriteHeader(Stream stream)
         {
-            writer.Write(GifConstants.MagicNumber);
+            stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
         }
 
         /// <summary>
@@ -165,43 +163,31 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to encode.</param>
-        /// <param name="writer">The writer to write to the stream with.</param>
+        /// <param name="stream">The stream to write to.</param>
         /// <param name="transparencyIndex">The transparency index to set the default background index to.</param>
-        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, Stream stream, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
-            var descriptor = new GifLogicalScreenDescriptor
-            {
-                Width = (short)image.Width,
-                Height = (short)image.Height,
-                GlobalColorTableFlag = false, // TODO: Always false for now.
-                GlobalColorTableSize = this.bitDepth - 1,
-                BackgroundColorIndex = unchecked((byte)transparencyIndex)
-            };
+            var descriptor = new GifLogicalScreenDescriptor(
+                width: (ushort)image.Width,
+                height: (ushort)image.Height,
+                bitsPerPixel: 0,
+                pixelAspectRatio: 0,
+                globalColorTableFlag: false, // TODO: Always false for now.
+                globalColorTableSize: this.bitDepth - 1,
+                backgroundColorIndex: unchecked((byte)transparencyIndex));
 
-            writer.Write((ushort)descriptor.Width);
-            writer.Write((ushort)descriptor.Height);
+            descriptor.WriteTo(this.buffer);
 
-            var field = default(PackedField);
-            field.SetBit(0, descriptor.GlobalColorTableFlag);  // 1   : Global color table flag = 1 || 0 (GCT used/ not used)
-            field.SetBits(1, 3, descriptor.GlobalColorTableSize); // 2-4 : color resolution
-            field.SetBit(4, false); // 5   : GCT sort flag = 0
-            field.SetBits(5, 3, descriptor.GlobalColorTableSize); // 6-8 : GCT size. 2^(N+1)
-
-            // Reduce the number of writes
-            this.buffer[0] = field.Byte;
-            this.buffer[1] = descriptor.BackgroundColorIndex; // Background Color Index
-            this.buffer[2] = descriptor.PixelAspectRatio; // Pixel aspect ratio. Assume 1:1
-
-            writer.Write(this.buffer, 0, 3);
+            stream.Write(this.buffer, 0, GifLogicalScreenDescriptor.Size);
         }
 
         /// <summary>
         /// Writes the application extension to the stream.
         /// </summary>
-        /// <param name="writer">The writer to write to the stream with.</param>
+        /// <param name="stream">The stream to write to.</param>
         /// <param name="repeatCount">The animated image repeat count.</param>
-        private void WriteApplicationExtension(EndianBinaryWriter writer, ushort repeatCount)
+        private void WriteApplicationExtension(Stream stream, ushort repeatCount)
         {
             // Application Extension Header
             if (repeatCount != 1)
@@ -210,17 +196,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.buffer[1] = GifConstants.ApplicationExtensionLabel;
                 this.buffer[2] = GifConstants.ApplicationBlockSize;
 
-                writer.Write(this.buffer, 0, 3);
+                stream.Write(this.buffer, 0, 3);
 
-                writer.Write(GifConstants.ApplicationIdentificationBytes); // NETSCAPE2.0
-                writer.Write((byte)3); // Application block length
-                writer.Write((byte)1); // Data sub-block index (always 1)
+                stream.Write(GifConstants.ApplicationIdentificationBytes, 0, 11); // NETSCAPE2.0
+
+                this.buffer[0] = 3; // Application block length
+                this.buffer[1] = 1; // Data sub-block index (always 1)
 
                 // 0 means loop indefinitely. Count is set as play n + 1 times.
                 repeatCount = (ushort)Math.Max(0, repeatCount - 1);
-                writer.Write(repeatCount); // Repeat count for images.
 
-                writer.Write(GifConstants.Terminator); // Terminator
+                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer.AsSpan(2, 2), repeatCount); // Repeat count for images.
+
+                this.buffer[4] = GifConstants.Terminator; // Terminator
+
+                stream.Write(this.buffer, 0, 5);
             }
         }
 
@@ -229,8 +219,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
-        /// <param name="writer">The stream to write to.</param>
-        private void WriteComments<TPixel>(Image<TPixel> image, EndianBinaryWriter writer)
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteComments<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.ignoreMetadata)
@@ -252,44 +242,28 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.buffer[1] = GifConstants.CommentLabel;
             this.buffer[2] = (byte)count;
 
-            writer.Write(this.buffer, 0, 3);
-            writer.Write(comments, 0, count);
-            writer.Write(GifConstants.Terminator);
+            stream.Write(this.buffer, 0, 3);
+            stream.Write(comments, 0, count);
+            stream.WriteByte(GifConstants.Terminator);
         }
 
         /// <summary>
         /// Writes the graphics control extension to the stream.
         /// </summary>
         /// <param name="metaData">The metadata of the image or frame.</param>
-        /// <param name="writer">The stream to write to.</param>
+        /// <param name="stream">The stream to write to.</param>
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
-        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, EndianBinaryWriter writer, int transparencyIndex)
+        private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, Stream stream, int transparencyIndex)
         {
-            var extension = new GifGraphicsControlExtension
-            {
-                DisposalMethod = metaData.DisposalMethod,
-                TransparencyFlag = transparencyIndex > -1,
-                TransparencyIndex = unchecked((byte)transparencyIndex),
-                DelayTime = metaData.FrameDelay
-            };
+            var extension = new GifGraphicsControlExtension(
+                disposalMethod: metaData.DisposalMethod,
+                transparencyFlag: transparencyIndex > -1,
+                transparencyIndex: unchecked((byte)transparencyIndex),
+                delayTime: (ushort)metaData.FrameDelay);
 
-            // Write the intro.
-            this.buffer[0] = GifConstants.ExtensionIntroducer;
-            this.buffer[1] = GifConstants.GraphicControlLabel;
-            this.buffer[2] = 4;
-            writer.Write(this.buffer, 0, 3);
+            extension.WriteTo(this.buffer);
 
-            var field = default(PackedField);
-            field.SetBits(3, 3, (int)extension.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
-
-            // TODO: Allow this as an option.
-            field.SetBit(6, false); // 7 : User input - 0 = none
-            field.SetBit(7, extension.TransparencyFlag); // 8: Has transparent.
-
-            writer.Write(field.Byte);
-            writer.Write((ushort)extension.DelayTime);
-            writer.Write(extension.TransparencyIndex);
-            writer.Write(GifConstants.Terminator);
+            stream.Write(this.buffer, 0, GifGraphicsControlExtension.Size);
         }
 
         /// <summary>
@@ -297,25 +271,26 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
-        /// <param name="writer">The stream to write to.</param>
-        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, EndianBinaryWriter writer)
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            writer.Write(GifConstants.ImageDescriptorLabel); // 2c
+            byte packedValue = GifImageDescriptor.GetPackedValue(
+                localColorTableFlag: true,
+                interfaceFlag: false,
+                sortFlag: false,
+                localColorTableSize: this.bitDepth); // Note: we subtract 1 from the colorTableSize writing
 
-            // TODO: Can we capture this?
-            writer.Write((ushort)0); // Left position
-            writer.Write((ushort)0); // Top position
-            writer.Write((ushort)image.Width);
-            writer.Write((ushort)image.Height);
+            var descriptor = new GifImageDescriptor(
+                left: 0,
+                top: 0,
+                width: (ushort)image.Width,
+                height: (ushort)image.Height,
+                packed: packedValue);
 
-            var field = default(PackedField);
-            field.SetBit(0, true); // 1: Local color table flag = 1 (LCT used)
-            field.SetBit(1, false); // 2: Interlace flag 0
-            field.SetBit(2, false); // 3: Sort flag 0
-            field.SetBits(5, 3, this.bitDepth - 1); // 4-5: Reserved, 6-8 : LCT size. 2^(N+1)
+            descriptor.WriteTo(this.buffer);
 
-            writer.Write(field.Byte);
+            stream.Write(this.buffer, 0, GifImageDescriptor.Size);
         }
 
         /// <summary>
@@ -323,8 +298,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
-        /// <param name="writer">The writer to write to the stream with.</param>
-        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, EndianBinaryWriter writer)
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             // Grab the palette and write it to the stream.
@@ -345,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     Unsafe.Add(ref rgb24Ref, i) = rgb;
                 }
 
-                writer.Write(colorTable.Array, 0, colorTableLength);
+                stream.Write(colorTable.Array, 0, colorTableLength);
             }
         }
 
@@ -354,13 +329,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="QuantizedFrame{TPixel}"/> containing indexed pixels.</param>
-        /// <param name="writer">The stream to write to.</param>
-        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, EndianBinaryWriter writer)
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var encoder = new LzwEncoder(this.memoryManager, image.Pixels, (byte)this.bitDepth))
             {
-                encoder.Encode(writer.BaseStream);
+                encoder.Encode(stream);
             }
         }
     }

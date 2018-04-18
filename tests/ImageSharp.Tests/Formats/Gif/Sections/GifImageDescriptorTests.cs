@@ -9,7 +9,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
     public class GifImageDescriptorTests
     {
-
         [Fact]
         public void TestPackedValue()
         {

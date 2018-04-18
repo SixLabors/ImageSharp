@@ -3,6 +3,8 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -10,34 +12,31 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// The Graphic Control Extension contains parameters used when
     /// processing a graphic rendering block.
     /// </summary>
-    internal readonly struct GifGraphicsControlExtension
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    internal readonly struct GifGraphicsControlExtension : IGifExtension
     {
-        public const int Size = 8;
+        public const int Size = 4;
 
         public GifGraphicsControlExtension(
-            DisposalMethod disposalMethod,
-            bool transparencyFlag,
+            byte packed,
             ushort delayTime,
             byte transparencyIndex)
         {
-            this.DisposalMethod = disposalMethod;
-            this.TransparencyFlag = transparencyFlag;
+            this.BlockSize = 4;
+            this.Packed = packed;
             this.DelayTime = delayTime;
             this.TransparencyIndex = transparencyIndex;
         }
 
         /// <summary>
-        /// Gets the disposal method which indicates the way in which the
-        /// graphic is to be treated after being displayed.
+        /// Gets the size of the block.
         /// </summary>
-        public DisposalMethod DisposalMethod { get; }
+        public int BlockSize { get; }
 
         /// <summary>
-        /// Gets a value indicating whether transparency flag is to be set.
-        /// This indicates whether a transparency index is given in the Transparent Index field.
-        /// (This field is the least significant bit of the byte.)
+        /// Gets the packed disposalMethod and transparencyFlag value.
         /// </summary>
-        public bool TransparencyFlag { get; }
+        public byte Packed { get; }
 
         /// <summary>
         /// Gets the delay time.
@@ -54,41 +53,45 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public byte TransparencyIndex { get; }
 
-        public byte PackField()
+        /// <summary>
+        /// Gets the disposal method which indicates the way in which the
+        /// graphic is to be treated after being displayed.
+        /// </summary>
+        public DisposalMethod DisposalMethod => (DisposalMethod)((this.Packed & 0x1C) >> 2);
+
+        /// <summary>
+        /// Gets a value indicating whether transparency flag is to be set.
+        /// This indicates whether a transparency index is given in the Transparent Index field.
+        /// (This field is the least significant bit of the byte.)
+        /// </summary>
+        public bool TransparencyFlag => (this.Packed & 0x01) == 1;
+
+        byte IGifExtension.Label => GifConstants.GraphicControlLabel;
+
+        public int WriteTo(Span<byte> buffer)
         {
-            PackedField field = default;
+            ref GifGraphicsControlExtension dest = ref Unsafe.As<byte, GifGraphicsControlExtension>(ref MemoryMarshal.GetReference(buffer));
 
-            field.SetBits(3, 3, (int)this.DisposalMethod); // 1-3 : Reserved, 4-6 : Disposal
+            dest = this;
 
-            // TODO: Allow this as an option.
-            field.SetBit(6, false); // 7 : User input - 0 = none
-            field.SetBit(7, this.TransparencyFlag); // 8: Has transparent.
-
-            return field.Byte;
-        }
-
-        public void WriteTo(Span<byte> buffer)
-        {
-            buffer[0] = GifConstants.ExtensionIntroducer;
-            buffer[1] = GifConstants.GraphicControlLabel;
-            buffer[2] = 4;                                                                 // Block Size
-            buffer[3] = this.PackField();                                                  // Packed Field
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.Slice(4, 2), this.DelayTime);  // Delay Time
-            buffer[6] = this.TransparencyIndex;
-            buffer[7] = GifConstants.Terminator;
+            return 5;
         }
 
         public static GifGraphicsControlExtension Parse(ReadOnlySpan<byte> buffer)
         {
-            // We've already read the Extension Introducer introducer & Graphic Control Label
-            // Start from the block size (0)
-            byte packed = buffer[1];
+            return MemoryMarshal.Cast<byte, GifGraphicsControlExtension>(buffer)[0];
+        }
 
-            return new GifGraphicsControlExtension(
-                disposalMethod: (DisposalMethod)((packed & 0x1C) >> 2),
-                delayTime: BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2, 2)),
-                transparencyIndex: buffer[4],
-                transparencyFlag: (packed & 0x01) == 1);
+        public static byte GetPackedValue(DisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)
+        {
+            PackedField field = default;
+
+            // --------------------------------------- // Reserved               | 3 bits
+            field.SetBits(3, 3, (int)disposalMethod);  // Disposal Method        | 3 bits
+            field.SetBit(6, userInputFlag);            // User Input Flag        | 1 bit
+            field.SetBit(7, transparencyFlag);         // Transparent Color Flag | 1 bit
+
+            return field.Byte;
         }
     }
 }

@@ -35,11 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     internal sealed class LzwEncoder : IDisposable
     {
         /// <summary>
-        /// The end-of-file marker
-        /// </summary>
-        private const int Eof = -1;
-
-        /// <summary>
         /// The maximum number of bits.
         /// </summary>
         private const int Bits = 12;
@@ -84,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] accumulators = new byte[256];
 
         /// <summary>
-        /// The current pixel
+        /// The current position within the pixelArray.
         /// </summary>
         private int position;
 
@@ -96,12 +91,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// User settable max # bits/code
         /// </summary>
-        private int maxbits = Bits;
+        private int maxBits = Bits;
 
         /// <summary>
         /// maximum code, given bitCount
         /// </summary>
-        private int maxcode;
+        private int maxCode;
 
         /// <summary>
         /// should NEVER generate this code
@@ -209,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Gets the maximum code value
+        /// Gets the maximum code value.
         /// </summary>
         /// <param name="bitCount">The number of bits</param>
         /// <returns>See <see cref="int"/></returns>
@@ -237,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        ///  Table clear for block compress
+        /// Table clear for block compress.
         /// </summary>
         /// <param name="stream">The output stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -272,13 +267,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int hsizeReg;
             int hshift;
 
-            // Set up the globals:  globalInitialBits - initial number of bits
+            // Set up the globals: globalInitialBits - initial number of bits
             this.globalInitialBits = intialBits;
 
             // Set up the necessary values
             this.clearFlag = false;
             this.bitCount = this.globalInitialBits;
-            this.maxcode = GetMaxcode(this.bitCount);
+            this.maxCode = GetMaxcode(this.bitCount);
 
             this.clearCode = 1 << (intialBits - 1);
             this.eofCode = this.clearCode + 1;
@@ -310,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 c = this.NextPixel();
 
-                fcode = (c << this.maxbits) + ent;
+                fcode = (c << this.maxBits) + ent;
                 int i = (c << hshift) ^ ent /* = 0 */;
 
                 if (Unsafe.Add(ref hashTableRef, i) == fcode)
@@ -369,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Flush the packet to disk, and reset the accumulator.
+        /// Flush the packet to disk and reset the accumulator.
         /// </summary>
         /// <param name="outStream">The output stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -381,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Return the next pixel from the image
+        /// Reads the next pixel from the image.
         /// </summary>
         /// <returns>
         /// The <see cref="int"/>
@@ -422,17 +417,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // If the next entry is going to be too big for the code size,
             // then increase it, if possible.
-            if (this.freeEntry > this.maxcode || this.clearFlag)
+            if (this.freeEntry > this.maxCode || this.clearFlag)
             {
                 if (this.clearFlag)
                 {
-                    this.maxcode = GetMaxcode(this.bitCount = this.globalInitialBits);
+                    this.maxCode = GetMaxcode(this.bitCount = this.globalInitialBits);
                     this.clearFlag = false;
                 }
                 else
                 {
                     ++this.bitCount;
-                    this.maxcode = this.bitCount == this.maxbits
+                    this.maxCode = this.bitCount == this.maxBits
                         ? this.maxmaxcode
                         : GetMaxcode(this.bitCount);
                 }

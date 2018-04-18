@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.MetaData
 
             foreach (ImageProperty property in other.Properties)
             {
-                this.Properties.Add(new ImageProperty(property));
+                this.Properties.Add(property);
             }
 
             this.ExifProfile = other.ExifProfile != null
@@ -114,7 +114,6 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
         /// </summary>
-        /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <summary>

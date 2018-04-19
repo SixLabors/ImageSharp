@@ -1,14 +1,15 @@
 // ReSharper disable InconsistentNaming
+
+using System;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public partial class ReferenceImplementationsTests
     {
         public class FastFloatingPointDCT : JpegFixture
@@ -79,7 +80,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.CompareBlocks(fExpected, fActual, 2);
             }
 
-
             [Theory]
             [InlineData(42)]
             [InlineData(1)]
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 float[] floatData = JpegFixture.Create8x8RandomFloatData(-1000, 1000);
 
-                Block8x8F source = default(Block8x8F);
+                Block8x8F source = default;
                 source.LoadFrom(floatData);
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);

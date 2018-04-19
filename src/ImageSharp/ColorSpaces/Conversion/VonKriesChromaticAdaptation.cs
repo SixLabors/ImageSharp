@@ -49,11 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 
         /// <inheritdoc/>
         public CieXyz Transform(CieXyz sourceColor, CieXyz sourceWhitePoint, CieXyz targetWhitePoint)
-        {
-            Guard.NotNull(sourceColor, nameof(sourceColor));
-            Guard.NotNull(sourceWhitePoint, nameof(sourceWhitePoint));
-            Guard.NotNull(targetWhitePoint, nameof(targetWhitePoint));
-
+        { 
             if (sourceWhitePoint.Equals(targetWhitePoint))
             {
                 return sourceColor;

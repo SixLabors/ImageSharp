@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Texts != null ? this.Texts.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Texts?.GetHashCode() ?? 0);
             }
         }
     }

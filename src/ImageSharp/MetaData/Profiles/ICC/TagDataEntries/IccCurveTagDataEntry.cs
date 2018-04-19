@@ -79,12 +79,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public float Gamma => this.IsGamma ? this.CurveData[0] : 0;
 
         /// <summary>
-        /// Gets a value indicating whether the curve maps input directly to output
+        /// Gets a value indicating whether the curve maps input directly to output.
         /// </summary>
         public bool IsIdentityResponse => this.CurveData.Length == 0;
 
         /// <summary>
-        /// Gets a value indicating whether the curve is a gamma curve
+        /// Gets a value indicating whether the curve is a gamma curve.
         /// </summary>
         public bool IsGamma => this.CurveData.Length == 1;
 
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccCurveTagDataEntry && this.Equals((IccCurveTagDataEntry)obj);
+            return obj is IccCurveTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.CurveData != null ? this.CurveData.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.CurveData?.GetHashCode() ?? 0);
             }
         }
     }

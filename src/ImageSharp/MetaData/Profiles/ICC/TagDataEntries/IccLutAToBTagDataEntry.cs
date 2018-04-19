@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccLutAToBTagDataEntry && this.Equals((IccLutAToBTagDataEntry)obj);
+            return obj is IccLutAToBTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -200,10 +200,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 hashCode = (hashCode * 397) ^ this.OutputChannelCount;
                 hashCode = (hashCode * 397) ^ this.Matrix3x3.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Matrix3x1.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.ClutValues != null ? this.ClutValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.CurveB != null ? this.CurveB.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.CurveM != null ? this.CurveM.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.CurveA != null ? this.CurveA.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.CurveB?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.CurveM?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.CurveA?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

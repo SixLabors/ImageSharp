@@ -279,7 +279,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromArgb32(Argb32 source)
         {
-            Pack(source.R, source.G, source.B, source.A);
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
         }
 
         /// <inheritdoc/>

@@ -1,12 +1,12 @@
+using System;
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+
+using SixLabors.Primitives;
+
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
-    using System;
-    using System.Collections.Generic;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.PixelFormats;
-
-    using SixLabors.Primitives;
-
     public class ExactImageComparer : ImageComparer
     {
         public static ExactImageComparer Instance { get; } = new ExactImageComparer();
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             // TODO: Comparing through Rgba32 is not robust enough because of the existance of super high precision pixel types.
 
-            Rgba32[] aBuffer = new Rgba32[width];
-            Rgba32[] bBuffer = new Rgba32[width];
+            var aBuffer = new Rgba32[width];
+            var bBuffer = new Rgba32[width];
 
             var differences = new List<PixelDifference>();
 

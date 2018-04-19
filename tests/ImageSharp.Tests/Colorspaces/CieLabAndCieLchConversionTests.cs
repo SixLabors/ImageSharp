@@ -36,10 +36,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Lch_to_Lab(float l, float c, float h, float l2, float a, float b)
         {
             // Arrange
-            CieLch input = new CieLch(l, c, h);
+            var input = new CieLch(l, c, h);
 
             // Act
-            CieLab output = Converter.ToCieLab(input);
+            var output = Converter.ToCieLab(input);
 
             // Assert
             Assert.Equal(l2, output.L, FloatRoundingComparer);
@@ -62,10 +62,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Lab_to_LCHab(float l, float a, float b, float l2, float c, float h)
         {
             // Arrange
-            CieLab input = new CieLab(l, a, b);
+            var input = new CieLab(l, a, b);
 
             // Act
-            CieLch output = Converter.ToCieLch(input);
+            var output = Converter.ToCieLch(input);
 
             // Assert
             Assert.Equal(l2, output.L, FloatRoundingComparer);

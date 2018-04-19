@@ -1,10 +1,9 @@
 ﻿using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
-    using SixLabors.Primitives;
-
-    public struct PixelDifference
+    public readonly struct PixelDifference
     {
         public PixelDifference(
             Point position,

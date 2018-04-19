@@ -4,16 +4,15 @@
 using System.Collections.Generic;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Filters;
+using SixLabors.ImageSharp.Processing.Filters.Processors;
+using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
-    using SixLabors.ImageSharp.Processing.Filters;
-    using SixLabors.ImageSharp.Processing.Filters.Processors;
-    using SixLabors.ImageSharp.Processing.Processors;
-
     public class ColorBlindnessTest : BaseImageOperationsExtensionTest
     {
         public static IEnumerable<object[]> TheoryData = new[] {
@@ -33,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
             where T : IImageProcessor<Rgba32>
         {
             this.operations.ColorBlindness(colorBlindness);
-            var p = this.Verify<T>();
+            T p = this.Verify<T>();
         }
         [Theory]
         [MemberData(nameof(TheoryData))]
@@ -41,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
             where T : IImageProcessor<Rgba32>
         {
             this.operations.ColorBlindness(colorBlindness, this.rect);
-            var p = this.Verify<T>(this.rect);
+            T p = this.Verify<T>(this.rect);
         }
     }
 }

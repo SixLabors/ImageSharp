@@ -1,11 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
-using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities
@@ -43,8 +39,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         {
             this.X = info.GetValue<float>("x");
             this.Y = info.GetValue<float>("y");
-            this.Z= info.GetValue<float>("z");
-            this.W= info.GetValue<float>("w");
+            this.Z = info.GetValue<float>("z");
+            this.W = info.GetValue<float>("w");
         }
 
         public void Serialize(IXunitSerializationInfo info)

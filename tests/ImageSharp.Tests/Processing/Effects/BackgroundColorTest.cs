@@ -2,14 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.ImageSharp.Processing.Overlays.Processors;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
-    using SixLabors.ImageSharp.Processing.Overlays;
-    using SixLabors.ImageSharp.Processing.Overlays.Processors;
-
     public class BackgroundColorTest : BaseImageOperationsExtensionTest
     {
         [Fact]

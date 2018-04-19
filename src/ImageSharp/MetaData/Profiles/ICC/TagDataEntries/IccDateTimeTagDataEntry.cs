@@ -38,8 +38,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccDateTimeTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccDateTimeTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>

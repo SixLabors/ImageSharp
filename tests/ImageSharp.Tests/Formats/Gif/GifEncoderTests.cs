@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
     public class GifEncoderTests
     {

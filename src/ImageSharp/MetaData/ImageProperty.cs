@@ -26,21 +26,6 @@ namespace SixLabors.ImageSharp.MetaData
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageProperty"/> struct
-        /// by making a copy from another property.
-        /// </summary>
-        /// <param name="other">
-        /// The other <see cref="ImageProperty"/> to create this instance from.
-        /// </param>
-        internal ImageProperty(ImageProperty other)
-        {
-            DebugGuard.NotNull(other, nameof(other));
-
-            this.Name = other.Name;
-            this.Value = other.Value;
-        }
-
-        /// <summary>
         /// Gets the name of this <see cref="ImageProperty"/> indicating which kind of
         /// information this property stores.
         /// </summary>

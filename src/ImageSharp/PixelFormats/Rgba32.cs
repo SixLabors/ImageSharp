@@ -277,7 +277,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromArgb32(Argb32 source) {
+        public void PackFromArgb32(Argb32 source)
+        {
             Pack(source.R, source.G, source.B, source.A);
         }
 
@@ -307,7 +308,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest) {
+        public void ToArgb32(ref Argb32 dest)
+        {
             dest.R = this.R;
             dest.G = this.G;
             dest.B = this.B;
@@ -370,6 +372,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Bgra32 ToBgra32()
         {
             return new Bgra32(this.R, this.G, this.B, this.A);
+        }
+
+        /// <summary>
+        /// Gets the value of this struct as <see cref="Argb32"/>.
+        /// Useful for changing the component order.
+        /// </summary>
+        /// <returns>A <see cref="Argb32"/> value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32 ToArgb32()
+        {
+            return new Argb32(this.R, this.G, this.B, this.A);
         }
 
         /// <inheritdoc/>

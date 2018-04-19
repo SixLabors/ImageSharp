@@ -78,10 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public long Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.checksum;
-            }
+            get => this.checksum;
         }
 
         /// <inheritdoc/>

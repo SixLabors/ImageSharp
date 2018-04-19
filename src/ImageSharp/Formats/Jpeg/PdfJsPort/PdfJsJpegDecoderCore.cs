@@ -2,9 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
 using SixLabors.ImageSharp.Memory;
@@ -13,6 +17,7 @@ using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 {
@@ -20,8 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
     /// Performs the jpeg decoding operation.
     /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors
     /// </summary>
-    internal sealed class PdfJsJpegDecoderCore : IDisposable
+    internal sealed class PdfJsJpegDecoderCore : IRawJpegData
     {
+        /// <summary>
+        /// The only supported precision
+        /// </summary>
+        public const int SupportedPrecision = 8;
+
 #pragma warning disable SA1401 // Fields should be private
         /// <summary>
         /// The global configuration
@@ -29,22 +39,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private readonly Configuration configuration;
 
         /// <summary>
-        /// Gets the temporary buffer used to store bytes read from the stream.
+        /// The buffer used to temporarily store bytes read from the stream.
         /// </summary>
         private readonly byte[] temp = new byte[2 * 16 * 4];
 
+        /// <summary>
+        /// The buffer used to read markers from the stream.
+        /// </summary>
         private readonly byte[] markerBuffer = new byte[2];
 
-        private PdfJsQuantizationTables quantizationTables;
-
+        /// <summary>
+        /// The DC HUffman tables
+        /// </summary>
         private PdfJsHuffmanTables dcHuffmanTables;
 
+        /// <summary>
+        /// The AC HUffman tables
+        /// </summary>
         private PdfJsHuffmanTables acHuffmanTables;
 
-        private PdfJsComponentBlocks components;
-
-        private PdfJsJpegPixelArea pixelArea;
-
+        /// <summary>
+        /// The reset interval determined by RST markers
+        /// </summary>
         private ushort resetInterval;
 
         /// <summary>
@@ -61,14 +77,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// Contains information about the Adobe marker
         /// </summary>
         private AdobeMarker adobe;
-
-        /// <summary>
-        /// Initializes static members of the <see cref="PdfJsJpegDecoderCore"/> class.
-        /// </summary>
-        static PdfJsJpegDecoderCore()
-        {
-            PdfJsYCbCrToRgbTables.Create();
-        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsJpegDecoderCore" /> class.
@@ -97,9 +105,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public int ImageHeight { get; private set; }
 
         /// <summary>
-        /// Gets the number of components
+        /// Gets the color depth, in number of bits per pixel.
         /// </summary>
-        public int NumberOfComponents { get; private set; }
+        public int BitsPerPixel => this.ComponentCount * SupportedPrecision;
 
         /// <summary>
         /// Gets the input stream.
@@ -110,6 +118,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ImageMetaData"/> decoded by this decoder instance.
+        /// </summary>
+        public ImageMetaData MetaData { get; private set; }
+
+        /// <inheritdoc/>
+        public Size ImageSizeInPixels => new Size(this.ImageWidth, this.ImageHeight);
+
+        /// <inheritdoc/>
+        public int ComponentCount { get; private set; }
+
+        /// <inheritdoc/>
+        public JpegColorSpace ColorSpace { get; private set; }
+
+        /// <inheritdoc/>
+        public IEnumerable<IJpegComponent> Components => this.Frame.Components;
+
+        /// <inheritdoc/>
+        public Block8x8F[] QuantizationTables { get; private set; }
 
         /// <summary>
         /// Finds the next file marker within the byte stream.
@@ -123,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (value == 0)
             {
-                return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, (int)stream.Length - 2);
+                return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, stream.Length - 2);
             }
 
             if (marker[0] == PdfJsJpegConstants.Markers.Prefix)
@@ -135,16 +163,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     int suffix = stream.ReadByte();
                     if (suffix == -1)
                     {
-                        return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, (int)stream.Length - 2);
+                        return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, stream.Length - 2);
                     }
 
                     marker[1] = (byte)suffix;
                 }
 
-                return new PdfJsFileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2));
+                return new PdfJsFileMarker(BinaryPrimitives.ReadUInt16BigEndian(marker), stream.Position - 2);
             }
 
-            return new PdfJsFileMarker((ushort)((marker[0] << 8) | marker[1]), (int)(stream.Position - 2), true);
+            return new PdfJsFileMarker(BinaryPrimitives.ReadUInt16BigEndian(marker), stream.Position - 2, true);
         }
 
         /// <summary>
@@ -156,57 +184,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            ImageMetaData metadata = this.ParseStream(stream);
-
-            this.QuantizeAndInverseAllComponents();
-
-            var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, metadata);
-            this.FillPixelData(image.Frames.RootFrame);
-            this.AssignResolution(image);
-            return image;
+            this.ParseStream(stream);
+            return this.PostProcessIntoImage<TPixel>();
         }
 
-        /// <inheritdoc/>
-        public void Dispose()
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public IImageInfo Identify(Stream stream)
         {
-            this.Frame?.Dispose();
-            this.components?.Dispose();
-            this.quantizationTables?.Dispose();
-            this.dcHuffmanTables?.Dispose();
-            this.acHuffmanTables?.Dispose();
-            this.pixelArea.Dispose();
-
-            // Set large fields to null.
-            this.Frame = null;
-            this.components = null;
-            this.quantizationTables = null;
-            this.dcHuffmanTables = null;
-            this.acHuffmanTables = null;
-        }
-
-        internal ImageMetaData ParseStream(Stream stream)
-        {
-            this.InputStream = stream;
-
-            var metadata = new ImageMetaData();
-            this.ParseStream(metadata, false);
-            return metadata;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBlockBufferOffset(ref PdfJsComponent component, int row, int col)
-        {
-            return 64 * (((component.BlocksPerLine + 1) * row) + col);
+            this.ParseStream(stream, true);
+            this.AssignResolution();
+            return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
         /// <summary>
         /// Parses the input stream for file markers
         /// </summary>
-        /// <param name="metaData">Contains the metadata for an image</param>
+        /// <param name="stream">The input stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        private void ParseStream(ImageMetaData metaData, bool metadataOnly)
+        public void ParseStream(Stream stream, bool metadataOnly = false)
         {
-            // TODO: metadata only logic
+            this.MetaData = new ImageMetaData();
+            this.InputStream = stream;
+
             // Check for the Start Of Image marker.
             var fileMarker = new PdfJsFileMarker(this.ReadUint16(), 0);
             if (fileMarker.Marker != PdfJsJpegConstants.Markers.SOI)
@@ -217,7 +219,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             ushort marker = this.ReadUint16();
             fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
 
-            this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
+            this.QuantizationTables = new Block8x8F[4];
+
+            // this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
             this.dcHuffmanTables = new PdfJsHuffmanTables();
             this.acHuffmanTables = new PdfJsHuffmanTables();
 
@@ -233,11 +237,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         break;
 
                     case PdfJsJpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(remaining, metaData);
+                        this.ProcessApp1Marker(remaining);
                         break;
 
                     case PdfJsJpegConstants.Markers.APP2:
-                        this.ProcessApp2Marker(remaining, metaData);
+                        this.ProcessApp2Marker(remaining);
                         break;
                     case PdfJsJpegConstants.Markers.APP3:
                     case PdfJsJpegConstants.Markers.APP4:
@@ -263,25 +267,58 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         break;
 
                     case PdfJsJpegConstants.Markers.DQT:
-                        this.ProcessDefineQuantizationTablesMarker(remaining);
+                        if (metadataOnly)
+                        {
+                            this.InputStream.Skip(remaining);
+                        }
+                        else
+                        {
+                            this.ProcessDefineQuantizationTablesMarker(remaining);
+                        }
+
                         break;
 
                     case PdfJsJpegConstants.Markers.SOF0:
                     case PdfJsJpegConstants.Markers.SOF1:
                     case PdfJsJpegConstants.Markers.SOF2:
                         this.ProcessStartOfFrameMarker(remaining, fileMarker);
+                        if (metadataOnly && !this.jFif.Equals(default))
+                        {
+                            this.InputStream.Skip(remaining);
+                        }
+
                         break;
 
                     case PdfJsJpegConstants.Markers.DHT:
-                        this.ProcessDefineHuffmanTablesMarker(remaining);
+                        if (metadataOnly)
+                        {
+                            this.InputStream.Skip(remaining);
+                        }
+                        else
+                        {
+                            this.ProcessDefineHuffmanTablesMarker(remaining);
+                        }
+
                         break;
 
                     case PdfJsJpegConstants.Markers.DRI:
-                        this.ProcessDefineRestartIntervalMarker(remaining);
+                        if (metadataOnly)
+                        {
+                            this.InputStream.Skip(remaining);
+                        }
+                        else
+                        {
+                            this.ProcessDefineRestartIntervalMarker(remaining);
+                        }
+
                         break;
 
                     case PdfJsJpegConstants.Markers.SOS:
-                        this.ProcessStartOfScanMarker();
+                        if (!metadataOnly)
+                        {
+                            this.ProcessStartOfScanMarker();
+                        }
+
                         break;
                 }
 
@@ -291,113 +328,83 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             this.ImageWidth = this.Frame.SamplesPerLine;
             this.ImageHeight = this.Frame.Scanlines;
-            this.components = new PdfJsComponentBlocks { Components = new PdfJsComponent[this.Frame.ComponentCount] };
-
-            for (int i = 0; i < this.components.Components.Length; i++)
-            {
-                PdfJsFrameComponent frameComponent = this.Frame.Components[i];
-                var component = new PdfJsComponent
-                {
-                    Scale = new System.Numerics.Vector2(
-                        frameComponent.HorizontalSamplingFactor / (float)this.Frame.MaxHorizontalFactor,
-                        frameComponent.VerticalSamplingFactor / (float)this.Frame.MaxVerticalFactor),
-                    BlocksPerLine = frameComponent.WidthInBlocks,
-                    BlocksPerColumn = frameComponent.HeightInBlocks
-                };
-
-                // this.QuantizeAndInverseComponentData(ref component, frameComponent);
-                this.components.Components[i] = component;
-            }
-
-            this.NumberOfComponents = this.components.Components.Length;
+            this.ComponentCount = this.Frame.ComponentCount;
         }
 
-        internal void QuantizeAndInverseAllComponents()
+        /// <inheritdoc/>
+        public void Dispose()
         {
-            for (int i = 0; i < this.components.Components.Length; i++)
-            {
-                PdfJsFrameComponent frameComponent = this.Frame.Components[i];
-                PdfJsComponent component = this.components.Components[i];
+            this.Frame?.Dispose();
 
-                this.QuantizeAndInverseComponentData(component, frameComponent);
-            }
+            // Set large fields to null.
+            this.Frame = null;
+            this.dcHuffmanTables = null;
+            this.acHuffmanTables = null;
         }
 
         /// <summary>
-        /// Fills the given image with the color data
+        /// Returns the correct colorspace based on the image component count
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image</param>
-        private void FillPixelData<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        /// <returns>The <see cref="JpegColorSpace"/></returns>
+        private JpegColorSpace DeduceJpegColorSpace()
         {
-            if (this.NumberOfComponents > 4)
+            if (this.ComponentCount == 1)
             {
-                throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.NumberOfComponents}");
+                return JpegColorSpace.Grayscale;
             }
 
-            this.pixelArea = new PdfJsJpegPixelArea(this.configuration.MemoryManager, image.Width, image.Height, this.NumberOfComponents);
-            this.pixelArea.LinearizeBlockData(this.components, image.Width, image.Height);
-
-            if (this.NumberOfComponents == 1)
+            if (this.ComponentCount == 3)
             {
-                this.FillGrayScaleImage(image);
-                return;
-            }
-
-            if (this.NumberOfComponents == 3)
-            {
-                if (this.adobe.Equals(default(AdobeMarker)) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
+                if (this.adobe.Equals(default) || this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYCbCr)
                 {
-                    this.FillYCbCrImage(image);
+                    return JpegColorSpace.YCbCr;
                 }
                 else if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformUnknown)
                 {
-                    this.FillRgbImage(image);
+                    return JpegColorSpace.RGB;
                 }
             }
 
-            if (this.NumberOfComponents == 4)
+            if (this.ComponentCount == 4)
             {
                 if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
                 {
-                    this.FillYcckImage(image);
+                    return JpegColorSpace.Ycck;
                 }
                 else
                 {
-                    this.FillCmykImage(image);
+                    return JpegColorSpace.Cmyk;
                 }
             }
+
+            throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
         }
 
         /// <summary>
         /// Assigns the horizontal and vertical resolution to the image if it has a JFIF header or EXIF metadata.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The image to assign the resolution to.</param>
-        private void AssignResolution<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        private void AssignResolution()
         {
             if (this.isExif)
             {
-                double horizontalValue = image.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizontalTag)
+                double horizontalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizontalTag)
                     ? ((Rational)horizontalTag.Value).ToDouble()
                     : 0;
 
-                double verticalValue = image.MetaData.ExifProfile.TryGetValue(ExifTag.YResolution, out ExifValue verticalTag)
+                double verticalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.YResolution, out ExifValue verticalTag)
                     ? ((Rational)verticalTag.Value).ToDouble()
                     : 0;
 
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
-                    image.MetaData.HorizontalResolution = horizontalValue;
-                    image.MetaData.VerticalResolution = verticalValue;
+                    this.MetaData.HorizontalResolution = horizontalValue;
+                    this.MetaData.VerticalResolution = verticalValue;
                 }
             }
             else if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
             {
-                image.MetaData.HorizontalResolution = this.jFif.XDensity;
-                image.MetaData.VerticalResolution = this.jFif.YDensity;
+                this.MetaData.HorizontalResolution = this.jFif.XDensity;
+                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -430,8 +437,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// Processes the App1 marker retrieving any stored metadata
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <param name="metadata">The image.</param>
-        private void ProcessApp1Marker(int remaining, ImageMetaData metadata)
+        private void ProcessApp1Marker(int remaining)
         {
             if (remaining < 6 || this.IgnoreMetadata)
             {
@@ -443,15 +449,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             byte[] profile = new byte[remaining];
             this.InputStream.Read(profile, 0, remaining);
 
-            if (profile[0] == PdfJsJpegConstants.Markers.Exif.E &&
-                profile[1] == PdfJsJpegConstants.Markers.Exif.X &&
-                profile[2] == PdfJsJpegConstants.Markers.Exif.I &&
-                profile[3] == PdfJsJpegConstants.Markers.Exif.F &&
-                profile[4] == PdfJsJpegConstants.Markers.Exif.Null &&
-                profile[5] == PdfJsJpegConstants.Markers.Exif.Null)
+            if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
-                metadata.ExifProfile = new ExifProfile(profile);
+                this.MetaData.ExifProfile = new ExifProfile(profile);
             }
         }
 
@@ -459,8 +460,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// Processes the App2 marker retrieving any stored ICC profile information
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <param name="metadata">The image.</param>
-        private void ProcessApp2Marker(int remaining, ImageMetaData metadata)
+        private void ProcessApp2Marker(int remaining)
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
@@ -474,29 +474,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             this.InputStream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
-            if (identifier[0] == PdfJsJpegConstants.Markers.ICC.I &&
-                identifier[1] == PdfJsJpegConstants.Markers.ICC.C &&
-                identifier[2] == PdfJsJpegConstants.Markers.ICC.C &&
-                identifier[3] == PdfJsJpegConstants.Markers.ICC.UnderScore &&
-                identifier[4] == PdfJsJpegConstants.Markers.ICC.P &&
-                identifier[5] == PdfJsJpegConstants.Markers.ICC.R &&
-                identifier[6] == PdfJsJpegConstants.Markers.ICC.O &&
-                identifier[7] == PdfJsJpegConstants.Markers.ICC.F &&
-                identifier[8] == PdfJsJpegConstants.Markers.ICC.I &&
-                identifier[9] == PdfJsJpegConstants.Markers.ICC.L &&
-                identifier[10] == PdfJsJpegConstants.Markers.ICC.E &&
-                identifier[11] == PdfJsJpegConstants.Markers.ICC.Null)
+            if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 byte[] profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
-                if (metadata.IccProfile == null)
+                if (this.MetaData.IccProfile == null)
                 {
-                    metadata.IccProfile = new IccProfile(profile);
+                    this.MetaData.IccProfile = new IccProfile(profile);
                 }
                 else
                 {
-                    metadata.IccProfile.Extend(profile);
+                    this.MetaData.IccProfile.Extend(profile);
                 }
             }
             else
@@ -561,10 +550,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 64);
                             remaining -= 64;
 
-                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
+                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
                             for (int j = 0; j < 64; j++)
                             {
-                                tableSpan[PdfJsQuantizationTables.DctZigZag[j]] = this.temp[j];
+                                table[j] = this.temp[j];
                             }
                         }
 
@@ -581,10 +570,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.InputStream.Read(this.temp, 0, 128);
                             remaining -= 128;
 
-                            Span<short> tableSpan = this.quantizationTables.Tables.GetRowSpan(quantizationTableSpec & 15);
+                            ref Block8x8F table = ref this.QuantizationTables[quantizationTableSpec & 15];
                             for (int j = 0; j < 64; j++)
                             {
-                                tableSpan[PdfJsQuantizationTables.DctZigZag[j]] = (short)((this.temp[2 * j] << 8) | this.temp[(2 * j) + 1]);
+                                table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
                             }
                         }
 
@@ -619,6 +608,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             this.InputStream.Read(this.temp, 0, remaining);
 
+            // We only support 8-bit precision.
+            if (this.temp[0] != SupportedPrecision)
+            {
+                throw new ImageFormatException("Only 8-Bit precision supported.");
+            }
+
             this.Frame = new PdfJsFrame
             {
                 Extended = frameMarker.Marker == PdfJsJpegConstants.Markers.SOF1,
@@ -639,8 +634,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             for (int i = 0; i < this.Frame.Components.Length; i++)
             {
-                int h = this.temp[index + 1] >> 4;
-                int v = this.temp[index + 1] & 15;
+                byte hv = this.temp[index + 1];
+                int h = hv >> 4;
+                int v = hv & 15;
 
                 if (maxH < h)
                 {
@@ -679,7 +675,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
             {
-                Span<byte> huffmanSpan = huffmanData.Span;
+                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.Span);
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
@@ -687,12 +683,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
                     using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
                     {
-                        Span<byte> codeLengthsSpan = codeLengths.Span;
+                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.Span);
                         int codeLengthSum = 0;
 
                         for (int j = 1; j < 17; j++)
                         {
-                            codeLengthSum += codeLengthsSpan[j] = huffmanSpan[j - 1];
+                            codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
                         using (IManagedByteBuffer huffmanValues = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
@@ -782,152 +778,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         /// <summary>
-        /// Build the data for the given component
-        /// </summary>
-        /// <param name="component">The component</param>
-        /// <param name="frameComponent">The frame component</param>
-        private void QuantizeAndInverseComponentData(PdfJsComponent component, PdfJsFrameComponent frameComponent)
-        {
-            int blocksPerLine = component.BlocksPerLine;
-            int blocksPerColumn = component.BlocksPerColumn;
-            using (IBuffer<short> computationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
-            using (IBuffer<short> multiplicationBuffer = this.configuration.MemoryManager.Allocate<short>(64, true))
-            {
-                Span<short> quantizationTable = this.quantizationTables.Tables.GetRowSpan(frameComponent.QuantizationTableIndex);
-                Span<short> computationBufferSpan = computationBuffer.Span;
-
-                // For AA&N IDCT method, multiplier are equal to quantization
-                // coefficients scaled by scalefactor[row]*scalefactor[col], where
-                //   scalefactor[0] = 1
-                //   scalefactor[k] = cos(k*PI/16) * sqrt(2)    for k=1..7
-                // For integer operation, the multiplier table is to be scaled by 12.
-                Span<short> multiplierSpan = multiplicationBuffer.Span;
-
-                // for (int i = 0; i < 64; i++)
-                // {
-                //    multiplierSpan[i] = (short)IDCT.Descale(quantizationTable[i] * IDCT.Aanscales[i], 12);
-                // }
-                for (int blockRow = 0; blockRow < blocksPerColumn; blockRow++)
-                {
-                    for (int blockCol = 0; blockCol < blocksPerLine; blockCol++)
-                    {
-                        int offset = GetBlockBufferOffset(ref component, blockRow, blockCol);
-                        PdfJsIDCT.QuantizeAndInverse(frameComponent, offset, ref computationBufferSpan, ref quantizationTable);
-                    }
-                }
-            }
-
-            component.Output = frameComponent.BlockData;
-        }
-
-        /// <summary>
         /// Builds the huffman tables
         /// </summary>
         /// <param name="tables">The tables</param>
         /// <param name="index">The table index</param>
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
         {
             tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillGrayScaleImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
-
-                for (int x = 0; x < image.Width; x++)
-                {
-                    ref byte luminance = ref areaRowSpan[x];
-                    ref TPixel pixel = ref imageRowSpan[x];
-                    var rgba = new Rgba32(luminance, luminance, luminance);
-                    pixel.PackFromRgba32(rgba);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillYCbCrImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
-                for (int x = 0, o = 0; x < image.Width; x++, o += 3)
-                {
-                    ref byte yy = ref areaRowSpan[o];
-                    ref byte cb = ref areaRowSpan[o + 1];
-                    ref byte cr = ref areaRowSpan[o + 2];
-                    ref TPixel pixel = ref imageRowSpan[x];
-                    PdfJsYCbCrToRgbTables.PackYCbCr(ref pixel, yy, cb, cr);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillYcckImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
-                for (int x = 0, o = 0; x < image.Width; x++, o += 4)
-                {
-                    ref byte yy = ref areaRowSpan[o];
-                    ref byte cb = ref areaRowSpan[o + 1];
-                    ref byte cr = ref areaRowSpan[o + 2];
-                    ref byte k = ref areaRowSpan[o + 3];
-
-                    ref TPixel pixel = ref imageRowSpan[x];
-                    PdfJsYCbCrToRgbTables.PackYccK(ref pixel, yy, cb, cr, k);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillCmykImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
-                for (int x = 0, o = 0; x < image.Width; x++, o += 4)
-                {
-                    ref byte c = ref areaRowSpan[o];
-                    ref byte m = ref areaRowSpan[o + 1];
-                    ref byte cy = ref areaRowSpan[o + 2];
-                    ref byte k = ref areaRowSpan[o + 3];
-
-                    byte r = (byte)((c * k) / 255);
-                    byte g = (byte)((m * k) / 255);
-                    byte b = (byte)((cy * k) / 255);
-
-                    ref TPixel pixel = ref imageRowSpan[x];
-                    var rgba = new Rgba32(r, g, b);
-                    pixel.PackFromRgba32(rgba);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FillRgbImage<TPixel>(ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            for (int y = 0; y < image.Height; y++)
-            {
-                Span<TPixel> imageRowSpan = image.GetPixelRowSpan(y);
-                Span<byte> areaRowSpan = this.pixelArea.GetRowSpan(y);
-
-                PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(areaRowSpan, imageRowSpan, image.Width);
-            }
         }
 
         /// <summary>
@@ -938,7 +798,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private ushort ReadUint16()
         {
             this.InputStream.Read(this.markerBuffer, 0, 2);
-            return (ushort)((this.markerBuffer[0] << 8) | this.markerBuffer[1]);
+            return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
+        }
+
+        private Image<TPixel> PostProcessIntoImage<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            this.ColorSpace = this.DeduceJpegColorSpace();
+            this.AssignResolution();
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
+            {
+                var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
+                postProcessor.PostProcess(image.Frames.RootFrame);
+                return image;
+            }
         }
     }
 }

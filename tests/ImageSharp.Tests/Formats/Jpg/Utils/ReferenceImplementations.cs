@@ -1,18 +1,15 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
-
 // ReSharper disable InconsistentNaming
 
+using System;
+using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <summary>
     /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd

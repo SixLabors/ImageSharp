@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
@@ -367,14 +366,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (this.ComponentCount == 4)
             {
-                if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
-                {
-                    return JpegColorSpace.Ycck;
-                }
-                else
-                {
-                    return JpegColorSpace.Cmyk;
-                }
+                return this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck
+                    ? JpegColorSpace.Ycck
+                    : JpegColorSpace.Cmyk;
             }
 
             throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");
@@ -700,8 +694,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.BuildHuffmanTable(
                                 huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 huffmanTableSpec & 15,
-                                codeLengths.Array,
-                                huffmanValues.Array);
+                                codeLengths.Span,
+                                huffmanValues.Span);
                         }
                     }
                 }
@@ -785,7 +779,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
+        private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
             tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
         }

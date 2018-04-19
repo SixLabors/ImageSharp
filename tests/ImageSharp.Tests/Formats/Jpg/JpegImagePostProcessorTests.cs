@@ -1,14 +1,17 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class JpegImagePostProcessorTests
     {
         public static string[] BaselineTestJpegs =
@@ -100,8 +103,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
                 }
             }
-
-
         }
     }
 }

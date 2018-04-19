@@ -17,7 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     internal class PdfJsFrameComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryManager memoryManager;
-#pragma warning disable SA1401 // Fields should be private
 
         public PdfJsFrameComponent(MemoryManager memoryManager, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {

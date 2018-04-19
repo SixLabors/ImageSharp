@@ -73,18 +73,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccMeasurementTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccMeasurementTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccMeasurementTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
-
+            
             if (ReferenceEquals(this, other))
             {
                 return true;

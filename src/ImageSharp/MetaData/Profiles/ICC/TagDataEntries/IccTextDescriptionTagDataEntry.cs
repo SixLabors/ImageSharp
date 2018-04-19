@@ -133,8 +133,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccTextDescriptionTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccTextDescriptionTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
@@ -161,7 +160,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }

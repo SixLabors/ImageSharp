@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(500, 0),
-                        new Tuple<float, Rgba32>(0, Rgba32.Red),
-                        new Tuple<float, Rgba32>(1, Rgba32.Red));
+                        new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Red),
+                        new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Red));
                 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.Save($"{path}/UnicolorGradient.png");

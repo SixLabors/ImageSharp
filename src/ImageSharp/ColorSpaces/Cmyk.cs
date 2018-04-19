@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="Cmyk"/> that has C, M, Y, and K values set to zero.
         /// </summary>
-        public static readonly Cmyk Empty = default(Cmyk);
+        public static readonly Cmyk Empty = default;
 
         /// <summary>
         /// The backing vector for SIMD support.

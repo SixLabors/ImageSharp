@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         public Vector3 SurroundXyz { get; }
 
-        /// <summary>.
+        /// <summary>
         /// Gets the illuminant.
         /// </summary>
         public IccStandardIlluminant Illuminant { get; }

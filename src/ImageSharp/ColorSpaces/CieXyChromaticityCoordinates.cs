@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="CieXyChromaticityCoordinates"/> that has X, Y values set to zero.
         /// </summary>
-        public static readonly CieXyChromaticityCoordinates Empty = default(CieXyChromaticityCoordinates);
+        public static readonly CieXyChromaticityCoordinates Empty = default;
 
         /// <summary>
         /// The backing vector for SIMD support.

@@ -206,8 +206,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public int WriteColorantTableTagDataEntry(IccColorantTableTagDataEntry value)
         {
             int count = this.WriteUInt32((uint)value.ColorantData.Length);
-            foreach (IccColorantTableEntry colorant in value.ColorantData)
+
+            for (int i = 0; i < value.ColorantData.Length; i++)
             {
+                ref IccColorantTableEntry colorant = ref value.ColorantData[i];
+
                 count += this.WriteAsciiString(colorant.Name, 32, true);
                 count += this.WriteUInt16(colorant.Pcs1);
                 count += this.WriteUInt16(colorant.Pcs2);

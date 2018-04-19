@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 return false;
             }
-            
+
             if (ReferenceEquals(this, other))
             {
                 return true;

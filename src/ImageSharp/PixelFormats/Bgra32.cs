@@ -19,14 +19,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     public struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     {
         /// <summary>
-        /// Gets or sets the blue component.
+        /// Gets or sets the alpha component.
         /// </summary>
-        public byte B;
-
-        /// <summary>
-        /// Gets or sets the green component.
-        /// </summary>
-        public byte G;
+        public byte A;
 
         /// <summary>
         /// Gets or sets the red component.
@@ -34,9 +29,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte R;
 
         /// <summary>
-        /// Gets or sets the alpha component.
+        /// Gets or sets the green component.
         /// </summary>
-        public byte A;
+        public byte G;
+
+        /// <summary>
+        /// Gets or sets the blue component.
+        /// </summary>
+        public byte B;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.

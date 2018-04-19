@@ -24,13 +24,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                 rgba = Unsafe.Add(ref sourceRef, i);
-				dp.PackFromRgba32(rgba);
+                dp.PackFromRgba32(rgba);
             }
         }
 		
@@ -95,13 +95,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Bgra32 bgra = new Bgra32(0, 0, 0, 255);
+            var bgra = new Bgra32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                 bgra = Unsafe.Add(ref sourceRef, i);
-				dp.PackFromBgra32(bgra);
+                dp.PackFromBgra32(bgra);
             }
         }
 		
@@ -166,13 +166,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Rgb24 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                 rgba.Rgb = Unsafe.Add(ref sourceRef, i);
-				dp.PackFromRgba32(rgba);
+                dp.PackFromRgba32(rgba);
             }
         }
 		
@@ -237,13 +237,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Bgr24 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                 rgba.Bgr = Unsafe.Add(ref sourceRef, i);
-				dp.PackFromRgba32(rgba);
+                dp.PackFromRgba32(rgba);
             }
         }
 		
@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Argb32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Argb32 argb = new Argb32(0, 0, 0, 255);
+            var argb = new Argb32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {

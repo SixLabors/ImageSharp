@@ -700,8 +700,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.BuildHuffmanTable(
                                 huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 huffmanTableSpec & 15,
-                                codeLengths.Array,
-                                huffmanValues.Array);
+                                codeLengths.Span,
+                                huffmanValues.Span);
                         }
                     }
                 }
@@ -785,7 +785,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, byte[] codeLengths, byte[] values)
+        private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
             tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
         }

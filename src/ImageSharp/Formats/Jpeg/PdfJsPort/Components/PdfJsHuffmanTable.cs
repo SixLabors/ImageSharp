@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="lengths">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(MemoryManager memoryManager, byte[] lengths, byte[] values)
+        public PdfJsHuffmanTable(MemoryManager memoryManager, ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> values)
         {
             const int length = 257;
             using (IBuffer<short> huffsize = memoryManager.Allocate<short>(length))
@@ -57,10 +57,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             fixed (byte* huffValRef = this.HuffVal.Data)
             {
-                for (int i = 0; i < values.Length; i++)
-                {
-                    huffValRef[i] = values[i];
-                }
+                var huffValSpan = new Span<byte>(huffValRef, 256);
+
+                values.CopyTo(huffValSpan);
             }
         }
 
@@ -69,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffsizeRef">The huffman size span ref</param>
-        private static void GenerateSizeTable(byte[] lengths, ref short huffsizeRef)
+        private static void GenerateSizeTable(ReadOnlySpan<byte> lengths, ref short huffsizeRef)
         {
             short index = 0;
             for (short l = 1; l <= 16; l++)
@@ -115,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffcodeRef">The huffman code span ref</param>
-        private void GenerateDecoderTables(byte[] lengths, ref short huffcodeRef)
+        private void GenerateDecoderTables(ReadOnlySpan<byte> lengths, ref short huffcodeRef)
         {
             fixed (short* valOffsetRef = this.ValOffset.Data)
             fixed (long* maxcodeRef = this.MaxCode.Data)
@@ -147,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffval">The huffman value array</param>
         /// <param name="huffcodeRef">The huffman code span ref</param>
-        private void GenerateLookaheadTables(byte[] lengths, byte[] huffval, ref short huffcodeRef)
+        private void GenerateLookaheadTables(ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> huffval, ref short huffcodeRef)
         {
             // TODO: This generation code matches the libJpeg code but the lookahead table is not actually used yet.
             // To use it we need to implement fast lookup path in PdfJsScanDecoder.DecodeHuffman
@@ -155,10 +154,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // will be 8 or fewer bits long and can be handled without looping.
             fixed (short* lookaheadRef = this.Lookahead.Data)
             {
-                for (int i = 0; i < 256; i++)
-                {
-                    lookaheadRef[i] = 2034; // 9 << 8;
-                }
+                var lookaheadSpan = new Span<short>(lookaheadRef, 256);
+
+                lookaheadSpan.Fill(2034); // 9 << 8;
 
                 int p = 0;
                 for (int l = 1; l <= 8; l++)

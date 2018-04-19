@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccColorantTableTagDataEntry ReadColorantTableTagDataEntry()
         {
             uint colorantCount = this.ReadUInt32();
-            IccColorantTableEntry[] cdata = new IccColorantTableEntry[colorantCount];
+            var cdata = new IccColorantTableEntry[colorantCount];
             for (int i = 0; i < colorantCount; i++)
             {
                 cdata[i] = this.ReadColorantTableEntry();
@@ -265,7 +265,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             ushort outTableCount = this.ReadUInt16();
 
             // Input LUT
-            IccLut[] inValues = new IccLut[inChCount];
+            var inValues = new IccLut[inChCount];
             byte[] gridPointCount = new byte[inChCount];
             for (int i = 0; i < inChCount; i++)
             {
@@ -277,7 +277,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             IccClut clut = this.ReadClut16(inChCount, outChCount, gridPointCount);
 
             // Output LUT
-            IccLut[] outValues = new IccLut[outChCount];
+            var outValues = new IccLut[outChCount];
             for (int i = 0; i < outChCount; i++)
             {
                 outValues[i] = this.ReadLut16(outTableCount);
@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             float[,] matrix = this.ReadMatrix(3, 3, false);
 
             // Input LUT
-            IccLut[] inValues = new IccLut[inChCount];
+            var inValues = new IccLut[inChCount];
             byte[] gridPointCount = new byte[inChCount];
             for (int i = 0; i < inChCount; i++)
             {
@@ -312,7 +312,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             IccClut clut = this.ReadClut8(inChCount, outChCount, gridPointCount);
 
             // Output LUT
-            IccLut[] outValues = new IccLut[outChCount];
+            var outValues = new IccLut[outChCount];
             for (int i = 0; i < outChCount; i++)
             {
                 outValues[i] = this.ReadLut8();
@@ -463,9 +463,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             uint recordCount = this.ReadUInt32();
 
             this.ReadUInt32();  // Record size (always 12)
-            IccLocalizedString[] text = new IccLocalizedString[recordCount];
+            var text = new IccLocalizedString[recordCount];
 
-            CultureInfo[] culture = new CultureInfo[recordCount];
+            var culture = new CultureInfo[recordCount];
             uint[] length = new uint[recordCount];
             uint[] offset = new uint[recordCount];
 
@@ -531,13 +531,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             ushort outChannelCount = this.ReadUInt16();
             uint elementCount = this.ReadUInt32();
 
-            IccPositionNumber[] positionTable = new IccPositionNumber[elementCount];
+            var positionTable = new IccPositionNumber[elementCount];
             for (int i = 0; i < elementCount; i++)
             {
                 positionTable[i] = this.ReadPositionNumber();
             }
 
-            IccMultiProcessElement[] elements = new IccMultiProcessElement[elementCount];
+            var elements = new IccMultiProcessElement[elementCount];
             for (int i = 0; i < elementCount; i++)
             {
                 this.currentIndex = (int)positionTable[i].Offset + start;
@@ -559,7 +559,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             string prefix = this.ReadAsciiString(32);
             string suffix = this.ReadAsciiString(32);
 
-            IccNamedColor[] colors = new IccNamedColor[colorCount];
+            var colors = new IccNamedColor[colorCount];
             for (int i = 0; i < colorCount; i++)
             {
                 colors[i] = this.ReadNamedColor(coordCount);
@@ -584,7 +584,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccProfileSequenceDescTagDataEntry ReadProfileSequenceDescTagDataEntry()
         {
             uint count = this.ReadUInt32();
-            IccProfileDescription[] description = new IccProfileDescription[count];
+            var description = new IccProfileDescription[count];
             for (int i = 0; i < count; i++)
             {
                 description[i] = this.ReadProfileDescription();
@@ -601,13 +601,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             int start = this.currentIndex - 8; // 8 is the tag header size
             uint count = this.ReadUInt32();
-            IccPositionNumber[] table = new IccPositionNumber[count];
+            var table = new IccPositionNumber[count];
             for (int i = 0; i < count; i++)
             {
                 table[i] = this.ReadPositionNumber();
             }
 
-            IccProfileSequenceIdentifier[] entries = new IccProfileSequenceIdentifier[count];
+            var entries = new IccProfileSequenceIdentifier[count];
             for (int i = 0; i < count; i++)
             {
                 this.currentIndex = (int)(start + table[i].Offset);
@@ -636,7 +636,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 offset[i] = this.ReadUInt32();
             }
 
-            IccResponseCurve[] curves = new IccResponseCurve[measurmentCount];
+            var curves = new IccResponseCurve[measurmentCount];
             for (int i = 0; i < measurmentCount; i++)
             {
                 this.currentIndex = (int)(start + offset[i]);
@@ -783,7 +783,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccXyzTagDataEntry ReadXyzTagDataEntry(uint size)
         {
             uint count = (size - 8) / 12;
-            Vector3[] arrayData = new Vector3[count];
+            var arrayData = new Vector3[count];
             for (int i = 0; i < count; i++)
             {
                 arrayData[i] = this.ReadXyzNumber();
@@ -864,7 +864,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             var flags = (IccScreeningFlag)this.ReadInt32();
             uint channelCount = this.ReadUInt32();
-            IccScreeningChannel[] channels = new IccScreeningChannel[channelCount];
+            var channels = new IccScreeningChannel[channelCount];
             for (int i = 0; i < channels.Length; i++)
             {
                 channels[i] = this.ReadScreeningChannel();

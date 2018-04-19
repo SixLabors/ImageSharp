@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -45,18 +46,18 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
             byte pixelValue = this.QuantizePixel(sourcePixel);
-            TPixel[] colorPalette = this.GetPalette();
-            TPixel transformedPixel = colorPalette[pixelValue];
+            ref TPixel colorPaletteRef = ref MemoryMarshal.GetReference(this.GetPalette().AsSpan());
+            TPixel transformedPixel = Unsafe.Add(ref colorPaletteRef, pixelValue);
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
 
                 // And loop through each column
                 for (int x = 0; x < width; x++)
                 {
                     // Get the pixel.
-                    sourcePixel = row[x];
+                    sourcePixel = Unsafe.Add(ref rowRef, x);
 
                     // Check if this is the same as the last pixel. If so use that value
                     // rather than calculating it again. This is an inexpensive optimization.
@@ -70,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 
                         if (this.Dither)
                         {
-                            transformedPixel = colorPalette[pixelValue];
+                            transformedPixel = Unsafe.Add(ref colorPaletteRef, pixelValue);
                         }
                     }
 
@@ -86,6 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override TPixel[] GetPalette()
         {
             return this.colors;

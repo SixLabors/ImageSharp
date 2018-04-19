@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     internal readonly struct IccProfileDescription : IEquatable<IccProfileDescription>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="IccProfileDescription"/> class.
+        /// Initializes a new instance of the <see cref="IccProfileDescription"/> struct.
         /// </summary>
         /// <param name="deviceManufacturer">Device Manufacturer</param>
         /// <param name="deviceModel">Device Model</param>
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc/>
         public bool Equals(IccProfileDescription other) =>
-            this.DeviceManufacturer == other.DeviceManufacturer && 
+            this.DeviceManufacturer == other.DeviceManufacturer &&
             this.DeviceModel == other.DeviceModel &&
             this.DeviceAttributes == other.DeviceAttributes &&
             this.TechnologyInformation == other.TechnologyInformation &&
@@ -93,8 +93,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 hashCode = (hashCode * 397) ^ (int)this.DeviceModel;
                 hashCode = (hashCode * 397) ^ this.DeviceAttributes.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)this.TechnologyInformation;
-                hashCode = (hashCode * 397) ^ (this.DeviceManufacturerInfo != null ? this.DeviceManufacturerInfo.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.DeviceModelInfo != null ? this.DeviceModelInfo.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.DeviceManufacturerInfo?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.DeviceModelInfo?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

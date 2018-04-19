@@ -157,9 +157,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Matrix.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.InputValues != null ? this.InputValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.ClutValues != null ? this.ClutValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.OutputValues != null ? this.OutputValues.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.InputValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.ClutValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.OutputValues?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

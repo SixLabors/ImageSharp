@@ -275,6 +275,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this = source;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
+        }
+
         /// <summary>
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
@@ -297,6 +307,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             dest = this;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToArgb32(ref Argb32 dest)
+        {
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = this.A;
         }
 
         /// <inheritdoc />
@@ -357,6 +377,17 @@ namespace SixLabors.ImageSharp.PixelFormats
             return new Bgra32(this.R, this.G, this.B, this.A);
         }
 
+        /// <summary>
+        /// Gets the value of this struct as <see cref="Argb32"/>.
+        /// Useful for changing the component order.
+        /// </summary>
+        /// <returns>A <see cref="Argb32"/> value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32 ToArgb32()
+        {
+            return new Argb32(this.R, this.G, this.B, this.A);
+        }
+
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
@@ -380,16 +411,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.R;
-                hashCode = (hashCode * 397) ^ this.G;
-                hashCode = (hashCode * 397) ^ this.B;
-                hashCode = (hashCode * 397) ^ this.A;
-                return hashCode;
-            }
+            // ReSharper disable once NonReadonlyMemberInGetHashCode
+            return this.Rgba.GetHashCode();
         }
 
         /// <summary>

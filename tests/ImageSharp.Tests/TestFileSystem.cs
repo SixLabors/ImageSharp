@@ -2,13 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using SixLabors.ImageSharp.Formats;
-using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -56,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (fileSystem.ContainsKey(path))
                 {
-                    Stream stream =  fileSystem[path];
+                    Stream stream = fileSystem[path];
                     stream.Position = 0;
                     return stream;
                 }

@@ -1,11 +1,11 @@
-﻿namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using SixLabors.ImageSharp.PixelFormats;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using SixLabors.ImageSharp.PixelFormats;
 
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
+{
     public class ImageSimilarityReport
     {
         protected ImageSimilarityReport(

@@ -3,16 +3,16 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
+using SixLabors.ImageSharp.Processing.Binarization;
+using SixLabors.ImageSharp.Processing.Binarization.Processors;
+using SixLabors.ImageSharp.Processing.Dithering;
+using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
+using SixLabors.ImageSharp.Processing.Dithering.Ordered;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
-    using SixLabors.ImageSharp.Processing.Binarization;
-    using SixLabors.ImageSharp.Processing.Binarization.Processors;
-    using SixLabors.ImageSharp.Processing.Dithering;
-    using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
-    using SixLabors.ImageSharp.Processing.Dithering.Ordered;
-
     public class BinaryDitherTest : BaseImageOperationsExtensionTest
     {
         private readonly IOrderedDither orderedDither;

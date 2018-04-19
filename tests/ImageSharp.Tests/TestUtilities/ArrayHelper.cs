@@ -8,14 +8,14 @@ namespace SixLabors.ImageSharp.Tests
     public static class ArrayHelper
     {
         /// <summary>
-        /// Concatenates multiple arrays of the same type into one
+        /// Concatenates multiple arrays of the same type into one.
         /// </summary>
         /// <typeparam name="T">The array type</typeparam>
         /// <param name="arrs">The arrays to concatenate. The order is kept</param>
         /// <returns>The concatenated array</returns>
         public static T[] Concat<T>(params T[][] arrs)
         {
-            T[] result = new T[arrs.Sum(t => t.Length)];
+            var result = new T[arrs.Sum(t => t.Length)];
             int offset = 0;
             for (int i = 0; i < arrs.Length; i++)
             {
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Creates an array filled with the given value
+        /// Creates an array filled with the given value.
         /// </summary>
         /// <typeparam name="T">The array type</typeparam>
         /// <param name="value">The value to fill the array with</param>
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The created array filled with the given value</returns>
         public static T[] Fill<T>(T value, int length)
         {
-            T[] result = new T[length];
+            var result = new T[length];
             for (int i = 0; i < length; i++)
             {
                 result[i] = value;
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Creates a string from a character with a given length
+        /// Creates a string from a character with a given length.
         /// </summary>
         /// <param name="value">The character to fill the string with</param>
         /// <param name="length">The wanted length of the string</param>

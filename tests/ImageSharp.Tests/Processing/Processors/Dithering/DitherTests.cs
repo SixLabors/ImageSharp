@@ -9,12 +9,9 @@ using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 using SixLabors.ImageSharp.Processing.Dithering.Ordered;
 using SixLabors.Primitives;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
-
-
     public class DitherTests : FileTestBase
     {
         public static readonly string[] CommonTestImages =

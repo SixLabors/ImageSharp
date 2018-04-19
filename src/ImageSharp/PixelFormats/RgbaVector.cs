@@ -225,6 +225,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.backingVector = source.ToVector4();
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.backingVector = source.ToVector4();
+        }
+
         /// <summary>
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>

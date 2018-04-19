@@ -709,13 +709,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             // Jump over position table
             long tablePosition = this.dataStream.Position;
             this.dataStream.Position += length * 8;
-            IccPositionNumber[] table = new IccPositionNumber[length];
+            var table = new IccPositionNumber[length];
 
             for (int i = 0; i < length; i++)
             {
+                ref IccProfileSequenceIdentifier sequenceIdentifier = ref value.Data[i];
+
                 uint offset = (uint)(this.dataStream.Position - start);
-                int size = this.WriteProfileId(value.Data[i].Id);
-                size += this.WriteTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.Data[i].Description));
+                int size = this.WriteProfileId(sequenceIdentifier.Id);
+                size += this.WriteTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(sequenceIdentifier.Description));
                 size += this.WritePadding();
                 table[i] = new IccPositionNumber(offset, (uint)size);
                 count += size;

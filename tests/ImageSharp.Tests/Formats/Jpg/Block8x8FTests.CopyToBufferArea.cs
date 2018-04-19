@@ -1,23 +1,19 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
-
 // Uncomment this to turn unit tests into benchmarks:
 //#define BENCHMARKING
 
-// ReSharper disable InconsistentNaming
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.Primitives;
+
+using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-    using SixLabors.Primitives;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public partial class Block8x8FTests : JpegFixture
     {
         public class CopyToBufferArea : JpegFixture

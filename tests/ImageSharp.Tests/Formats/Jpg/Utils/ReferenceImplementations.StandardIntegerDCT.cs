@@ -1,10 +1,10 @@
 // ReSharper disable InconsistentNaming
+using System;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     internal static partial class ReferenceImplementations
     {
         /// <summary>

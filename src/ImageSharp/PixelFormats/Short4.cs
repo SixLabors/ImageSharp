@@ -152,6 +152,16 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            var vector = source.ToVector4();
+            vector *= 65534;
+            vector -= new Vector4(32767);
+            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
             Vector4 vector = this.ToByteScaledVector4();

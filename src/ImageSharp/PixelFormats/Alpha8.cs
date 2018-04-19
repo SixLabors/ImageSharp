@@ -103,6 +103,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackedValue = source.A;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.PackedValue = source.A;
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)

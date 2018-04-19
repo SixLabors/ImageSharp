@@ -97,6 +97,12 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackedValue = source.A;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source) {
+            this.PackedValue = source.A;
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
@@ -108,10 +114,13 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            dest.R = 0;
-            dest.G = 0;
-            dest.B = 0;
-            dest.A = this.PackedValue;
+            dest.PackedValue = this.PackedValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToArgb32(ref Argb32 dest) {
+            dest.PackedValue = (uint)this.PackedValue << 24;
         }
 
         /// <inheritdoc />

@@ -275,6 +275,12 @@ namespace SixLabors.ImageSharp.PixelFormats
             this = source;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source) {
+            Pack(source.R, source.G, source.B, source.A);
+        }
+
         /// <summary>
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
@@ -297,6 +303,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba32(ref Rgba32 dest)
         {
             dest = this;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToArgb32(ref Argb32 dest) {
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = this.A;
         }
 
         /// <inheritdoc />
@@ -380,16 +395,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.R;
-                hashCode = (hashCode * 397) ^ this.G;
-                hashCode = (hashCode * 397) ^ this.B;
-                hashCode = (hashCode * 397) ^ this.A;
-                return hashCode;
-            }
+            // ReSharper disable once NonReadonlyMemberInGetHashCode
+            return this.Rgba.GetHashCode();
         }
 
         /// <summary>

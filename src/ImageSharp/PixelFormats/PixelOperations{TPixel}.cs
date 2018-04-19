@@ -64,6 +64,48 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Bulk version of <see cref="IPixel.PackFromArgb32(Argb32)"/>
+        /// </summary>
+        /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
+        /// <param name="destinationColors">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromArgb32(ReadOnlySpan<Argb32> sourceVectors, Span<TPixel> destinationColors, int count)
+        {
+            GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
+
+            ref Argb32 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref Argb32 sp = ref Unsafe.Add(ref sourceRef, i);
+                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                dp.PackFromArgb32(sp);
+            }
+        }
+
+        /// <summary>
+        /// Bulk version of <see cref="IPixel.ToArgb32()"/>.
+        /// </summary>
+        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToArgb32(ReadOnlySpan<TPixel> sourceColors, Span<Argb32> destinationVectors, int count)
+        {
+            GuardSpans(sourceColors, nameof(sourceColors), destinationVectors, nameof(destinationVectors), count);
+
+            ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
+            ref Argb32 destRef = ref MemoryMarshal.GetReference(destinationVectors);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
+                ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
+                sp.ToArgb32(ref dp);
+            }
+        }
+
+        /// <summary>
         /// Bulk version of <see cref="IPixel.PackFromScaledVector4(Vector4)"/>
         /// </summary>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>

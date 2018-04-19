@@ -285,6 +285,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = this.A;
         }
 
+        /// <summary>
+        /// Converts the pixel to <see cref="Rgba32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rgba32 ToRgba32() => new Rgba32(this.R, this.G, this.B, this.A);
+
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {

@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Theory(Skip = "Doesen't work yet :(")]
+        [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void FromFromRgb24SystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

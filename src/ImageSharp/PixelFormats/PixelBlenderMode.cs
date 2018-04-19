@@ -64,17 +64,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         Atop,
 
         /// <summary>
-        /// returns the detination over the source
+        /// returns the destination over the source
         /// </summary>
         Over,
 
         /// <summary>
-        /// the source where the desitnation and source overlap
+        /// the source where the destination and source overlap
         /// </summary>
         In,
 
         /// <summary>
-        /// the destination where the desitnation and source overlap
+        /// the destination where the destination and source overlap
         /// </summary>
         Out,
 
@@ -89,17 +89,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         DestAtop,
 
         /// <summary>
-        /// the destnation over the source
+        /// the destination over the source
         /// </summary>
         DestOver,
 
         /// <summary>
-        /// the destination where the desitnation and source overlap
+        /// the destination where the destination and source overlap
         /// </summary>
         DestIn,
 
         /// <summary>
-        /// the source where the desitnation and source overlap
+        /// the source where the destination and source overlap
         /// </summary>
         DestOut,
 

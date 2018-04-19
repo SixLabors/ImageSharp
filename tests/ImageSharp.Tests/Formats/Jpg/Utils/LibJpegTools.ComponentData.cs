@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public Image<Rgba32> CreateGrayScaleImage()
             {
-                Image<Rgba32> result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
+                var result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
 
                 for (int by = 0; by < this.HeightInBlocks; by++)
                 {
@@ -119,10 +119,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 {
                     for (int x = 0; x < 8; x++)
                     {
-                        var val = this.GetBlockValue(block, x, y);
+                        float val = this.GetBlockValue(block, x, y);
 
-                        Vector4 v = new Vector4(val, val, val, 1);
-                        Rgba32 color = default(Rgba32);
+                        var v = new Vector4(val, val, val, 1);
+                        Rgba32 color = default;
                         color.PackFromVector4(v);
 
                         int yy = by * 8 + y;
@@ -143,8 +143,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public bool Equals(ComponentData other)
             {
-                if (Object.ReferenceEquals(null, other)) return false;
-                if (Object.ReferenceEquals(this, other)) return true;
+                if (object.ReferenceEquals(null, other)) return false;
+                if (object.ReferenceEquals(this, other)) return true;
                 bool ok = this.Index == other.Index && this.HeightInBlocks == other.HeightInBlocks
                           && this.WidthInBlocks == other.WidthInBlocks;
                 //&& this.MinVal == other.MinVal

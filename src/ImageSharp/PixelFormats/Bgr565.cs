@@ -126,6 +126,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackFromVector4(source.ToVector4());
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.PackFromVector4(source.ToVector4());
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)

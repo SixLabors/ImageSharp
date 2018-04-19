@@ -22,14 +22,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     {
         /// <summary>
-        /// Gets or sets the alpha component.
+        /// Gets or sets the red component.
         /// </summary>
-        public byte A;
-
-        /// <summary>
-        /// Gets or sets the blue component.
-        /// </summary>
-        public byte B;
+        public byte R;
 
         /// <summary>
         /// Gets or sets the green component.
@@ -37,9 +32,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte G;
 
         /// <summary>
-        /// Gets or sets the red component.
+        /// Gets or sets the blue component.
         /// </summary>
-        public byte R;
+        public byte B;
+
+        /// <summary>
+        /// Gets or sets the alpha component.
+        /// </summary>
+        public byte A;
 
         /// <summary>
         /// The shift count for the red component
@@ -174,22 +174,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Gets or sets the RGB components of this struct as <see cref="Rgb24"/>.
+        /// Gets or sets the RGB components of this struct as <see cref="Rgb24"/>
         /// </summary>
         public Rgb24 Rgb
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return new Rgb24(this.R, this.G, this.B);
+                return Unsafe.As<Rgba32, Rgb24>(ref this);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                this.R = value.R;
-                this.G = value.G;
-                this.B = value.B;
+                Unsafe.As<Rgba32, Rgb24>(ref this) = value;
             }
         }
 

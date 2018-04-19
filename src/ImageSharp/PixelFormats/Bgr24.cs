@@ -18,9 +18,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     public struct Bgr24 : IPixel<Bgr24>
     {
         /// <summary>
-        /// The red component.
+        /// The blue component.
         /// </summary>
-        public byte R;
+        public byte B;
 
         /// <summary>
         /// The green component.
@@ -28,9 +28,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte G;
 
         /// <summary>
-        /// The blue component.
+        /// The red component.
         /// </summary>
-        public byte B;
+        public byte R;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgr24"/> struct.

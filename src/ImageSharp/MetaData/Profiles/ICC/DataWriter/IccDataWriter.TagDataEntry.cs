@@ -686,8 +686,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public int WriteProfileSequenceDescTagDataEntry(IccProfileSequenceDescTagDataEntry value)
         {
             int count = this.WriteUInt32((uint)value.Descriptions.Length);
-            foreach (IccProfileDescription desc in value.Descriptions)
+
+            for (int i = 0; i < value.Descriptions.Length; i++)
             {
+                ref IccProfileDescription desc = ref value.Descriptions[i];
+
                 count += this.WriteProfileDescription(desc);
             }
 

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// <summary>
     /// ICC Profile description
     /// </summary>
-    internal sealed class IccProfileDescription : IEquatable<IccProfileDescription>
+    internal readonly struct IccProfileDescription : IEquatable<IccProfileDescription>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfileDescription"/> class.
@@ -40,69 +40,47 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the device manufacturer
+        /// Gets the device manufacturer.
         /// </summary>
         public uint DeviceManufacturer { get; }
 
         /// <summary>
-        /// Gets the device model
+        /// Gets the device model.
         /// </summary>
         public uint DeviceModel { get; }
 
         /// <summary>
-        /// Gets the device attributes
+        /// Gets the device attributes.
         /// </summary>
         public IccDeviceAttribute DeviceAttributes { get; }
 
         /// <summary>
-        /// Gets the technology information
+        /// Gets the technology information.
         /// </summary>
         public IccProfileTag TechnologyInformation { get; }
 
         /// <summary>
-        /// Gets the device manufacturer info
+        /// Gets the device manufacturer info.
         /// </summary>
         public IccLocalizedString[] DeviceManufacturerInfo { get; }
 
         /// <summary>
-        /// Gets the device model info
+        /// Gets the device model info.
         /// </summary>
         public IccLocalizedString[] DeviceModelInfo { get; }
 
         /// <inheritdoc/>
-        public bool Equals(IccProfileDescription other)
-        {
-            if (other == null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
-
-            return this.DeviceManufacturer == other.DeviceManufacturer
-                && this.DeviceModel == other.DeviceModel
-                && this.DeviceAttributes == other.DeviceAttributes
-                && this.TechnologyInformation == other.TechnologyInformation
-                && this.DeviceManufacturerInfo.SequenceEqual(other.DeviceManufacturerInfo)
-                && this.DeviceModelInfo.SequenceEqual(other.DeviceModelInfo);
-        }
+        public bool Equals(IccProfileDescription other) =>
+            this.DeviceManufacturer == other.DeviceManufacturer && 
+            this.DeviceModel == other.DeviceModel &&
+            this.DeviceAttributes == other.DeviceAttributes &&
+            this.TechnologyInformation == other.TechnologyInformation &&
+            this.DeviceManufacturerInfo.SequenceEqual(other.DeviceManufacturerInfo) &&
+            this.DeviceModelInfo.SequenceEqual(other.DeviceModelInfo);
 
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (obj == null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
             return obj is IccProfileDescription other && this.Equals(other);
         }
 

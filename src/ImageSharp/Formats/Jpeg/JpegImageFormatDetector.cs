@@ -16,12 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
-            if (this.IsSupportedFileFormat(header))
-            {
-                return ImageFormats.Jpeg;
-            }
-
-            return null;
+            return this.IsSupportedFileFormat(header) ? ImageFormats.Jpeg : null;
         }
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
@@ -35,36 +30,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsJfif(ReadOnlySpan<byte> header)
-        {
-            // TODO: This should be in constants
-            bool isJfif =
-                header[6] == 0x4A && // J
-                header[7] == 0x46 && // F
-                header[8] == 0x49 && // I
-                header[9] == 0x46 && // F
-                header[10] == 0x00;
-
-            return isJfif;
-        }
+        private bool IsJfif(ReadOnlySpan<byte> header) =>
+            header[6] == 0x4A && // J
+            header[7] == 0x46 && // F
+            header[8] == 0x49 && // I
+            header[9] == 0x46 && // F
+            header[10] == 0x00;
 
         /// <summary>
         /// Returns a value indicating whether the given bytes identify EXIF data.
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsExif(ReadOnlySpan<byte> header)
-        {
-            // TODO: This should be in constants
-            bool isExif =
-                header[6] == 0x45 && // E
-                header[7] == 0x78 && // X
-                header[8] == 0x69 && // I
-                header[9] == 0x66 && // F
-                header[10] == 0x00;
-
-            return isExif;
-        }
+        private bool IsExif(ReadOnlySpan<byte> header) =>
+            header[6] == 0x45 && // E
+            header[7] == 0x78 && // X
+            header[8] == 0x69 && // I
+            header[9] == 0x66 && // F
+            header[10] == 0x00;
 
         /// <summary>
         /// Returns a value indicating whether the given bytes identify Jpeg data.
@@ -72,14 +55,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="header">The bytes representing the file header.</param>
         /// <returns>The <see cref="bool"/></returns>
-        private bool IsJpeg(ReadOnlySpan<byte> header)
-        {
-            // TODO: This should be in constants
-            bool isJpg =
-                header[0] == 0xFF && // 255
-                header[1] == 0xD8; // 216
-
-            return isJpg;
-        }
+        private bool IsJpeg(ReadOnlySpan<byte> header) =>
+            header[0] == 0xFF && // 255
+            header[1] == 0xD8; // 216
     }
 }

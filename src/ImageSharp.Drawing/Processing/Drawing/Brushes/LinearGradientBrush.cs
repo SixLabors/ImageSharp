@@ -19,28 +19,59 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
     public class LinearGradientBrush<TPixel> : IBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// A struct that defines a single color stop.
+        /// </summary>
+        public struct ColorStop
+        {
+            /// <summary>
+            /// Create a new ColorStop
+            /// </summary>
+            /// <param name="ratio">Where should it be? 0 is at the start, 1 at the end of the <see cref="LinearGradientBrush{TPixel}"/>.</param>
+            /// <param name="color">What color should be used at that point?</param>
+            public ColorStop(float ratio, TPixel color)
+            {
+                this.Ratio = ratio;
+                this.Color = color;
+            }
+            
+            /// <summary>
+            /// The point along the defined <see cref="LinearGradientBrush{TPixel}" /> gradient axis.
+            /// </summary>
+            public float Ratio { get; }
+
+            /// <summary>
+            /// The color to be used.
+            /// </summary>
+            public TPixel Color { get; }
+        }
+        
         private readonly Point p1;
 
         private readonly Point p2;
 
-        private readonly Tuple<float, TPixel>[] keyColors;
+        private readonly ColorStop[] colorStops;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LinearGradientBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="p1">Start point</param>
         /// <param name="p2">End point</param>
-        /// <param name="keyColors">a set of color keys and where they are. The double must be in range [0..1] and is relative between p1 and p2.</param>
-        public LinearGradientBrush(Point p1, Point p2, params Tuple<float, TPixel>[] keyColors)
+        /// <param name="colorStops">
+        ///     A set of color keys and where they are.
+        ///     The double should be in range [0..1] and is relative between p1 and p2.
+        ///     TODO: what about the [0..1] restriction? is it necessary? If so, it should be checked, if not, it should be explained what happens for greater/smaller values.
+        /// </param>
+        public LinearGradientBrush(Point p1, Point p2, params ColorStop[] colorStops)
         {
             this.p1 = p1;
             this.p2 = p2;
-            this.keyColors = keyColors;
+            this.colorStops = colorStops;
         }
 
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.keyColors, region, options);
+            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.colorStops, region, options);
 
         /// <summary>
         /// The linear gradient brush applicator.
@@ -51,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 
             private readonly Point end;
 
-            private readonly Tuple<float, TPixel>[] colorStops;
+            private readonly ColorStop[] colorStops;
 
             /// <summary>
             /// the vector along the gradient, x component
@@ -101,7 +132,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 ImageFrame<TPixel> source,
                 Point start,
                 Point end,
-                Tuple<float, TPixel>[] colorStops,
+                ColorStop[] colorStops,
                 RectangleF region, // TODO: use region, compare with other Brushes for reference.
                 GraphicsOptions options)
                 : base(source, options)
@@ -138,13 +169,13 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                     float onCompleteGradient = this.RatioOnGradient(x, y);
 
                     var localGradientFrom = this.colorStops[0];
-                    Tuple<float, TPixel> localGradientTo = null;
+                    ColorStop localGradientTo = default;
 
                     // TODO: ensure colorStops has at least 2 items (technically 1 would be okay, but that's no gradient)
                     foreach (var colorStop in this.colorStops)
                     {
                         localGradientTo = colorStop;
-                        if (colorStop.Item1 >= onCompleteGradient)
+                        if (colorStop.Ratio >= onCompleteGradient)
                         {
                             // we're done here, so break it!
                             break;
@@ -154,15 +185,15 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                     }
 
                     TPixel resultColor = default;
-                    if (localGradientFrom.Item2.Equals(localGradientTo.Item2))
+                    if (localGradientFrom.Color.Equals(localGradientTo.Color))
                     {
-                        resultColor = localGradientFrom.Item2;
+                        resultColor = localGradientFrom.Color;
                     }
                     else
                     {
-                        var fromAsVector = localGradientFrom.Item2.ToVector4();
-                        var toAsVector = localGradientTo.Item2.ToVector4();
-                        float onLocalGradient = (onCompleteGradient - localGradientFrom.Item1) / localGradientTo.Item1; // TODO:
+                        var fromAsVector = localGradientFrom.Color.ToVector4();
+                        var toAsVector = localGradientTo.Color.ToVector4();
+                        float onLocalGradient = (onCompleteGradient - localGradientFrom.Ratio) / localGradientTo.Ratio; // TODO:
 
                         Vector4 result = PorterDuffFunctions.Normal(
                             fromAsVector,

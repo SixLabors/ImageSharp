@@ -2,9 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
@@ -13,17 +17,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal struct PdfJsScanDecoder
     {
+        private ZigZag dctZigZag;
+
         private byte[] markerBuffer;
 
         private int bitsData;
 
         private int bitsCount;
-
-#pragma warning disable 414
-        private int bitsUnRead;
-
-        private int accumulator;
-#pragma warning restore 414
 
         private int specStart;
 
@@ -72,6 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             int successivePrev,
             int successive)
         {
+            this.dctZigZag = ZigZag.CreateUnzigTable();
             this.markerBuffer = new byte[2];
             this.compIndex = componentIndex;
             this.specStart = spectralStart;
@@ -113,34 +114,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
                 else
                 {
-                    if (this.specStart == 0)
-                    {
-                        if (successivePrev == 0)
-                        {
-                            this.DecodeScanDCFirst(dcHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                        else
-                        {
-                            this.DecodeScanDCSuccessive(components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                    }
-                    else
-                    {
-                        if (successivePrev == 0)
-                        {
-                            this.DecodeScanACFirst(acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                        else
-                        {
-                            this.DecodeScanACSuccessive(acHuffmanTables, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
-                        }
-                    }
+                    bool isAc = this.specStart != 0;
+                    bool isFirst = successivePrev == 0;
+                    PdfJsHuffmanTables huffmanTables = isAc ? acHuffmanTables : dcHuffmanTables;
+                    this.DecodeScanProgressive(huffmanTables, isAc, isFirst, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
                 }
 
                 // Find marker
                 this.bitsCount = 0;
-                this.accumulator = 0;
-                this.bitsUnRead = 0;
                 fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
                 // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
@@ -172,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
             // Some images include more Scan blocks than expected, skip past those and
-            // attempt to find the next valid marker (fixes issue8182.pdf) in original code.
+            // attempt to find the next valid marker (fixes issue8182.pdf) ref original code.
             if (fileMarker.Invalid)
             {
 #if DEBUG
@@ -187,7 +168,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeScanBaseline(
             PdfJsHuffmanTables dcHuffmanTables,
             PdfJsHuffmanTables acHuffmanTables,
@@ -201,6 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
 
@@ -211,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         continue;
                     }
 
-                    this.DecodeBlockBaseline(ref dcHuffmanTable, ref acHuffmanTable, component, mcu, stream);
+                    this.DecodeBlockBaseline(ref dcHuffmanTable, ref acHuffmanTable, component, ref blockDataRef, mcu, stream);
                     mcu++;
                 }
             }
@@ -222,6 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                         ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
@@ -236,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                     continue;
                                 }
 
-                                this.DecodeMcuBaseline(ref dcHuffmanTable, ref acHuffmanTable, component, mcusPerLine, mcu, j, k, stream);
+                                this.DecodeMcuBaseline(ref dcHuffmanTable, ref acHuffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
                             }
                         }
                     }
@@ -246,9 +228,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanDCFirst(
-            PdfJsHuffmanTables dcHuffmanTables,
+        private void DecodeScanProgressive(
+            PdfJsHuffmanTables huffmanTables,
+            bool isAC,
+            bool isFirst,
             PdfJsFrameComponent[] components,
             int componentsLength,
             int mcusPerLine,
@@ -259,7 +242,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             if (componentsLength == 1)
             {
                 PdfJsFrameComponent component = components[this.compIndex];
-                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                ref PdfJsHuffmanTable huffmanTable = ref huffmanTables[isAC ? component.ACHuffmanTableId : component.DCHuffmanTableId];
 
                 for (int n = 0; n < mcuToRead; n++)
                 {
@@ -268,7 +252,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         continue;
                     }
 
-                    this.DecodeBlockDCFirst(ref dcHuffmanTable, component, mcu, stream);
+                    if (isAC)
+                    {
+                        if (isFirst)
+                        {
+                            this.DecodeBlockACFirst(ref huffmanTable, component, ref blockDataRef, mcu, stream);
+                        }
+                        else
+                        {
+                            this.DecodeBlockACSuccessive(ref huffmanTable, component, ref blockDataRef, mcu, stream);
+                        }
+                    }
+                    else
+                    {
+                        if (isFirst)
+                        {
+                            this.DecodeBlockDCFirst(ref huffmanTable, component, ref blockDataRef, mcu, stream);
+                        }
+                        else
+                        {
+                            this.DecodeBlockDCSuccessive(component, ref blockDataRef, mcu, stream);
+                        }
+                    }
+
                     mcu++;
                 }
             }
@@ -279,7 +285,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int i = 0; i < componentsLength; i++)
                     {
                         PdfJsFrameComponent component = components[i];
-                        ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                        ref PdfJsHuffmanTable huffmanTable = ref huffmanTables[isAC ? component.ACHuffmanTableId : component.DCHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
@@ -292,114 +299,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                     continue;
                                 }
 
-                                this.DecodeMcuDCFirst(ref dcHuffmanTable, component, mcusPerLine, mcu, j, k, stream);
-                            }
-                        }
-                    }
-
-                    mcu++;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanDCSuccessive(
-            PdfJsFrameComponent[] components,
-            int componentsLength,
-            int mcusPerLine,
-            int mcuToRead,
-            ref int mcu,
-            Stream stream)
-        {
-            if (componentsLength == 1)
-            {
-                PdfJsFrameComponent component = components[this.compIndex];
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                    {
-                        continue;
-                    }
-
-                    this.DecodeBlockDCSuccessive(component, mcu, stream);
-                    mcu++;
-                }
-            }
-            else
-            {
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    for (int i = 0; i < componentsLength; i++)
-                    {
-                        PdfJsFrameComponent component = components[i];
-                        int h = component.HorizontalSamplingFactor;
-                        int v = component.VerticalSamplingFactor;
-                        for (int j = 0; j < v; j++)
-                        {
-                            for (int k = 0; k < h; k++)
-                            {
-                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                                if (isAC)
                                 {
-                                    continue;
+                                    if (isFirst)
+                                    {
+                                        this.DecodeMcuACFirst(ref huffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
+                                    else
+                                    {
+                                        this.DecodeMcuACSuccessive(ref huffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
                                 }
-
-                                this.DecodeMcuDCSuccessive(component, mcusPerLine, mcu, j, k, stream);
-                            }
-                        }
-                    }
-
-                    mcu++;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanACFirst(
-            PdfJsHuffmanTables acHuffmanTables,
-            PdfJsFrameComponent[] components,
-            int componentsLength,
-            int mcusPerLine,
-            int mcuToRead,
-            ref int mcu,
-            Stream stream)
-        {
-            if (componentsLength == 1)
-            {
-                PdfJsFrameComponent component = components[this.compIndex];
-                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                    {
-                        continue;
-                    }
-
-                    this.DecodeBlockACFirst(ref acHuffmanTable, component, mcu, stream);
-                    mcu++;
-                }
-            }
-            else
-            {
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    for (int i = 0; i < componentsLength; i++)
-                    {
-                        PdfJsFrameComponent component = components[i];
-                        ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        int h = component.HorizontalSamplingFactor;
-                        int v = component.VerticalSamplingFactor;
-
-                        for (int j = 0; j < v; j++)
-                        {
-                            for (int k = 0; k < h; k++)
-                            {
-                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                                else
                                 {
-                                    continue;
+                                    if (isFirst)
+                                    {
+                                        this.DecodeMcuDCFirst(ref huffmanTable, component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
+                                    else
+                                    {
+                                        this.DecodeMcuDCSuccessive(component, ref blockDataRef, mcusPerLine, mcu, j, k, stream);
+                                    }
                                 }
-
-                                this.DecodeMcuACFirst(ref acHuffmanTable, component, mcusPerLine, mcu, j, k, stream);
                             }
                         }
                     }
@@ -410,159 +331,103 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeScanACSuccessive(
-            PdfJsHuffmanTables acHuffmanTables,
-            PdfJsFrameComponent[] components,
-            int componentsLength,
-            int mcusPerLine,
-            int mcuToRead,
-            ref int mcu,
-            Stream stream)
-        {
-            if (componentsLength == 1)
-            {
-                PdfJsFrameComponent component = components[this.compIndex];
-                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                    {
-                        continue;
-                    }
-
-                    this.DecodeBlockACSuccessive(ref acHuffmanTable, component, mcu, stream);
-                    mcu++;
-                }
-            }
-            else
-            {
-                for (int n = 0; n < mcuToRead; n++)
-                {
-                    for (int i = 0; i < componentsLength; i++)
-                    {
-                        PdfJsFrameComponent component = components[i];
-                        ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        int h = component.HorizontalSamplingFactor;
-                        int v = component.VerticalSamplingFactor;
-
-                        for (int j = 0; j < v; j++)
-                        {
-                            for (int k = 0; k < h; k++)
-                            {
-                                if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                                {
-                                    continue;
-                                }
-
-                                this.DecodeMcuACSuccessive(ref acHuffmanTable, component, mcusPerLine, mcu, j, k, stream);
-                            }
-                        }
-                    }
-
-                    mcu++;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeBlockBaseline(ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, int mcu, Stream stream)
+        private void DecodeBlockBaseline(ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcu, Stream stream)
         {
             int blockRow = mcu / component.WidthInBlocks;
             int blockCol = mcu % component.WidthInBlocks;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeBaseline(component, offset, ref dcHuffmanTable, ref acHuffmanTable, stream);
+            this.DecodeBaseline(component, ref blockDataRef, offset, ref dcHuffmanTable, ref acHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeMcuBaseline(ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        private void DecodeMcuBaseline(ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
             int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeBaseline(component, offset, ref dcHuffmanTable, ref acHuffmanTable, stream);
+            this.DecodeBaseline(component, ref blockDataRef, offset, ref dcHuffmanTable, ref acHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeBlockDCFirst(ref PdfJsHuffmanTable dcHuffmanTable, PdfJsFrameComponent component, int mcu, Stream stream)
+        private void DecodeBlockDCFirst(ref PdfJsHuffmanTable dcHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcu, Stream stream)
         {
             int blockRow = mcu / component.WidthInBlocks;
             int blockCol = mcu % component.WidthInBlocks;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeDCFirst(component, offset, ref dcHuffmanTable, stream);
+            this.DecodeDCFirst(component, ref blockDataRef, offset, ref dcHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeMcuDCFirst(ref PdfJsHuffmanTable dcHuffmanTable, PdfJsFrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        private void DecodeMcuDCFirst(ref PdfJsHuffmanTable dcHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
             int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeDCFirst(component, offset, ref dcHuffmanTable, stream);
+            this.DecodeDCFirst(component, ref blockDataRef, offset, ref dcHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeBlockDCSuccessive(PdfJsFrameComponent component, int mcu, Stream stream)
+        private void DecodeBlockDCSuccessive(PdfJsFrameComponent component, ref short blockDataRef, int mcu, Stream stream)
         {
             int blockRow = mcu / component.WidthInBlocks;
             int blockCol = mcu % component.WidthInBlocks;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeDCSuccessive(component, offset, stream);
+            this.DecodeDCSuccessive(component, ref blockDataRef, offset, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeMcuDCSuccessive(PdfJsFrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        private void DecodeMcuDCSuccessive(PdfJsFrameComponent component, ref short blockDataRef, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
             int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeDCSuccessive(component, offset, stream);
+            this.DecodeDCSuccessive(component, ref blockDataRef, offset, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeBlockACFirst(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, int mcu, Stream stream)
+        private void DecodeBlockACFirst(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcu, Stream stream)
         {
             int blockRow = mcu / component.WidthInBlocks;
             int blockCol = mcu % component.WidthInBlocks;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeACFirst(component, offset, ref acHuffmanTable, stream);
+            this.DecodeACFirst(component, ref blockDataRef, offset, ref acHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeMcuACFirst(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        private void DecodeMcuACFirst(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
             int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeACFirst(component, offset, ref acHuffmanTable, stream);
+            this.DecodeACFirst(component, ref blockDataRef, offset, ref acHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeBlockACSuccessive(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, int mcu, Stream stream)
+        private void DecodeBlockACSuccessive(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcu, Stream stream)
         {
             int blockRow = mcu / component.WidthInBlocks;
             int blockCol = mcu % component.WidthInBlocks;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeACSuccessive(component, offset, ref acHuffmanTable, stream);
+            this.DecodeACSuccessive(component, ref blockDataRef, offset, ref acHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeMcuACSuccessive(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, int mcusPerLine, int mcu, int row, int col, Stream stream)
+        private void DecodeMcuACSuccessive(ref PdfJsHuffmanTable acHuffmanTable, PdfJsFrameComponent component, ref short blockDataRef, int mcusPerLine, int mcu, int row, int col, Stream stream)
         {
             int mcuRow = mcu / mcusPerLine;
             int mcuCol = mcu % mcusPerLine;
             int blockRow = (mcuRow * component.VerticalSamplingFactor) + row;
             int blockCol = (mcuCol * component.HorizontalSamplingFactor) + col;
             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-            this.DecodeACSuccessive(component, offset, ref acHuffmanTable, stream);
+            this.DecodeACSuccessive(component, ref blockDataRef, offset, ref acHuffmanTable, stream);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -579,7 +444,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             if (this.bitsData == -0x1)
             {
-                // We've encountered the end of the file stream which means there's no EOI marker in the image
+                // We've encountered the end of the file stream which means there's no EOI marker ref the image
                 this.endOfStreamReached = true;
             }
 
@@ -608,44 +473,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private short DecodeHuffman(ref PdfJsHuffmanTable tree, Stream stream)
         {
-            short code = -1;
-
-            // TODO: Adding this code introduces error into the decoder.
+            // TODO: Implement fast Huffman decoding.
             // NOTES # During investigation of the libjpeg implementation it appears that they pull 32bits at a time and operate on those bits
-            //         using 3 methods: FillBits, PeekBits, and ReadBits. We should attempt to do the same.
-            // It doesn't appear to speed anything up either.
-            //  if (this.bitsUnRead < 8)
-            //  {
-            //    if (this.bitsCount <= 0)
-            //    {
-            //        code = (short)this.ReadBit(stream);
-            //        if (this.endOfStreamReached || this.unexpectedMarkerReached)
-            //        {
-            //            return -1;
-            //        }
-            //
-            //        this.bitsUnRead += 8;
-            //    }
-            //
-            //    this.accumulator = (this.accumulator << 8) | this.bitsData;
-            //    int lutIndex = (this.accumulator >> (8 - this.bitsUnRead)) & 0xFF;
-            //    int v = tree.Lookahead[lutIndex];
-            //    if (v != 0)
-            //    {
-            //        int nb = (v & 0xFF) - 1;
-            //        this.bitsCount -= nb - 1;
-            //        this.bitsUnRead -= nb;
-            //        v = v >> 8;
-            //        return (short)v;
-            //    }
-            //  }
-            if (code == -1)
+            // using 3 methods: FillBits, PeekBits, and ReadBits. We should attempt to do the same.
+            short code = (short)this.ReadBit(stream);
+            if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
-                code = (short)this.ReadBit(stream);
-                if (this.endOfStreamReached || this.unexpectedMarkerReached)
-                {
-                    return -1;
-                }
+                return -1;
             }
 
             // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
@@ -704,24 +538,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return n + (-1 << length) + 1;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeBaseline(PdfJsFrameComponent component, int offset, ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
+        private void DecodeBaseline(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
-            Span<short> blockDataSpan = component.BlockData.Span;
-
-            int t = this.DecodeHuffman(ref dcHuffmanTable, stream);
+            short t = this.DecodeHuffman(ref dcHuffmanTable, stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
 
             int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream);
-            blockDataSpan[offset] = (short)(component.Pred += diff);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
 
             int k = 1;
             while (k < 64)
             {
-                int rs = this.DecodeHuffman(ref acHuffmanTable, stream);
+                short rs = this.DecodeHuffman(ref acHuffmanTable, stream);
                 if (this.endOfStreamReached || this.unexpectedMarkerReached)
                 {
                     return;
@@ -748,44 +579,39 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     break;
                 }
 
-                byte z = PdfJsQuantizationTables.DctZigZag[k];
+                byte z = this.dctZigZag[k];
                 short re = (short)this.ReceiveAndExtend(s, stream);
-                blockDataSpan[offset + z] = re;
+                Unsafe.Add(ref blockDataRef, offset + z) = re;
                 k++;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeDCFirst(PdfJsFrameComponent component, int offset, ref PdfJsHuffmanTable dcHuffmanTable, Stream stream)
+        private void DecodeDCFirst(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable dcHuffmanTable, Stream stream)
         {
-            Span<short> blockDataSpan = component.BlockData.Span;
-
-            int t = this.DecodeHuffman(ref dcHuffmanTable, stream);
+            short t = this.DecodeHuffman(ref dcHuffmanTable, stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
 
             int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream) << this.successiveState;
-            blockDataSpan[offset] = (short)(component.Pred += diff);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeDCSuccessive(PdfJsFrameComponent component, int offset, Stream stream)
+        private void DecodeDCSuccessive(PdfJsFrameComponent component, ref short blockDataRef, int offset, Stream stream)
         {
-            Span<short> blockDataSpan = component.BlockData.Span;
-
             int bit = this.ReadBit(stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {
                 return;
             }
 
-            blockDataSpan[offset] |= (short)(bit << this.successiveState);
+            Unsafe.Add(ref blockDataRef, offset) |= (short)(bit << this.successiveState);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeACFirst(PdfJsFrameComponent component, int offset, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
+        private void DecodeACFirst(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
             if (this.eobrun > 0)
             {
@@ -793,7 +619,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 return;
             }
 
-            Span<short> componentBlockDataSpan = component.BlockData.Span;
             int k = this.specStart;
             int e = this.specEnd;
             while (k <= e)
@@ -820,22 +645,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
 
                 k += r;
-                byte z = PdfJsQuantizationTables.DctZigZag[k];
-                componentBlockDataSpan[offset + z] = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
+
+                byte z = this.dctZigZag[k];
+                Unsafe.Add(ref blockDataRef, offset + z) = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
                 k++;
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void DecodeACSuccessive(PdfJsFrameComponent component, int offset, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
+        private void DecodeACSuccessive(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable acHuffmanTable, Stream stream)
         {
             int k = this.specStart;
             int e = this.specEnd;
             int r = 0;
-            Span<short> componentBlockDataSpan = component.BlockData.Span;
+
             while (k <= e)
             {
-                byte z = PdfJsQuantizationTables.DctZigZag[k];
+                int offsetZ = offset + this.dctZigZag[k];
+                ref short blockOffsetZRef = ref Unsafe.Add(ref blockDataRef, offsetZ);
+                int sign = blockOffsetZRef < 0 ? -1 : 1;
+
                 switch (this.successiveACState)
                 {
                     case 0: // Initial state
@@ -874,7 +702,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         continue;
                     case 1: // Skipping r zero items
                     case 2:
-                        if (componentBlockDataSpan[offset + z] != 0)
+                        if (blockOffsetZRef != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -882,7 +710,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 return;
                             }
 
-                            componentBlockDataSpan[offset + z] += (short)(bit << this.successiveState);
+                            blockOffsetZRef += (short)(sign * (bit << this.successiveState));
                         }
                         else
                         {
@@ -895,7 +723,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                         break;
                     case 3: // Set value for a zero item
-                        if (componentBlockDataSpan[offset + z] != 0)
+                        if (blockOffsetZRef != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -903,17 +731,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 return;
                             }
 
-                            componentBlockDataSpan[offset + z] += (short)(bit << this.successiveState);
+                            blockOffsetZRef += (short)(sign * (bit << this.successiveState));
                         }
                         else
                         {
-                            componentBlockDataSpan[offset + z] = (short)(this.successiveACNextValue << this.successiveState);
+                            blockOffsetZRef = (short)(this.successiveACNextValue << this.successiveState);
                             this.successiveACState = 0;
                         }
 
                         break;
                     case 4: // Eob
-                        if (componentBlockDataSpan[offset + z] != 0)
+                        if (blockOffsetZRef != 0)
                         {
                             int bit = this.ReadBit(stream);
                             if (this.endOfStreamReached || this.unexpectedMarkerReached)
@@ -921,7 +749,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 return;
                             }
 
-                            componentBlockDataSpan[offset + z] += (short)(bit << this.successiveState);
+                            blockOffsetZRef += (short)(sign * (bit << this.successiveState));
                         }
 
                         break;

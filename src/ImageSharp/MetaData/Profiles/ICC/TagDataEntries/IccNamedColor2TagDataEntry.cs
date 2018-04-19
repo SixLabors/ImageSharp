@@ -169,10 +169,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.CoordinateCount;
-                hashCode = (hashCode * 397) ^ (this.Prefix != null ? this.Prefix.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Suffix != null ? this.Suffix.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Prefix?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.Suffix?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ this.VendorFlags;
-                hashCode = (hashCode * 397) ^ (this.Colors != null ? this.Colors.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Colors?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

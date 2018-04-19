@@ -86,8 +86,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = (int)this.CurveType;
-                hashCode = (hashCode * 397) ^ (this.XyzValues != null ? this.XyzValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.ResponseArrays != null ? this.ResponseArrays.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.XyzValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.ResponseArrays?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

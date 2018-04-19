@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccUInt16ArrayTagDataEntry && this.Equals((IccUInt16ArrayTagDataEntry)obj);
+            return obj is IccUInt16ArrayTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Data != null ? this.Data.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Data?.GetHashCode() ?? 0);
             }
         }
     }

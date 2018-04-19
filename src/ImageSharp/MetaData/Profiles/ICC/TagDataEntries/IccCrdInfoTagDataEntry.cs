@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccCrdInfoTagDataEntry && this.Equals((IccCrdInfoTagDataEntry)obj);
+            return obj is IccCrdInfoTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -134,11 +134,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.PostScriptProductName != null ? this.PostScriptProductName.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent0Crd != null ? this.RenderingIntent0Crd.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent1Crd != null ? this.RenderingIntent1Crd.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent2Crd != null ? this.RenderingIntent2Crd.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.RenderingIntent3Crd != null ? this.RenderingIntent3Crd.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.PostScriptProductName?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent0Crd?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent1Crd?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent2Crd?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.RenderingIntent3Crd?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

@@ -114,7 +114,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            dest.PackedValue = this.PackedValue;
+            dest.R = 0;
+            dest.G = 0;
+            dest.B = 0;
+            dest.A = this.PackedValue;
         }
 
         /// <inheritdoc />

@@ -1,13 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-
-    using Xunit;
-
     public class JFifMarkerTests
     {
         // Taken from actual test image

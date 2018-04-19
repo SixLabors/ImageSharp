@@ -95,19 +95,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return (other is IccProfileId) && this.Equals((IccProfileId)other);
+            return obj is IccProfileId other && this.Equals(other);
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccProfileId other)
-        {
-            return this.Part1 == other.Part1
-                && this.Part2 == other.Part2
-                && this.Part3 == other.Part3
-                && this.Part4 == other.Part4;
-        }
+        public bool Equals(IccProfileId other) =>
+            this.Part1 == other.Part1 &&
+            this.Part2 == other.Part2 &&
+            this.Part3 == other.Part3 &&
+            this.Part4 == other.Part4;
 
         /// <inheritdoc/>
         public override int GetHashCode()

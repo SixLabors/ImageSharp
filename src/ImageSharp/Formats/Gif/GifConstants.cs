@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The application block size.
         /// </summary>
-        public const byte ApplicationBlockSize = 0x0b;
+        public const byte ApplicationBlockSize = 11;
 
         /// <summary>
         /// The comment label.

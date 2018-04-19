@@ -68,13 +68,13 @@
             ref <#=pixelType#> sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Rgba32 rgba = new Rgba32(0, 0, 0, 255);
+            var rgba = new Rgba32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
                 <#=rgbaOperationCode#>
-				dp.PackFromRgba32(rgba);
+                dp.PackFromRgba32(rgba);
             }
         }
 		
@@ -110,7 +110,7 @@
             ref <#=pixelType#> sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            Argb32 argb = new Argb32(0, 0, 0, 255);
+            var argb = new Argb32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {

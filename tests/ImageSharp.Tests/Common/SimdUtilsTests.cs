@@ -1,18 +1,15 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Tuples;
+
 using Xunit;
-// ReSharper disable InconsistentNaming
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Common
 {
-    using System.Linq;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using SixLabors.ImageSharp.Common.Tuples;
-
-    using Xunit.Abstractions;
-    using Xunit.Sdk;
-
     public class SimdUtilsTests
     {
         private ITestOutputHelper Output { get; }
@@ -73,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
             float[] data = new float[Vector<float>.Count];
-            Random rnd = new Random();
+            var rnd = new Random();
             for (int i = 0; i < Vector<float>.Count; i++)
             {
                 float v = (float)rnd.NextDouble() * (max - min) + min;
@@ -218,15 +215,16 @@ namespace SixLabors.ImageSharp.Tests.Common
             }
 
             float[] source = { 0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f };
-            byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
+
+            ReadOnlySpan<byte> expected = source.Select(f => (byte)Math.Round(f)).ToArray();
 
             source = source.Select(f => f / 255f).ToArray();
 
-            byte[] dest = new byte[8];
+            Span<byte> dest = stackalloc byte[8];
 
             this.MagicConvert(source, dest);
 
-            Assert.Equal(expected, dest);
+            Assert.True(dest.SequenceEqual(expected));
         }
 
         private static byte MagicConvert(float x)
@@ -239,6 +237,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         private void MagicConvert(Span<float> source, Span<byte> dest)
         {
             var magick = new Vector<float>(32768.0f);
+
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
             Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];

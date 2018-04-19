@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
@@ -367,14 +366,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             if (this.ComponentCount == 4)
             {
-                if (this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck)
-                {
-                    return JpegColorSpace.Ycck;
-                }
-                else
-                {
-                    return JpegColorSpace.Cmyk;
-                }
+                return this.adobe.ColorTransform == PdfJsJpegConstants.Markers.Adobe.ColorTransformYcck
+                    ? JpegColorSpace.Ycck
+                    : JpegColorSpace.Cmyk;
             }
 
             throw new ImageFormatException($"Unsupported color mode. Max components 4; found {this.ComponentCount}");

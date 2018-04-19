@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float z = +0.5f;
             float w = -0.7f;
             var argb = new Argb32(x, y, z, w);
-            Assert.Equal(0x001a0080u, argb.PackedValue);
+            Assert.Equal(0x80001a00u, argb.PackedValue);
 
             // Test ordering
             var rgb = default(Rgb24);

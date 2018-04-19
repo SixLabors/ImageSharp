@@ -42,26 +42,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte B;
 
         /// <summary>
-        /// The shift count for the blue component
-        /// </summary>
-        private const int BlueShift = 0;
-
-        /// <summary>
-        /// The shift count for the green component
-        /// </summary>
-        private const int GreenShift = 8;
-
-        /// <summary>
-        /// The shift count for the red component
-        /// </summary>
-        private const int RedShift = 16;
-
-        /// <summary>
-        /// The shift count for the alpha component
-        /// </summary>
-        private const int AlphaShift = 24;
-
-        /// <summary>
         /// The maximum byte value.
         /// </summary>
         private static readonly Vector4 MaxBytes = new Vector4(255);
@@ -123,7 +103,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Argb32(Vector3 vector) 
+        public Argb32(Vector3 vector)
             : this()
         {
             this.Pack(ref vector);
@@ -136,7 +116,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// The vector containing the components for the packed vector.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Argb32(Vector4 vector) 
+        public Argb32(Vector4 vector)
             : this()
         {
             this.Pack(ref vector);
@@ -149,7 +129,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// The packed value.
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Argb32(uint packed) 
+        public Argb32(uint packed)
             : this()
         {
             this.Argb = packed;
@@ -158,20 +138,23 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Gets or sets the packed representation of the Argb32 struct.
         /// </summary>
-        public uint Argb {
+        public uint Argb
+        {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get {
+            get
+            {
                 return Unsafe.As<Argb32, uint>(ref this);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set {
+            set
+            {
                 Unsafe.As<Argb32, uint>(ref this) = value;
             }
         }
 
         /// <inheritdoc/>
-        public uint PackedValue 
+        public uint PackedValue
         {
             get => this.Argb;
             set => this.Argb = value;
@@ -244,7 +227,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgba32(Rgba32 source)
         {
-            this.PackedValue = Pack(source.R, source.G, source.B, source.A);
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
         }
 
         /// <inheritdoc/>
@@ -275,7 +261,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest) {
+        public void ToArgb32(ref Argb32 dest)
+        {
             dest = this;
         }
 
@@ -336,20 +323,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal Vector4 ToByteScaledVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A);
-        }
-
-        /// <summary>
-        /// Packs the four floats into a <see cref="uint"/>.
-        /// </summary>
-        /// <param name="x">The x-component</param>
-        /// <param name="y">The y-component</param>
-        /// <param name="z">The z-component</param>
-        /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="uint"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint Pack(byte x, byte y, byte z, byte w)
-        {
-            return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
         }
 
         /// <summary>

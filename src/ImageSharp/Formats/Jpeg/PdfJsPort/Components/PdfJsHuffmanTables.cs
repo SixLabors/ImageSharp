@@ -21,10 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public ref PdfJsHuffmanTable this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return ref this.tables[index];
-            }
+            get => ref this.tables[index];
         }
     }
 }

@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     public struct Rgb24 : IPixel<Rgb24>
     {
         /// <summary>
-        /// The blue component.
+        /// The red component.
         /// </summary>
-        public byte B;
+        public byte R;
 
         /// <summary>
         /// The green component.
@@ -29,9 +29,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte G;
 
         /// <summary>
-        /// The red component.
+        /// The blue component.
         /// </summary>
-        public byte R;
+        public byte B;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb24"/> struct.
@@ -80,16 +80,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgba32(Rgba32 source)
         {
-            this.R = source.R;
-            this.G = source.G;
-            this.B = source.B;
+            this = Unsafe.As<Rgba32, Rgb24>(ref source);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromArgb32(Argb32 source)
         {
-            this = Unsafe.As<Argb32, Rgb24>(ref source);
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
         }
 
         /// <inheritdoc/>
@@ -132,15 +132,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public void ToRgba32(ref Rgba32 dest)
         {
-            dest.R = this.R;
-            dest.G = this.G;
-            dest.B = this.B;
+            dest.Rgb = this;
             dest.A = 255;
         }
 
         /// <inheritdoc/>
         public void ToArgb32(ref Argb32 dest) {
-            dest.Rgb = this;
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
             dest.A = 255;
         }
 

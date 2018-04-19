@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -33,22 +36,10 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             Vector4 actual = v.PseudoRound();
 
-            Assert.Equal(
-                R(v.X),
-                (int)actual.X
-            );
-            Assert.Equal(
-                R(v.Y),
-                (int)actual.Y
-            );
-            Assert.Equal(
-                R(v.Z),
-                (int)actual.Z
-            );
-            Assert.Equal(
-                R(v.W),
-                (int)actual.W
-            );
+            Assert.Equal(R(v.X), (int)actual.X);
+            Assert.Equal(R(v.Y), (int)actual.Y);
+            Assert.Equal(R(v.Z), (int)actual.Z);
+            Assert.Equal(R(v.W), (int)actual.W);
         }
 
         private static Vector<float> CreateExactTestVector1()
@@ -70,12 +61,15 @@ namespace SixLabors.ImageSharp.Tests.Common
         private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
             float[] data = new float[Vector<float>.Count];
+
             var rnd = new Random();
+
             for (int i = 0; i < Vector<float>.Count; i++)
             {
                 float v = (float)rnd.NextDouble() * (max - min) + min;
                 data[i] = v;
             }
+
             return new Vector<float>(data);
         }
 
@@ -115,6 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
                 return true;
             }
+
             return false;
         }
 
@@ -216,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             float[] source = { 0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f };
 
-            ReadOnlySpan<byte> expected = source.Select(f => (byte)Math.Round(f)).ToArray();
+            var expected = source.Select(f => (byte)Math.Round(f)).ToArray();
 
             source = source.Select(f => f / 255f).ToArray();
 
@@ -265,6 +260,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             {
                 int actual = (int)r[i];
                 int expected = Re(v[i]);
+
                 Assert.Equal(expected, actual);
             }
         }

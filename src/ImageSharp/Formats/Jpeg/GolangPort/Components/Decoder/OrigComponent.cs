@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
@@ -235,6 +236,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
 
             this.SamplingFactors = new Size(h, v);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref Block8x8 GetBlockReference(int column, int row)
+        {
+            return ref this.SpectralBlocks[column, row];
         }
 
         public void Dispose()

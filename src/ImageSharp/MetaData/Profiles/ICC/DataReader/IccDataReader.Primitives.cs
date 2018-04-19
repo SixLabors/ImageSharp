@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public ushort ReadUInt16()
         {
-            return BinaryPrimitives.ReadUInt16BigEndian(new Span<byte>(this.data, this.AddIndex(2), 2));
+            return BinaryPrimitives.ReadUInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
         }
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public short ReadInt16()
         {
-            return BinaryPrimitives.ReadInt16BigEndian(new Span<byte>(this.data, this.AddIndex(2), 2));
+            return BinaryPrimitives.ReadInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public uint ReadUInt32()
         {
-            return BinaryPrimitives.ReadUInt32BigEndian(new Span<byte>(this.data, this.AddIndex(4), 4));
+            return BinaryPrimitives.ReadUInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public int ReadInt32()
         {
-            return BinaryPrimitives.ReadInt32BigEndian(new Span<byte>(this.data, this.AddIndex(4), 4));
+            return BinaryPrimitives.ReadInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public ulong ReadUInt64()
         {
-            return BinaryPrimitives.ReadUInt64BigEndian(new Span<byte>(this.data, this.AddIndex(8), 8));
+            return BinaryPrimitives.ReadUInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
         }
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public long ReadInt64()
         {
-            return BinaryPrimitives.ReadInt64BigEndian(new Span<byte>(this.data, this.AddIndex(8), 8));
+            return BinaryPrimitives.ReadInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
         }
 
         /// <summary>

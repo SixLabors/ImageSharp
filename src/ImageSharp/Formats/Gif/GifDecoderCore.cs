@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -238,15 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.currentStream.Read(this.buffer, 0, 6);
 
-            byte packed = this.buffer[1];
-
-            this.graphicsControlExtension = new GifGraphicsControlExtension
-            {
-                DelayTime = BitConverter.ToInt16(this.buffer, 2),
-                TransparencyIndex = this.buffer[4],
-                TransparencyFlag = (packed & 0x01) == 1,
-                DisposalMethod = (DisposalMethod)((packed & 0x1C) >> 2)
-            };
+            this.graphicsControlExtension = GifGraphicsControlExtension.Parse(this.buffer);
         }
 
         /// <summary>
@@ -257,20 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.currentStream.Read(this.buffer, 0, 9);
 
-            byte packed = this.buffer[8];
-
-            var imageDescriptor = new GifImageDescriptor
-            {
-                Left = BitConverter.ToInt16(this.buffer, 0),
-                Top = BitConverter.ToInt16(this.buffer, 2),
-                Width = BitConverter.ToInt16(this.buffer, 4),
-                Height = BitConverter.ToInt16(this.buffer, 6),
-                LocalColorTableFlag = ((packed & 0x80) >> 7) == 1,
-                LocalColorTableSize = 2 << (packed & 0x07),
-                InterlaceFlag = ((packed & 0x40) >> 6) == 1
-            };
-
-            return imageDescriptor;
+            return GifImageDescriptor.Parse(this.buffer);
         }
 
         /// <summary>
@@ -280,23 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             this.currentStream.Read(this.buffer, 0, 7);
 
-            byte packed = this.buffer[4];
-
-            this.logicalScreenDescriptor = new GifLogicalScreenDescriptor
-            {
-                Width = BitConverter.ToInt16(this.buffer, 0),
-                Height = BitConverter.ToInt16(this.buffer, 2),
-                BitsPerPixel = (this.buffer[4] & 0x07) + 1,  // The lowest 3 bits represent the bit depth minus 1
-                BackgroundColorIndex = this.buffer[5],
-                PixelAspectRatio = this.buffer[6],
-                GlobalColorTableFlag = ((packed & 0x80) >> 7) == 1,
-                GlobalColorTableSize = 2 << (packed & 0x07)
-            };
-
-            if (this.logicalScreenDescriptor.GlobalColorTableSize > 255 * 4)
-            {
-                throw new ImageFormatException($"Invalid gif colormap size '{this.logicalScreenDescriptor.GlobalColorTableSize}'");
-            }
+            this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
         }
 
         /// <summary>
@@ -389,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
         /// <param name="indices">The pixel array to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadFrameIndices(GifImageDescriptor imageDescriptor, Span<byte> indices)
+        private void ReadFrameIndices(in GifImageDescriptor imageDescriptor, Span<byte> indices)
         {
             int dataSize = this.currentStream.ReadByte();
             using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryManager, this.currentStream))
@@ -407,16 +370,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, Span<byte> colorTable, GifImageDescriptor descriptor)
+        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, Span<byte> colorTable, in GifImageDescriptor descriptor)
             where TPixel : struct, IPixel<TPixel>
         {
+            ref byte indicesRef = ref MemoryMarshal.GetReference(indices);
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
             ImageFrame<TPixel> prevFrame = null;
-
             ImageFrame<TPixel> currentFrame = null;
-
             ImageFrame<TPixel> imageFrame;
 
             if (previousFrame == null)
@@ -430,8 +392,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
             else
             {
-                if (this.graphicsControlExtension != null &&
-                    this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
+                if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToPrevious)
                 {
                     prevFrame = previousFrame;
                 }
@@ -479,7 +440,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
 
                     writeY = interlaceY + descriptor.Top;
-
                     interlaceY += interlaceIncrement;
                 }
                 else
@@ -487,22 +447,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     writeY = y;
                 }
 
-                Span<TPixel> rowSpan = imageFrame.GetPixelRowSpan(writeY);
-
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
                 var rgba = new Rgba32(0, 0, 0, 255);
 
                 // #403 The left + width value can be larger than the image width
-                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < rowSpan.Length; x++)
+                for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
                 {
-                    int index = indices[i];
+                    int index = Unsafe.Add(ref indicesRef, i);
 
-                    if (this.graphicsControlExtension == null ||
-                        this.graphicsControlExtension.TransparencyFlag == false ||
+                    if (this.graphicsControlExtension.TransparencyFlag == false ||
                         this.graphicsControlExtension.TransparencyIndex != index)
                     {
                         int indexOffset = index * 3;
 
-                        ref TPixel pixel = ref rowSpan[x];
+                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         rgba.Rgb = colorTable.GetRgb24(indexOffset);
 
                         pixel.PackFromRgba32(rgba);
@@ -520,8 +478,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             previousFrame = currentFrame ?? image.Frames.RootFrame;
 
-            if (this.graphicsControlExtension != null &&
-                this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
+            if (this.graphicsControlExtension.DisposalMethod == DisposalMethod.RestoreToBackground)
             {
                 this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
             }
@@ -553,15 +510,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetaData(ImageFrameMetaData meta)
         {
-            if (this.graphicsControlExtension != null)
+            if (this.graphicsControlExtension.DelayTime > 0)
             {
-                if (this.graphicsControlExtension.DelayTime > 0)
-                {
-                    meta.FrameDelay = this.graphicsControlExtension.DelayTime;
-                }
-
-                meta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+                meta.FrameDelay = this.graphicsControlExtension.DelayTime;
             }
+
+            meta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
         }
 
         /// <summary>

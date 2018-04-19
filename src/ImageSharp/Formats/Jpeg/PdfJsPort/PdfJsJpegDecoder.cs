@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
-    internal sealed class PdfJsJpegDecoder : IImageDecoder, IJpegDecoderOptions
+    internal sealed class PdfJsJpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -25,6 +25,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             using (var decoder = new PdfJsJpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
+            }
+        }
+
+        /// <inheritdoc/>
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            using (var decoder = new PdfJsJpegDecoderCore(configuration, this))
+            {
+                return decoder.Identify(stream);
             }
         }
     }

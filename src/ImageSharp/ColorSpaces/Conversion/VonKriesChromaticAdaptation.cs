@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion

@@ -1,26 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
-
-// ReSharper disable InconsistentNaming
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System.Collections.Generic;
-    using System.IO;
-
-    using SixLabors.ImageSharp.Formats.Bmp;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-    using SixLabors.Primitives;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class JpegEncoderTests
     {
         public static readonly TheoryData<JpegSubsample, int> BitsPerPixel_Quality =

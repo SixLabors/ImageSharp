@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[0, 0]);
 
-                background.DebugSave(provider, new[] { "Negative" });
+                background.DebugSave(provider, testOutputDetails: "Negative");
             }
         }
 
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[xy, xy]);
 
-                background.DebugSave(provider, new[] { "Positive" });
+                background.DebugSave(provider, testOutputDetails: "Positive");
             }
         }
     }

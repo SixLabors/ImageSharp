@@ -46,7 +46,7 @@
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void To<#=pixelType#>Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
         {
-            this.To<#=pixelType#>(sourceColors, destBytes.NonPortableCast<byte, <#=pixelType#>>(), count);
+            this.To<#=pixelType#>(sourceColors, MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes), count);
         }
 		<#
     }
@@ -88,7 +88,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void PackFrom<#=pixelType#>Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.PackFrom<#=pixelType#>(sourceBytes.NonPortableCast<byte, <#=pixelType#>>(), destPixels, count);
+            this.PackFrom<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes), destPixels, count);
         }
 		<#
     }
@@ -130,7 +130,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void PackFrom<#=pixelType#>Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
         {
-            this.PackFrom<#=pixelType#>(sourceBytes.NonPortableCast<byte, <#=pixelType#>>(), destPixels, count);
+            this.PackFrom<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes), destPixels, count);
         }
 		<#
     }

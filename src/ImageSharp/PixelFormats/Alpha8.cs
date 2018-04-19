@@ -120,7 +120,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToArgb32(ref Argb32 dest) {
-            dest.PackedValue = (uint)this.PackedValue << 24;
+            dest.R = 0;
+            dest.G = 0;
+            dest.B = 0;
+            dest.A = this.PackedValue;
         }
 
         /// <inheritdoc />

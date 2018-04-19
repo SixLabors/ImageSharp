@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the array data
+        /// Gets the array data.
         /// </summary>
         public byte[] Data { get; }
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }

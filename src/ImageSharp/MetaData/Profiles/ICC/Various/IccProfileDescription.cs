@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccProfileDescription && this.Equals((IccProfileDescription)obj);
+            return obj is IccProfileDescription other && this.Equals(other);
         }
 
         /// <inheritdoc />

@@ -10,7 +10,7 @@ using System.IO;
 using SixLabors.ImageSharp.Advanced;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
     using System.Collections.Generic;
 

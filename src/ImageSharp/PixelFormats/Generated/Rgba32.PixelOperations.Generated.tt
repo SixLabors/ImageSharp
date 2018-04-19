@@ -79,6 +79,9 @@ namespace SixLabors.ImageSharp.PixelFormats
     
     GeneratePackFromMethod("Bgra32", "dp = sp.ToRgba32();");
     GenerateConvertToMethod("Bgra32", "dp = sp.ToBgra32();");
+
+    GeneratePackFromMethod("Argb32", "dp = sp.ToRgba32();");
+    GenerateConvertToMethod("Argb32", "dp = sp.ToArgb32();");
 			#>
 
 		}

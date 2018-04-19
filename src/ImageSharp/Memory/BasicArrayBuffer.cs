@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public int Length { get; }
 
-        public Span<T> Span => new Span<T>(this.Array, 0, this.Length);
+        public Span<T> Span => this.Array.AsSpan(0, this.Length);
 
         /// <summary>
         /// Returns a reference to specified element of the buffer.

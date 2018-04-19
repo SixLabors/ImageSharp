@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 {
     using System.Linq;
     using System.Runtime.CompilerServices;
-
+    using System.Runtime.InteropServices;
     using SixLabors.ImageSharp.Common.Tuples;
 
     using Xunit.Abstractions;
@@ -238,14 +238,14 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private void MagicConvert(Span<float> source, Span<byte> dest)
         {
-            Vector<float> magick = new Vector<float>(32768.0f);
+            var magick = new Vector<float>(32768.0f);
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            Vector<float> x = source.NonPortableCast<float, Vector<float>>()[0];
+            Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
             
             x = (x * scale) + magick;
 
-            Tuple8.OfUInt32 ii = default(Tuple8.OfUInt32);
+            Tuple8.OfUInt32 ii = default;
 
             ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
 
@@ -253,7 +253,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             //Tuple8.OfUInt32 ii = Unsafe.As<Vector<float>, Tuple8.OfUInt32>(ref x);
             
-            ref Tuple8.OfByte d = ref dest.NonPortableCast<byte, Tuple8.OfByte>()[0];
+            ref Tuple8.OfByte d = ref MemoryMarshal.Cast<byte, Tuple8.OfByte>(dest)[0];
             d.LoadFrom(ref ii);
 
             this.Output.WriteLine(ii.ToString());

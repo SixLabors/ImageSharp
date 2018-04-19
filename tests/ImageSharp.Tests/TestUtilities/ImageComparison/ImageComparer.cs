@@ -117,10 +117,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> reports = comparer.CompareImages(expected, actual);
             if (reports.Any())
             {
-                List<ImageSimilarityReport<TPixelA, TPixelB>> cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
-                foreach (var r in reports)
+                var cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
+                foreach (ImageSimilarityReport<TPixelA, TPixelB> r in reports)
                 {
-                    var outsideChanges = r.Differences.Where(x => !(
+                    IEnumerable<PixelDifference> outsideChanges = r.Differences.Where(x => !(
                         ignoredRegion.X <= x.Position.X &&
                         x.Position.X <= ignoredRegion.Right &&
                         ignoredRegion.Y <= x.Position.Y &&

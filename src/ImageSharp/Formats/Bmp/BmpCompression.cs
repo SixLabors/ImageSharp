@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// Defines how the compression type of the image data
     /// in the bitmap file.
     /// </summary>
-    internal enum BmpCompression
+    internal enum BmpCompression : int
     {
         /// <summary>
         /// Each image row has a multiple of four elements. If the

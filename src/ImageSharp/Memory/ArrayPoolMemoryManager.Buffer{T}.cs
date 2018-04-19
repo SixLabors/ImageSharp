@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.Memory
             protected byte[] Data { get; private set; }
 
             /// <inheritdoc />
-            public Span<T> Span => this.Data.AsSpan().NonPortableCast<byte, T>().Slice(0, this.length);
+            public Span<T> Span => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
 
             /// <inheritdoc />
             public void Dispose()

@@ -81,16 +81,36 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return MemoryMarshal.Cast<byte, GifImageDescriptor>(buffer)[0];
         }
 
-        public static byte GetPackedValue(bool localColorTableFlag, bool interfaceFlag, bool sortFlag, int localColorTableSize)
+        public static byte GetPackedValue(bool localColorTableFlag, bool interfaceFlag, bool sortFlag, byte localColorTableSize)
         {
-            var field = default(PackedField);
+            /*
+            Local Color Table Flag     | 1 Bit
+            Interlace Flag             | 1 Bit
+            Sort Flag                  | 1 Bit
+            Reserved                   | 2 Bits
+            Size of Local Color Table  | 3 Bits
+            */
 
-            field.SetBit(0, localColorTableFlag);          // 0: Local color table flag = 1 (LCT used)
-            field.SetBit(1, interfaceFlag);                // 1: Interlace flag 0
-            field.SetBit(2, sortFlag);                     // 2: Sort flag 0
-            field.SetBits(5, 3, localColorTableSize - 1);  // 3-4: Reserved, 5-7 : LCT size. 2^(N+1)
+            byte value = 0;
 
-            return field.Byte;
+            if (localColorTableFlag)
+            {
+                value |= 1 << 7;
+            }
+
+            if (interfaceFlag)
+            {
+                value |= 1 << 6;
+            }
+
+            if (sortFlag)
+            {
+                value |= 1 << 5;
+            }
+
+            value |= (byte)(localColorTableSize - 1);
+
+            return value;
         }
     }
 }

@@ -4,50 +4,45 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
 
-// TODO: This is causing more GC collections than I'm happy with.
-// This is likely due to the number of short writes to the stream we are doing.
-// We should investigate reducing them since we know the length of the byte array we require for multiple parts.
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
-    /// Performs the gif encoding operation.
+    /// Implements the GIF encoding protocol.
     /// </summary>
     internal sealed class GifEncoderCore
     {
         private readonly MemoryManager memoryManager;
 
         /// <summary>
-        /// The temp buffer used to reduce allocations.
+        /// A reusable buffer used to reduce allocations.
         /// </summary>
-        private readonly byte[] buffer = new byte[16];
+        private readonly byte[] buffer = new byte[20];
 
         /// <summary>
-        /// Gets the TextEncoding
+        /// Gets the text encoding used to write comments.
         /// </summary>
         private readonly Encoding textEncoding;
 
         /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
+        /// Gets or sets the quantizer used to generate the color palette.
         /// </summary>
         private readonly IQuantizer quantizer;
 
         /// <summary>
-        /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
+        /// A flag indicating whether to ingore the metadata when writing the image.
         /// </summary>
         private readonly bool ignoreMetadata;
 
         /// <summary>
-        /// The number of bits requires to store the image palette.
+        /// The number of bits requires to store the color palette.
         /// </summary>
         private int bitDepth;
 
@@ -91,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.WriteLogicalScreenDescriptor(image, stream, index);
 
             // Write the first frame.
-            this.WriteComments(image, stream);
+            this.WriteComments(image.MetaData, stream);
 
             // Write additional frames.
             if (image.Frames.Count > 1)
@@ -133,7 +128,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
-            var trans = default(Rgba32);
+            Rgba32 trans = default;
+
             ref TPixel paletteRef = ref MemoryMarshal.GetReference(quantized.Palette.AsSpan());
             for (int i = quantized.Palette.Length - 1; i >= 0; i--)
             {
@@ -168,13 +164,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteLogicalScreenDescriptor<TPixel>(Image<TPixel> image, Stream stream, int transparencyIndex)
             where TPixel : struct, IPixel<TPixel>
         {
+            byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(false, this.bitDepth - 1, false, this.bitDepth - 1);
+
             var descriptor = new GifLogicalScreenDescriptor(
                 width: (ushort)image.Width,
                 height: (ushort)image.Height,
-                bitsPerPixel: 0,
-                pixelAspectRatio: 0,
-                globalColorTableFlag: false, // TODO: Always false for now.
-                globalColorTableSize: this.bitDepth - 1,
+                packed: packedValue,
                 backgroundColorIndex: unchecked((byte)transparencyIndex));
 
             descriptor.WriteTo(this.buffer);
@@ -196,40 +191,37 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.buffer[1] = GifConstants.ApplicationExtensionLabel;
                 this.buffer[2] = GifConstants.ApplicationBlockSize;
 
-                stream.Write(this.buffer, 0, 3);
+                // Write NETSCAPE2.0
+                GifConstants.ApplicationIdentificationBytes.AsSpan().CopyTo(this.buffer.AsSpan(3, 11));
 
-                stream.Write(GifConstants.ApplicationIdentificationBytes, 0, 11); // NETSCAPE2.0
-
-                this.buffer[0] = 3; // Application block length
-                this.buffer[1] = 1; // Data sub-block index (always 1)
+                // Application Data ----
+                this.buffer[14] = 3; // Application block length
+                this.buffer[15] = 1; // Data sub-block index (always 1)
 
                 // 0 means loop indefinitely. Count is set as play n + 1 times.
                 repeatCount = (ushort)Math.Max(0, repeatCount - 1);
 
-                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer.AsSpan(2, 2), repeatCount); // Repeat count for images.
+                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer.AsSpan(16, 2), repeatCount); // Repeat count for images.
 
-                this.buffer[4] = GifConstants.Terminator; // Terminator
+                this.buffer[18] = GifConstants.Terminator; // Terminator
 
-                stream.Write(this.buffer, 0, 5);
+                stream.Write(this.buffer, 0, 19);
             }
         }
 
         /// <summary>
         /// Writes the image comments to the stream.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to be encoded.</param>
+        /// <param name="metadata">The metadata to be extract the comment data.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteComments<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        private void WriteComments(ImageMetaData metadata, Stream stream)
         {
             if (this.ignoreMetadata)
             {
                 return;
             }
 
-            ImageProperty property = image.MetaData.Properties.FirstOrDefault(p => p.Name == GifConstants.Comments);
-            if (property == null || string.IsNullOrEmpty(property.Value))
+            if (!metadata.TryGetProperty(GifConstants.Comments, out ImageProperty property) || string.IsNullOrEmpty(property.Value))
             {
                 return;
             }
@@ -255,15 +247,33 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, Stream stream, int transparencyIndex)
         {
-            var extension = new GifGraphicsControlExtension(
+            byte packedValue = GifGraphicControlExtension.GetPackedValue(
                 disposalMethod: metaData.DisposalMethod,
-                transparencyFlag: transparencyIndex > -1,
+                transparencyFlag: transparencyIndex > -1);
+
+            var extension = new GifGraphicControlExtension(
+                packed: packedValue,
                 transparencyIndex: unchecked((byte)transparencyIndex),
                 delayTime: (ushort)metaData.FrameDelay);
 
-            extension.WriteTo(this.buffer);
+            this.WriteExtension(extension, stream);
+        }
 
-            stream.Write(this.buffer, 0, GifGraphicsControlExtension.Size);
+        /// <summary>
+        /// Writes the provided extension to the stream.
+        /// </summary>
+        /// <param name="extension">The extension to write to the stream.</param>
+        /// <param name="stream">The stream to write to.</param>
+        public void WriteExtension(IGifExtension extension, Stream stream)
+        {
+            this.buffer[0] = GifConstants.ExtensionIntroducer;
+            this.buffer[1] = extension.Label;
+
+            int extensionSize = extension.WriteTo(this.buffer.AsSpan(2));
+
+            this.buffer[extensionSize + 2] = GifConstants.Terminator;
+
+            stream.Write(this.buffer, 0, extensionSize + 3);
         }
 
         /// <summary>
@@ -279,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 localColorTableFlag: true,
                 interfaceFlag: false,
                 sortFlag: false,
-                localColorTableSize: this.bitDepth); // Note: we subtract 1 from the colorTableSize writing
+                localColorTableSize: (byte)this.bitDepth); // Note: we subtract 1 from the colorTableSize writing
 
             var descriptor = new GifImageDescriptor(
                 left: 0,
@@ -302,17 +312,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Grab the palette and write it to the stream.
             int pixelCount = image.Palette.Length;
 
-            // Get max colors for bit depth.
-            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3;
-            var rgb = default(Rgb24);
+            int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3; // The maximium number of colors for the bit depth
+            Rgb24 rgb = default;
+
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
                 ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
                 ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.Span));
-
                 for (int i = 0; i < pixelCount; i++)
                 {
                     ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);
@@ -320,6 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     Unsafe.Add(ref rgb24Ref, i) = rgb;
                 }
 
+                // Write the palette to the stream
                 stream.Write(colorTable.Array, 0, colorTableLength);
             }
         }

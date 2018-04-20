@@ -229,5 +229,19 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>The RGBA value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32 ToRgba32() => new Rgba32(this.R, this.G, this.B, this.A);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Argb32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32 ToArgb32() => new Argb32(this.R, this.G, this.B, this.A);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Bgra32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bgra32 ToBgra32() => this;
     }
 }

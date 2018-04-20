@@ -296,10 +296,24 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32 ToRgba32() => new Rgba32(this.R, this.G, this.B, this.A);
 
+        /// <summary>
+        /// Converts the pixel to <see cref="Bgra32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bgra32 ToBgra32() => new Bgra32(this.R, this.G, this.B, this.A);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Argb32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32 ToArgb32() => this;
+
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is Argb32 && this.Equals((Argb32)obj);
+            return obj is Argb32 argb32 && this.Equals(argb32);
         }
 
         /// <inheritdoc/>

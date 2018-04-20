@@ -88,26 +88,22 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void FromAndToHex()
         {
-            Rgba32 color = Rgba32.FromHex("#AABBCCDD");
+            // 8 digit hex matches css4 spec. RRGGBBAA
+            var color = Rgba32.FromHex("#AABBCCDD"); // 170, 187, 204, 221
             Assert.Equal(170, color.R);
             Assert.Equal(187, color.G);
             Assert.Equal(204, color.B);
             Assert.Equal(221, color.A);
 
-            color.A = 170;
-            color.B = 187;
-            color.G = 204;
-            color.R = 221;
-
-            Assert.Equal("DDCCBBAA", color.ToHex());
+            Assert.Equal("AABBCCDD", color.ToHex());
 
             color.R = 0;
 
-            Assert.Equal("00CCBBAA", color.ToHex());
+            Assert.Equal("00BBCCDD", color.ToHex());
 
             color.A = 255;
 
-            Assert.Equal("00CCBBFF", color.ToHex());
+            Assert.Equal("00BBCCFF", color.ToHex());
         }
 
         /// <summary>

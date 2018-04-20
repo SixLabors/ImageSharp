@@ -274,7 +274,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromBgra32(Bgra32 source)
         {
-            Pack(source.R, source.G, source.B, source.A);
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
         }
 
         /// <summary>
@@ -283,7 +286,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>A hexadecimal string representation of the value.</returns>
         public string ToHex()
         {
-            uint hexOrder = Pack(this.A, this.B, this.G, this.R);
+            uint hexOrder = (uint)(this.A << 0 | this.B << 8 | this.G << 16 | this.R << 24);
             return hexOrder.ToString("X8");
         }
 
@@ -364,10 +367,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>A <see cref="Bgra32"/> value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Bgra32 ToBgra32()
-        {
-            return new Bgra32(this.R, this.G, this.B, this.A);
-        }
+        public Bgra32 ToBgra32() => new Bgra32(this.R, this.G, this.B, this.A);
 
         /// <summary>
         /// Gets the value of this struct as <see cref="Argb32"/>.
@@ -375,10 +375,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>A <see cref="Argb32"/> value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Argb32 ToArgb32()
-        {
-            return new Argb32(this.R, this.G, this.B, this.A);
-        }
+        public Argb32 ToArgb32() => new Argb32(this.R, this.G, this.B, this.A);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Rgba32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rgba32 ToRgba32() => this;
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
@@ -418,20 +422,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal Vector4 ToByteScaledVector4()
         {
             return new Vector4(this.R, this.G, this.B, this.A);
-        }
-
-        /// <summary>
-        /// Packs the four floats into a <see cref="uint"/>.
-        /// </summary>
-        /// <param name="x">The x-component</param>
-        /// <param name="y">The y-component</param>
-        /// <param name="z">The z-component</param>
-        /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="uint"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint Pack(byte x, byte y, byte z, byte w)
-        {
-            return (uint)(x << RedShift | y << GreenShift | z << BlueShift | w << AlphaShift);
         }
 
         /// <summary>

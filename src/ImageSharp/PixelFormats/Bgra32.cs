@@ -75,16 +75,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Bgra
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return Unsafe.As<Bgra32, uint>(ref this);
-            }
+            get => Unsafe.As<Bgra32, uint>(ref this);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                Unsafe.As<Bgra32, uint>(ref this) = value;
-            }
+            set => Unsafe.As<Bgra32, uint>(ref this) = value;
         }
 
         /// <inheritdoc/>

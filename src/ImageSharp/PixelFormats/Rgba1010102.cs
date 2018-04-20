@@ -155,7 +155,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest) {
+        public void ToArgb32(ref Argb32 dest)
+        {
             Vector4 vector = this.ToVector4() * 255F;
             dest.R = (byte)MathF.Round(vector.X);
             dest.G = (byte)MathF.Round(vector.Y);

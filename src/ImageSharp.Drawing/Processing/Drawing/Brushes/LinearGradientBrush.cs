@@ -19,33 +19,6 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
     public class LinearGradientBrush<TPixel> : IBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// A struct that defines a single color stop.
-        /// </summary>
-        public struct ColorStop
-        {
-            /// <summary>
-            /// Create a new ColorStop
-            /// </summary>
-            /// <param name="ratio">Where should it be? 0 is at the start, 1 at the end of the <see cref="LinearGradientBrush{TPixel}"/>.</param>
-            /// <param name="color">What color should be used at that point?</param>
-            public ColorStop(float ratio, TPixel color)
-            {
-                this.Ratio = ratio;
-                this.Color = color;
-            }
-            
-            /// <summary>
-            /// The point along the defined <see cref="LinearGradientBrush{TPixel}" /> gradient axis.
-            /// </summary>
-            public float Ratio { get; }
-
-            /// <summary>
-            /// The color to be used.
-            /// </summary>
-            public TPixel Color { get; }
-        }
-        
         private readonly Point p1;
 
         private readonly Point p2;
@@ -72,6 +45,33 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
         /// <inheritdoc />
         public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
             => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.colorStops, region, options);
+
+        /// <summary>
+        /// A struct that defines a single color stop.
+        /// </summary>
+        public struct ColorStop
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ColorStop" /> struct.
+            /// </summary>
+            /// <param name="ratio">Where should it be? 0 is at the start, 1 at the end of the <see cref="LinearGradientBrush{TPixel}"/>.</param>
+            /// <param name="color">What color should be used at that point?</param>
+            public ColorStop(float ratio, TPixel color)
+            {
+                this.Ratio = ratio;
+                this.Color = color;
+            }
+
+            /// <summary>
+            /// Gets the point along the defined <see cref="LinearGradientBrush{TPixel}" /> gradient axis.
+            /// </summary>
+            public float Ratio { get; }
+
+            /// <summary>
+            /// Gets the color to be used.
+            /// </summary>
+            public TPixel Color { get; }
+        }
 
         /// <summary>
         /// The linear gradient brush applicator.

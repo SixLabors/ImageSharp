@@ -141,16 +141,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Argb
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return Unsafe.As<Argb32, uint>(ref this);
-            }
+            get => Unsafe.As<Argb32, uint>(ref this);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                Unsafe.As<Argb32, uint>(ref this) = value;
-            }
+            set => Unsafe.As<Argb32, uint>(ref this) = value;
         }
 
         /// <inheritdoc/>

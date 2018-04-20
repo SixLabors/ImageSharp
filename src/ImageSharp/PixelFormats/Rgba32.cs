@@ -161,16 +161,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Rgba
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return Unsafe.As<Rgba32, uint>(ref this);
-            }
+            get => Unsafe.As<Rgba32, uint>(ref this);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                Unsafe.As<Rgba32, uint>(ref this) = value;
-            }
+            set => Unsafe.As<Rgba32, uint>(ref this) = value;
         }
 
         /// <summary>
@@ -179,16 +173,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Rgb24 Rgb
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return Unsafe.As<Rgba32, Rgb24>(ref this);
-            }
+            get => Unsafe.As<Rgba32, Rgb24>(ref this);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                Unsafe.As<Rgba32, Rgb24>(ref this) = value;
-            }
+            set => Unsafe.As<Rgba32, Rgb24>(ref this) = value;
         }
 
         /// <summary>
@@ -197,10 +185,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Bgr24 Bgr
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return new Bgr24(this.R, this.G, this.B);
-            }
+            get => new Bgr24(this.R, this.G, this.B);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set

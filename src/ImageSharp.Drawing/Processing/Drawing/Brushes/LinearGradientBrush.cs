@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.Primitives;
@@ -49,6 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
         /// <summary>
         /// A struct that defines a single color stop.
         /// </summary>
+        [DebuggerDisplay("ColorStop({Ratio} -> {Color}")]
         public struct ColorStop
         {
             /// <summary>
@@ -152,8 +152,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             /// <summary>
             /// Gets the color for a single pixel
             /// </summary>
-            /// <param name="x">The x.</param>
-            /// <param name="y">The y.</param>
+            /// <param name="x">The x coordinate.</param>
+            /// <param name="y">The y coordinate.</param>
             internal override TPixel this[int x, int y]
             {
                 get

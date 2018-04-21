@@ -169,7 +169,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                     foreach (var colorStop in this.colorStops)
                     {
                         localGradientTo = colorStop;
-                        if (colorStop.Ratio >= onCompleteGradient)
+
+                        if (colorStop.Ratio > onCompleteGradient)
                         {
                             // we're done here, so break it!
                             break;

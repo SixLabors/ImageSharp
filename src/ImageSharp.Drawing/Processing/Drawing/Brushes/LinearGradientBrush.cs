@@ -105,19 +105,14 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             private readonly float acrossX;
 
             /// <summary>
-            /// helper to speed up calculation as these dont't change
+            /// the result of <see cref="alongX"/>^2 + <see cref="alongY"/>^2
             /// </summary>
-            private readonly float aYcX;
+            private readonly float alongsSquared;
 
             /// <summary>
-            /// helper to speed up calculation as these dont't change
+            /// the length of the defined gradient (between source and end)
             /// </summary>
-            private readonly float aXcY;
-
-            /// <summary>
-            /// helper to speed up calculation as these dont't change
-            /// </summary>
-            private readonly float aXcX;
+            private readonly float length;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="LinearGradientBrushApplicator" /> class.
@@ -142,17 +137,16 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 this.colorStops = colorStops; // TODO: requires colorStops to be sorted by Item1!
 
                 // the along vector:
-                this.alongX = this.start.X - this.end.X;
-                this.alongY = this.start.Y - this.end.Y;
+                this.alongX = this.end.X - this.start.X;
+                this.alongY = this.end.Y - this.start.Y;
 
                 // the cross vector:
                 this.acrossX = this.alongY;
                 this.acrossY = -this.alongX;
 
                 // some helpers:
-                this.aYcX = this.alongY * this.acrossX;
-                this.aXcY = this.alongX * this.acrossY;
-                this.aXcX = this.alongX * this.acrossX;
+                this.alongsSquared = (this.alongX * this.alongX) + (this.alongY * this.alongY);
+                this.length = (float)Math.Sqrt(this.alongsSquared);
             }
 
             /// <summary>
@@ -210,8 +204,33 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 
             private float RatioOnGradient(int x, int y)
             {
-                return ((x / this.acrossX) - (this.alongX * y / this.aYcX))
-                       / (1 - (this.aXcY / this.aXcX));
+                if (this.acrossX == 0)
+                {
+                    return (x - this.start.X) / (float)(this.end.X - this.start.X);
+                }
+                else if (this.acrossY == 0)
+                {
+                    return (y - this.start.Y) / (float)(this.end.Y - this.start.Y);
+                }
+                else
+                {
+                    float deltaX = x - this.start.X;
+                    float deltaY = y - this.start.Y;
+                    float k = ((this.alongY * deltaX) - (this.alongX * deltaY)) / this.alongsSquared;
+
+                    // point on the line:
+                    float x4 = x - (k * this.alongY);
+                    float y4 = y + (k * this.alongX);
+
+                    // get distance from (x4,y4) to start
+                    float distance = (float)Math.Sqrt(
+                        Math.Pow(x4 - this.start.X, 2)
+                        + Math.Pow(y4 - this.start.Y, 2));
+
+                    // get and return ratio
+                    float ratio = distance / this.length;
+                    return ratio;
+                }
             }
 
             internal override void Apply(Span<float> scanline, int x, int y)

@@ -123,5 +123,40 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
+        
+        [Theory]
+        [InlineData(0, 0, 499, 499)]
+        [InlineData(0, 499, 499, 0)]
+        [InlineData(499, 499, 0, 0)]
+        [InlineData(499, 0, 0, 499)]
+        public void DiagonalLinearGradientBrushReturnsUnicolorColumns(
+            int startX, int startY, int endX, int endY)
+        {
+            int size = 500;
+            int lastIndex = size - 1;
+            
+            
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
+            using (var image = new Image<Rgba32>(size, size))
+            {
+                LinearGradientBrush<Rgba32> unicolorLinearGradientBrush = 
+                    new LinearGradientBrush<Rgba32>(
+                        new SixLabors.Primitives.Point(startX, startY),
+                        new SixLabors.Primitives.Point(endX, endY),
+                        new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Red),
+                        new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Yellow));
+                
+                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                image.Save($"{path}/diagonalRedToYellowFrom{startX}_{startY}.png");
+
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                {
+                    // check first and last pixel, these are known:
+                    Assert.Equal(Rgba32.Red, sourcePixels[startX, startY]);
+                    Assert.Equal(Rgba32.Yellow, sourcePixels[endX, endY]);
+
+                }
+            }
+        }
     }
 }

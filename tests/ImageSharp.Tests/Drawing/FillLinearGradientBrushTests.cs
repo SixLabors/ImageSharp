@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void LinearGradientsWithDoubledStopsProduceDashedPatterns(
             float[] pattern)
         {
-            int width = 20;
+            int width = 200;
             int height = 10;
 
             // ensure the input data is valid

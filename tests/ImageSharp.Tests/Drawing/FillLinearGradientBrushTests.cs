@@ -18,12 +18,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void LinearGradientBrushWithEqualColorsReturnsUnicolorImage()
         {
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
-            using (var image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(10, 10))
             {
                 LinearGradientBrush<Rgba32> unicolorLinearGradientBrush = 
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
-                        new SixLabors.Primitives.Point(500, 0),
+                        new SixLabors.Primitives.Point(10, 0),
                         new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Red),
                         new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Red));
                 
@@ -34,8 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 {
                     Assert.Equal(Rgba32.Red, sourcePixels[0, 0]);
                     Assert.Equal(Rgba32.Red, sourcePixels[9, 9]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[199, 149]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[499, 499]);
+                    Assert.Equal(Rgba32.Red, sourcePixels[5, 5]);
+                    Assert.Equal(Rgba32.Red, sourcePixels[3, 8]);
                 }
             }
         }
@@ -44,9 +44,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void HorizontalLinearGradientBrushReturnsUnicolorColumns()
         {
             int width = 500;
-            int height = 500;
+            int height = 10;
             int lastColumnIndex = width - 1;
-            int lastRowIndex = height - 1;
             
             
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
@@ -60,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Yellow));
                 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.Save($"{path}/horizontalGradient.png");
+                image.Save($"{path}/horizontalRedToYellow.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {

@@ -61,18 +61,21 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
+                    Rgba32 columnColor0 = sourcePixels[0, 0];
                     Rgba32 columnColor23 = sourcePixels[23, 0];
                     Rgba32 columnColor42 = sourcePixels[42, 0];
                     Rgba32 columnColor333 = sourcePixels[333, 0];
 
+                    Rgba32 lastColumnColor = sourcePixels[lastColumnIndex, 0];
+
                     for (int i = 0; i < height; i++)
                     {
-                        // check first and last column, these are known:
-                        Assert.Equal(Rgba32.Red, sourcePixels[0, i]);
-                        Assert.Equal(Rgba32.Yellow, sourcePixels[lastColumnIndex, i]);
+                        // check first and last column:
+                        Assert.Equal(columnColor0, sourcePixels[0, i]);
+                        Assert.Equal(lastColumnColor, sourcePixels[lastColumnIndex, i]);
 
                         // check the random colors:
-                        Assert.Equal(columnColor23, sourcePixels[23, i]);
+                        Assert.True(columnColor23 == sourcePixels[23, i], $"at {i}");
                         Assert.Equal(columnColor42, sourcePixels[42, i]);
                         Assert.Equal(columnColor333, sourcePixels[333, i]);
                     }
@@ -150,15 +153,19 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
+                    Rgba32 firstRowColor = sourcePixels[0, 0];
+                    
                     Rgba32 columnColor23 = sourcePixels[0, 23];
                     Rgba32 columnColor42 = sourcePixels[0, 42];
                     Rgba32 columnColor333 = sourcePixels[0, 333];
 
+                    Rgba32 lastRowColor = sourcePixels[0, lastRowIndex];
+
                     for (int i = 0; i < width; i++)
                     {
                         // check first and last column, these are known:
-                        Assert.Equal(Rgba32.Red, sourcePixels[i, 0]);
-                        Assert.Equal(Rgba32.Yellow, sourcePixels[i, lastRowIndex]);
+                        Assert.Equal(firstRowColor, sourcePixels[i, 0]);
+                        Assert.Equal(lastRowColor, sourcePixels[i, lastRowIndex]);
 
                         // check the random colors:
                         Assert.Equal(columnColor23, sourcePixels[i, 23]);

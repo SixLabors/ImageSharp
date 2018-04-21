@@ -238,6 +238,11 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             {
                 base.Apply(scanline, x, y);
 
+                // TODO: we should at least(!) speed up the x=0 and y=0 special cases.
+                // But in fact that could be done by special case Applicators directly:
+                // - horizontal would apply a precalc. row independent of given row,
+                // - vertical would get the color of the row once and fill the whole line.
+
                 // Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
                 // MemoryManager memoryManager = this.Target.MemoryManager;
                 // using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))

@@ -1,8 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
+using System.Linq;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 
@@ -81,6 +80,54 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             }
         }
 
+        [Theory]
+        [InlineData(new[] { 0.5f })]
+        [InlineData(new[] { 0.2f, 0.4f, 0.6f, 0.8f })]
+        [InlineData(new[] { 0.1f, 0.3f, 0.6f })]
+        public void LinearGradientsWithDoubledStopsProduceDashedPatterns(
+            float[] pattern)
+        {
+            int width = 20;
+            int height = 10;
+            
+            // ensure the input data is valid
+            Assert.True(pattern.Length > 0);
+
+            // create the input pattern: 0, followed by each of the arguments twice, followed by 1.0 - toggling black and white.
+            LinearGradientBrush<Rgba32>.ColorStop[] colorStops =
+                Enumerable.Repeat(new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Black), 1)
+                .Concat(
+                        pattern
+                            .SelectMany((f, index) => new[]
+                                                      {
+                                                          new LinearGradientBrush<Rgba32>.ColorStop(f, index % 2 == 0 ? Rgba32.Black : Rgba32.White),
+                                                          new LinearGradientBrush<Rgba32>.ColorStop(f, index % 2 == 0 ? Rgba32.White : Rgba32.Black)
+                                                      }))
+                .Concat(Enumerable.Repeat(new LinearGradientBrush<Rgba32>.ColorStop(1, pattern.Length % 2 == 0 ? Rgba32.Black : Rgba32.White), 1))
+                .ToArray();
+
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
+            using (var image = new Image<Rgba32>(width, height))
+            {
+                LinearGradientBrush<Rgba32> unicolorLinearGradientBrush = 
+                    new LinearGradientBrush<Rgba32>(
+                        new SixLabors.Primitives.Point(0, 0),
+                        new SixLabors.Primitives.Point(width, 0),
+                        colorStops);
+
+                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                image.Save($"{path}/blackAndWhite{pattern[0]}.png");
+
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                {
+                    // the result must be a black and white pattern, no other color should occur:
+                    Assert.All(
+                        Enumerable.Range(0, width).Select(i => sourcePixels[i, 0]),
+                        color => Assert.True(color == Rgba32.Black || color == Rgba32.White));
+                }
+            }
+        }
+
         [Fact]
         public void VerticalLinearGradientBrushReturnsUnicolorColumns()
         {
@@ -131,7 +178,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             int startX, int startY, int endX, int endY)
         {
             int size = 500;
-            int lastIndex = size - 1;
 
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
             using (var image = new Image<Rgba32>(size, size))

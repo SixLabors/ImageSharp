@@ -81,5 +81,47 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
+        
+        [Fact]
+        public void VerticalLinearGradientBrushReturnsUnicolorColumns()
+        {
+            int width = 10;
+            int height = 500;
+            int lastRowIndex = height - 1;
+            
+            
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
+            using (var image = new Image<Rgba32>(width, height))
+            {
+                LinearGradientBrush<Rgba32> unicolorLinearGradientBrush = 
+                    new LinearGradientBrush<Rgba32>(
+                        new SixLabors.Primitives.Point(0, 0),
+                        new SixLabors.Primitives.Point(0, 500),
+                        new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Red),
+                        new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Yellow));
+                
+                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                image.Save($"{path}/verticalRedToYellow.png");
+
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                {
+                    Rgba32 columnColor23 = sourcePixels[0, 23];
+                    Rgba32 columnColor42 = sourcePixels[0, 42];
+                    Rgba32 columnColor333 = sourcePixels[0, 333];
+                    
+                    for (int i = 0; i < width; i++)
+                    {
+                        // check first and last column, these are known:
+                        Assert.Equal(Rgba32.Red, sourcePixels[i, 0]);
+                        Assert.Equal(Rgba32.Yellow, sourcePixels[i, lastRowIndex]);
+                        
+                        // check the random colors:
+                        Assert.Equal(columnColor23, sourcePixels[i, 23]);
+                        Assert.Equal(columnColor42, sourcePixels[i, 42]);
+                        Assert.Equal(columnColor333, sourcePixels[i, 333]);
+                    }
+                }
+            }
+        }
     }
 }

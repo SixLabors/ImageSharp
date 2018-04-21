@@ -46,8 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             int width = 500;
             int height = 10;
             int lastColumnIndex = width - 1;
-            
-            
+
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
             using (var image = new Image<Rgba32>(width, height))
             {
@@ -81,15 +80,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
-        
+
         [Fact]
         public void VerticalLinearGradientBrushReturnsUnicolorColumns()
         {
             int width = 10;
             int height = 500;
             int lastRowIndex = height - 1;
-            
-            
+
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
             using (var image = new Image<Rgba32>(width, height))
             {
@@ -99,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new SixLabors.Primitives.Point(0, 500),
                         new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Red),
                         new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Yellow));
-                
+
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.Save($"{path}/verticalRedToYellow.png");
 
@@ -108,13 +106,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     Rgba32 columnColor23 = sourcePixels[0, 23];
                     Rgba32 columnColor42 = sourcePixels[0, 42];
                     Rgba32 columnColor333 = sourcePixels[0, 333];
-                    
+
                     for (int i = 0; i < width; i++)
                     {
                         // check first and last column, these are known:
                         Assert.Equal(Rgba32.Red, sourcePixels[i, 0]);
                         Assert.Equal(Rgba32.Yellow, sourcePixels[i, lastRowIndex]);
-                        
+
                         // check the random colors:
                         Assert.Equal(columnColor23, sourcePixels[i, 23]);
                         Assert.Equal(columnColor42, sourcePixels[i, 42]);
@@ -123,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
-        
+
         [Theory]
         [InlineData(0, 0, 499, 499)]
         [InlineData(0, 499, 499, 0)]
@@ -134,8 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             int size = 500;
             int lastIndex = size - 1;
-            
-            
+
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
             using (var image = new Image<Rgba32>(size, size))
             {
@@ -145,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new SixLabors.Primitives.Point(endX, endY),
                         new LinearGradientBrush<Rgba32>.ColorStop(0, Rgba32.Red),
                         new LinearGradientBrush<Rgba32>.ColorStop(1, Rgba32.Yellow));
-                
+
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.Save($"{path}/diagonalRedToYellowFrom{startX}_{startY}.png");
 
@@ -155,16 +152,20 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     Assert.Equal(Rgba32.Red, sourcePixels[startX, startY]);
                     Assert.Equal(Rgba32.Yellow, sourcePixels[endX, endY]);
 
+                    for (int i = 0; i < size; i++)
+                    {
+                        // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
+                    }
                 }
             }
         }
-        
+
         [Theory]
         [InlineData("a", 0, 0, 499, 499, new[] { 0f, .2f, .5f, .9f }, new[] { 0, 0, 1, 1 })]
         [InlineData("b", 0, 499, 499, 0, new[] { 0f, 0.2f, 0.5f, 0.9f }, new[] { 0, 1, 2, 3 })]
         [InlineData("c", 499, 499, 0, 0, new[] { 0f, 0.7f, 0.8f, 0.9f}, new[] { 0, 1, 2, 0 })]
         [InlineData("d", 0, 0, 499, 499, new[] { 0f, .5f, 1f}, new[]{0, 1, 3})]
-        public void ArbitraryLinearGradientsProduceImages_VisualCheckOnly(
+        public void ArbitraryLinearGradientsProduceImagesVisualCheckOnly(
             string filenameSuffix,
             int startX, int startY,
             int endX, int endY,
@@ -178,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                                  Rgba32.Yellow,
                                  Rgba32.Red
                              };
-            
+
             var colorStops = new LinearGradientBrush<Rgba32>.ColorStop[stopPositions.Length];
             for (int i = 0; i < stopPositions.Length; i++)
             {
@@ -186,12 +187,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     stopPositions[i],
                     colors[stopColorCodes[i]]);
             }
-            
-            
+
             int size = 500;
-            int lastIndex = size - 1;
-            
-            
+
             string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
             using (var image = new Image<Rgba32>(size, size))
             {
@@ -200,17 +198,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new SixLabors.Primitives.Point(startX, startY),
                         new SixLabors.Primitives.Point(endX, endY),
                         colorStops);
-                
+
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.Save($"{path}/arbitraryGradient_{filenameSuffix}.png");
-
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    for (int i = 0; i < size; i++)
-                    {
-                        // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
-                    }
-                }
             }
         }
     }

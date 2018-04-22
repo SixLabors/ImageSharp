@@ -1,88 +1,48 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
+namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
 {
     /// <summary>
-    /// Provides an implementation of a brush for painting gradients within areas.
+    /// Provides an implementation of a brush for painting linear gradients within areas.
     /// Supported right now:
     /// - a set of colors in relative distances to each other.
-    /// - two points to gradient along.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    public class LinearGradientBrush<TPixel> : IBrush<TPixel>
+    public class LinearGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Point p1;
 
         private readonly Point p2;
 
-        private readonly ColorStop[] colorStops;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="LinearGradientBrush{TPixel}"/> class.
         /// </summary>
         /// <param name="p1">Start point</param>
         /// <param name="p2">End point</param>
-        /// <param name="colorStops">
-        ///     A set of color keys and where they are.
-        ///     The double should be in range [0..1] and is relative between p1 and p2.
-        ///     TODO: what about the [0..1] restriction? is it necessary? If so, it should be checked, if not, it should be explained what happens for greater/smaller values.
-        /// </param>
-        public LinearGradientBrush(Point p1, Point p2, params ColorStop[] colorStops)
+        /// <param name="colorStops"><inheritdoc /></param>
+        public LinearGradientBrush(Point p1, Point p2, params ColorStop<TPixel>[] colorStops)
+            : base(colorStops)
         {
             this.p1 = p1;
             this.p2 = p2;
-            this.colorStops = colorStops;
         }
 
         /// <inheritdoc />
-        public BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.colorStops, region, options);
-
-        /// <summary>
-        /// A struct that defines a single color stop.
-        /// </summary>
-        [DebuggerDisplay("ColorStop({Ratio} -> {Color}")]
-        public struct ColorStop
-        {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="ColorStop" /> struct.
-            /// </summary>
-            /// <param name="ratio">Where should it be? 0 is at the start, 1 at the end of the <see cref="LinearGradientBrush{TPixel}"/>.</param>
-            /// <param name="color">What color should be used at that point?</param>
-            public ColorStop(float ratio, TPixel color)
-            {
-                this.Ratio = ratio;
-                this.Color = color;
-            }
-
-            /// <summary>
-            /// Gets the point along the defined <see cref="LinearGradientBrush{TPixel}" /> gradient axis.
-            /// </summary>
-            public float Ratio { get; }
-
-            /// <summary>
-            /// Gets the color to be used.
-            /// </summary>
-            public TPixel Color { get; }
-        }
+        public override BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
+            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.ColorStops, region, options);
 
         /// <summary>
         /// The linear gradient brush applicator.
         /// </summary>
-        private class LinearGradientBrushApplicator : BrushApplicator<TPixel>
+        private class LinearGradientBrushApplicator : AbstractGradientBrushApplicator
         {
             private readonly Point start;
 
             private readonly Point end;
-
-            private readonly ColorStop[] colorStops;
 
             /// <summary>
             /// the vector along the gradient, x component
@@ -127,14 +87,13 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 ImageFrame<TPixel> source,
                 Point start,
                 Point end,
-                ColorStop[] colorStops,
-                RectangleF region, // TODO: use region, compare with other Brushes for reference.
+                ColorStop<TPixel>[] colorStops,
+                RectangleF region,
                 GraphicsOptions options)
-                : base(source, options)
+                : base(source, options, colorStops, region)
             {
                 this.start = start;
                 this.end = end;
-                this.colorStops = colorStops; // TODO: requires colorStops to be sorted by Item1!
 
                 // the along vector:
                 this.alongX = this.end.X - this.start.X;
@@ -149,61 +108,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 this.length = (float)Math.Sqrt(this.alongsSquared);
             }
 
-            /// <summary>
-            /// Gets the color for a single pixel
-            /// </summary>
-            /// <param name="x">The x coordinate.</param>
-            /// <param name="y">The y coordinate.</param>
-            internal override TPixel this[int x, int y]
-            {
-                get
-                {
-                    // the following formula is the result of the linear equation system that forms the vector.
-                    // TODO: this formula should be abstracted as it's the only difference between linear and radial gradient!
-                    float onCompleteGradient = this.RatioOnGradient(x, y);
-
-                    var localGradientFrom = this.colorStops[0];
-                    ColorStop localGradientTo = default;
-
-                    // TODO: ensure colorStops has at least 2 items (technically 1 would be okay, but that's no gradient)
-                    foreach (var colorStop in this.colorStops)
-                    {
-                        localGradientTo = colorStop;
-
-                        if (colorStop.Ratio > onCompleteGradient)
-                        {
-                            // we're done here, so break it!
-                            break;
-                        }
-
-                        localGradientFrom = localGradientTo;
-                    }
-
-                    TPixel resultColor = default;
-                    if (localGradientFrom.Color.Equals(localGradientTo.Color))
-                    {
-                        resultColor = localGradientFrom.Color;
-                    }
-                    else
-                    {
-                        var fromAsVector = localGradientFrom.Color.ToVector4();
-                        var toAsVector = localGradientTo.Color.ToVector4();
-                        float onLocalGradient = (onCompleteGradient - localGradientFrom.Ratio) / localGradientTo.Ratio; // TODO:
-
-                        Vector4 result = PorterDuffFunctions.Normal(
-                            fromAsVector,
-                            toAsVector,
-                            onLocalGradient);
-
-                        // TODO: when resultColor is a struct, what does PackFromVector4 do here?
-                        resultColor.PackFromVector4(result);
-                    }
-
-                    return resultColor;
-                }
-            }
-
-            private float RatioOnGradient(int x, int y)
+            protected override float PositionOnGradient(int x, int y)
             {
                 if (this.acrossX == 0)
                 {
@@ -234,6 +139,10 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 }
             }
 
+            public override void Dispose()
+            {
+            }
+
             internal override void Apply(Span<float> scanline, int x, int y)
             {
                 base.Apply(scanline, x, y);
@@ -256,11 +165,6 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 //
                 //     this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
                 // }
-            }
-
-            /// <inheritdoc />
-            public override void Dispose()
-            {
             }
         }
     }

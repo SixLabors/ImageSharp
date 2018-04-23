@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc/>
-        public virtual void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, Span<TPixel> quantizedPalette, out int quantizedPaletteLength)
+        public virtual void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, out TPixel[] quantizedPalette)
         {
             Guard.NotNull(image, nameof(image));
 
@@ -72,12 +72,8 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 this.FirstPass(image, width, height);
             }
 
-            // Collect the palette. Required before the second pass runs.
-            TPixel[] colorPalette = this.GetPalette();
-
-            quantizedPaletteLength = colorPalette.Length;
-
-            colorPalette.CopyTo(quantizedPalette);
+            // Collect the palette and return. Required before the second pass runs.
+            quantizedPalette = this.GetPalette();
 
             if (this.Dither)
             {

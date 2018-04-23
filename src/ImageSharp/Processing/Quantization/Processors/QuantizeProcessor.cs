@@ -39,13 +39,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.Processors
             IFrameQuantizer<TPixel> executor = this.Quantizer.CreateFrameQuantizer<TPixel>();
 
             IBuffer<byte> quantizedPixels = configuration.MemoryManager.Allocate<byte>(source.Width * source.Height);
-            IBuffer<TPixel> quantizedPaletteBuffer = configuration.MemoryManager.Allocate<TPixel>(256);
 
             try
             {
-                executor.QuantizeFrame(source, quantizedPixels.Span, quantizedPaletteBuffer.Span, out int quantizedPaletteLength);
+                executor.QuantizeFrame(source, quantizedPixels.Span, out TPixel[] quantizedPalette);
 
-                int paletteCount = quantizedPaletteLength - 1;
+                int paletteCount = quantizedPalette.Length - 1;
 
                 // Not parallel to remove "quantized" closure allocation.
                 // We can operate directly on the source here as we've already read it to get the
@@ -58,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.Processors
                     for (int x = 0; x < source.Width; x++)
                     {
                         int i = x + yy;
-                        TPixel color = quantizedPaletteBuffer.Span[Math.Min(paletteCount, quantizedPixels.Span[i])];
+                        TPixel color = quantizedPalette[Math.Min(paletteCount, quantizedPixels.Span[i])];
                         row[x] = color;
                     }
                 }
@@ -66,7 +65,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.Processors
             finally
             {
                 quantizedPixels.Dispose();
-                quantizedPaletteBuffer.Dispose();
             }
         }
     }

@@ -72,18 +72,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(stream, nameof(stream));
 
             IBuffer<byte> quantizedPixels = this.memoryManager.Allocate<byte>(image.Width * image.Height);
-            IBuffer<TPixel> quantizedPaletteBuffer = this.memoryManager.Allocate<TPixel>(256);
-            int quantizedPaletteLength;
 
             try
             {
                 // Quantize the image returning a palette.
-                this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame, quantizedPixels.Span, quantizedPaletteBuffer.Span, out quantizedPaletteLength);
+                this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame, quantizedPixels.Span, out TPixel[] quantizedPalette);
 
                 // Get the number of bits.
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantizedPaletteLength).Clamp(1, 8);
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantizedPalette.Length).Clamp(1, 8);
 
-                int index = this.GetTransparentIndex(quantizedPaletteBuffer.Slice(0, quantizedPaletteLength));
+                int index = this.GetTransparentIndex<TPixel>(quantizedPalette);
 
                 // Write the header.
                 this.WriteHeader(stream);
@@ -106,19 +104,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                     if (i > 0)
                     {
-                        this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels.Span, quantizedPaletteBuffer.Span, out quantizedPaletteLength);
+                        this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels.Span, out quantizedPalette);
                     }
 
-                    this.WriteGraphicalControlExtension(frame.MetaData, stream, this.GetTransparentIndex(quantizedPaletteBuffer.Slice(0, quantizedPaletteLength)));
+                    this.WriteGraphicalControlExtension(frame.MetaData, stream, this.GetTransparentIndex<TPixel>(quantizedPalette));
                     this.WriteImageDescriptor(frame, stream);
-                    this.WriteColorTable(quantizedPaletteBuffer.Slice(0, quantizedPaletteLength), stream);
+                    this.WriteColorTable<TPixel>(quantizedPalette, stream);
                     this.WriteImageData(quantizedPixels.Span, stream);
                 }
             }
             finally
             {
                 quantizedPixels.Dispose();
-                quantizedPaletteBuffer.Dispose();
             }
 
             // TODO: Write extension etc
@@ -135,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        private int GetTransparentIndex<TPixel>(Span<TPixel> palette)
+        private int GetTransparentIndex<TPixel>(ReadOnlySpan<TPixel> palette)
             where TPixel : struct, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
@@ -321,7 +318,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="palette">The palette to encode.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteColorTable<TPixel>(Span<TPixel> palette, Stream stream)
+        private void WriteColorTable<TPixel>(ReadOnlySpan<TPixel> palette, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             int pixelCount = palette.Length;

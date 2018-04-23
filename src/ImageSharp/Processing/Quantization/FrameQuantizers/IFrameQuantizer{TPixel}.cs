@@ -29,8 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// </summary>
         /// <param name="image">The image to quantize.</param>
         /// <param name="quantizedPixels">A buffer to write the quantized image pixels.</param>
-        /// <param name="quantizedPalette">A buffer to write the quantized image palette.</param>
-        /// <param name="quantizedPaletteLength">The length of the quantized palette.</param>
-        void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, Span<TPixel> quantizedPalette, out int quantizedPaletteLength);
+        /// <param name="quantizedPalette">The quantized image palette.</param>
+        void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, out TPixel[] quantizedPalette);
     }
 }

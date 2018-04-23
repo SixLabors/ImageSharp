@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        public override void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, Span<TPixel> quantizedPalette, out int quantizedPaletteLength)
+        public override void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, out TPixel[] quantizedPalette)
         {
             Guard.NotNull(image, nameof(image));
             MemoryManager memoryManager = image.MemoryManager;
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 this.m2 = memoryManager.AllocateClean<float>(TableLength);
                 this.tag = memoryManager.AllocateClean<byte>(TableLength);
 
-                base.QuantizeFrame(image, quantizedPixels, quantizedPalette, out quantizedPaletteLength);
+                base.QuantizeFrame(image, quantizedPixels, out quantizedPalette);
             }
             finally
             {

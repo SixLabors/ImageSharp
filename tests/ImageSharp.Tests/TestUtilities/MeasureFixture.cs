@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         private ITestOutputHelper Output { get; }
-        
+
         public void Dispose()
         {
             this.stopwatch.Stop();

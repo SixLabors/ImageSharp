@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
 using SixLabors.ImageSharp.Memory;
@@ -16,7 +17,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     internal class PdfJsFrameComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryManager memoryManager;
-#pragma warning disable SA1401 // Fields should be private
 
         public PdfJsFrameComponent(MemoryManager memoryManager, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.Id = id;
             this.HorizontalSamplingFactor = horizontalFactor;
             this.VerticalSamplingFactor = verticalFactor;
+            this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
             this.QuantizationTableIndex = quantizationTableIndex;
             this.Index = index;
         }
@@ -49,25 +50,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int VerticalSamplingFactor { get; }
 
-        Buffer2D<Block8x8> IJpegComponent.SpectralBlocks => throw new NotImplementedException();
+        /// <inheritdoc />
+        public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
 
-        // TODO: Should be derived from PdfJsComponent.Scale
-        public Size SubSamplingDivisors => throw new NotImplementedException();
+        /// <inheritdoc />
+        public Size SubSamplingDivisors { get; private set; }
 
         /// <inheritdoc />
         public int QuantizationTableIndex { get; }
 
-        /// <summary>
-        /// Gets the block data
-        /// </summary>
-        public IBuffer<short> BlockData { get; private set; }
-
         /// <inheritdoc />
         public int Index { get; }
 
-        public Size SizeInBlocks => new Size(this.WidthInBlocks, this.HeightInBlocks);
+        /// <inheritdoc />
+        public Size SizeInBlocks { get; private set; }
 
-        public Size SamplingFactors => new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+        /// <inheritdoc />
+        public Size SamplingFactors { get; set; }
 
         /// <summary>
         /// Gets the number of blocks per line
@@ -89,17 +88,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int ACHuffmanTableId { get; set; }
 
-        internal int BlocksPerLineForMcu { get; private set; }
-
-        internal int BlocksPerColumnForMcu { get; private set; }
-
         public PdfJsFrame Frame { get; }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.BlockData?.Dispose();
-            this.BlockData = null;
+            this.SpectralBlocks?.Dispose();
+            this.SpectralBlocks = null;
         }
 
         public void Init()
@@ -110,25 +105,43 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.HeightInBlocks = (int)MathF.Ceiling(
                 MathF.Ceiling(this.Frame.Scanlines / 8F) * this.VerticalSamplingFactor / this.Frame.MaxVerticalFactor);
 
-            this.BlocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
-            this.BlocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
+            int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
+            int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
+            this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
-            int blocksBufferSize = 64 * this.BlocksPerColumnForMcu * (this.BlocksPerLineForMcu + 1);
+            // For 4-component images (either CMYK or YCbCrK), we only support two
+            // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
+            // Theoretically, 4-component JPEG images could mix and match hv values
+            // but in practice, those two combinations are the only ones in use,
+            // and it simplifies the applyBlack code below if we can assume that:
+            // - for CMYK, the C and K channels have full samples, and if the M
+            // and Y channels subsample, they subsample both horizontally and
+            // vertically.
+            // - for YCbCrK, the Y and K channels have full samples.
+            if (this.Index == 0 || this.Index == 3)
+            {
+                this.SubSamplingDivisors = new Size(1, 1);
+            }
+            else
+            {
+                PdfJsFrameComponent c0 = this.Frame.Components[0];
+                this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
+            }
 
-            // Pooled. Disposed via frame disposal
-            this.BlockData = this.memoryManager.Allocate<short>(blocksBufferSize, true);
+            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, true);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref Block8x8 GetBlockReference(int column, int row)
+        {
+            int offset = ((this.WidthInBlocks + 1) * row) + column;
+            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.Span), offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetBlockBufferOffset(int row, int col)
         {
             return 64 * (((this.WidthInBlocks + 1) * row) + col);
-        }
-
-        public Span<short> GetBlockBuffer(int row, int col)
-        {
-            int offset = this.GetBlockBufferOffset(row, col);
-            return this.BlockData.Span.Slice(offset, 64);
         }
     }
 }

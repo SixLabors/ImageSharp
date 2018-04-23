@@ -1,13 +1,15 @@
-// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.PixelFormats;
-
-    using Xunit;
-
     public class GenericBlock8x8Tests
     {
         public static Image<TPixel> CreateTestImage<TPixel>()
@@ -20,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     for (int j = 0; j < 10; j++)
                     {
-                        var rgba = new Rgba32((byte)(i+1), (byte)(j+1), (byte)200, (byte)255);
+                        var rgba = new Rgba32((byte)(i + 1), (byte)(j + 1), (byte)200, (byte)255);
                         var color = default(TPixel);
                         color.PackFromRgba32(rgba);
 
@@ -107,11 +109,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 span[i] = new Rgb24((byte)i, (byte)(2 * i), (byte)(3 * i));
             }
 
-            Rgb24 expected00 = new Rgb24(0, 0, 0);
-            Rgb24 expected07 = new Rgb24(7, 14, 21);
-            Rgb24 expected11 = new Rgb24(9, 18, 27);
-            Rgb24 expected77 = new Rgb24(63, 126, 189);
-            Rgb24 expected67 = new Rgb24(62, 124, 186);
+            var expected00 = new Rgb24(0, 0, 0);
+            var expected07 = new Rgb24(7, 14, 21);
+            var expected11 = new Rgb24(9, 18, 27);
+            var expected77 = new Rgb24(63, 126, 189);
+            var expected67 = new Rgb24(62, 124, 186);
 
             Assert.Equal(expected00, block[0, 0]);
             Assert.Equal(expected07, block[7, 0]);

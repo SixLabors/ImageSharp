@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             public Block8x8* Block;
 
             /// <summary>
-            /// Pointer to <see cref="ComputationData.Unzig"/> as int*
+            /// Pointer to <see cref="ComputationData.Unzig"/> as byte*
             /// </summary>
-            public int* Unzig;
+            public byte* Unzig;
 
             /// <summary>
             /// Pointer to <see cref="ComputationData.ScanData"/> as Scan*

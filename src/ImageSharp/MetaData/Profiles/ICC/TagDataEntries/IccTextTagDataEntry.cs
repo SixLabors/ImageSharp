@@ -39,8 +39,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccTextTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccTextTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
@@ -72,7 +71,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccTextTagDataEntry && this.Equals((IccTextTagDataEntry)obj);
+            return obj is IccTextTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -80,7 +79,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Text != null ? this.Text.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Text?.GetHashCode() ?? 0);
             }
         }
     }

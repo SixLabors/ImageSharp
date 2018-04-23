@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccMultiProcessElementsTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccMultiProcessElementsTagDataEntry && this.Equals((IccMultiProcessElementsTagDataEntry)obj);
+            return obj is IccMultiProcessElementsTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.InputChannelCount;
                 hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ (this.Data != null ? this.Data.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Data?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

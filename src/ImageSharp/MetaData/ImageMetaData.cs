@@ -43,17 +43,15 @@ namespace SixLabors.ImageSharp.MetaData
         /// <param name="other">
         /// The other <see cref="ImageMetaData"/> to create this instance from.
         /// </param>
-        internal ImageMetaData(ImageMetaData other)
+        private ImageMetaData(ImageMetaData other)
         {
-            DebugGuard.NotNull(other, nameof(other));
-
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
             this.RepeatCount = other.RepeatCount;
 
             foreach (ImageProperty property in other.Properties)
             {
-                this.Properties.Add(new ImageProperty(property));
+                this.Properties.Add(property);
             }
 
             this.ExifProfile = other.ExifProfile != null
@@ -114,7 +112,6 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Gets the list of properties for storing meta information about this image.
         /// </summary>
-        /// <value>A list of image properties.</value>
         public IList<ImageProperty> Properties { get; } = new List<ImageProperty>();
 
         /// <summary>
@@ -122,6 +119,29 @@ namespace SixLabors.ImageSharp.MetaData
         /// <remarks>0 means to repeat indefinitely.</remarks>
         /// </summary>
         public ushort RepeatCount { get; set; }
+
+        /// <summary>
+        /// Looks up a property with the provided name.
+        /// </summary>
+        /// <param name="name">The name of the property to lookup.</param>
+        /// <param name="result">The property, if found, with the provided name.</param>
+        /// <returns>Whether the property was found.</returns>
+        internal bool TryGetProperty(string name, out ImageProperty result)
+        {
+            foreach (ImageProperty property in this.Properties)
+            {
+                if (property.Name == name)
+                {
+                    result = property;
+
+                    return true;
+                }
+            }
+
+            result = default;
+
+            return false;
+        }
 
         /// <summary>
         /// Clones this into a new instance

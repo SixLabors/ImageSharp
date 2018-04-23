@@ -1,25 +1,22 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
+using System;
+using System.IO;
+using System.Linq;
+using System.Numerics;
 
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-    using System.IO;
-    using System.Linq;
-    using System.Numerics;
-
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class JpegProfilingBenchmarks : MeasureFixture
     {
         public JpegProfilingBenchmarks(ITestOutputHelper output)
@@ -102,14 +99,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         tf => TestImageProvider<Rgba32>.File(tf, pixelTypeOverride: PixelTypes.Rgba32).GetImage())
                     .ToArray();
 
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 this.Measure(executionCount,
                     () =>
                     {
                         foreach (Image<Rgba32> img in testImages)
                         {
-                            JpegEncoder options = new JpegEncoder { Quality = quality, Subsample = subsample };
+                            var options = new JpegEncoder { Quality = quality, Subsample = subsample };
                             img.Save(ms, options);
                             ms.Seek(0, SeekOrigin.Begin);
                         }

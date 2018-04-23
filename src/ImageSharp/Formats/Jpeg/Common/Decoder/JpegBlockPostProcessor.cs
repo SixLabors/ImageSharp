@@ -47,9 +47,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             this.DequantiazationTable = ZigZag.CreateDequantizationTable(ref decoder.QuantizationTables[qtIndex]);
             this.subSamplingDivisors = component.SubSamplingDivisors;
 
-            this.SourceBlock = default(Block8x8F);
-            this.WorkspaceBlock1 = default(Block8x8F);
-            this.WorkspaceBlock2 = default(Block8x8F);
+            this.SourceBlock = default;
+            this.WorkspaceBlock1 = default;
+            this.WorkspaceBlock2 = default;
         }
 
         /// <summary>

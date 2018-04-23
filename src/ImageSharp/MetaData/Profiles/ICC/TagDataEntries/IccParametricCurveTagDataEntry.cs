@@ -39,8 +39,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccParametricCurveTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccParametricCurveTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
@@ -72,7 +71,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccParametricCurveTagDataEntry && this.Equals((IccParametricCurveTagDataEntry)obj);
+            return obj is IccParametricCurveTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -80,7 +79,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Curve != null ? this.Curve.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Curve?.GetHashCode() ?? 0);
             }
         }
     }

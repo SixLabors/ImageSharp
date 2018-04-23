@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
-
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -35,16 +35,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     internal sealed class LzwEncoder : IDisposable
     {
         /// <summary>
-        /// The end-of-file marker
-        /// </summary>
-        private const int Eof = -1;
-
-        /// <summary>
-        /// The maximum number of bits.
-        /// </summary>
-        private const int Bits = 12;
-
-        /// <summary>
         /// 80% occupancy
         /// </summary>
         private const int HashSize = 5003;
@@ -59,7 +49,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
         };
 
         /// <summary>
-        /// The working pixel array
+        /// The maximium number of bits/code.
+        /// </summary>
+        private const int MaxBits = 12;
+
+        /// <summary>
+        /// Should NEVER generate this code.
+        /// </summary>
+        private const int MaxMaxCode = 1 << MaxBits;
+
+        /// <summary>
+        /// The working pixel array.
         /// </summary>
         private readonly byte[] pixelArray;
 
@@ -84,22 +84,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] accumulators = new byte[256];
 
         /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
+        /// The current position within the pixelArray.
         /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second
-        /// time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose()
-        /// method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        private bool isDisposed;
-
-        /// <summary>
-        /// The current pixel
-        /// </summary>
-        private int currentPixel;
+        private int position;
 
         /// <summary>
         /// Number of bits/code
@@ -107,19 +94,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitCount;
 
         /// <summary>
-        /// User settable max # bits/code
-        /// </summary>
-        private int maxbits = Bits;
-
-        /// <summary>
         /// maximum code, given bitCount
         /// </summary>
-        private int maxcode;
-
-        /// <summary>
-        /// should NEVER generate this code
-        /// </summary>
-        private int maxmaxcode = 1 << Bits;
+        private int maxCode;
 
         /// <summary>
         /// For dynamic table sizing
@@ -212,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Write "initial code size" byte
             stream.WriteByte((byte)this.initialCodeSize);
 
-            this.currentPixel = 0;
+            this.position = 0;
 
             // Compress and write the pixel data
             this.Compress(this.initialCodeSize + 1, stream);
@@ -221,18 +198,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             stream.WriteByte(GifConstants.Terminator);
         }
 
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
-        }
-
         /// <summary>
-        /// Gets the maximum code value
+        /// Gets the maximum code value.
         /// </summary>
         /// <param name="bitCount">The number of bits</param>
         /// <returns>See <see cref="int"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetMaxcode(int bitCount)
         {
             return (1 << bitCount) - 1;
@@ -243,10 +214,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// flush the packet to disk.
         /// </summary>
         /// <param name="c">The character to add.</param>
+        /// <param name="accumulatorsRef">The reference to the storage for packat accumulators</param>
         /// <param name="stream">The stream to write to.</param>
-        private void AddCharacter(byte c, Stream stream)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void AddCharacter(byte c, ref byte accumulatorsRef, Stream stream)
         {
-            this.accumulators[this.accumulatorCount++] = c;
+            Unsafe.Add(ref accumulatorsRef, this.accumulatorCount++) = c;
             if (this.accumulatorCount >= 254)
             {
                 this.FlushPacket(stream);
@@ -254,9 +227,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        ///  Table clear for block compress
+        /// Table clear for block compress.
         /// </summary>
         /// <param name="stream">The output stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ClearBlock(Stream stream)
         {
             this.ResetCodeTable();
@@ -269,15 +243,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Reset the code table.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ResetCodeTable()
         {
             this.hashTable.Span.Fill(-1);
-
-            // Original code:
-            // for (int i = 0; i < size; ++i)
-            // {
-            //     this.hashTable[i] = -1;
-            // }
         }
 
         /// <summary>
@@ -293,13 +262,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int hsizeReg;
             int hshift;
 
-            // Set up the globals:  globalInitialBits - initial number of bits
+            // Set up the globals: globalInitialBits - initial number of bits
             this.globalInitialBits = intialBits;
 
             // Set up the necessary values
             this.clearFlag = false;
             this.bitCount = this.globalInitialBits;
-            this.maxcode = GetMaxcode(this.bitCount);
+            this.maxCode = GetMaxcode(this.bitCount);
 
             this.clearCode = 1 << (intialBits - 1);
             this.eofCode = this.clearCode + 1;
@@ -309,6 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             ent = this.NextPixel();
 
+            // TODO: PERF: It looks likt hshift could be calculated once statically.
             hshift = 0;
             for (fcode = this.hsize; fcode < 65536; fcode *= 2)
             {
@@ -323,22 +293,24 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.Output(this.clearCode, stream);
 
-            Span<int> hashTableSpan = this.hashTable.Span;
-            Span<int> codeTableSpan = this.codeTable.Span;
+            ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.Span);
+            ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.Span);
 
-            while ((c = this.NextPixel()) != Eof)
+            while (this.position < this.pixelArray.Length)
             {
-                fcode = (c << this.maxbits) + ent;
+                c = this.NextPixel();
+
+                fcode = (c << MaxBits) + ent;
                 int i = (c << hshift) ^ ent /* = 0 */;
 
-                if (hashTableSpan[i] == fcode)
+                if (Unsafe.Add(ref hashTableRef, i) == fcode)
                 {
-                    ent = codeTableSpan[i];
+                    ent = Unsafe.Add(ref codeTableRef, i);
                     continue;
                 }
 
                 // Non-empty slot
-                if (hashTableSpan[i] >= 0)
+                if (Unsafe.Add(ref hashTableRef, i) >= 0)
                 {
                     int disp = hsizeReg - i;
                     if (i == 0)
@@ -353,15 +325,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
                             i += hsizeReg;
                         }
 
-                        if (hashTableSpan[i] == fcode)
+                        if (Unsafe.Add(ref hashTableRef, i) == fcode)
                         {
-                            ent = codeTableSpan[i];
+                            ent = Unsafe.Add(ref codeTableRef, i);
                             break;
                         }
                     }
-                    while (hashTableSpan[i] >= 0);
+                    while (Unsafe.Add(ref hashTableRef, i) >= 0);
 
-                    if (hashTableSpan[i] == fcode)
+                    if (Unsafe.Add(ref hashTableRef, i) == fcode)
                     {
                         continue;
                     }
@@ -369,10 +341,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 this.Output(ent, stream);
                 ent = c;
-                if (this.freeEntry < this.maxmaxcode)
+                if (this.freeEntry < MaxMaxCode)
                 {
-                    codeTableSpan[i] = this.freeEntry++; // code -> hashtable
-                    hashTableSpan[i] = fcode;
+                    Unsafe.Add(ref codeTableRef, i) = this.freeEntry++; // code -> hashtable
+                    Unsafe.Add(ref hashTableRef, i) = fcode;
                 }
                 else
                 {
@@ -387,34 +359,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <summary>
-        /// Flush the packet to disk, and reset the accumulator.
+        /// Flush the packet to disk and reset the accumulator.
         /// </summary>
         /// <param name="outStream">The output stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void FlushPacket(Stream outStream)
         {
-            if (this.accumulatorCount > 0)
-            {
-                outStream.WriteByte((byte)this.accumulatorCount);
-                outStream.Write(this.accumulators, 0, this.accumulatorCount);
-                this.accumulatorCount = 0;
-            }
+            outStream.WriteByte((byte)this.accumulatorCount);
+            outStream.Write(this.accumulators, 0, this.accumulatorCount);
+            this.accumulatorCount = 0;
         }
 
         /// <summary>
-        /// Return the next pixel from the image
+        /// Reads the next pixel from the image.
         /// </summary>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int NextPixel()
         {
-            if (this.currentPixel == this.pixelArray.Length)
-            {
-                return Eof;
-            }
-
-            this.currentPixel++;
-            return this.pixelArray[this.currentPixel - 1] & 0xff;
+            return this.pixelArray[this.position++] & 0xff;
         }
 
         /// <summary>
@@ -424,6 +389,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="outs">The stream to write to.</param>
         private void Output(int code, Stream outs)
         {
+            ref byte accumulatorsRef = ref MemoryMarshal.GetReference(this.accumulators.AsSpan());
             this.currentAccumulator &= Masks[this.currentBits];
 
             if (this.currentBits > 0)
@@ -439,25 +405,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             while (this.currentBits >= 8)
             {
-                this.AddCharacter((byte)(this.currentAccumulator & 0xff), outs);
+                this.AddCharacter((byte)(this.currentAccumulator & 0xFF), ref accumulatorsRef, outs);
                 this.currentAccumulator >>= 8;
                 this.currentBits -= 8;
             }
 
             // If the next entry is going to be too big for the code size,
             // then increase it, if possible.
-            if (this.freeEntry > this.maxcode || this.clearFlag)
+            if (this.freeEntry > this.maxCode || this.clearFlag)
             {
                 if (this.clearFlag)
                 {
-                    this.maxcode = GetMaxcode(this.bitCount = this.globalInitialBits);
+                    this.maxCode = GetMaxcode(this.bitCount = this.globalInitialBits);
                     this.clearFlag = false;
                 }
                 else
                 {
                     ++this.bitCount;
-                    this.maxcode = this.bitCount == this.maxbits
-                        ? this.maxmaxcode
+                    this.maxCode = this.bitCount == MaxBits
+                        ? MaxMaxCode
                         : GetMaxcode(this.bitCount);
                 }
             }
@@ -467,33 +433,23 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // At EOF, write the rest of the buffer.
                 while (this.currentBits > 0)
                 {
-                    this.AddCharacter((byte)(this.currentAccumulator & 0xff), outs);
+                    this.AddCharacter((byte)(this.currentAccumulator & 0xFF), ref accumulatorsRef, outs);
                     this.currentAccumulator >>= 8;
                     this.currentBits -= 8;
                 }
 
-                this.FlushPacket(outs);
+                if (this.accumulatorCount > 0)
+                {
+                    this.FlushPacket(outs);
+                }
             }
         }
 
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        private void Dispose(bool disposing)
+        /// <inheritdoc />
+        public void Dispose()
         {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.hashTable?.Dispose();
-                this.codeTable?.Dispose();
-            }
-
-            this.isDisposed = true;
+            this.hashTable?.Dispose();
+            this.codeTable?.Dispose();
         }
     }
 }

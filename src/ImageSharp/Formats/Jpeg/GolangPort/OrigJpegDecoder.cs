@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
-            Guard.NotNull(stream, "stream");
+            Guard.NotNull(stream, nameof(stream));
 
             using (var decoder = new OrigJpegDecoderCore(configuration, this))
             {

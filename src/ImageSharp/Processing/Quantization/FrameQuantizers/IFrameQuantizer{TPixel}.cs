@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
 
@@ -27,9 +28,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// Quantize an image frame and return the resulting output pixels.
         /// </summary>
         /// <param name="image">The image to quantize.</param>
-        /// <returns>
-        /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the image pixels.
-        /// </returns>
-        QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
+        /// <param name="quantizedPixels">A buffer to write the quantized image pixels.</param>
+        /// <param name="quantizedPalette">A buffer to write the quantized image palette.</param>
+        /// <param name="quantizedPaletteLength">The length of the quantized palette.</param>
+        void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, Span<TPixel> quantizedPalette, out int quantizedPaletteLength);
     }
 }

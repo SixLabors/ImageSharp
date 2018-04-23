@@ -51,14 +51,18 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc/>
-        public virtual QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public virtual void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, Span<TPixel> quantizedPalette, out int quantizedPaletteLength)
         {
             Guard.NotNull(image, nameof(image));
+
+            if (quantizedPixels.Length != image.Width * image.Height)
+            {
+                throw new Exception($"Image size {image.Width * image.Height} must be the same as the quantizedPixels size {quantizedPixels.Length}.");
+            }
 
             // Get the size of the source image
             int height = image.Height;
             int width = image.Width;
-            byte[] quantizedPixels = new byte[width * height];
 
             // Call the FirstPass function if not a single pass algorithm.
             // For something like an Octree quantizer, this will run through
@@ -70,6 +74,10 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 
             // Collect the palette. Required before the second pass runs.
             TPixel[] colorPalette = this.GetPalette();
+
+            quantizedPaletteLength = colorPalette.Length;
+
+            colorPalette.CopyTo(quantizedPalette);
 
             if (this.Dither)
             {
@@ -83,8 +91,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             {
                 this.SecondPass(image, quantizedPixels, width, height);
             }
-
-            return new QuantizedFrame<TPixel>(width, height, colorPalette, quantizedPixels);
         }
 
         /// <summary>

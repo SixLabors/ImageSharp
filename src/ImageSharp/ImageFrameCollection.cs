@@ -9,10 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
-    /// <summary>
-    /// Encapsulates a collection of frames that make up an image.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <inheritdoc/>
     internal sealed class ImageFrameCollection<TPixel> : IImageFrameCollection<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {

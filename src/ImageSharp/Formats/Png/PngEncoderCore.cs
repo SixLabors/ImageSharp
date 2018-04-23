@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 quantizedPaletteBuffer = this.memoryManager.Allocate<TPixel>(256);
 
                 // Create quantized frame returning the palette and set the bit depth.
-                this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame, quantizedPixels.Span, quantizedPaletteBuffer.Span, out quantizedPaletteLength);
+                this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame, this.quantizedPixels.Span, quantizedPaletteBuffer.Span, out quantizedPaletteLength);
                 byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantizedPaletteLength).Clamp(1, 8);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk

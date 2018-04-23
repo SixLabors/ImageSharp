@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
-
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -43,19 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The pixel stack buffer.
         /// </summary>
         private readonly IBuffer<int> pixelStack;
-
-        /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
-        /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second
-        /// time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose()
-        /// method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
@@ -115,14 +102,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int data = 0;
             int first = 0;
 
-            Span<int> prefixSpan = this.prefix.Span;
-            Span<int> suffixSpan = this.suffix.Span;
-            Span<int> pixelStackSpan = this.pixelStack.Span;
+            ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.Span);
+            ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.Span);
+            ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.Span);
+            ref byte pixelsRef = ref MemoryMarshal.GetReference(pixels);
 
             for (code = 0; code < clearCode; code++)
             {
-                prefixSpan[code] = 0;
-                suffixSpan[code] = (byte)code;
+                Unsafe.Add(ref suffixRef, code) = (byte)code;
             }
 
             byte[] buffer = new byte[255];
@@ -176,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                     if (oldCode == NullCode)
                     {
-                        pixelStackSpan[top++] = suffixSpan[code];
+                        Unsafe.Add(ref pixelStackRef, top++) = Unsafe.Add(ref suffixRef, code);
                         oldCode = code;
                         first = code;
                         continue;
@@ -185,27 +172,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     int inCode = code;
                     if (code == availableCode)
                     {
-                        pixelStackSpan[top++] = (byte)first;
+                        Unsafe.Add(ref pixelStackRef, top++) = (byte)first;
 
                         code = oldCode;
                     }
 
                     while (code > clearCode)
                     {
-                        pixelStackSpan[top++] = suffixSpan[code];
-                        code = prefixSpan[code];
+                        Unsafe.Add(ref pixelStackRef, top++) = Unsafe.Add(ref suffixRef, code);
+                        code = Unsafe.Add(ref prefixRef, code);
                     }
 
-                    first = suffixSpan[code];
-
-                    pixelStackSpan[top++] = suffixSpan[code];
+                    int suffixCode = Unsafe.Add(ref suffixRef, code);
+                    first = suffixCode;
+                    Unsafe.Add(ref pixelStackRef, top++) = suffixCode;
 
                     // Fix for Gifs that have "deferred clear code" as per here :
                     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {
-                        prefixSpan[availableCode] = oldCode;
-                        suffixSpan[availableCode] = first;
+                        Unsafe.Add(ref prefixRef, availableCode) = oldCode;
+                        Unsafe.Add(ref suffixRef, availableCode) = first;
                         availableCode++;
                         if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                         {
@@ -221,15 +208,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 top--;
 
                 // Clear missing pixels
-                pixels[xyz++] = (byte)pixelStackSpan[top];
+                Unsafe.Add(ref pixelsRef, xyz++) = (byte)Unsafe.Add(ref pixelStackRef, top);
             }
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
         }
 
         /// <summary>
@@ -238,8 +218,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="buffer">The buffer to store the block in.</param>
         /// <returns>
-        /// The <see cref="T:byte[]"/>.
+        /// The <see cref="int"/>.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadBlock(byte[] buffer)
         {
             int bufferSize = this.stream.ReadByte();
@@ -252,25 +233,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return count != bufferSize ? 0 : bufferSize;
         }
 
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        private void Dispose(bool disposing)
+        /// <inheritdoc />
+        public void Dispose()
         {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.prefix?.Dispose();
-                this.suffix?.Dispose();
-                this.pixelStack?.Dispose();
-            }
-
-            this.isDisposed = true;
+            this.prefix.Dispose();
+            this.suffix.Dispose();
+            this.pixelStack.Dispose();
         }
     }
 }

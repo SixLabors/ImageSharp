@@ -489,7 +489,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             Block8x8F* tempDest1,
             Block8x8F* tempDest2,
             Block8x8F* quant,
-            int* unzigPtr)
+            byte* unzigPtr)
         {
             FastFloatingPointDCT.TransformFDCT(ref *src, ref *tempDest1, ref *tempDest2);
 

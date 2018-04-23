@@ -50,8 +50,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccScreeningTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccScreeningTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
@@ -85,7 +84,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccScreeningTagDataEntry && this.Equals((IccScreeningTagDataEntry)obj);
+            return obj is IccScreeningTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -95,7 +94,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ (int)this.Flags;
-                hashCode = (hashCode * 397) ^ (this.Channels != null ? this.Channels.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Channels?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

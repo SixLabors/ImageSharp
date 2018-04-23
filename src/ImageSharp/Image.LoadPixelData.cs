@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -71,7 +72,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, byte[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-            => LoadPixelData(config, new Span<byte>(data).NonPortableCast<byte, TPixel>(), width, height);
+            => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(data.AsSpan()), width, height);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array in <typeparamref name="TPixel"/> format.
@@ -84,7 +85,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         private static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-            => LoadPixelData(config, data.NonPortableCast<byte, TPixel>(), width, height);
+            => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the raw <typeparamref name="TPixel"/> data.
@@ -98,7 +99,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            return LoadPixelData(config, new Span<TPixel>(data), width, height);
+            return LoadPixelData(config, data.AsSpan(), width, height);
         }
 
         /// <summary>

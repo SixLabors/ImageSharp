@@ -41,8 +41,8 @@
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="System.Buffers" Version="4.4.0" />
-    <PackageReference Include="System.Memory" Version="4.5.0-preview1-26216-02" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0-preview1-26216-02" />
+    <PackageReference Include="System.Memory" Version="4.5.0-preview2-26406-04" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0-preview2-26406-04" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' OR '$(TargetFramework)' == 'netstandard1.3'">
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
@@ -85,9 +85,6 @@
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Formats\Jpeg\Common\Block8x8F.Generated.cs">

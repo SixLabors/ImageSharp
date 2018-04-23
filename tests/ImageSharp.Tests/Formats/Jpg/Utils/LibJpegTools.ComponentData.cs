@@ -39,9 +39,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public Size SubSamplingDivisors => throw new NotSupportedException();
 
             public int HeightInBlocks { get; }
-            
+
             public int WidthInBlocks { get; }
-            
+
             public int QuantizationTableIndex => throw new NotSupportedException();
 
             public Buffer2D<Block8x8> SpectralBlocks { get; private set; }
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public short MinVal { get; private set; } = short.MaxValue;
 
             public short MaxVal { get; private set; } = short.MinValue;
-            
+
             internal void MakeBlock(short[] data, int y, int x)
             {
                 this.MinVal = Math.Min((short)this.MinVal, data.Min());
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 {
                     for (int x = 0; x < result.WidthInBlocks; x++)
                     {
-                        short[] data = c.GetBlockBuffer(y, x).ToArray();
+                        short[] data = c.GetBlockReference(x, y).ToArray();
                         result.MakeBlock(data, y, x);
                     }
                 }
@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public Image<Rgba32> CreateGrayScaleImage()
             {
-                Image<Rgba32> result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
-                
+                var result = new Image<Rgba32>(this.WidthInBlocks * 8, this.HeightInBlocks * 8);
+
                 for (int by = 0; by < this.HeightInBlocks; by++)
                 {
                     for (int bx = 0; bx < this.WidthInBlocks; bx++)
@@ -114,15 +114,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             internal void WriteToImage(int bx, int by, Image<Rgba32> image)
             {
                 Block8x8 block = this.SpectralBlocks[bx, by];
-                
+
                 for (int y = 0; y < 8; y++)
                 {
                     for (int x = 0; x < 8; x++)
                     {
-                        var val = this.GetBlockValue(block, x, y);
+                        float val = this.GetBlockValue(block, x, y);
 
-                        Vector4 v = new Vector4(val, val, val, 1);
-                        Rgba32 color = default(Rgba32);
+                        var v = new Vector4(val, val, val, 1);
+                        Rgba32 color = default;
                         color.PackFromVector4(v);
 
                         int yy = by * 8 + y;
@@ -143,8 +143,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public bool Equals(ComponentData other)
             {
-                if (Object.ReferenceEquals(null, other)) return false;
-                if (Object.ReferenceEquals(this, other)) return true;
+                if (object.ReferenceEquals(null, other)) return false;
+                if (object.ReferenceEquals(this, other)) return true;
                 bool ok = this.Index == other.Index && this.HeightInBlocks == other.HeightInBlocks
                           && this.WidthInBlocks == other.WidthInBlocks;
                 //&& this.MinVal == other.MinVal
@@ -182,6 +182,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     hashCode = (hashCode * 397) ^ this.MaxVal.GetHashCode();
                     return hashCode;
                 }
+            }
+
+            public ref Block8x8 GetBlockReference(int column, int row)
+            {
+                throw new NotImplementedException();
             }
 
             public static bool operator ==(ComponentData left, ComponentData right)

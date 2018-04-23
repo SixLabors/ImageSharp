@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -119,9 +121,9 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                     configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-                        Span<float> ySpan = yBuffer.GetRowSpan(y);
-                        Span<float> xSpan = xBuffer.GetRowSpan(y);
+                        ref TPixel destRowRef = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
+                        ref float ySpanRef = ref MemoryMarshal.GetReference(yBuffer.GetRowSpan(y));
+                        ref float xSpanRef = ref MemoryMarshal.GetReference(xBuffer.GetRowSpan(y));
 
                         for (int x = 0; x < width; x++)
                         {
@@ -164,24 +166,24 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                             // I've optimized where I can but am always open to suggestions.
                             if (yScale > 1 && xScale > 1)
                             {
-                                CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ySpan);
-                                CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, xSpan);
+                                CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ref ySpanRef, yLength);
+                                CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, ref xSpanRef, xLength);
                             }
                             else
                             {
-                                CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ySpan);
-                                CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xSpan);
+                                CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ref ySpanRef);
+                                CalculateWeightsScaleUp(minX, maxX, point.X, sampler, ref xSpanRef);
                             }
 
                             // Now multiply the results against the offsets
                             Vector4 sum = Vector4.Zero;
                             for (int yy = 0, j = minY; j <= maxY; j++, yy++)
                             {
-                                float yWeight = ySpan[yy];
+                                float yWeight = Unsafe.Add(ref ySpanRef, yy);
 
                                 for (int xx = 0, i = minX; i <= maxX; i++, xx++)
                                 {
-                                    float xWeight = xSpan[xx];
+                                    float xWeight = Unsafe.Add(ref xSpanRef, xx);
                                     var vector = source[i, j].ToVector4();
 
                                     // Values are first premultiplied to prevent darkening of edge pixels
@@ -190,7 +192,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                                 }
                             }
 
-                            ref TPixel dest = ref destRow[x];
+                            ref TPixel dest = ref Unsafe.Add(ref destRowRef, x);
 
                             // Reverse the premultiplication
                             dest.PackFromVector4(sum.UnPremultiply());

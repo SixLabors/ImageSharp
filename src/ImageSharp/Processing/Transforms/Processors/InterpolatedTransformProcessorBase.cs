@@ -42,12 +42,12 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <param name="point">The transformed point dimension</param>
         /// <param name="sampler">The sampler</param>
         /// <param name="scale">The transformed image scale relative to the source</param>
-        /// <param name="weights">The collection of weights</param>
+        /// <param name="weightsRef">The reference to the collection of weights</param>
+        /// <param name="length">The length of the weights collection</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void CalculateWeightsDown(int min, int max, int sourceMin, int sourceMax, float point, IResampler sampler, float scale, Span<float> weights)
+        protected static void CalculateWeightsDown(int min, int max, int sourceMin, int sourceMax, float point, IResampler sampler, float scale, ref float weightsRef, int length)
         {
             float sum = 0;
-            ref float weightsBaseRef = ref weights[0];
 
             // Downsampling weights requires more edge sampling plus normalization of the weights
             for (int x = 0, i = min; i <= max; i++, x++)
@@ -65,14 +65,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 
                 float weight = sampler.GetValue((index - point) / scale);
                 sum += weight;
-                Unsafe.Add(ref weightsBaseRef, x) = weight;
+                Unsafe.Add(ref weightsRef, x) = weight;
             }
 
             if (sum > 0)
             {
-                for (int i = 0; i < weights.Length; i++)
+                for (int i = 0; i < length; i++)
                 {
-                    ref float wRef = ref Unsafe.Add(ref weightsBaseRef, i);
+                    ref float wRef = ref Unsafe.Add(ref weightsRef, i);
                     wRef = wRef / sum;
                 }
             }
@@ -85,15 +85,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <param name="sourceMax">The maximum source bounds</param>
         /// <param name="point">The transformed point dimension</param>
         /// <param name="sampler">The sampler</param>
-        /// <param name="weights">The collection of weights</param>
+        /// <param name="weightsRef">The reference to the collection of weights</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void CalculateWeightsScaleUp(int sourceMin, int sourceMax, float point, IResampler sampler, Span<float> weights)
+        protected static void CalculateWeightsScaleUp(int sourceMin, int sourceMax, float point, IResampler sampler, ref float weightsRef)
         {
-            ref float weightsBaseRef = ref weights[0];
             for (int x = 0, i = sourceMin; i <= sourceMax; i++, x++)
             {
                 float weight = sampler.GetValue(i - point);
-                Unsafe.Add(ref weightsBaseRef, x) = weight;
+                Unsafe.Add(ref weightsRef, x) = weight;
             }
         }
 

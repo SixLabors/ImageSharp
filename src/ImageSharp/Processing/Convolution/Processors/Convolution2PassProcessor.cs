@@ -110,7 +110,8 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 
                                 offsetX = offsetX.Clamp(0, maxX);
 
-                                Vector4 currentColor = row[offsetX].ToVector4().Premultiply();
+                                var currentColor = row[offsetX].ToVector4();
+                                currentColor = currentColor.Premultiply();
                                 destination += kernel[fy, fx] * currentColor;
                             }
                         }

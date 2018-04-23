@@ -28,8 +28,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_HunterLab_to_Xyz(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
-            HunterLab input = new HunterLab(l, a, b);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.C };
+            var input = new HunterLab(l, a, b);
+            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.C };
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
@@ -49,8 +49,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_HunterLab_to_Xyz_D65(float l, float a, float b, float x, float y, float z)
         {
             // Arrange
-            HunterLab input = new HunterLab(l, a, b);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var input = new HunterLab(l, a, b);
+            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
 
             // Act
             CieXyz output = converter.ToCieXyz(input);
@@ -70,8 +70,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_Xyz_D65_to_HunterLab(float x, float y, float z, float l, float a, float b)
         {
             // Arrange
-            CieXyz input = new CieXyz(x, y, z);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var input = new CieXyz(x, y, z);
+            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
 
             // Act
             HunterLab output = converter.ToHunterLab(input);

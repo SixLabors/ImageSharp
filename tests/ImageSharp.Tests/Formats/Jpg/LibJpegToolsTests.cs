@@ -1,12 +1,12 @@
+using System.IO;
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System.IO;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
-    using Xunit;
-
     public class LibJpegToolsTests
     {
         [Fact]

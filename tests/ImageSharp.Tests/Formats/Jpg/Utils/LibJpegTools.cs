@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
     /// <summary>
     /// Utilities to read raw libjpeg data for reference conversion.
     /// </summary>

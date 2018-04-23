@@ -1,6 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
@@ -13,6 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// All of the other integer values are stored in little-endian format
     /// (i.e. least-significant byte first).
     /// </remarks>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct BmpFileHeader
     {
         /// <summary>
@@ -44,12 +49,24 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Gets any reserved data; actual value depends on the application
         /// that creates the image.
         /// </summary>
-        public int Reserved { get;  }
+        public int Reserved { get; }
 
         /// <summary>
         /// Gets the offset, i.e. starting address, of the byte where
         /// the bitmap data can be found.
         /// </summary>
         public int Offset { get; }
+
+        public static BmpFileHeader Parse(Span<byte> data)
+        {
+            return MemoryMarshal.Cast<byte, BmpFileHeader>(data)[0];
+        }
+
+        public unsafe void WriteTo(Span<byte> buffer)
+        {
+            ref BmpFileHeader dest = ref Unsafe.As<byte, BmpFileHeader>(ref MemoryMarshal.GetReference(buffer));
+
+            dest = this;
+        }
     }
 }

@@ -112,6 +112,38 @@ namespace SixLabors.ImageSharp.PixelFormats
                 }
             }
 		
+			/// <inheritdoc />
+            internal override void PackFromArgb32(ReadOnlySpan<Argb32> source, Span<Rgba32> destPixels, int count)
+            {
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+
+                ref Argb32 sourceRef = ref MemoryMarshal.GetReference(source);
+                ref Rgba32 destRef = ref MemoryMarshal.GetReference(destPixels);
+
+                for (int i = 0; i < count; i++)
+                {
+                    ref Argb32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Rgba32 dp = ref Unsafe.Add(ref destRef, i);
+                    dp = sp.ToRgba32();
+                }
+            }
+		
+			/// <inheritdoc />
+            internal override void ToArgb32(ReadOnlySpan<Rgba32> sourcePixels, Span<Argb32> dest, int count)
+            {
+                GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+
+                ref Rgba32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref Argb32 destRef = ref MemoryMarshal.GetReference(dest);
+
+                for (int i = 0; i < count; i++)
+                {
+                    ref Rgba32 sp = ref Unsafe.Add(ref sourceRef, i);
+                    ref Argb32 dp = ref Unsafe.Add(ref destRef, i);
+                    dp = sp.ToArgb32();
+                }
+            }
+		
 		}
 	}
 }

@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Tests.IO
             string testData = Guid.NewGuid().ToString();
             File.WriteAllText(path, testData);
 
-            LocalFileSystem fs = new LocalFileSystem();
+            var fs = new LocalFileSystem();
 
-            using (StreamReader r = new StreamReader(fs.OpenRead(path)))
+            using (var r = new StreamReader(fs.OpenRead(path)))
             {
                 string data = r.ReadToEnd();
 
@@ -34,9 +34,9 @@ namespace SixLabors.ImageSharp.Tests.IO
         {
             string path = Path.GetTempFileName();
             string testData = Guid.NewGuid().ToString();
-            LocalFileSystem fs = new LocalFileSystem();
+            var fs = new LocalFileSystem();
 
-            using (StreamWriter r = new StreamWriter(fs.Create(path)))
+            using (var r = new StreamWriter(fs.Create(path)))
             {
                 r.Write(testData);
             }

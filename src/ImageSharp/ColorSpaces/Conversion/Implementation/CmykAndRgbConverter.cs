@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {

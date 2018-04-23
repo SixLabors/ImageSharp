@@ -1,24 +1,22 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
-
 // ReSharper disable InconsistentNaming
+
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+
+using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Text;
-
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class JpegFixture : MeasureFixture
     {
         public JpegFixture(ITestOutputHelper output) : base(output)
@@ -70,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         // ReSharper disable once InconsistentNaming
         public static int[] Create8x8RandomIntData(int minValue, int maxValue, int seed = 42)
         {
-            Random rnd = new Random(seed);
+            var rnd = new Random(seed);
             int[] result = new int[64];
             for (int i = 0; i < 8; i++)
             {
@@ -87,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
         public static float[] Create8x8RandomFloatData(float minValue, float maxValue, int seed = 42)
         {
-            Random rnd = new Random(seed);
+            var rnd = new Random(seed);
             float[] result = new float[64];
             for (int i = 0; i < 8; i++)
             {
@@ -132,12 +130,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             if (count < 0) count = data.Length;
 
-            StringBuilder bld = new StringBuilder();
+            var sb = new StringBuilder();
             for (int i = 0; i < count; i++)
             {
-                bld.Append($"{data[i],3} ");
+                sb.Append($"{data[i],3} ");
             }
-            this.Output.WriteLine(bld.ToString());
+            this.Output.WriteLine(sb.ToString());
         }
 
         protected void Print(string msg)
@@ -154,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
         internal void CompareBlocks(Span<float> a, Span<float> b, float tolerance)
         {
-            ApproximateFloatComparer comparer = new ApproximateFloatComparer(tolerance);
+            var comparer = new ApproximateFloatComparer(tolerance);
             double totalDifference = 0.0;
 
             bool failed = false;

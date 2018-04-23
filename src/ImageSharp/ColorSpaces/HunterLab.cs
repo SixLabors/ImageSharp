@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="HunterLab"/> that has L, A, B values set to zero.
         /// </summary>
-        public static readonly HunterLab Empty = default(HunterLab);
+        public static readonly HunterLab Empty = default;
 
         /// <summary>
         /// The backing vector for SIMD support.

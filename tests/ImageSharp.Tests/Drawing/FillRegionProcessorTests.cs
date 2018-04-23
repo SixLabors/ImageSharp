@@ -4,7 +4,7 @@
 using System.Numerics;
 
 using Moq;
-using Xunit;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
@@ -13,6 +13,8 @@ using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.Primitives;
+
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {

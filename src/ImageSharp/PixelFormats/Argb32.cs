@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
-    /// The color components are stored in alpha, red, green, and blue order.
+    /// The color components are stored in alpha, red, green, and blue order (least significant to most significant byte).
     /// <para>
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
@@ -141,16 +141,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Argb
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return Unsafe.As<Argb32, uint>(ref this);
-            }
+            get => Unsafe.As<Argb32, uint>(ref this);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                Unsafe.As<Argb32, uint>(ref this) = value;
-            }
+            set => Unsafe.As<Argb32, uint>(ref this) = value;
         }
 
         /// <inheritdoc/>
@@ -240,6 +234,16 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackedValue = source.PackedValue;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+            this.A = source.A;
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
@@ -292,10 +296,24 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32 ToRgba32() => new Rgba32(this.R, this.G, this.B, this.A);
 
+        /// <summary>
+        /// Converts the pixel to <see cref="Bgra32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Bgra32 ToBgra32() => new Bgra32(this.R, this.G, this.B, this.A);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Argb32"/> format.
+        /// </summary>
+        /// <returns>The RGBA value</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Argb32 ToArgb32() => this;
+
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is Argb32 && this.Equals((Argb32)obj);
+            return obj is Argb32 argb32 && this.Equals(argb32);
         }
 
         /// <inheritdoc/>

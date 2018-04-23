@@ -95,13 +95,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(source);
             ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-            var rgba = new Rgba32(0, 0, 0, 255);
+            var bgra = new Bgra32(0, 0, 0, 255);
 
             for (int i = 0; i < count; i++)
             {
                 ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                rgba = Unsafe.Add(ref sourceRef, i).ToRgba32();
-                dp.PackFromRgba32(rgba);
+                bgra = Unsafe.Add(ref sourceRef, i);
+                dp.PackFromBgra32(bgra);
             }
         }
 		

@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             if (this.pngColorType == PngColorType.Palette)
             {
-                quantizedPixels = this.memoryManager.Allocate<byte>(image.Width * image.Height);
+                this.quantizedPixels = this.memoryManager.Allocate<byte>(image.Width * image.Height);
                 quantizedPaletteBuffer = this.memoryManager.Allocate<TPixel>(256);
 
                 // Create quantized frame returning the palette and set the bit depth.
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Collect the indexed pixel data
             if (this.pngColorType == PngColorType.Palette)
             {
-                this.WritePaletteChunk(stream, header, quantizedPixels.Span, quantizedPaletteBuffer.Span.Slice(0, quantizedPaletteLength));
+                this.WritePaletteChunk(stream, header, this.quantizedPixels.Span, quantizedPaletteBuffer.Span.Slice(0, quantizedPaletteLength));
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -222,8 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteEndChunk(stream);
             stream.Flush();
 
-            quantizedPixels?.Dispose();
-            quantizedPaletteBuffer?.Dispose();
+            this.quantizedPixels?.Dispose();
         }
 
         /// <inheritdoc />

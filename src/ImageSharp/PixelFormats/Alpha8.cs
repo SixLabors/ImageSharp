@@ -99,7 +99,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromArgb32(Argb32 source) {
+        public void PackFromArgb32(Argb32 source)
+        {
+            this.PackedValue = source.A;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
             this.PackedValue = source.A;
         }
 
@@ -122,7 +130,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest) {
+        public void ToArgb32(ref Argb32 dest)
+        {
             dest.R = 0;
             dest.G = 0;
             dest.B = 0;

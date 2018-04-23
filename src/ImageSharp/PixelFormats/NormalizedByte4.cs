@@ -144,7 +144,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromArgb32(Argb32 source) {
+        public void PackFromArgb32(Argb32 source)
+        {
+            Vector4 vector = source.ToByteScaledVector4();
+            vector -= Round;
+            vector -= Half;
+            vector -= Round;
+            vector /= Half;
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
             Vector4 vector = source.ToByteScaledVector4();
             vector -= Round;
             vector -= Half;
@@ -176,7 +189,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToArgb32(ref Argb32 dest) {
+        public void ToArgb32(ref Argb32 dest)
+        {
             Vector4 vector = this.ToByteScaledVector4();
             dest.R = (byte)vector.X;
             dest.G = (byte)vector.Y;

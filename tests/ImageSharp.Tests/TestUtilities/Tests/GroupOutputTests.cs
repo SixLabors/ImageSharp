@@ -1,12 +1,11 @@
-﻿// ReSharper disable InconsistentNaming
+﻿using System.IO;
+
+using SixLabors.ImageSharp.PixelFormats;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.IO;
-
-    using SixLabors.ImageSharp.PixelFormats;
-
-    using Xunit;
-
     [GroupOutput("Foo")]
     public class GroupOutputTests
     {
@@ -17,9 +16,9 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.Equal("Foo", provider.Utility.OutputSubfolderName);
         }
-        
+
         [Theory]
-        [WithBlankImages(1,1, PixelTypes.Rgba32)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
         public void GetTestOutputDir_ShouldDefineSubfolder<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

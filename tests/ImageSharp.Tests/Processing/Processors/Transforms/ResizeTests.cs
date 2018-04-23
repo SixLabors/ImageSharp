@@ -2,18 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Transforms;
 using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
-using Xunit;
 
-// ReSharper disable InconsistentNaming
+using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Transforms;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
     public class ResizeTests : FileTestBase
     {
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };

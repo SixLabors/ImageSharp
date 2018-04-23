@@ -116,7 +116,6 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-
         [Theory]
         [WithFile(TestImages.Bmp.F, PixelTypes.Rgba32)]
         public void GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache<TPixel>(TestImageProvider<TPixel> provider)
@@ -124,20 +123,19 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
 
-            TestDecoder.DoTestThreadSafe(
-                () =>
-                    {
-                        string testName = nameof(this.GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache);
+            TestDecoder.DoTestThreadSafe(() =>
+            {
+                string testName = nameof(this.GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache);
 
-                        var decoder = new TestDecoder();
-                        decoder.InitCaller(testName);
+                var decoder = new TestDecoder();
+                decoder.InitCaller(testName);
 
-                        provider.GetImage(decoder);
-                        Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
+                provider.GetImage(decoder);
+                Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
 
-                        provider.GetImage(decoder);
-                        Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
-                    });
+                provider.GetImage(decoder);
+                Assert.Equal(1, TestDecoder.GetInvocationCount(testName));
+            });
         }
 
         private class TestDecoderWithParameters : IImageDecoder
@@ -183,24 +181,23 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
 
-            TestDecoderWithParameters.DoTestThreadSafe(
-                () =>
-                    {
-                        string testName =
-                            nameof(this.GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
+            TestDecoderWithParameters.DoTestThreadSafe(() =>
+            {
+                string testName =
+                    nameof(this.GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual);
 
-                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
-                        decoder1.InitCaller(testName);
+                var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                decoder1.InitCaller(testName);
 
-                        var decoder2 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
-                        decoder2.InitCaller(testName);
+                var decoder2 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 666 };
+                decoder2.InitCaller(testName);
 
-                        provider.GetImage(decoder1);
-                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+                provider.GetImage(decoder1);
+                Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
 
-                        provider.GetImage(decoder2);
-                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
-                    });
+                provider.GetImage(decoder2);
+                Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+            });
         }
 
         [Theory]
@@ -210,24 +207,23 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
 
-            TestDecoderWithParameters.DoTestThreadSafe(
-                () =>
-                    {
-                        string testName =
-                            nameof(this.GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
+            TestDecoderWithParameters.DoTestThreadSafe(() =>
+            {
+                string testName =
+                    nameof(this.GetImage_WithCustomParametricDecoder_ShouldNotUtilizeCache_WhenParametersAreNotEqual);
 
-                        var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 42 };
-                        decoder1.InitCaller(testName);
+                var decoder1 = new TestDecoderWithParameters() { Param1 = "Lol", Param2 = 42 };
+                decoder1.InitCaller(testName);
 
-                        var decoder2 = new TestDecoderWithParameters() { Param1 = "LoL", Param2 = 42 };
-                        decoder2.InitCaller(testName);
+                var decoder2 = new TestDecoderWithParameters() { Param1 = "LoL", Param2 = 42 };
+                decoder2.InitCaller(testName);
 
-                        provider.GetImage(decoder1);
-                        Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
+                provider.GetImage(decoder1);
+                Assert.Equal(1, TestDecoderWithParameters.GetInvocationCount(testName));
 
-                        provider.GetImage(decoder2);
-                        Assert.Equal(2, TestDecoderWithParameters.GetInvocationCount(testName));
-                    });
+                provider.GetImage(decoder2);
+                Assert.Equal(2, TestDecoderWithParameters.GetInvocationCount(testName));
+            });
         }
 
 

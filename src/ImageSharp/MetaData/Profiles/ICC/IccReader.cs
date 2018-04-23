@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         private IccTagDataEntry[] ReadTagData(IccDataReader reader)
         {
             IccTagTableEntry[] tagTable = this.ReadTagTable(reader);
-            IccTagDataEntry[] entries = new IccTagDataEntry[tagTable.Length];
+            var entries = new IccTagDataEntry[tagTable.Length];
             var store = new Dictionary<uint, IccTagDataEntry>();
             for (int i = 0; i < tagTable.Length; i++)
             {
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             reader.SetIndex(128);   // An ICC header is 128 bytes long
 
             uint tagCount = reader.ReadUInt32();
-            IccTagTableEntry[] table = new IccTagTableEntry[tagCount];
+            var table = new IccTagTableEntry[tagCount];
 
             for (int i = 0; i < tagCount; i++)
             {

@@ -1,10 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-
     public class ImageDifferenceIsOverThresholdException : ImagesSimilarityException
     {
         public ImageSimilarityReport[] Reports { get; }
@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
         private static string StringifyReports(IEnumerable<ImageSimilarityReport> reports)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
+
             sb.Append(Environment.NewLine);
 
             int i = 0;

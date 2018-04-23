@@ -28,8 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         [InlineData(0, 0, 0, 0.538842, 0.000000, 0.000000)]
         public void Convert_xyY_to_XYZ(float xyzX, float xyzY, float xyzZ, float x, float y, float yl)
         {
-            // Arrange
-            CieXyy input = new CieXyy(x, y, yl);
+            var input = new CieXyy(x, y, yl);
 
             // Act
             CieXyz output = Converter.ToCieXyz(input);
@@ -47,8 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         [InlineData(0.231809, 0, 0.077528, 0.749374, 0.000000, 0.000000)]
         public void Convert_XYZ_to_xyY(float xyzX, float xyzY, float xyzZ, float x, float y, float yl)
         {
-            // Arrange
-            CieXyz input = new CieXyz(xyzX, xyzY, xyzZ);
+            var input = new CieXyz(xyzX, xyzY, xyzZ);
 
             // Act
             CieXyy output = Converter.ToCieXyy(input);

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="Lms"/> that has L, M, and S values set to zero.
         /// </summary>
-        public static readonly Lms Empty = default(Lms);
+        public static readonly Lms Empty = default;
 
         /// <summary>
         /// The backing vector for SIMD support.

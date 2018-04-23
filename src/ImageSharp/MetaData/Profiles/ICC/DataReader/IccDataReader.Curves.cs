@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The curve data</returns>
         private IccTagDataEntry[] ReadCurves(int count)
         {
-            IccTagDataEntry[] tdata = new IccTagDataEntry[count];
+            var tdata = new IccTagDataEntry[count];
             for (int i = 0; i < count; i++)
             {
                 IccTypeSignature type = this.ReadTagDataEntryHeader();

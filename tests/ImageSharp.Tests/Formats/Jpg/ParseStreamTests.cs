@@ -1,4 +1,7 @@
-using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Text;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
@@ -6,14 +9,12 @@ using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.Primitives;
+
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System.Text;
-
     public class ParseStreamTests
     {
         private ITestOutputHelper Output { get; }
@@ -65,19 +66,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Cmyk)]
         public void PrintComponentData(string imageFile)
         {
-            StringBuilder bld = new StringBuilder();
+            var sb = new StringBuilder();
 
             using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
             {
-                bld.AppendLine(imageFile);
-                bld.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
+                sb.AppendLine(imageFile);
+                sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
                 OrigComponent c0 = decoder.Components[0];
                 OrigComponent c1 = decoder.Components[1];
 
-                bld.AppendLine($"Luma: SAMP: {c0.SamplingFactors} BLOCKS: {c0.SizeInBlocks}");
-                bld.AppendLine($"Chroma: {c1.SamplingFactors} BLOCKS: {c1.SizeInBlocks}");
+                sb.AppendLine($"Luma: SAMP: {c0.SamplingFactors} BLOCKS: {c0.SizeInBlocks}");
+                sb.AppendLine($"Chroma: {c1.SamplingFactors} BLOCKS: {c1.SizeInBlocks}");
             }
-            this.Output.WriteLine(bld.ToString());
+            this.Output.WriteLine(sb.ToString());
         }
 
         public static readonly TheoryData<string, int, object, object> ComponentVerificationData = new TheoryData<string, int, object, object>()

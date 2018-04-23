@@ -1,19 +1,20 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters;
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters;
-
     public class JpegColorConverterTests
     {
         private const float Precision = 0.1f / 255;
@@ -69,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void FromYCbCrSimd_ConvertCore(int size, int seed)
         {
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, size, seed);
-            Vector4[] result = new Vector4[size];
+            var result = new Vector4[size];
 
             JpegColorConverter.FromYCbCrSimd.ConvertCore(values, result);
 
@@ -134,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int times = 50000;
 
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
-            Vector4[] result = new Vector4[count];
+            var result = new Vector4[count];
 
             JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimd() : new JpegColorConverter.FromYCbCrBasic();
 
@@ -159,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var converter = JpegColorConverter.GetConverter(JpegColorSpace.Cmyk);
             JpegColorConverter.ComponentValues values = CreateRandomValues(4, inputBufferLength, seed);
-            Vector4[] result = new Vector4[resultBufferLength];
+            var result = new Vector4[resultBufferLength];
 
             converter.ConvertToRGBA(values, result);
 
@@ -192,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var converter = JpegColorConverter.GetConverter(JpegColorSpace.Grayscale);
             JpegColorConverter.ComponentValues values = CreateRandomValues(1, inputBufferLength, seed);
-            Vector4[] result = new Vector4[resultBufferLength];
+            var result = new Vector4[resultBufferLength];
 
             converter.ConvertToRGBA(values, result);
 
@@ -214,7 +215,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var converter = JpegColorConverter.GetConverter(JpegColorSpace.RGB);
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, inputBufferLength, seed);
-            Vector4[] result = new Vector4[resultBufferLength];
+            var result = new Vector4[resultBufferLength];
 
             converter.ConvertToRGBA(values, result);
 
@@ -241,7 +242,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var converter = JpegColorConverter.GetConverter(JpegColorSpace.Ycck);
             JpegColorConverter.ComponentValues values = CreateRandomValues(4, inputBufferLength, seed);
-            Vector4[] result = new Vector4[resultBufferLength];
+            var result = new Vector4[resultBufferLength];
 
             converter.ConvertToRGBA(values, result);
 
@@ -278,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float maxVal = 255f)
         {
             var rnd = new Random(seed);
-            Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
+            var buffers = new Buffer2D<float>[componentCount];
             for (int i = 0; i < componentCount; i++)
             {
                 float[] values = new float[inputBufferLength];
@@ -317,7 +318,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int seed)
         {
             JpegColorConverter.ComponentValues values = CreateRandomValues(componentCount, inputBufferLength, seed);
-            Vector4[] result = new Vector4[resultBufferLength];
+            var result = new Vector4[resultBufferLength];
 
             converter.ConvertToRGBA(values, result);
 

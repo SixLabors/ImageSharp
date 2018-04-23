@@ -4,13 +4,13 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Transforms;
+using SixLabors.ImageSharp.Processing.Transforms.Processors;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Transforms;
-    using SixLabors.ImageSharp.Processing.Transforms.Processors;
-
     public class RotateTests : BaseImageOperationsExtensionTest
     {
         [Theory]

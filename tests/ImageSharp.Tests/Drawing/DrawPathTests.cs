@@ -90,7 +90,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             }
         }
 
-
         [Fact]
         public void PathExtendingOffEdgeOfImageShouldNotBeCropped()
         {

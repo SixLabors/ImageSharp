@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the XYZ values of Illuminant
+        /// Gets the XYZ values of illuminant.
         /// </summary>
         public Vector3 IlluminantXyz { get; }
 
@@ -48,15 +48,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public Vector3 SurroundXyz { get; }
 
         /// <summary>
-        /// Gets the illuminant
+        /// Gets the illuminant.
         /// </summary>
         public IccStandardIlluminant Illuminant { get; }
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccViewingConditionsTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccViewingConditionsTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
@@ -81,7 +80,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }

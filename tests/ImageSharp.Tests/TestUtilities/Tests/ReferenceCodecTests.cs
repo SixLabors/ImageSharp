@@ -1,15 +1,14 @@
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Formats;
-    using SixLabors.ImageSharp.Formats.Png;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class ReferenceCodecTests
     {
         private ITestOutputHelper Output { get; }
@@ -73,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests
             if (TestEnvironment.IsLinux) return;
 
             string path = SavePng(provider, PngColorType.RgbWithAlpha);
-            
+
             using (var sdBitmap = new System.Drawing.Bitmap(path))
             {
                 using (Image<TPixel> original = provider.GetImage())
@@ -85,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Theory(Skip = "Doesen't work yet :(")]
+        [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void FromFromRgb24SystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

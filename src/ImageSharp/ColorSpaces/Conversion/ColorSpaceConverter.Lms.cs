@@ -17,8 +17,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -30,8 +28,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -43,8 +39,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -56,8 +50,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -69,8 +61,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(CieXyy color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -82,9 +72,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
-            // Conversion
             return this.cachedCieXyzAndLmsConverter.Convert(color);
         }
 
@@ -95,8 +82,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -108,8 +93,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -121,8 +104,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -134,8 +115,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -147,8 +126,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -160,8 +137,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }
@@ -173,8 +148,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(YCbCr color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
         }

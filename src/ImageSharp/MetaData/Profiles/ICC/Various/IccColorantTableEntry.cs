@@ -87,9 +87,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return (other is IccColorantTableEntry) && this.Equals((IccColorantTableEntry)other);
+            return obj is IccColorantTableEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>

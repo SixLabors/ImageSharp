@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -74,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
-        private byte[] palettePixelData;
+        private IBuffer<byte> quantizedPixels;
 
         /// <summary>
         /// The image width.
@@ -169,7 +168,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
-            IBuffer<byte> quantizedPixels = null;
             IBuffer<TPixel> quantizedPaletteBuffer = null;
             int quantizedPaletteLength = 0;
 
@@ -238,6 +236,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.up?.Dispose();
             this.average?.Dispose();
             this.paeth?.Dispose();
+            this.quantizedPixels?.Dispose();
         }
 
         /// <summary>
@@ -307,8 +306,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Palette:
-                    // TODO: Use Span copy!
-                    Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length(), this.rawScanline.Array, 0, this.rawScanline.Length());
+                    int stride = this.rawScanline.Length();
+
+                    this.quantizedPixels.Slice(row * stride, stride).CopyTo(this.rawScanline.Span);
+
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:

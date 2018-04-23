@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
 
@@ -96,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels, quantizedPallete, out int quanitizedPaletteLength);
+                    quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels, quantizedPallete, out int quantizedPaletteLength);
 
                     int index = this.GetTransparentIndex<TPixel>(quantizedPallete);
                     Assert.Equal(index, quantizedPixels[0]);

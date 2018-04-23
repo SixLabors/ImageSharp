@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.
-        /// Applies <see cref="Vector4Extensions.Expand(float)"/> to all input vectors.
+        /// Applies <see cref="Vector4Extensions.Expand(ref float)"/> to all input vectors.
         /// </summary>
         /// <param name="rowSpan">The input span of vectors</param>
         /// <param name="sourceX">The source row position.</param>
@@ -115,7 +115,8 @@ namespace SixLabors.ImageSharp.Processing.Processors
             {
                 float weight = Unsafe.Add(ref horizontalValues, i);
                 Vector4 v = Unsafe.Add(ref vecPtr, i);
-                result += v.Premultiply().Expand() * weight;
+                v = v.Premultiply();
+                result += v.Expand() * weight;
             }
 
             return result.UnPremultiply();

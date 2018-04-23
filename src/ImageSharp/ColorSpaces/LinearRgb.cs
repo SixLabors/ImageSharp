@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="LinearRgb"/> that has R, G, and B values set to zero.
         /// </summary>
-        public static readonly LinearRgb Empty = default(LinearRgb);
+        public static readonly LinearRgb Empty = default;
 
         /// <summary>
         /// The default LinearRgb working space

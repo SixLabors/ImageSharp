@@ -94,9 +94,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public float[][] Values { get; }
 
         /// <summary>
-        /// Gets or sets the CLUT data type (important when writing a profile)
+        /// Gets the CLUT data type (important when writing a profile)
         /// </summary>
-        public IccClutDataType DataType { get; set; }
+        public IccClutDataType DataType { get; }
 
         /// <summary>
         /// Gets the number of input channels
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccClut other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccClut && this.Equals((IccClut)obj);
+            return obj is IccClut other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -154,11 +154,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                int hashCode = this.Values != null ? this.Values.GetHashCode() : 0;
+                int hashCode = this.Values?.GetHashCode() ?? 0;
                 hashCode = (hashCode * 397) ^ (int)this.DataType;
                 hashCode = (hashCode * 397) ^ this.InputChannelCount;
                 hashCode = (hashCode * 397) ^ this.OutputChannelCount;
-                hashCode = (hashCode * 397) ^ (this.GridPointCount != null ? this.GridPointCount.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.GridPointCount?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

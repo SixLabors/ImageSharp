@@ -13,13 +13,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Initializes a new instance of the <see cref="InvalidIccProfileException"/> class.
         /// </summary>
-        public InvalidIccProfileException()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InvalidIccProfileException"/> class.
-        /// </summary>
         /// <param name="message">The message that describes the error</param>
         public InvalidIccProfileException(string message)
             : base(message)

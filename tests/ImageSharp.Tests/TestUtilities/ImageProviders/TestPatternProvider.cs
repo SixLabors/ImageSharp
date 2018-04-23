@@ -7,14 +7,11 @@ using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
 
-using Xunit.Abstractions;
-
 namespace SixLabors.ImageSharp.Tests
 {
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-
         /// <summary>
         /// A test image provider that produces test patterns.
         /// </summary>
@@ -199,7 +196,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 int pixelCount = left * top;
                 uint stepsPerPixel = (uint)(uint.MaxValue / pixelCount);
-                TPixel c = default(TPixel);
+                TPixel c = default;
                 Rgba32 t = new Rgba32(0);
 
                 for (int x = left; x < right; x++)

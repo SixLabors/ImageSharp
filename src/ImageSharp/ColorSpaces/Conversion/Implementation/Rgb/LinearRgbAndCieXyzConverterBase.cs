@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             const float Yb = 1;
             float mZb = (1 - xb - yb) / yb;
 
-            Matrix4x4 xyzMatrix = new Matrix4x4
+            var xyzMatrix = new Matrix4x4
             {
                 M11 = mXr, M21 = mXg, M31 = mXb,
                 M12 = Yr,  M22 = Yg,  M32 = Yb,
@@ -48,8 +48,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
                 M44 = 1F
             };
 
-            Matrix4x4 inverseXyzMatrix;
-            Matrix4x4.Invert(xyzMatrix, out inverseXyzMatrix);
+            Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
 
             Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 

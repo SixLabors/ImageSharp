@@ -42,5 +42,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         /// We need to apply IDCT and dequantiazition to transform them into color-space blocks.
         /// </summary>
         Buffer2D<Block8x8> SpectralBlocks { get; }
+
+        /// <summary>
+        /// Gets a reference to the <see cref="Block8x8"/> at the given row and column index from <see cref="SpectralBlocks"/>
+        /// </summary>
+        /// <param name="column">The column</param>
+        /// <param name="row">The row</param>
+        /// <returns>The <see cref="Block8x8"/></returns>
+        ref Block8x8 GetBlockReference(int column, int row);
     }
 }

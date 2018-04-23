@@ -67,14 +67,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccDataTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccDataTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccDataTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
@@ -90,7 +89,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -100,7 +99,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccDataTagDataEntry && this.Equals((IccDataTagDataEntry)obj);
+            return obj is IccDataTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -109,7 +108,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.Data != null ? this.Data.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Data?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ this.IsAscii.GetHashCode();
                 return hashCode;
             }

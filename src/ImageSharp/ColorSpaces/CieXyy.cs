@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="CieXyy"/> that has X, Y, and Y values set to zero.
         /// </summary>
-        public static readonly CieXyy Empty = default(CieXyy);
+        public static readonly CieXyy Empty = default;
 
         /// <summary>
         /// The backing vector for SIMD support.

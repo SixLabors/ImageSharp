@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -28,19 +27,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         private const int MaxBlockSize = 65535;
 
         /// <summary>
-        /// Reusable buffer for writing chunk types.
+        /// Reusable buffer for writing general data.
         /// </summary>
-        private readonly byte[] chunkTypeBuffer = new byte[4];
+        private readonly byte[] buffer = new byte[8];
 
         /// <summary>
         /// Reusable buffer for writing chunk data.
         /// </summary>
         private readonly byte[] chunkDataBuffer = new byte[16];
-
-        /// <summary>
-        /// Reusable buffer for writing int data.
-        /// </summary>
-        private readonly byte[] intBuffer = new byte[4];
 
         /// <summary>
         /// Reusable crc for validating chunks.
@@ -173,17 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.width = image.Width;
             this.height = image.Height;
 
-            // Write the png header.
-            this.chunkDataBuffer[0] = 0x89; // Set the high bit.
-            this.chunkDataBuffer[1] = 0x50; // P
-            this.chunkDataBuffer[2] = 0x4E; // N
-            this.chunkDataBuffer[3] = 0x47; // G
-            this.chunkDataBuffer[4] = 0x0D; // Line ending CRLF
-            this.chunkDataBuffer[5] = 0x0A; // Line ending CRLF
-            this.chunkDataBuffer[6] = 0x1A; // EOF
-            this.chunkDataBuffer[7] = 0x0A; // LF
-
-            stream.Write(this.chunkDataBuffer, 0, 8);
+            stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             QuantizedFrame<TPixel> quantized = null;
             if (this.pngColorType == PngColorType.Palette)
@@ -415,8 +399,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="header">The <see cref="PngHeader"/>.</param>
         private void WriteHeaderChunk(Stream stream, in PngHeader header)
         {
-            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), header.Width);
-            BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), header.Height);
+            BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), header.Width);
+            BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(4, 4), header.Height);
 
             this.chunkDataBuffer[8] = header.BitDepth;
             this.chunkDataBuffer[9] = (byte)header.ColorType;
@@ -424,7 +408,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.chunkDataBuffer[11] = header.FilterMethod;
             this.chunkDataBuffer[12] = (byte)header.InterlaceMethod;
 
-            this.WriteChunk(stream, PngChunkTypes.Header, this.chunkDataBuffer, 0, 13);
+            this.WriteChunk(stream, PngChunkType.Header, this.chunkDataBuffer, 0, 13);
         }
 
         /// <summary>
@@ -443,7 +427,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Get max colors for bit depth.
             int colorTableLength = (int)Math.Pow(2, header.BitDepth) * 3;
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             bool anyAlpha = false;
 
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
@@ -475,12 +459,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                this.WriteChunk(stream, PngChunkTypes.Palette, colorTable.Array, 0, colorTableLength);
+                this.WriteChunk(stream, PngChunkType.Palette, colorTable.Array, 0, colorTableLength);
 
                 // Write the transparency data
                 if (anyAlpha)
                 {
-                    this.WriteChunk(stream, PngChunkTypes.PaletteAlpha, alphaTable.Array, 0, pixelCount);
+                    this.WriteChunk(stream, PngChunkType.PaletteAlpha, alphaTable.Array, 0, pixelCount);
                 }
             }
         }
@@ -500,12 +484,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                 int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
                 int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
 
-                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), dpmX);
-                BinaryPrimitives.WriteInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 4, 4), dpmY);
+                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), dpmX);
+                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(4, 4), dpmY);
 
                 this.chunkDataBuffer[8] = 1;
 
-                this.WriteChunk(stream, PngChunkTypes.Physical, this.chunkDataBuffer, 0, 9);
+                this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
             }
         }
 
@@ -520,9 +504,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // 4-byte unsigned integer of gamma * 100,000.
                 uint gammaValue = (uint)(this.gamma * 100_000F);
 
-                BinaryPrimitives.WriteUInt32BigEndian(new Span<byte>(this.chunkDataBuffer, 0, 4), gammaValue);
+                BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), gammaValue);
 
-                this.WriteChunk(stream, PngChunkTypes.Gamma, this.chunkDataBuffer, 0, 4);
+                this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer, 0, 4);
             }
         }
 
@@ -590,7 +574,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     length = MaxBlockSize;
                 }
 
-                this.WriteChunk(stream, PngChunkTypes.Data, buffer, i * MaxBlockSize, length);
+                this.WriteChunk(stream, PngChunkType.Data, buffer, i * MaxBlockSize, length);
             }
         }
 
@@ -600,7 +584,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteEndChunk(Stream stream)
         {
-            this.WriteChunk(stream, PngChunkTypes.End, null);
+            this.WriteChunk(stream, PngChunkType.End, null);
         }
 
         /// <summary>
@@ -609,7 +593,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="type">The type of chunk to write.</param>
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-        private void WriteChunk(Stream stream, string type, byte[] data)
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data)
         {
             this.WriteChunk(stream, type, data, 0, data?.Length ?? 0);
         }
@@ -622,33 +606,27 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
         /// <param name="offset">The position to offset the data at.</param>
         /// <param name="length">The of the data to write.</param>
-        private void WriteChunk(Stream stream, string type, byte[] data, int offset, int length)
+        private void WriteChunk(Stream stream, PngChunkType type, byte[] data, int offset, int length)
         {
-            BinaryPrimitives.WriteInt32BigEndian(this.intBuffer, length);
+            BinaryPrimitives.WriteInt32BigEndian(this.buffer, length);
+            BinaryPrimitives.WriteUInt32BigEndian(this.buffer.AsSpan(4, 4), (uint)type);
 
-            stream.Write(this.intBuffer, 0, 4); // write the length
-
-            this.chunkTypeBuffer[0] = (byte)type[0];
-            this.chunkTypeBuffer[1] = (byte)type[1];
-            this.chunkTypeBuffer[2] = (byte)type[2];
-            this.chunkTypeBuffer[3] = (byte)type[3];
-
-            stream.Write(this.chunkTypeBuffer, 0, 4);
+            stream.Write(this.buffer, 0, 8);
 
             this.crc.Reset();
 
-            this.crc.Update(this.chunkTypeBuffer);
+            this.crc.Update(this.buffer.AsSpan(4, 4)); // Write the type buffer
 
             if (data != null && length > 0)
             {
                 stream.Write(data, offset, length);
 
-                this.crc.Update(new ReadOnlySpan<byte>(data, offset, length));
+                this.crc.Update(data.AsSpan(offset, length));
             }
 
-            BinaryPrimitives.WriteUInt32BigEndian(this.intBuffer, (uint)this.crc.Value);
+            BinaryPrimitives.WriteUInt32BigEndian(this.buffer, (uint)this.crc.Value);
 
-            stream.Write(this.intBuffer, 0, 4); // write the crc
+            stream.Write(this.buffer, 0, 4); // write the crc
         }
     }
 }

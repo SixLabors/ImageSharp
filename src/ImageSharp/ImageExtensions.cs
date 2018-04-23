@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, TPixel[] buffer)
             where TPixel : struct, IPixel<TPixel>
-            => SavePixelData(source, new Span<TPixel>(buffer));
+            => SavePixelData(source, buffer.AsSpan());
 
         /// <summary>
         /// Saves the raw image pixels to a byte array in row-major order.

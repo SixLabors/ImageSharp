@@ -121,8 +121,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccNamedColor2TagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccNamedColor2TagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
@@ -159,7 +158,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return obj is IccNamedColor2TagDataEntry && this.Equals((IccNamedColor2TagDataEntry)obj);
+            return obj is IccNamedColor2TagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -169,10 +168,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             {
                 int hashCode = base.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.CoordinateCount;
-                hashCode = (hashCode * 397) ^ (this.Prefix != null ? this.Prefix.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Suffix != null ? this.Suffix.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Prefix?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.Suffix?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ this.VendorFlags;
-                hashCode = (hashCode * 397) ^ (this.Colors != null ? this.Colors.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Colors?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

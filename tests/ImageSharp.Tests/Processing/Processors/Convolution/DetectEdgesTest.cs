@@ -3,16 +3,13 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-
+using SixLabors.ImageSharp.Processing.Convolution;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
-// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
-    using SixLabors.ImageSharp.Processing.Convolution;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
     public class DetectEdgesTest : FileTestBase
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001f);

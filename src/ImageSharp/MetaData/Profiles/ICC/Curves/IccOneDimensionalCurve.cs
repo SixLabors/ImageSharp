@@ -7,7 +7,7 @@ using System.Linq;
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
-    /// A one dimensional curve
+    /// A one dimensional ICC curve.
     /// </summary>
     internal sealed class IccOneDimensionalCurve : IEquatable<IccOneDimensionalCurve>
     {

@@ -4,23 +4,19 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Numerics;
 
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Numerics;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.ImageSharp.MetaData;
-    using SixLabors.ImageSharp.Processing;
-
-    using Xunit;
-
     public static class TestImageExtensions
     {
         /// <summary>
@@ -32,28 +28,28 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             MemoryManager memoryManager = ctx.MemoryManager;
-            ctx.Apply(
-                img =>
+
+            ctx.Apply(img =>
+            {
+                using (Buffer2D<Vector4> temp = memoryManager.Allocate2D<Vector4>(img.Width, img.Height))
+                {
+                    Span<Vector4> tempSpan = temp.Span;
+                    foreach (ImageFrame<TPixel> frame in img.Frames)
                     {
-                        using (Buffer2D<Vector4> temp = memoryManager.Allocate2D<Vector4>(img.Width, img.Height))
+                        Span<TPixel> pixelSpan = frame.GetPixelSpan();
+
+                        PixelOperations<TPixel>.Instance.ToVector4(pixelSpan, tempSpan, pixelSpan.Length);
+
+                        for (int i = 0; i < tempSpan.Length; i++)
                         {
-                            Span<Vector4> tempSpan = temp.Span;
-                            foreach (ImageFrame<TPixel> frame in img.Frames)
-                            {
-                                Span<TPixel> pixelSpan = frame.GetPixelSpan();
-
-                                PixelOperations<TPixel>.Instance.ToVector4(pixelSpan, tempSpan, pixelSpan.Length);
-
-                                for (int i = 0; i < tempSpan.Length; i++)
-                                {
-                                    ref Vector4 v = ref tempSpan[i];
-                                    v.W = 1.0f;
-                                }
-
-                                PixelOperations<TPixel>.Instance.PackFromVector4(tempSpan, pixelSpan, pixelSpan.Length);
-                            }
+                            ref Vector4 v = ref tempSpan[i];
+                            v.W = 1.0f;
                         }
-                    });
+
+                        PixelOperations<TPixel>.Instance.PackFromVector4(tempSpan, pixelSpan, pixelSpan.Length);
+                    }
+                }
+            });
         }
 
         /// <summary>

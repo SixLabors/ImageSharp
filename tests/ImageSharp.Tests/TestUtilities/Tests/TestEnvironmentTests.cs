@@ -5,18 +5,17 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
 using Xunit;
 using Xunit.Abstractions;
 
-// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Formats.Bmp;
-    using SixLabors.ImageSharp.Formats.Png;
-
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)

@@ -1,21 +1,19 @@
-// ReSharper disable InconsistentNaming
+using System.Collections.Generic;
+using System.Linq;
+
+using Moq;
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Transforms;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Primitives;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    using Moq;
-
-    using SixLabors.Primitives;
-
-    using Xunit;
-    using Xunit.Abstractions;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Transforms;
-
     public class ImageComparerTests
     {
         public ImageComparerTests(ITestOutputHelper output)
@@ -24,9 +22,9 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         private ITestOutputHelper Output { get; }
-        
+
         [Theory]
-        [WithTestPatternImages(100,100,PixelTypes.Rgba32, 0.0001f, 1)]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0.0001f, 1)]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0, 0)]
         public void TolerantImageComparer_ApprovesPerfectSimilarity<TPixel>(
             TestImageProvider<TPixel> provider,
@@ -85,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void TolerantImageComparer_TestPerPixelThreshold<TPixel>(TestImageProvider<TPixel> provider)
@@ -160,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void ExactComparer_DoesNotTolerateAnyPixelDifference<TPixel>(TestImageProvider<TPixel> provider)
@@ -174,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests
                     ImagingTestCaseUtility.ModifyPixel(clone, 7, 93, 1);
 
                     IEnumerable<ImageSimilarityReport> reports = ExactImageComparer.Instance.CompareImages(image, clone);
-                    
+
                     this.Output.WriteLine(reports.Single().ToString());
                     PixelDifference[] differences = reports.Single().Differences;
                     Assert.Equal(2, differences.Length);

@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.FilePath = filePath;
             }
-            
+
             /// <summary>
             /// Gets the file path relative to the "~/tests/images" folder
             /// </summary>

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
     /// Pixel type containing three 8-bit unsigned normalized values ranging from 0 to 255.
-    /// The color components are stored in red, green, blue order.
+    /// The color components are stored in red, green, blue order (least significant to most significant byte).
     /// <para>
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
@@ -94,6 +94,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromScaledVector4(Vector4 vector)
         {
             this.PackFromVector4(vector);
@@ -137,7 +146,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public void ToArgb32(ref Argb32 dest) {
+        public void ToArgb32(ref Argb32 dest)
+        {
             dest.R = this.R;
             dest.G = this.G;
             dest.B = this.B;

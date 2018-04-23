@@ -135,6 +135,48 @@
 		<#
     }
 
+    void GeneratePackFromMethodUsingPackFromBgra32(string pixelType, string bgraOperationCode)
+    {		
+		#>
+
+		/// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="<#=pixelType#>"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="<#=pixelType#>"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFrom<#=pixelType#>(ReadOnlySpan<<#=pixelType#>> source, Span<TPixel> destPixels, int count)
+        {
+			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref <#=pixelType#> sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
+
+            var bgra = new Bgra32(0, 0, 0, 255);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                <#=bgraOperationCode#>
+                dp.PackFromBgra32(bgra);
+            }
+        }
+		
+		/// <summary>
+        /// A helper for <see cref="PackFrom<#=pixelType#>(ReadOnlySpan{<#=pixelType#>}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="<#=pixelType#>"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFrom<#=pixelType#>Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFrom<#=pixelType#>(MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes), destPixels, count);
+        }
+		<#
+    }
+
 #>
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
@@ -153,7 +195,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     GeneratePackFromMethodUsingPackFromRgba32("Rgba32", "rgba = Unsafe.Add(ref sourceRef, i);");
     GenerateToDestFormatMethods("Rgba32");
 
-    GeneratePackFromMethodUsingPackFromRgba32("Bgra32", "rgba = Unsafe.Add(ref sourceRef, i).ToRgba32();");
+    GeneratePackFromMethodUsingPackFromBgra32("Bgra32", "bgra = Unsafe.Add(ref sourceRef, i);");
     GenerateToDestFormatMethods("Bgra32");
 	
 	GeneratePackFromMethodUsingPackFromRgba32("Rgb24", "rgba.Rgb = Unsafe.Add(ref sourceRef, i);");

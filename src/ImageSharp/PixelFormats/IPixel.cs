@@ -8,6 +8,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
     /// An interface that represents a generic pixel type.
+    /// The naming convention of each pixel format is to order the color components from least significant to most significant, reading from left to right.
+    /// For example in the <see cref="Rgba32"/> pixel format the R component is the least significant byte, and the A component is the most significant.
     /// </summary>
     /// <typeparam name="TSelf">The type implementing this interface</typeparam>
     public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
@@ -64,6 +66,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="source">The <see cref="Argb32"/> value.</param>
         void PackFromArgb32(Argb32 source);
+
+        /// <summary>
+        /// Packs the pixel from an <see cref="Bgra32"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Bgra32"/> value.</param>
+        void PackFromBgra32(Bgra32 source);
 
         /// <summary>
         /// Converts the pixel to <see cref="Rgb24"/> format.

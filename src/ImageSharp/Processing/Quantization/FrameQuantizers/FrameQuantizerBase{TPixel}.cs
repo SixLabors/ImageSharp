@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <remarks>
         /// If you construct this class with a true value for singlePass, then the code will, when quantizing your image,
         /// only call the <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/> methods.
-        /// If two passes are required, the code will also call <see cref="SecondPass(ImageFrame{TPixel}, byte[], int, int)"/>
+        /// If two passes are required, the code will also call <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, int, int)"/>
         /// and then 'QuantizeImage'.
         /// </remarks>
         protected FrameQuantizerBase(IQuantizer quantizer, bool singlePass)
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <summary>
-        /// Execute the first pass through the pixels in the image
+        /// Execute the first pass through the pixels in the image.
         /// </summary>
         /// <param name="source">The source data</param>
         /// <param name="width">The width in pixels of the image.</param>
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <summary>
-        /// Execute a second pass through the image
+        /// Execute a second pass through the image.
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="output">The output pixel array</param>
@@ -149,14 +149,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 colorIndex = (byte)index;
                 leastDistance = distance;
 
-                // And if it's an exact match, exit the loop
+                // And if it's an exact match, exit the loop.
                 if (MathF.Abs(distance) < Constants.Epsilon)
                 {
                     break;
                 }
             }
 
-            // Now I have the index, pop it into the cache for next time
+            // Now I have the index, pop it into the cache for next time.
             cache.Add(pixel, colorIndex);
 
             return colorIndex;

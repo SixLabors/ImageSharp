@@ -19,12 +19,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// A lookup table for colors
+        /// A lookup table for colors.
         /// </summary>
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
-        /// List of all colors in the palette
+        /// List of all colors in the palette.
         /// </summary>
         private readonly TPixel[] colors;
 
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         protected override TPixel[] GetPalette() => this.colors;
 
         /// <summary>
-        /// Process the pixel in the second pass of the algorithm
+        /// Process the pixel in the second pass of the algorithm.
         /// </summary>
         /// <param name="pixel">The pixel to quantize</param>
         /// <returns>

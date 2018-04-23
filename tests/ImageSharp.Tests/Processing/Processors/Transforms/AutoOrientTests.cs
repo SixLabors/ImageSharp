@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.MetaData.ExifProfile = new ExifProfile(bytes);
-                image.Mutate(x=>x.AutoOrient());
+                image.Mutate(x => x.AutoOrient());
             }
         }
     }

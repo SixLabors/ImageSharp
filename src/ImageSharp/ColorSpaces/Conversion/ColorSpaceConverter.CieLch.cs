@@ -22,8 +22,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Adaptation
             CieLab adapted = this.IsChromaticAdaptationPerformed ? this.Adapt(color) : color;
 
@@ -38,8 +36,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -51,8 +47,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -64,8 +58,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(CieXyy color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -77,8 +69,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieLab labColor = this.ToCieLab(color);
             return this.ToCieLch(labColor);
         }
@@ -103,8 +93,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -116,8 +104,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -129,8 +115,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -142,8 +126,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -155,8 +137,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(Lms color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -168,8 +148,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }
@@ -181,8 +159,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(YCbCr color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }

@@ -1,13 +1,12 @@
-﻿namespace SixLabors.ImageSharp.Tests
+﻿using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Transforms;
+using SixLabors.Primitives;
+
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Transforms;
-    using SixLabors.Primitives;
-
-    using Xunit;
-
     /// <summary>
     /// Might be useful to catch complex bugs
     /// </summary>

@@ -41,14 +41,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccMultiLocalizedUnicodeTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccMultiLocalizedUnicodeTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
@@ -64,7 +63,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -82,7 +81,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Texts != null ? this.Texts.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Texts?.GetHashCode() ?? 0);
             }
         }
     }

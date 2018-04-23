@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using System.Text;
-
 using System.Drawing.Imaging;
 using System.IO;
 
@@ -21,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             this.imageFormat = imageFormat;
         }
 
-        public static SystemDrawingReferenceEncoder Png { get; } = new SystemDrawingReferenceEncoder(System.Drawing.Imaging.ImageFormat.Png);
+        public static SystemDrawingReferenceEncoder Png { get; } = new SystemDrawingReferenceEncoder(ImageFormat.Png);
 
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>

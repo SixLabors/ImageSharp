@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccResponseCurve other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -86,8 +86,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = (int)this.CurveType;
-                hashCode = (hashCode * 397) ^ (this.XyzValues != null ? this.XyzValues.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.ResponseArrays != null ? this.ResponseArrays.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.XyzValues?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.ResponseArrays?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

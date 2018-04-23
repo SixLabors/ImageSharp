@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="YCbCr"/> that has Y, Cb, and Cr values set to zero.
         /// </summary>
-        public static readonly YCbCr Empty = default(YCbCr);
+        public static readonly YCbCr Empty = default;
 
         /// <summary>
         /// Vector which is used in clamping to the max value

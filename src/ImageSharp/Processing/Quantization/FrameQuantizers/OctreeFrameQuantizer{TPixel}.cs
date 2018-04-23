@@ -19,12 +19,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// A lookup table for colors
+        /// A lookup table for colors.
         /// </summary>
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
-        /// Maximum allowed color depth
+        /// Maximum allowed color depth.
         /// </summary>
         private readonly byte colors;
 
@@ -34,12 +34,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         private readonly Octree octree;
 
         /// <summary>
-        /// The reduced image palette
+        /// The reduced image palette.
         /// </summary>
         private TPixel[] palette;
 
         /// <summary>
-        /// The transparent index
+        /// The transparent index.
         /// </summary>
         private byte transparentIndex;
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.

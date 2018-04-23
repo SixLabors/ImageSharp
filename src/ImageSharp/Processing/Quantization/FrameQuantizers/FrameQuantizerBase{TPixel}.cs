@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected abstract void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height);
+        protected abstract void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height);
 
         /// <summary>
         /// Retrieve the palette for the quantized image.

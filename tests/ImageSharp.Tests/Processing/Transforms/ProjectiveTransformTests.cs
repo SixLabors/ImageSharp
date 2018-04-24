@@ -61,6 +61,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
         }
 
+        [Theory]
+        [WithSolidFilledImages(100, 100, 0, 0, 255, PixelTypes.Rgba32)]
+        public void RawTransformMatchesDocumentedExample<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // This test matches the output described in the example at
+            // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                Matrix4x4 m = Matrix4x4.Identity;
+                m.M13 = 0.01F;
+
+                image.Mutate(i => { i.Transform(m); });
+
+                image.DebugSave(provider);
+
+                // TODO: Enable and add more tests.
+                // image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
+            }
+        }
+
         private static IResampler GetResampler(string name)
         {
             PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);

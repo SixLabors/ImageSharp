@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
         /// <returns>The <see cref="Vector4"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Premultiply(this ref Vector4 source)
+        public static Vector4 Premultiply(this Vector4 source)
         {
             float w = source.W;
             Vector4 premultiplied = source * w;
@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Reverses the result of premultiplying a vector via <see cref="Premultiply(ref Vector4)"/>.
+        /// Reverses the result of premultiplying a vector via <see cref="Premultiply(Vector4)"/>.
         /// </summary>
         /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
         /// <returns>The <see cref="Vector4"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 UnPremultiply(this ref Vector4 source)
+        public static Vector4 UnPremultiply(this Vector4 source)
         {
             float w = source.W;
             Vector4 unpremultiplied = source / w;
@@ -50,10 +50,10 @@ namespace SixLabors.ImageSharp
         /// <param name="linear">The <see cref="Vector4"/> whose signal to compress.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Compress(this ref Vector4 linear)
+        public static Vector4 Compress(this Vector4 linear)
         {
             // TODO: Is there a faster way to do this?
-            return new Vector4(Compress(ref linear.X), Compress(ref linear.Y), Compress(ref linear.Z), linear.W);
+            return new Vector4(Compress(linear.X), Compress(linear.Y), Compress(linear.Z), linear.W);
         }
 
         /// <summary>
@@ -64,10 +64,10 @@ namespace SixLabors.ImageSharp
         /// <param name="gamma">The <see cref="Rgba32"/> whose signal to expand.</param>
         /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Expand(this ref Vector4 gamma)
+        public static Vector4 Expand(this Vector4 gamma)
         {
             // TODO: Is there a faster way to do this?
-            return new Vector4(Expand(ref gamma.X), Expand(ref gamma.Y), Expand(ref gamma.Z), gamma.W);
+            return new Vector4(Expand(gamma.X), Expand(gamma.Y), Expand(gamma.Z), gamma.W);
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="float"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Compress(ref float signal)
+        private static float Compress(float signal)
         {
             if (signal <= 0.0031308F)
             {
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="float"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float Expand(ref float signal)
+        private static float Expand(float signal)
         {
             if (signal <= 0.04045F)
             {

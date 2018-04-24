@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 this.quantizedPixels = this.memoryManager.Allocate<byte>(image.Width * image.Height);
 
-                // Create quantized frame returning the palette and set the bit depth.
+                // Get the quantized frame pixels and palette and set the bit depth.
                 this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame, this.quantizedPixels.Span, out quantizedPalette);
                 byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantizedPalette.Length).Clamp(1, 8);
 

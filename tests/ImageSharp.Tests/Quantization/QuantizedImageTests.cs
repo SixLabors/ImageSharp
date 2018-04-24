@@ -45,7 +45,6 @@ namespace SixLabors.ImageSharp.Tests
                     quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels, out TPixel[] quantizedPalette);
 
                     int index = this.GetTransparentIndex<TPixel>(quantizedPalette);
-                    Assert.Equal(256, quantizedPalette.Length);
                     Assert.Equal(index, quantizedPixels[0]);
                 }
             }

@@ -71,6 +71,14 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
 
             private readonly float secondRadius;
 
+            private readonly float cosRotation;
+
+            private readonly float sinRotation;
+
+            private readonly float secondRadiusSquared;
+
+            private readonly float referenceRadiusSquared;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="RadialGradientBrushApplicator" /> class.
             /// </summary>
@@ -102,6 +110,13 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                     this.referenceAxisEnd);
                 this.referenceRadius = this.DistanceBetween(this.center, this.referenceAxisEnd);
                 this.secondRadius = this.referenceRadius * this.axisRatio;
+
+                this.referenceRadiusSquared = this.referenceRadius * this.referenceRadius;
+                this.secondRadiusSquared = this.secondRadius * this.secondRadius;
+
+                this.sinRotation = (float)Math.Sin(this.rotation);
+                this.cosRotation = (float)Math.Cos(this.rotation);
+
             }
 
             /// <inheritdoc />
@@ -112,14 +127,17 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
             /// <inheritdoc />
             protected override float PositionOnGradient(int xt, int yt)
             {
-                float x0 = xt - this.center.X; // TODO: rotate this point after translation
+                float x0 = xt - this.center.X;
                 float y0 = yt - this.center.Y;
 
-                float x = (float)((x0 * Math.Cos(this.rotation)) - (y0 * Math.Sin(this.rotation))); // TODO: store sin and cos of rotation as constant!
-                float y = (float)((x0 * Math.Sin(this.rotation)) + (y0 * Math.Cos(this.rotation)));
+                float x = (x0 * this.cosRotation) - (y0 * this.sinRotation);
+                float y = (x0 * this.sinRotation) + (y0 * this.cosRotation);
 
-                var inBoundaryChecker = ((x * x) / (this.referenceRadius * this.referenceRadius))
-                                        + ((y * y) / (this.secondRadius * this.secondRadius));
+                float xSquared = x * x;
+                float ySquared = y * y;
+
+                var inBoundaryChecker = (xSquared / this.referenceRadiusSquared)
+                                        + (ySquared / this.secondRadiusSquared);
 
                 return inBoundaryChecker;
             }

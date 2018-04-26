@@ -10,14 +10,11 @@ using SixLabors.ImageSharp.Processing.Transforms;
 using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     public class ProjectiveTransformTests
     {
-        // private readonly ITestOutputHelper Output;
-
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
 
         public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
@@ -47,12 +44,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
             {
-                Matrix4x4 m = TaperTransform.Create(image.Size(), TaperSide.Right, TaperCorner.Both, .5F);
+                Matrix4x4 m = ProjectiveTransformHelper.CreateTaperMatrix(image.Size(), TaperSide.Right, TaperCorner.Both, .5F);
 
-                image.Mutate(i =>
-                    {
-                        i.Transform(m, sampler);
-                    });
+                image.Mutate(i => { i.Transform(m, sampler); });
 
                 image.DebugSave(provider, resamplerName);
 

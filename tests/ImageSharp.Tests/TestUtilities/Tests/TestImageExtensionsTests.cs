@@ -1,15 +1,14 @@
-// ReSharper disable InconsistentNaming
+using System;
+
+using Moq;
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    using Moq;
-
-    using Xunit;
-
     public class TestImageExtensionsTests
     {
         [Theory]
@@ -83,11 +82,10 @@ namespace SixLabors.ImageSharp.Tests
             {
                 ImagingTestCaseUtility.ModifyPixel(image, 3, 1, 1);
 
-                Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(
-                    () =>
-                        {
-                            image.CompareToOriginal(provider, ImageComparer.Exact);
-                        });
+                Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(() =>
+                {
+                    image.CompareToOriginal(provider, ImageComparer.Exact);
+                });
             }
         }
 
@@ -98,11 +96,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Assert.ThrowsAny<Exception>(
-                    () =>
-                        {
-                            image.CompareToOriginal(provider, Mock.Of<ImageComparer>());
-                        });
+                Assert.ThrowsAny<Exception>(() =>
+                {
+                    image.CompareToOriginal(provider, Mock.Of<ImageComparer>());
+                });
             }
         }
     }

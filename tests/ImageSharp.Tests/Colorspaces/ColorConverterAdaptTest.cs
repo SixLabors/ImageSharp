@@ -28,9 +28,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Adapt_RGB_WideGamutRGB_To_sRGB(float r1, float g1, float b1, float r2, float g2, float b2)
         {
             // Arrange
-            Rgb input = new Rgb(r1, g1, b1, RgbWorkingSpaces.WideGamutRgb);
-            Rgb expectedOutput = new Rgb(r2, g2, b2, RgbWorkingSpaces.SRgb);
-            ColorSpaceConverter converter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var input = new Rgb(r1, g1, b1, RgbWorkingSpaces.WideGamutRgb);
+            var expectedOutput = new Rgb(r2, g2, b2, RgbWorkingSpaces.SRgb);
+            var converter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
 
             // Action
             Rgb output = converter.Adapt(input);
@@ -49,9 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Adapt_RGB_SRGB_To_WideGamutRGB(float r1, float g1, float b1, float r2, float g2, float b2)
         {
             // Arrange
-            Rgb input = new Rgb(r1, g1, b1, RgbWorkingSpaces.SRgb);
-            Rgb expectedOutput = new Rgb(r2, g2, b2, RgbWorkingSpaces.WideGamutRgb);
-            ColorSpaceConverter converter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.WideGamutRgb };
+            var input = new Rgb(r1, g1, b1, RgbWorkingSpaces.SRgb);
+            var expectedOutput = new Rgb(r2, g2, b2, RgbWorkingSpaces.WideGamutRgb);
+            var converter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.WideGamutRgb };
 
             // Action
             Rgb output = converter.Adapt(input);
@@ -69,9 +69,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Adapt_Lab_D50_To_D65(float l1, float a1, float b1, float l2, float a2, float b2)
         {
             // Arrange
-            CieLab input = new CieLab(l1, a1, b1, Illuminants.D65);
-            CieLab expectedOutput = new CieLab(l2, a2, b2);
-            ColorSpaceConverter converter = new ColorSpaceConverter { TargetLabWhitePoint = Illuminants.D50 };
+            var input = new CieLab(l1, a1, b1, Illuminants.D65);
+            var expectedOutput = new CieLab(l2, a2, b2);
+            var converter = new ColorSpaceConverter { TargetLabWhitePoint = Illuminants.D50 };
 
             // Action
             CieLab output = converter.Adapt(input);
@@ -110,9 +110,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Adapt_CieXyz_D65_To_D50_XyzScaling(float x1, float y1, float z1, float x2, float y2, float z2)
         {
             // Arrange
-            CieXyz input = new CieXyz(x1, y1, z1);
-            CieXyz expectedOutput = new CieXyz(x2, y2, z2);
-            ColorSpaceConverter converter = new ColorSpaceConverter
+            var input = new CieXyz(x1, y1, z1);
+            var expectedOutput = new CieXyz(x2, y2, z2);
+            var converter = new ColorSpaceConverter
             {
                 ChromaticAdaptation = new VonKriesChromaticAdaptation(LmsAdaptationMatrix.XyzScaling),
                 WhitePoint = Illuminants.D50
@@ -133,9 +133,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Adapt_Xyz_D65_To_D50_XyzScaling(float x1, float y1, float z1, float x2, float y2, float z2)
         {
             // Arrange
-            CieXyz input = new CieXyz(x1, y1, z1);
-            CieXyz expectedOutput = new CieXyz(x2, y2, z2);
-            ColorSpaceConverter converter = new ColorSpaceConverter
+            var input = new CieXyz(x1, y1, z1);
+            var expectedOutput = new CieXyz(x2, y2, z2);
+            var converter = new ColorSpaceConverter
             {
                 ChromaticAdaptation = new VonKriesChromaticAdaptation(LmsAdaptationMatrix.XyzScaling),
                 WhitePoint = Illuminants.D50

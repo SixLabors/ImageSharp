@@ -12,13 +12,6 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFormatException : Exception
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFormatException"/> class.
-        /// </summary>
-        public ImageFormatException()
-        {
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ImageFormatException"/> class with the name of the
         /// parameter that causes this exception.
         /// </summary>

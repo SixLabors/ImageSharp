@@ -383,6 +383,51 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             );
         }
 
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackFromWzyxBytes(int count)
+        {
+            byte[] source = CreateByteTestData(count * 4);
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+
+                expected[i].PackFromRgba32(new Rgba32(source[i4 + 1], source[i4 + 2], source[i4 + 3], source[i4 + 0]));
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.PackFromArgb32Bytes(s, d.Span, count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToWzyxBytes(int count)
+        {
+            TPixel[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 4];
+            var argb = default(Argb32);
+
+            for (int i = 0; i < count; i++)
+            {
+                int i4 = i * 4;
+                source[i].ToArgb32(ref argb);
+                expected[i4] = argb.A;
+                expected[i4 + 1] = argb.R;
+                expected[i4 + 2] = argb.G;
+                expected[i4 + 3] = argb.B;
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToArgb32Bytes(s, d.Span, count)
+            );
+        }
 
         private class TestBuffers<TSource, TDest> : IDisposable
             where TSource : struct

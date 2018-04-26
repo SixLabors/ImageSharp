@@ -47,27 +47,31 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(.5F, scaled.W, 2);
 
             // Test PackFromScaledVector4.
-            var pixel = default(Alpha8);
-            pixel.PackFromScaledVector4(scaled);
-            Assert.Equal(128, pixel.PackedValue);
+            Alpha8 alpha = default;
+            alpha.PackFromScaledVector4(scaled);
+            Assert.Equal(128, alpha.PackedValue);
 
             // Test Rgb conversion
-            var rgb = default(Rgb24);
-            var rgba = default(Rgba32);
-            var bgr = default(Bgr24);
-            var bgra = default(Bgra32);
+            Rgb24 rgb = default;
+            Rgba32 rgba = default;
+            Bgr24 bgr = default;
+            Bgra32 bgra = default;
+            Argb32 argb = default;
 
-            new Alpha8(.5F).ToRgb24(ref rgb);
+            alpha.ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(0, 0, 0));
 
-            new Alpha8(.5F).ToRgba32(ref rgba);
+            alpha.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(0, 0, 0, 128));
 
-            new Alpha8(.5F).ToBgr24(ref bgr);
+            alpha.ToBgr24(ref bgr);
             Assert.Equal(bgr, new Bgr24(0, 0, 0));
 
-            new Alpha8(.5F).ToBgra32(ref bgra);
+            alpha.ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(0, 0, 0, 128));
+
+            alpha.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(0, 0, 0, 128));
         }
 
         [Fact]
@@ -106,26 +110,47 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float z = +0.5f;
             float w = -0.7f;
             var argb = new Argb32(x, y, z, w);
-            Assert.Equal(0x001a0080u, argb.PackedValue);
+            Assert.Equal(0x80001a00u, argb.PackedValue);
 
             // Test ordering
             var rgb = default(Rgb24);
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
-
+            var argb2 = default(Argb32);
 
             argb.ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(0x1a, 0, 0x80));
 
             argb.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(0x1a, 0, 0x80, 0));
+            Assert.Equal(rgba, argb.ToRgba32());
 
             argb.ToBgr24(ref bgr);
             Assert.Equal(bgr, new Bgr24(0x1a, 0, 0x80));
 
             argb.ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(0x1a, 0, 0x80, 0));
+            Assert.Equal(bgra, argb.ToBgra32());
+
+            argb.ToArgb32(ref argb2);
+            Assert.Equal(argb2, new Argb32(0x1a, 0, 0x80, 0));
+            Assert.Equal(argb2, argb.ToArgb32());
+
+            var r = default(Argb32);
+            r.PackFromRgba32(new Rgba32(0x1a, 0, 0x80, 0));
+            r.ToRgba32(ref rgba);
+            Assert.Equal(rgba, new Rgba32(0x1a, 0, 0x80, 0));
+
+            r = default(Argb32);
+            r.PackFromBgra32(new Bgra32(0x1a, 0, 0x80, 0));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(0x1a, 0, 0x80, 0));
+
+            r = default(Argb32);
+            r.PackFromArgb32(new Argb32(0x1a, 0, 0x80, 0));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(0x1a, 0, 0x80, 0));
         }
 
         [Fact]
@@ -173,6 +198,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Bgr565(x, y, z).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(25, 0, 132));
@@ -185,6 +211,9 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new Bgr565(x, y, z).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(25, 0, 132, 255));
+
+            new Bgr565(x, y, z).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(25, 0, 132, 255));
         }
 
         [Fact]
@@ -235,6 +264,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Bgra4444(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(34, 0, 136));
@@ -247,6 +277,24 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new Bgra4444(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(34, 0, 136, 0));
+
+            new Bgra4444(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(34, 0, 136, 0));
+
+            var r = default(Bgra4444);
+            r.PackFromRgba32(new Rgba32(34, 0, 136, 0));
+            r.ToRgba32(ref rgba);
+            Assert.Equal(rgba, new Rgba32(34, 0, 136, 0));
+
+            r = default(Bgra4444);
+            r.PackFromBgra32(new Bgra32(34, 0, 136, 0));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(34, 0, 136, 0));
+
+            r = default(Bgra4444);
+            r.PackFromArgb32(new Argb32(34, 0, 136, 0));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(34, 0, 136, 0));
         }
 
         [Fact]
@@ -293,6 +341,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Bgra5551(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(24, 0, 131));
@@ -305,6 +354,24 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new Bgra5551(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(24, 0, 131, 0));
+
+            new Bgra5551(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(24, 0, 131, 0));
+
+            var r = default(Bgra5551);
+            r.PackFromRgba32(new Rgba32(24, 0, 131, 0));
+            r.ToRgba32(ref rgba);
+            Assert.Equal(rgba, new Rgba32(24, 0, 131, 0));
+
+            r = default(Bgra5551);
+            r.PackFromBgra32(new Bgra32(24, 0, 131, 0));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(24, 0, 131, 0));
+
+            r = default(Bgra5551);
+            r.PackFromArgb32(new Argb32(24, 0, 131, 0));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(24, 0, 131, 0));
         }
 
         [Fact]
@@ -356,6 +423,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Byte4(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(128, 0, 0));
@@ -369,10 +437,23 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Byte4(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(128, 0, 0, 0));
 
-            var r = new Byte4();
+            new Byte4(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(128, 0, 0, 0));
+
+            var r = default(Byte4);
             r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
+
+            r = default(Byte4);
+            r.PackFromBgra32(new Bgra32(20, 38, 0, 255));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(20, 38, 0, 255));
+
+            r = default(Byte4);
+            r.PackFromArgb32(new Argb32(20, 38, 0, 255));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(20, 38, 0, 255));
         }
 
         [Fact]
@@ -407,6 +488,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new HalfSingle(x).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(128, 0, 0));
@@ -419,6 +501,9 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new HalfSingle(x).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(128, 0, 0, 255));
+
+            new HalfSingle(x).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(128, 0, 0, 255));
         }
 
         [Fact]
@@ -456,6 +541,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new HalfVector2(x, y).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(128, 64, 0));
@@ -468,6 +554,9 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new HalfVector2(x, y).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(128, 64, 0, 255));
+
+            new HalfVector2(x, y).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(128, 64, 0, 255));
         }
 
         [Fact]
@@ -514,6 +603,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new HalfVector4(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(64, 128, 191));
@@ -526,6 +616,24 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new HalfVector4(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(64, 128, 191, 255));
+
+            new HalfVector4(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(64, 128, 191, 255));
+
+            var r = default(HalfVector4);
+            r.PackFromRgba32(new Rgba32(64, 128, 191, 255));
+            r.ToRgba32(ref rgba);
+            Assert.Equal(rgba, new Rgba32(64, 128, 191, 255));
+
+            r = default(HalfVector4);
+            r.PackFromBgra32(new Bgra32(64, 128, 191, 255));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(64, 128, 191, 255));
+
+            r = default(HalfVector4);
+            r.PackFromArgb32(new Argb32(64, 128, 191, 255));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(64, 128, 191, 255));
         }
 
         [Fact]
@@ -571,6 +679,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new NormalizedByte2(x, y).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(141, 90, 0));
@@ -583,6 +692,9 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new NormalizedByte2(x, y).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(141, 90, 0, 255));
+
+            new NormalizedByte2(x, y).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(141, 90, 0, 255));
         }
 
         [Fact]
@@ -618,7 +730,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             float z = 0.5f;
             float w = -0.7f;
             Assert.Equal(0xA740DA0D, new NormalizedByte4(x, y, z, w).PackedValue);
-            var n = new NormalizedByte4();
+            var n = default(NormalizedByte4);
             n.PackFromRgba32(new Rgba32(141, 90, 192, 39));
             Assert.Equal(0xA740DA0D, n.PackedValue);
 
@@ -628,6 +740,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new NormalizedByte4(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(141, 90, 192));
@@ -641,8 +754,11 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new NormalizedByte4(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));
 
+            new NormalizedByte4(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(141, 90, 192, 39));
+
             // http://community.monogame.net/t/normalizedbyte4-texture2d-gives-different-results-from-xna/8012/8
-            var r = new NormalizedByte4();
+            var r = default(NormalizedByte4);
             r.PackFromRgba32(new Rgba32(9, 115, 202, 127));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
@@ -650,6 +766,16 @@ namespace SixLabors.ImageSharp.Tests.Colors
             r.PackedValue = 0xff4af389;
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
+
+            r = default(NormalizedByte4);
+            r.PackFromArgb32(new Argb32(9, 115, 202, 127));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(9, 115, 202, 127));
+
+            r = default(NormalizedByte4);
+            r.PackFromBgra32(new Bgra32(9, 115, 202, 127));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(9, 115, 202, 127));
         }
 
         [Fact]
@@ -692,6 +818,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             var n = new NormalizedShort2();
             n.PackFromRgba32(new Rgba32(141, 90, 0, 0));
@@ -712,6 +839,9 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new NormalizedShort2(x, y).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(141, 90, 0, 255));
+
+            new NormalizedShort2(x, y).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(141, 90, 0, 255));
         }
 
         [Fact]
@@ -753,6 +883,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new NormalizedShort4(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(141, 90, 192));
@@ -766,10 +897,23 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new NormalizedShort4(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));
 
-            var r = new NormalizedShort4();
+            new NormalizedShort4(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(141, 90, 192, 39));
+
+            var r = default(NormalizedShort4);
             r.PackFromRgba32(new Rgba32(9, 115, 202, 127));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(9, 115, 202, 127));
+
+            r = default(NormalizedShort4);
+            r.PackFromBgra32(new Bgra32(9, 115, 202, 127));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(9, 115, 202, 127));
+
+            r = default(NormalizedShort4);
+            r.PackFromArgb32(new Argb32(9, 115, 202, 127));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(9, 115, 202, 127));
         }
 
         [Fact]
@@ -812,6 +956,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Rg32(x, y).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(25, 0, 0));
@@ -824,6 +969,9 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             new Rg32(x, y).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(25, 0, 0, 255));
+
+            new Rg32(x, y).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(25, 0, 0, 255));
         }
 
         [Fact]
@@ -869,6 +1017,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Rgba1010102(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(25, 0, 128));
@@ -883,10 +1032,20 @@ namespace SixLabors.ImageSharp.Tests.Colors
             Assert.Equal(bgra, new Bgra32(25, 0, 128, 0));
 
             // Alpha component accuracy will be awful.
-            var r = new Rgba1010102();
+            var r = default(Rgba1010102);
             r.PackFromRgba32(new Rgba32(25, 0, 128, 0));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(25, 0, 128, 0));
+
+            r = default(Rgba1010102);
+            r.PackFromBgra32(new Bgra32(25, 0, 128, 0));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(25, 0, 128, 0));
+
+            r = default(Rgba1010102);
+            r.PackFromArgb32(new Argb32(25, 0, 128, 0));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(25, 0, 128, 0));
         }
 
         [Fact]
@@ -932,18 +1091,40 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             rgba32.ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(0x1a, 0, 0x80));
 
             rgba32.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(0x1a, 0, 0x80, 0));
+            Assert.Equal(rgba, rgba.ToRgba32());
 
             rgba32.ToBgr24(ref bgr);
             Assert.Equal(bgr, new Bgr24(0x1a, 0, 0x80));
 
             rgba32.ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(0x1a, 0, 0x80, 0));
+            Assert.Equal(bgra, bgra.ToBgra32());
+
+            rgba32.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(0x1a, 0, 0x80, 0));
+            Assert.Equal(argb, argb.ToArgb32());
+
+            var r = default(Rgba32);
+            r.PackFromRgba32(new Rgba32(0x1a, 0, 0x80, 0));
+            r.ToRgba32(ref rgba);
+            Assert.Equal(rgba, new Rgba32(0x1a, 0, 0x80, 0));
+
+            r = default(Rgba32);
+            r.PackFromBgra32(new Bgra32(0x1a, 0, 0x80, 0));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(0x1a, 0, 0x80, 0));
+
+            r = default(Rgba32);
+            r.PackFromArgb32(new Argb32(0x1a, 0, 0x80, 0));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(0x1a, 0, 0x80, 0));
         }
 
         [Fact]
@@ -1008,7 +1189,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Rgba64(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(20, 38, 76, 115));
 
-            var r = new Rgba64();
+            var r = default(Rgba64);
             r.PackFromRgba32(new Rgba32(20, 38, 76, 115));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(20, 38, 76, 115));
@@ -1075,7 +1256,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Short2(x, y).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(128, 127, 0, 255));
 
-            var r = new Short2();
+            var r = default(Short2);
             r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
@@ -1131,6 +1312,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var rgba = default(Rgba32);
             var bgr = default(Bgr24);
             var bgra = default(Bgra32);
+            var argb = default(Argb32);
 
             new Short4(x, y, z, w).ToRgb24(ref rgb);
             Assert.Equal(rgb, new Rgb24(172, 177, 243));
@@ -1144,10 +1326,23 @@ namespace SixLabors.ImageSharp.Tests.Colors
             new Short4(x, y, z, w).ToBgra32(ref bgra);
             Assert.Equal(bgra, new Bgra32(172, 177, 243, 128));
 
-            var r = new Short4();
+            new Short4(x, y, z, w).ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(172, 177, 243, 128));
+
+            var r = default(Short4);
             r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
             r.ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
+
+            r = default(Short4);
+            r.PackFromBgra32(new Bgra32(20, 38, 0, 255));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(20, 38, 0, 255));
+
+            r = default(Short4);
+            r.PackFromArgb32(new Argb32(20, 38, 0, 255));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(20, 38, 0, 255));
         }
 
         // Comparison helpers with small tolerance to allow for floating point rounding during computations.

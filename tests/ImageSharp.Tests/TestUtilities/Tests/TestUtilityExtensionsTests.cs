@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
+
 using Xunit;
 using Xunit.Abstractions;
 

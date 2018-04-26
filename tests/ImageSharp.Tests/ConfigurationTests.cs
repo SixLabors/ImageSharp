@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             // the shallow copy of configuration should behave exactly like the default configuration,
             // so by using the copy, we test both the default and the copy.
-            this.DefaultConfiguration = Configuration.CreateDefaultInstance().ShallowCopy(); 
+            this.DefaultConfiguration = Configuration.CreateDefaultInstance().ShallowCopy();
             this.ConfigurationEmpty = new Configuration();
         }
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Assert.IsType<LocalFileSystem>(this.DefaultConfiguration.FileSystem);
             Assert.IsType<LocalFileSystem>(this.ConfigurationEmpty.FileSystem);
-        }        
+        }
 
         /// <summary>
         /// Test that the default configuration is not null.

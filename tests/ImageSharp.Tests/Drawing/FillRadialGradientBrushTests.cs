@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new RadialGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
                         100,
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Red));
 
@@ -54,6 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new RadialGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(centerX, centerY),
                         width / 2f,
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Yellow));
 

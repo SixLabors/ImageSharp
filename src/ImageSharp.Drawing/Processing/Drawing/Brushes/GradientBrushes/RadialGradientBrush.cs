@@ -19,12 +19,14 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         /// <inheritdoc cref="AbstractGradientBrush{TPixel}" />
         /// <param name="center">The center of the circular gradient and 0 for the color stops.</param>
         /// <param name="radius">The radius of the circular gradient and 1 for the color stops.</param>
+        /// <param name="repetitionMode">Defines how the colors in the gradient are repeated.</param>
         /// <param name="colorStops">the color stops as defined in base class.</param>
         public RadialGradientBrush(
             Point center,
             float radius,
+            GradientRepetitionMode repetitionMode,
             params ColorStop<TPixel>[] colorStops)
-            : base(colorStops)
+            : base(repetitionMode, colorStops)
         {
             this.center = center;
             this.radius = radius;
@@ -41,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 this.center,
                 this.radius,
                 this.ColorStops,
-                region);
+                this.RepetitionMode);
 
         /// <inheritdoc />
         protected class RadialGradientBrushApplicator : AbstractGradientBrushApplicator
@@ -58,15 +60,15 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
             /// <param name="center">Center point of the gradient.</param>
             /// <param name="radius">Radius of the gradient.</param>
             /// <param name="colorStops">Definition of colors.</param>
-            /// <param name="region">TODO !</param>
+            /// <param name="repetitionMode">How the colors are repeated beyond the first gradient.</param>
             public RadialGradientBrushApplicator(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
                 Point center,
                 float radius,
                 ColorStop<TPixel>[] colorStops,
-                RectangleF region)
-                : base(target, options, colorStops, region)
+                GradientRepetitionMode repetitionMode)
+                : base(target, options, colorStops, repetitionMode)
             {
                 this.center = center;
                 this.radius = radius;

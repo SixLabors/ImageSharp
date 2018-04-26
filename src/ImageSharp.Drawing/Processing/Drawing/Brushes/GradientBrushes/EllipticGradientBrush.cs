@@ -29,13 +29,15 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         ///   The second axis' is perpendicular to the reference axis and
         ///   it's length is the reference axis' length multiplied by this factor.
         /// </param>
+        /// <param name="repetitionMode">Defines how the colors of the gradients are repeated.</param>
         /// <param name="colorStops">the color stops as defined in base class.</param>
         public EllipticGradientBrush(
             Point center,
             Point referenceAxisEnd,
             float axisRatio,
+            GradientRepetitionMode repetitionMode,
             params ColorStop<TPixel>[] colorStops)
-            : base(colorStops)
+            : base(repetitionMode, colorStops)
         {
             this.center = center;
             this.referenceAxisEnd = referenceAxisEnd;
@@ -54,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 this.referenceAxisEnd,
                 this.axisRatio,
                 this.ColorStops,
-                region);
+                this.RepetitionMode);
 
         /// <inheritdoc />
         protected class RadialGradientBrushApplicator : AbstractGradientBrushApplicator
@@ -90,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
             /// Ratio of the axis length's. Used to determine the length of the second axis,
             /// the first is defined by <see cref="center"/> and <see cref="referenceAxisEnd"/>.</param>
             /// <param name="colorStops">Definition of colors</param>
-            /// <param name="region">TODO !</param>
+            /// <param name="repetitionMode">Defines how the gradient colors are repeated.</param>
             public RadialGradientBrushApplicator(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
@@ -98,8 +100,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 Point referenceAxisEnd,
                 float axisRatio,
                 ColorStop<TPixel>[] colorStops,
-                RectangleF region)
-                : base(target, options, colorStops, region)
+                GradientRepetitionMode repetitionMode)
+                : base(target, options, colorStops, repetitionMode)
             {
                 this.center = center;
                 this.referenceAxisEnd = referenceAxisEnd;
@@ -116,7 +118,6 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
 
                 this.sinRotation = (float)Math.Sin(this.rotation);
                 this.cosRotation = (float)Math.Cos(this.rotation);
-
             }
 
             /// <inheritdoc />

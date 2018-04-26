@@ -74,18 +74,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return (other is IccNamedColor) && this.Equals((IccNamedColor)other);
+            return obj is IccNamedColor other && this.Equals(other);
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccNamedColor other)
-        {
-            return this.Name == other.Name
-                && this.PcsCoordinates.SequenceEqual(other.PcsCoordinates)
-                && this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
-        }
+        public bool Equals(IccNamedColor other) =>
+            this.Name == other.Name &&
+            this.PcsCoordinates.SequenceEqual(other.PcsCoordinates) &&
+            this.DeviceCoordinates.SequenceEqual(other.DeviceCoordinates);
 
         /// <inheritdoc/>
         public override int GetHashCode()

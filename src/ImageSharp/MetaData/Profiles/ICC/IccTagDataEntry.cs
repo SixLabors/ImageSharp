@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
+            if (obj == null)
             {
                 return false;
             }
@@ -54,8 +54,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            var entry = obj as IccTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return obj is IccTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
@@ -70,7 +69,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public virtual bool Equals(IccTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other == null)
             {
                 return false;
             }

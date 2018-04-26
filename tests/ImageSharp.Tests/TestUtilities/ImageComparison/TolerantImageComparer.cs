@@ -1,14 +1,14 @@
-﻿namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+
+using SixLabors.Primitives;
+
+namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.PixelFormats;
-
-    using SixLabors.Primitives;
-
     public class TolerantImageComparer : ImageComparer
     {
         // 1% of all pixels in a 100*100 pixel area are allowed to have a difference of 1 unit
@@ -50,20 +50,20 @@
         /// </see>
         /// </summary>
         public int PerPixelManhattanThreshold { get; }
-        
+
         public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
         {
             if (expected.Size() != actual.Size())
             {
                 throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
             }
-            
+
             int width = actual.Width;
 
             // TODO: Comparing through Rgba32 is not robust enough because of the existance of super high precision pixel types.
 
-            Rgba32[] aBuffer = new Rgba32[width];
-            Rgba32[] bBuffer = new Rgba32[width];
+            var aBuffer = new Rgba32[width];
+            var bBuffer = new Rgba32[width];
 
             float totalDifference = 0.0f;
 
@@ -93,7 +93,7 @@
 
             float normalizedDifference = totalDifference / ((float)actual.Width * (float)actual.Height);
             normalizedDifference /= 4.0f * 255.0f;
-            
+
             if (normalizedDifference > this.ImageThreshold)
             {
                 return new ImageSimilarityReport<TPixelA, TPixelB>(expected, actual, differences, normalizedDifference);

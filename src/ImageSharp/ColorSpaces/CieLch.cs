@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="CieLch"/> that has L, C, H values set to zero.
         /// </summary>
-        public static readonly CieLch Empty = default(CieLch);
+        public static readonly CieLch Empty = default;
 
         /// <summary>
         /// The backing vector for SIMD support.

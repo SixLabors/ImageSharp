@@ -69,12 +69,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public bool Equals(IccScreeningChannel other)
-        {
-            return this.Frequency.Equals(other.Frequency)
-                && this.Angle.Equals(other.Angle)
-                && this.SpotShape == other.SpotShape;
-        }
+        public bool Equals(IccScreeningChannel other) =>
+            this.Frequency == other.Frequency &&
+            this.Angle == other.Angle &&
+            this.SpotShape == other.SpotShape;
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

@@ -49,9 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.Mutate(i => { i.Transform(m, sampler); });
 
                 image.DebugSave(provider, resamplerName);
-
-                // TODO: Enable and add more tests.
-                // image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
             }
         }
 
@@ -70,9 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.Mutate(i => { i.Transform(m); });
 
                 image.DebugSave(provider);
-
-                // TODO: Enable and add more tests.
-                // image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 

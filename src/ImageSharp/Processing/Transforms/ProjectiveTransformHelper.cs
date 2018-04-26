@@ -54,20 +54,20 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     }
 
     /// <summary>
-    /// Provides methods for the creation of generalized tapering projective transforms.
-    /// <see href="https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine"/>
+    /// Provides helper methods for working with generalized projective transforms.
     /// </summary>
-    public static class TaperTransform
+    public static class ProjectiveTransformHelper
     {
         /// <summary>
         /// Creates a matrix that performs a tapering projective transform.
+        /// <see href="https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine"/>
         /// </summary>
-        /// <param name="size">The resultant size of the tapered output</param>
-        /// <param name="taperSide">The taper side option</param>
-        /// <param name="taperCorner">The taper corner option</param>
-        /// <param name="taperFraction">The amount to taper</param>
+        /// <param name="size">The rectangular size of the image being transformed.</param>
+        /// <param name="taperSide">An enumeration that indicates the side of the rectangle that tapers.</param>
+        /// <param name="taperCorner">An enumeration that indicates on which corners to taper the rectangle.</param>
+        /// <param name="taperFraction">The amount to taper.</param>
         /// <returns>The <see cref="Matrix4x4"/></returns>
-        public static Matrix4x4 Create(Size size, TaperSide taperSide, TaperCorner taperCorner, float taperFraction)
+        public static Matrix4x4 CreateTaperMatrix(Size size, TaperSide taperSide, TaperCorner taperCorner, float taperFraction)
         {
             Matrix4x4 matrix = Matrix4x4.Identity;
 

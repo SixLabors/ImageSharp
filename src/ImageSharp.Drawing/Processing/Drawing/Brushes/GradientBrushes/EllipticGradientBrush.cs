@@ -154,7 +154,12 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 PointF p1,
                 PointF p2)
             {
-                return (float)Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+                float dX = p1.X - p2.X;
+                float dXsquared = dX * dX;
+
+                float dY = p1.Y - p2.Y;
+                float dYsquared = dY * dY;
+                return (float)Math.Sqrt(dXsquared + dYsquared);
             }
         }
     }

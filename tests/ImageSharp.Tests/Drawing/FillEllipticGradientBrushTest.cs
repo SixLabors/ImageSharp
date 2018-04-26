@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
-using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -27,6 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(10, 0),
                         1.0f,
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Red));
 
@@ -62,6 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new SixLabors.Primitives.Point(500, 500),
                         new SixLabors.Primitives.Point(500, 750),
                         ratio,
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Yellow),
                         new ColorStop<Rgba32>(1, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Black));
@@ -112,6 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         center,
                         new SixLabors.Primitives.Point(axisX, axisY),
                         ratio,
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Yellow),
                         new ColorStop<Rgba32>(1, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Black));

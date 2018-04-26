@@ -23,9 +23,14 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         /// </summary>
         /// <param name="p1">Start point</param>
         /// <param name="p2">End point</param>
+        /// <param name="repetitionMode">defines how colors are repeated.</param>
         /// <param name="colorStops"><inheritdoc /></param>
-        public LinearGradientBrush(Point p1, Point p2, params ColorStop<TPixel>[] colorStops)
-            : base(colorStops)
+        public LinearGradientBrush(
+            Point p1,
+            Point p2,
+            GradientRepetitionMode repetitionMode,
+            params ColorStop<TPixel>[] colorStops)
+            : base(repetitionMode, colorStops)
         {
             this.p1 = p1;
             this.p2 = p2;
@@ -33,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
 
         /// <inheritdoc />
         public override BrushApplicator<TPixel> CreateApplicator(ImageFrame<TPixel> source, RectangleF region, GraphicsOptions options)
-            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.ColorStops, region, options);
+            => new LinearGradientBrushApplicator(source, this.p1, this.p2, this.ColorStops, this.RepetitionMode, options);
 
         /// <summary>
         /// The linear gradient brush applicator.
@@ -81,16 +86,16 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
             /// <param name="start">start point of the gradient</param>
             /// <param name="end">end point of the gradient</param>
             /// <param name="colorStops">tuple list of colors and their respective position between 0 and 1 on the line</param>
-            /// <param name="region">the region, copied from SolidColorBrush, not sure if necessary! TODO</param>
+            /// <param name="repetitionMode">defines how the gradient colors are repeated.</param>
             /// <param name="options">the graphics options</param>
             public LinearGradientBrushApplicator(
                 ImageFrame<TPixel> source,
                 Point start,
                 Point end,
                 ColorStop<TPixel>[] colorStops,
-                RectangleF region,
+                GradientRepetitionMode repetitionMode,
                 GraphicsOptions options)
-                : base(source, options, colorStops, region)
+                : base(source, options, colorStops, repetitionMode)
             {
                 this.start = start;
                 this.end = end;

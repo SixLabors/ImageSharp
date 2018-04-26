@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
@@ -14,11 +15,20 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc cref="IBrush{TPixel}"/>
+        /// <param name="repetitionMode">Defines how the colors are repeated beyond the interval [0..1]</param>
         /// <param name="colorStops">The gradient colors.</param>
-        protected AbstractGradientBrush(params ColorStop<TPixel>[] colorStops)
+        protected AbstractGradientBrush(
+            GradientRepetitionMode repetitionMode,
+            params ColorStop<TPixel>[] colorStops)
         {
+            this.RepetitionMode = repetitionMode;
             this.ColorStops = colorStops;
         }
+
+        /// <summary>
+        /// Gets how the colors are repeated beyond the interval [0..1].
+        /// </summary>
+        protected GradientRepetitionMode RepetitionMode { get; }
 
         /// <summary>
         /// Gets the list of color stops for this gradient.
@@ -38,21 +48,24 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         {
             private readonly ColorStop<TPixel>[] colorStops;
 
+            private readonly GradientRepetitionMode repetitionMode;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="AbstractGradientBrushApplicator"/> class.
             /// </summary>
             /// <param name="target">The target.</param>
             /// <param name="options">The options.</param>
-            /// <param name="colorStops">an array of color stops sorted by their position.</param>
-            /// <param name="region">TODO: use region, compare with other Brushes for reference</param>
+            /// <param name="colorStops">An array of color stops sorted by their position.</param>
+            /// <param name="repetitionMode">Defines if and how the gradient should be repeated.</param>
             protected AbstractGradientBrushApplicator(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
                 ColorStop<TPixel>[] colorStops,
-                RectangleF region)
+                GradientRepetitionMode repetitionMode)
                 : base(target, options)
             {
                 this.colorStops = colorStops; // TODO: requires colorStops to be sorted by position - should that be checked?
+                this.repetitionMode = repetitionMode;
             }
 
             /// <summary>
@@ -66,6 +79,35 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 get
                 {
                     float positionOnCompleteGradient = this.PositionOnGradient(x, y);
+
+                    switch (this.repetitionMode)
+                    {
+                        case GradientRepetitionMode.None:
+                            // do nothing. The following could be done, but is not necessary:
+                            // onLocalGradient = Math.Min(0, Math.Max(1, onLocalGradient));
+                            break;
+                        case GradientRepetitionMode.Repeat:
+                            positionOnCompleteGradient = positionOnCompleteGradient % 1;
+                            break;
+                        case GradientRepetitionMode.Reflect:
+                            positionOnCompleteGradient = positionOnCompleteGradient % 2;
+                            if (positionOnCompleteGradient > 1)
+                            {
+                                positionOnCompleteGradient = 2 - positionOnCompleteGradient;
+                            }
+
+                            break;
+                        case GradientRepetitionMode.DontFill:
+                            if (positionOnCompleteGradient > 1 || positionOnCompleteGradient < 0)
+                            {
+                                return NamedColors<TPixel>.Transparent;
+                            }
+
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+
                     var (from, to) = this.GetGradientSegment(positionOnCompleteGradient);
 
                     if (from.Color.Equals(to.Color))

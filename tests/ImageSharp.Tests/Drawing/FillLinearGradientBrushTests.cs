@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(10, 0),
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Red));
 
@@ -54,11 +55,62 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(500, 0),
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Yellow));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.Save($"{path}/horizontalRedToYellow.png");
+
+                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                {
+                    Rgba32 columnColor0 = sourcePixels[0, 0];
+                    Rgba32 columnColor23 = sourcePixels[23, 0];
+                    Rgba32 columnColor42 = sourcePixels[42, 0];
+                    Rgba32 columnColor333 = sourcePixels[333, 0];
+
+                    Rgba32 lastColumnColor = sourcePixels[lastColumnIndex, 0];
+
+                    for (int i = 0; i < height; i++)
+                    {
+                        // check first and last column:
+                        Assert.Equal(columnColor0, sourcePixels[0, i]);
+                        Assert.Equal(lastColumnColor, sourcePixels[lastColumnIndex, i]);
+
+                        // check the random colors:
+                        Assert.True(columnColor23 == sourcePixels[23, i], $"at {i}");
+                        Assert.Equal(columnColor42, sourcePixels[42, i]);
+                        Assert.Equal(columnColor333, sourcePixels[333, i]);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(GradientRepetitionMode.DontFill)]
+        [InlineData(GradientRepetitionMode.None)]
+        [InlineData(GradientRepetitionMode.Repeat)]
+        [InlineData(GradientRepetitionMode.Reflect)]
+        public void HorizontalLinearGradientBrushWithDifferentRepetitionModesCreatesCorrectImages(
+            GradientRepetitionMode repetitionMode)
+        {
+            int width = 500;
+            int height = 10;
+            int lastColumnIndex = width - 1;
+
+            string path = TestEnvironment.CreateOutputDirectory("Fill", "LinearGradientBrush");
+            using (var image = new Image<Rgba32>(width, height))
+            {
+                LinearGradientBrush<Rgba32> unicolorLinearGradientBrush =
+                    new LinearGradientBrush<Rgba32>(
+                        new SixLabors.Primitives.Point(0, 0),
+                        new SixLabors.Primitives.Point(50, 0),
+                        repetitionMode,
+                        new ColorStop<Rgba32>(0, Rgba32.Red),
+                        new ColorStop<Rgba32>(1, Rgba32.Yellow));
+
+                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                image.Save($"{path}/horizontalRedToYellow_{repetitionMode}.png");
 
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
@@ -117,6 +169,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(width, 0),
+                        GradientRepetitionMode.None,
                         colorStops);
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
@@ -146,6 +199,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(0, 500),
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Yellow));
 
@@ -194,6 +248,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(startX, startY),
                         new SixLabors.Primitives.Point(endX, endY),
+                        GradientRepetitionMode.None,
                         new ColorStop<Rgba32>(0, Rgba32.Red),
                         new ColorStop<Rgba32>(1, Rgba32.Yellow));
 
@@ -251,6 +306,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new LinearGradientBrush<Rgba32>(
                         new SixLabors.Primitives.Point(startX, startY),
                         new SixLabors.Primitives.Point(endX, endY),
+                        GradientRepetitionMode.None,
                         colorStops);
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));

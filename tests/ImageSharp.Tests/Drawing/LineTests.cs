@@ -2,24 +2,24 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
+
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
+using SixLabors.ImageSharp.Processing.Overlays;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     public class LineTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -46,13 +46,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPath_NoAntialias()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
                     .DrawLines(
                         new GraphicsOptions(false),
-                        Rgba32.HotPink, 
+                        Rgba32.HotPink,
                         5,
                         new SixLabors.Primitives.PointF[] {
                                 new Vector2(10, 10),
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashed()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDotted()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashDot()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashDotDot()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            Image<Rgba32> image = new Image<Rgba32>(500, 500);
+            var image = new Image<Rgba32>(500, 500);
 
             image.Mutate(x => x
                 .BackgroundColor(Rgba32.Blue)
@@ -147,9 +147,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
 
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            Image<Rgba32> image = new Image<Rgba32>(500, 500);
+            var image = new Image<Rgba32>(500, 500);
 
             image.Mutate(x => x
                 .BackgroundColor(Rgba32.Blue)
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             image.Save($"{path}/Opacity.png");
 
             //shift background color towards forground color by the opacity amount
-            Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+            var mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
             using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
             {
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
 
-            Image<Rgba32> image = new Image<Rgba32>(500, 500);
+            var image = new Image<Rgba32>(500, 500);
 
             image.Mutate(x => x
                 .BackgroundColor(Rgba32.Blue)

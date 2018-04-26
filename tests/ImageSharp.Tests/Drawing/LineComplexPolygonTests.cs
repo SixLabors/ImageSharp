@@ -3,16 +3,16 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
+using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.Shapes;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     public class LineComplexPolygonTests : FileTestBase
     {
         [Fact]
@@ -87,9 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(Rgba32.HotPink, sourcePixels[10, 10]);
-
                     Assert.Equal(Rgba32.HotPink, sourcePixels[200, 150]);
-
                     Assert.Equal(Rgba32.HotPink, sourcePixels[50, 300]);
 
 
@@ -109,7 +107,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
-
 
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutlineOverlapping()
@@ -135,13 +132,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(Rgba32.HotPink, sourcePixels[10, 10]);
-
                     Assert.Equal(Rgba32.HotPink, sourcePixels[200, 150]);
-
                     Assert.Equal(Rgba32.HotPink, sourcePixels[50, 300]);
-
                     Assert.Equal(Rgba32.Blue, sourcePixels[130, 41]);
-
                     Assert.Equal(Rgba32.Blue, sourcePixels[2, 2]);
 
                     //inside hole
@@ -152,7 +145,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
-
 
         [Fact]
         public void ImageShouldBeOverlayedByPolygonOutlineDashed()
@@ -176,7 +168,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Save($"{path}/Dashed.png");
             }
         }
-
 
         [Fact]
         public void ImageShouldBeOverlayedPolygonOutlineWithOpacity()
@@ -206,23 +197,15 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
                 {
                     Assert.Equal(mergedColor, sourcePixels[10, 10]);
-
                     Assert.Equal(mergedColor, sourcePixels[200, 150]);
-
                     Assert.Equal(mergedColor, sourcePixels[50, 300]);
-
-
                     Assert.Equal(mergedColor, sourcePixels[37, 85]);
-
                     Assert.Equal(mergedColor, sourcePixels[93, 85]);
-
                     Assert.Equal(mergedColor, sourcePixels[65, 137]);
-
                     Assert.Equal(Rgba32.Blue, sourcePixels[2, 2]);
 
                     //inside hole
                     Assert.Equal(Rgba32.Blue, sourcePixels[57, 99]);
-
 
                     //inside shape
                     Assert.Equal(Rgba32.Blue, sourcePixels[100, 192]);

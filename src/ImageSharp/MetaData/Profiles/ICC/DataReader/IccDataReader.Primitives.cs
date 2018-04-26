@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads a float
+        /// Reads a float.
         /// </summary>
         /// <returns>the value</returns>
         public unsafe float ReadSingle()
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads an ASCII encoded string
+        /// Reads an ASCII encoded string.
         /// </summary>
         /// <param name="length">number of bytes to read</param>
         /// <returns>The value as a string</returns>
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads an UTF-16 big-endian encoded string
+        /// Reads an UTF-16 big-endian encoded string.
         /// </summary>
         /// <param name="length">number of bytes to read</param>
         /// <returns>The value as a string</returns>
@@ -131,34 +131,25 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads a signed 32bit number with 1 sign bit, 15 value bits and 16 fractional bits
+        /// Reads a signed 32bit number with 1 sign bit, 15 value bits and 16 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
-        public float ReadFix16()
-        {
-            return this.ReadInt32() / 65536f;
-        }
+        public float ReadFix16() => this.ReadInt32() / 65536f;
 
         /// <summary>
-        /// Reads an unsigned 32bit number with 16 value bits and 16 fractional bits
+        /// Reads an unsigned 32bit number with 16 value bits and 16 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
-        public float ReadUFix16()
-        {
-            return this.ReadUInt32() / 65536f;
-        }
+        public float ReadUFix16() => this.ReadUInt32() / 65536f;
 
         /// <summary>
-        /// Reads an unsigned 16bit number with 1 value bit and 15 fractional bits
+        /// Reads an unsigned 16bit number with 1 value bit and 15 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
-        public float ReadU1Fix15()
-        {
-            return this.ReadUInt16() / 32768f;
-        }
+        public float ReadU1Fix15() => this.ReadUInt16() / 32768f;
 
         /// <summary>
-        /// Reads an unsigned 16bit number with 8 value bits and 8 fractional bits
+        /// Reads an unsigned 16bit number with 8 value bits and 8 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
         public float ReadUFix8()
@@ -167,7 +158,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads a number of bytes and advances the index
+        /// Reads a number of bytes and advances the index.
         /// </summary>
         /// <param name="count">The number of bytes to read</param>
         /// <returns>The read bytes</returns>

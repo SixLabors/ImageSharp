@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 {
                     return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sourceBitmap);
                 }
-                
+
                 using (var convertedBitmap = new System.Drawing.Bitmap(
                     sourceBitmap.Width,
                     sourceBitmap.Height,

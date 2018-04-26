@@ -1,15 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using Xunit;
-using SixLabors.ImageSharp.Advanced;
 using System.Runtime.CompilerServices;
-// ReSharper disable InconsistentNaming
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
-    using SixLabors.ImageSharp.PixelFormats;
-
     public class AdvancedImageExtensionsTests
     {
         [Theory]
@@ -19,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                TPixel[] targetBuffer = new TPixel[image.Width * image.Height];
+                var targetBuffer = new TPixel[image.Width * image.Height];
 
                 ref byte source = ref Unsafe.As<TPixel, byte>(ref targetBuffer[0]);
                 ref byte dest = ref Unsafe.As<TPixel, byte>(ref image.DangerousGetPinnableReferenceToPixelBuffer());

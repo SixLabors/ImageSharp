@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.
         /// </summary>
-        public static readonly Hsl Empty = default(Hsl);
+        public static readonly Hsl Empty = default;
 
         /// <summary>
         /// Max range used for clamping

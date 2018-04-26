@@ -123,17 +123,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public override bool Equals(object obj)
             {
-                if (object.ReferenceEquals(null, obj)) return false;
-                if (object.ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return this.Equals((SpectralData)obj);
+                return obj is SpectralData other && this.Equals(other);
             }
 
             public override int GetHashCode()
             {
                 unchecked
                 {
-                    return (this.ComponentCount * 397) ^ (this.Components != null ? this.Components[0].GetHashCode() : 0);
+                    return (this.ComponentCount * 397) ^ (this.Components?[0].GetHashCode() ?? 0);
                 }
             }
 

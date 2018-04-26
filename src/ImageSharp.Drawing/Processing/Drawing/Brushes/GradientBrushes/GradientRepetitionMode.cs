@@ -26,9 +26,8 @@
         /// <summary>
         /// With DontFill a gradient does not touch any pixel beyond it's borders.
         /// For the <see cref="LinearGradientBrush{TPixel}" /> this is beyond the orthogonal through start and end,
-        /// For the <see cref="PolygonalGradientBrush" /> it's outside the polygon,
-        /// TODO For see cref="RadialGradientBrush{TPixel}"/> and <see cref="EllipticGradientBrush{TPixel}"/> it's beyond 1.0.
-        /// TODO: check documentation consistency according to 1.0
+        /// TODO For the cref="PolygonalGradientBrush" it's outside the polygon,
+        /// For <see cref="RadialGradientBrush{TPixel}" /> and <see cref="EllipticGradientBrush{TPixel}" /> it's beyond 1.0.
         /// </summary>
         DontFill
     }

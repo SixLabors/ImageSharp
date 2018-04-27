@@ -15,6 +15,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public ImageFramesCollectionTests()
         {
+            // Needed to get English exception messages, which are checked in several tests.
+            System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en-US");
+
             this.image = new Image<Rgba32>(10, 10);
             this.collection = new ImageFrameCollection<Rgba32>(this.image, 10, 10);
         }

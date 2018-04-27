@@ -39,6 +39,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         public byte A;
 
         /// <summary>
+        /// The maximum byte value.
+        /// </summary>
+        private static readonly Vector4 MaxBytes = new Vector4(255);
+
+        /// <summary>
+        /// The half vector value.
+        /// </summary>
+        private static readonly Vector4 Half = new Vector4(0.5F);
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Bgra32"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
@@ -141,16 +151,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
-            var rgba = default(Rgba32);
-            rgba.PackFromVector4(vector);
-            this.PackFromRgba32(rgba);
+            this.Pack(ref vector);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return this.ToRgba32().ToVector4();
+            return new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
         }
 
         /// <inheritdoc/>
@@ -243,5 +251,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>The RGBA value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Bgra32 ToBgra32() => this;
+
+        /// <summary>
+        /// Packs a <see cref="Vector4"/> into a color.
+        /// </summary>
+        /// <param name="vector">The vector containing the values to pack.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Pack(ref Vector4 vector) {
+            vector *= MaxBytes;
+            vector += Half;
+            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+
+            this.R = (byte)vector.X;
+            this.G = (byte)vector.Y;
+            this.B = (byte)vector.Z;
+            this.A = (byte)vector.W;
+        }
     }
 }

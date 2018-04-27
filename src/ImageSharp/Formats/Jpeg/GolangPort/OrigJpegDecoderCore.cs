@@ -692,12 +692,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             this.ColorSpace = this.DeduceJpegColorSpace();
 
-            if (!metadataOnly)
+            foreach (OrigComponent component in this.Components)
             {
-                foreach (OrigComponent component in this.Components)
-                {
-                    component.InitializeDerivedData(this.configuration.MemoryManager, this);
-                }
+                component.InitializeDerivedData(this.configuration.MemoryManager, this, metadataOnly);
             }
         }
 

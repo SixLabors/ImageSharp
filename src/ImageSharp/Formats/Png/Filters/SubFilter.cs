@@ -60,6 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Sub(x) = Raw(x) - Raw(x-bpp)
             resultBaseRef = 1;
 
+#if OLD_AND_SLOW
             for (int x = 0; x < scanline.Length; x++)
             {
                 if (x - bytesPerPixel < 0)
@@ -78,6 +79,25 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                     sum += res < 128 ? res : 256 - res;
                 }
             }
+#else
+            int x = 0;
+            for (; x < bytesPerPixel;) {
+                byte scan = Unsafe.Add(ref scanBaseRef, x);
+                ++x;
+                ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+                res = scan;
+                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+            }
+
+            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft) {
+                byte scan = Unsafe.Add(ref scanBaseRef, x);
+                byte prev = Unsafe.Add(ref scanBaseRef, xLeft);
+                ++x;
+                ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+                res = (byte)(scan - prev);
+                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+            }
+#endif
 
             sum -= 1;
         }

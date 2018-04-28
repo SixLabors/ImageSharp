@@ -29,21 +29,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
 
             // Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
-            for (int x = 1; x < scanline.Length; x++)
+            int x = 1;
+            for (; x <= bytesPerPixel /* Note the <= because x starts at 1 */; ++x) {
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                scan = (byte)(scan + (above >> 1));
+            }
+
+            for (; x < scanline.Length; ++x)
             {
-                if (x - bytesPerPixel < 1)
-                {
-                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    scan = (byte)((scan + (above >> 1)) % 256);
-                }
-                else
-                {
-                    ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
-                    byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    scan = (byte)((scan + Average(left, above)) % 256);
-                }
+                ref byte scan = ref Unsafe.Add(ref scanBaseRef, x);
+                byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                scan = (byte)(scan + Average(left, above));
             }
         }
 
@@ -69,25 +67,24 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
             resultBaseRef = 3;
 
-            for (int x = 0; x < scanline.Length; x++)
-            {
-                if (x - bytesPerPixel < 0)
-                {
-                    byte scan = Unsafe.Add(ref scanBaseRef, x);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
-                    res = (byte)((scan - (above >> 1)) % 256);
-                    sum += res < 128 ? res : 256 - res;
-                }
-                else
-                {
-                    byte scan = Unsafe.Add(ref scanBaseRef, x);
-                    byte left = Unsafe.Add(ref scanBaseRef, x - bytesPerPixel);
-                    byte above = Unsafe.Add(ref prevBaseRef, x);
-                    ref byte res = ref Unsafe.Add(ref resultBaseRef, x + 1);
-                    res = (byte)((scan - Average(left, above)) % 256);
-                    sum += res < 128 ? res : 256 - res;
-                }
+            int x = 0;
+            for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */) {
+                byte scan = Unsafe.Add(ref scanBaseRef, x);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                ++x;
+                ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+                res = (byte)(scan - (above >> 1));
+                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+            }
+
+            for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */) {
+                byte scan = Unsafe.Add(ref scanBaseRef, x);
+                byte left = Unsafe.Add(ref scanBaseRef, xLeft);
+                byte above = Unsafe.Add(ref prevBaseRef, x);
+                ++x;
+                ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
+                res = (byte)(scan - Average(left, above));
+                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
             }
 
             sum -= 3;

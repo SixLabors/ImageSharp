@@ -13,9 +13,13 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
+    using Xunit.Abstractions;
+
     public class ProjectiveTransformTests
     {
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f, 3);
+
+        private ITestOutputHelper Output { get; }
 
         public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
         {
@@ -36,6 +40,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             nameof(KnownResamplers.Welch),
         };
 
+        public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData =
+            new TheoryData<TaperSide, TaperCorner>
+                {
+                    { TaperSide.Bottom, TaperCorner.Both },
+                    { TaperSide.Bottom, TaperCorner.LeftOrTop },
+                    { TaperSide.Bottom, TaperCorner.RightOrBottom },
+
+                    { TaperSide.Top, TaperCorner.Both },
+                    { TaperSide.Top, TaperCorner.LeftOrTop },
+                    { TaperSide.Top, TaperCorner.RightOrBottom },
+
+                    { TaperSide.Left, TaperCorner.Both },
+                    { TaperSide.Left, TaperCorner.LeftOrTop },
+                    { TaperSide.Left, TaperCorner.RightOrBottom },
+
+                    { TaperSide.Right, TaperCorner.Both },
+                    { TaperSide.Right, TaperCorner.LeftOrTop },
+                    { TaperSide.Right, TaperCorner.RightOrBottom },
+
+                };
+
+        public ProjectiveTransformTests(ITestOutputHelper output)
+        {
+            this.Output = output;
+        }
+
         [Theory]
         [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
@@ -54,10 +84,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
+        [WithSolidFilledImages(nameof(TaperMatrixData), 30, 30, nameof(Rgba32.Red), PixelTypes.Rgba32)]
+        public void Transform_WithTaperMatrix<TPixel>(TestImageProvider<TPixel> provider, TaperSide taperSide, TaperCorner taperCorner)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var taperMatrixComparer = ImageComparer.TolerantPercentage(0.2f);
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                Matrix4x4 m = ProjectiveTransformHelper.CreateTaperMatrix(image.Size(), taperSide, taperCorner, .5F);
+                image.Mutate(i => { i.Transform(m); });
+
+                string testOutputDetails = $"{taperSide}-{taperCorner}";
+                image.DebugSave(provider, testOutputDetails);
+
+                // TODO: Review ProjectiveTransformHelper API before adding assertion
+                // image.CompareFirstFrameToReferenceOutput(taperMatrixComparer, provider, testOutputDetails);
+            }
+        }
+
+        [Theory]
         [WithSolidFilledImages(100, 100, 0, 0, 255, PixelTypes.Rgba32)]
         public void RawTransformMatchesDocumentedExample<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            // Printing some extra output to help investigating roundoff errors:
+            this.Output.WriteLine($"Vector.IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
+
             // This test matches the output described in the example at
             // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine
             using (Image<TPixel> image = provider.GetImage())

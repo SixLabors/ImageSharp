@@ -17,7 +17,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
     public class ProjectiveTransformTests
     {
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f, 3);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
+        private static readonly ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.05f);
 
         private ITestOutputHelper Output { get; }
 
@@ -61,6 +62,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 };
 
+        
+
         public ProjectiveTransformTests(ITestOutputHelper output)
         {
             this.Output = output;
@@ -88,7 +91,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_WithTaperMatrix<TPixel>(TestImageProvider<TPixel> provider, TaperSide taperSide, TaperCorner taperCorner)
             where TPixel : struct, IPixel<TPixel>
         {
-            var taperMatrixComparer = ImageComparer.TolerantPercentage(0.2f);
             using (Image<TPixel> image = provider.GetImage())
             {
                 Matrix4x4 m = ProjectiveTransformHelper.CreateTaperMatrix(image.Size(), taperSide, taperCorner, .5F);
@@ -98,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.DebugSave(provider, testOutputDetails);
 
                 // TODO: Review ProjectiveTransformHelper API before adding assertion
-                // image.CompareFirstFrameToReferenceOutput(taperMatrixComparer, provider, testOutputDetails);
+                // image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
             }
         }
 
@@ -120,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 image.Mutate(i => { i.Transform(m); });
 
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(TolerantComparer, provider);
             }
         }
 

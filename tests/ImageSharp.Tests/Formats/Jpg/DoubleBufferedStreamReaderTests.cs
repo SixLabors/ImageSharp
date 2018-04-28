@@ -4,19 +4,22 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class DoubleBufferedStreamReaderTests
     {
+        private MemoryManager manager = Configuration.Default.MemoryManager;
+
         [Fact]
         public void DoubleBufferedStreamReaderCanReadSingleByteFromOrigin()
         {
             using (MemoryStream stream = CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(stream);
+                var reader = new DoubleBufferedStreamReader(this.manager, stream);
 
                 Assert.Equal(expected[0], reader.ReadByte());
 
@@ -32,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (MemoryStream stream = CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(stream);
+                var reader = new DoubleBufferedStreamReader(this.manager, stream);
 
                 for (int i = 0; i < expected.Length; i++)
                 {
@@ -64,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 byte[] buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(stream);
+                var reader = new DoubleBufferedStreamReader(this.manager, stream);
 
                 Assert.Equal(2, reader.Read(buffer, 0, 2));
                 Assert.Equal(expected[0], buffer[0]);
@@ -83,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 byte[] buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(stream);
+                var reader = new DoubleBufferedStreamReader(this.manager, stream);
 
                 for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                 {

@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Memory;
 
 // TODO: This could be useful elsewhere.
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
@@ -11,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// A stream reader that add a secondary level buffer in addition to native stream buffered reading
     /// to reduce the overhead of small incremental reads.
     /// </summary>
-    internal class DoubleBufferedStreamReader
+    internal class DoubleBufferedStreamReader : IDisposable
     {
         /// <summary>
         /// The length, in bytes, of the chunk
@@ -19,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public const int ChunkLength = 4096;
 
         private readonly Stream stream;
+
+        private readonly IManagedByteBuffer buffer;
 
         private readonly byte[] chunk;
 
@@ -29,14 +32,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="DoubleBufferedStreamReader"/> class.
         /// </summary>
+        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="stream">The input stream.</param>
-        public DoubleBufferedStreamReader(Stream stream)
+        public DoubleBufferedStreamReader(MemoryManager memoryManager, Stream stream)
         {
             this.stream = stream;
             this.Length = stream.Length;
 
-            // TODO: Consider pooling this.
-            this.chunk = new byte[ChunkLength];
+            this.buffer = memoryManager.AllocateCleanManagedByteBuffer(ChunkLength);
+            this.chunk = this.buffer.Array;
         }
 
         /// <summary>
@@ -146,6 +150,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             return Math.Max(n, 0);
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.buffer?.Dispose();
         }
     }
 }

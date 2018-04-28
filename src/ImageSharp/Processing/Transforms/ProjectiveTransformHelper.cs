@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M12 = (size.Height / 2) * matrix.M13;
+                            matrix.M12 = (size.Height * 0.5f) * matrix.M13;
                             matrix.M32 = size.Height * (1 - taperFraction) / 2;
                             break;
                     }
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M21 = (size.Width / 2) * matrix.M23;
+                            matrix.M21 = (size.Width * 0.5f) * matrix.M23;
                             matrix.M31 = size.Width * (1 - taperFraction) / 2;
                             break;
                     }
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M12 = (size.Height / 2) * matrix.M13;
+                            matrix.M12 = (size.Height * 0.5f) * matrix.M13;
                             break;
                     }
 
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
                             break;
 
                         case TaperCorner.Both:
-                            matrix.M21 = (size.Width / 2) * matrix.M23;
+                            matrix.M21 = (size.Width * 0.5f) * matrix.M23;
                             break;
                     }
 

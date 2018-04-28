@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 // TODO: This could be useful elsewhere.
@@ -70,6 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// byte, or returns -1 if at the end of the stream.
         /// </summary>
         /// <returns>The unsigned byte cast to an <see cref="int"/>, or -1 if at the end of the stream.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadByte()
         {
             if (this.position >= this.Length)
@@ -79,13 +81,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             if (this.position == 0 || this.bytesRead >= ChunkLength)
             {
-                this.stream.Seek(this.position, SeekOrigin.Begin);
-                this.stream.Read(this.chunk, 0, ChunkLength);
-                this.bytesRead = 0;
+                return this.ReadByteSlow();
             }
-
-            this.position++;
-            return this.chunk[this.bytesRead++];
+            else
+            {
+                this.position++;
+                return this.chunk[this.bytesRead++];
+            }
         }
 
         /// <summary>
@@ -151,6 +153,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public void Dispose()
         {
             this.buffer?.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private int ReadByteSlow()
+        {
+            this.stream.Seek(this.position, SeekOrigin.Begin);
+            this.stream.Read(this.chunk, 0, ChunkLength);
+            this.bytesRead = 0;
+
+            this.position++;
+            return this.chunk[this.bytesRead++];
         }
     }
 }

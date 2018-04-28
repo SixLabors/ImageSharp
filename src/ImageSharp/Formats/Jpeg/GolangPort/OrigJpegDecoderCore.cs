@@ -87,8 +87,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
-            this.HuffmanTrees = OrigHuffmanTree.CreateHuffmanTrees();
-            this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.Size];
         }
 
@@ -103,10 +101,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the huffman trees
         /// </summary>
-        public OrigHuffmanTree[] HuffmanTrees { get; }
+        public OrigHuffmanTree[] HuffmanTrees { get; private set; }
 
         /// <inheritdoc />
-        public Block8x8F[] QuantizationTables { get; }
+        public Block8x8F[] QuantizationTables { get; private set; }
 
         /// <summary>
         /// Gets the temporary buffer used to store bytes read from the stream.
@@ -233,6 +231,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.InputStream = stream;
             this.InputProcessor = new InputProcessor(stream, this.Temp);
 
+            if (!metadataOnly)
+            {
+                this.HuffmanTrees = OrigHuffmanTree.CreateHuffmanTrees();
+                this.QuantizationTables = new Block8x8F[MaxTq + 1];
+            }
+
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);
 
@@ -331,11 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     case OrigJpegConstants.Markers.SOF1:
                     case OrigJpegConstants.Markers.SOF2:
                         this.IsProgressive = marker == OrigJpegConstants.Markers.SOF2;
-                        this.ProcessStartOfFrameMarker(remaining);
-                        if (metadataOnly && this.isJFif)
-                        {
-                            return;
-                        }
+                        this.ProcessStartOfFrameMarker(remaining, metadataOnly);
 
                         break;
                     case OrigJpegConstants.Markers.DHT:
@@ -425,7 +425,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         private void InitDerivedMetaDataProperties()
         {
-            if (this.isExif)
+            if (this.isJFif)
+            {
+                this.MetaData.HorizontalResolution = this.jFif.XDensity;
+                this.MetaData.VerticalResolution = this.jFif.YDensity;
+            }
+            else if (this.isExif)
             {
                 double horizontalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizonalTag)
                     ? ((Rational)horizonalTag.Value).ToDouble()
@@ -440,11 +445,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
-            }
-            else if (this.isJFif)
-            {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -634,7 +634,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Processes the Start of Frame marker.  Specified in section B.2.2.
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessStartOfFrameMarker(int remaining)
+        /// <param name="metadataOnly">Whether to parse metadata only</param>
+        private void ProcessStartOfFrameMarker(int remaining, bool metadataOnly)
         {
             if (this.ComponentCount != 0)
             {

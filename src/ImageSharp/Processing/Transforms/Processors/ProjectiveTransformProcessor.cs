@@ -87,10 +87,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                         for (int x = 0; x < width; x++)
                         {
                             var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
-                            var point = Point.Round(new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon));
-                            if (sourceBounds.Contains(point.X, point.Y))
+
+                            float z = MathF.Max(v3.Z, Epsilon);
+                            int px = (int)MathF.Round(v3.X / z);
+                            int py = (int)MathF.Round(v3.Y / z);
+
+                            if (sourceBounds.Contains(px, py))
                             {
-                                destRow[x] = source[point.X, point.Y];
+                                destRow[x] = source[px, py];
                             }
                         }
                     });
@@ -104,7 +108,10 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             (float radius, float scale, float ratio) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
             float xScale = xRadiusScale.scale;
             float yScale = yRadiusScale.scale;
-            var radius = new Vector2(xRadiusScale.radius, yRadiusScale.radius);
+
+            // Using Vector4 with dummy 0-s, because Vector2 SIMD implementation is not reliable:
+            var radius = new Vector4(xRadiusScale.radius, yRadiusScale.radius, 0, 0);
+
             IResampler sampler = this.Sampler;
             var maxSource = new Vector4(maxSourceX, maxSourceY, maxSourceX, maxSourceY);
             int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
@@ -130,11 +137,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                             // Use the single precision position to calculate correct bounding pixels
                             // otherwise we get rogue pixels outside of the bounds.
                             var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
-                            Vector2 point = new Vector2(v3.X, v3.Y) / MathF.Max(v3.Z, Epsilon);
+                            float z = MathF.Max(v3.Z, Epsilon);
+
+                            // Using Vector4 with dummy 0-s, because Vector2 SIMD implementation is not reliable:
+                            Vector4 point = new Vector4(v3.X, v3.Y, 0, 0) / z;
 
                             // Clamp sampling pixel radial extents to the source image edges
-                            Vector2 maxXY = point + radius;
-                            Vector2 minXY = point - radius;
+                            Vector4 maxXY = point + radius;
+                            Vector4 minXY = point - radius;
 
                             // max, maxY, minX, minY
                             var extents = new Vector4(

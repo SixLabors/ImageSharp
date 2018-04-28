@@ -22,7 +22,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 {
     /// <summary>
     /// Performs the jpeg decoding operation.
-    /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors
+    /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
+    /// with additional fixes for both performance and common encoding errors.
     /// </summary>
     internal sealed class PdfJsJpegDecoderCore : IRawJpegData
     {
@@ -31,7 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         public const int SupportedPrecision = 8;
 
-#pragma warning disable SA1401 // Fields should be private
         /// <summary>
         /// The global configuration
         /// </summary>
@@ -242,7 +242,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         case PdfJsJpegConstants.Markers.SOF0:
                         case PdfJsJpegConstants.Markers.SOF1:
                         case PdfJsJpegConstants.Markers.SOF2:
-
                             this.ProcessStartOfFrameMarker(remaining, fileMarker, metadataOnly);
                             break;
 
@@ -291,17 +290,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             break;
 
                         case PdfJsJpegConstants.Markers.APP0:
-
                             this.ProcessApplicationHeaderMarker(remaining);
                             break;
 
                         case PdfJsJpegConstants.Markers.APP1:
-
                             this.ProcessApp1Marker(remaining);
                             break;
 
                         case PdfJsJpegConstants.Markers.APP2:
-
                             this.ProcessApp2Marker(remaining);
                             break;
 
@@ -320,7 +316,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             break;
 
                         case PdfJsJpegConstants.Markers.APP14:
-
                             this.ProcessApp14Marker(remaining);
                             break;
 

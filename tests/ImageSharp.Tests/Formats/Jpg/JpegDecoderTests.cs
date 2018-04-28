@@ -478,6 +478,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Ycck, 32)]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg400, 8)]
         [InlineData(TestImages.Jpeg.Baseline.Snake, 24)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Exif, 24)]
         public void DetectPixelSizeGolang(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
@@ -494,6 +495,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(TestImages.Jpeg.Baseline.Ycck, 32)]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg400, 8)]
         [InlineData(TestImages.Jpeg.Baseline.Snake, 24)]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Exif, 24)]
         public void DetectPixelSizePdfJs(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);

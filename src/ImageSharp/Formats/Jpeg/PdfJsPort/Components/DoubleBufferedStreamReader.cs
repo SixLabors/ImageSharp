@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     internal class DoubleBufferedStreamReader : IDisposable
     {
         /// <summary>
-        /// The length, in bytes, of the chunk
+        /// The length, in bytes, of the buffering chunk
         /// </summary>
         public const int ChunkLength = 4096;
 
@@ -38,7 +38,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             this.stream = stream;
             this.Length = stream.Length;
-
             this.buffer = memoryManager.AllocateCleanManagedByteBuffer(ChunkLength);
             this.chunk = this.buffer.Array;
         }
@@ -62,7 +61,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             {
                 // Reset everything. It's easier than tracking.
                 this.position = value;
-                this.stream.Seek(this.position, SeekOrigin.Begin);
                 this.bytesRead = ChunkLength;
             }
         }
@@ -96,8 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="count">The number of bytes to skip</param>
         public void Skip(int count)
         {
-            this.position += count;
-            this.bytesRead += count;
+            this.Position += count;
         }
 
         /// <summary>
@@ -144,9 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.stream.Seek(this.position, SeekOrigin.Begin);
                 n = this.stream.Read(buffer, offset, count);
 
-                // Ensure next read fills the chunk
-                this.bytesRead = ChunkLength;
-                this.position += count;
+                this.Position += count;
             }
 
             return Math.Max(n, 0);

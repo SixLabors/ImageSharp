@@ -321,15 +321,15 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="T:byte[]"/></returns>
         private IManagedByteBuffer GetOptimalFilteredScanline()
         {
-            Span<byte> scanSpan = this.rawScanline.Span;
-            Span<byte> prevSpan = this.previousScanline.Span;
-
             // Palette images don't compress well with adaptive filtering.
             if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
             {
                 NoneFilter.Encode(this.rawScanline.Span, this.result.Span);
                 return this.result;
             }
+
+            Span<byte> scanSpan = this.rawScanline.Span;
+            Span<byte> prevSpan = this.previousScanline.Span;
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.

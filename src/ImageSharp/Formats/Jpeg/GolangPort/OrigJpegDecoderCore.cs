@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
         /// <summary>
         /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
-        /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
+        /// It's a value type for improved data locality, and reduced number of CALLVIRT-s
         /// </summary>
         public InputProcessor InputProcessor;
 #pragma warning restore SA401
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public int MCUCountY => this.ImageSizeInMCU.Height;
 
         /// <summary>
-        /// Gets the the total number of MCU-s (Minimum Coded Units) in the image.
+        /// Gets the total number of MCU-s (Minimum Coded Units) in the image.
         /// </summary>
         public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
 
@@ -331,7 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     case OrigJpegConstants.Markers.SOF1:
                     case OrigJpegConstants.Markers.SOF2:
                         this.IsProgressive = marker == OrigJpegConstants.Markers.SOF2;
-                        this.ProcessStartOfFrameMarker(remaining);
+                        this.ProcessStartOfFrameMarker(remaining, metadataOnly);
                         if (metadataOnly && this.isJFif)
                         {
                             return;
@@ -634,7 +634,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Processes the Start of Frame marker.  Specified in section B.2.2.
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessStartOfFrameMarker(int remaining)
+        /// <param name="metadataOnly">Whether to decode metadata only.</param>
+        private void ProcessStartOfFrameMarker(int remaining, bool metadataOnly)
         {
             if (this.ComponentCount != 0)
             {
@@ -689,12 +690,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             this.ImageSizeInMCU = this.ImageSizeInPixels.DivideRoundUp(8 * h0, 8 * v0);
 
+            this.ColorSpace = this.DeduceJpegColorSpace();
+
             foreach (OrigComponent component in this.Components)
             {
-                component.InitializeDerivedData(this.configuration.MemoryManager, this);
+                component.InitializeDerivedData(this.configuration.MemoryManager, this, metadataOnly);
             }
-
-            this.ColorSpace = this.DeduceJpegColorSpace();
         }
 
         /// <summary>

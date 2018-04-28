@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
     public class ProjectiveTransformTests
     {
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
-        private static readonly ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.05f);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.03f, 3);
+        private static readonly ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.05f, 3);
 
         private ITestOutputHelper Output { get; }
 

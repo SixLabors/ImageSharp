@@ -100,6 +100,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                 using (BasicArrayBuffer<float> scanline = source.MemoryManager.AllocateFake<float>(scanlineWidth))
                 {
                     bool scanlineDirty = true;
+                    float subpixelFraction = 1f / subpixelCount;
+                    float subpixelFractionPoint = subpixelFraction / subpixelCount;
                     for (int y = minY; y < maxY; y++)
                     {
                         if (scanlineDirty)
@@ -113,9 +115,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                             scanlineDirty = false;
                         }
 
-                        float subpixelFraction = 1f / subpixelCount;
-                        float subpixelFractionPoint = subpixelFraction / subpixelCount;
-                        for (float subPixel = (float)y; subPixel < y + 1; subPixel += subpixelFraction)
+                        float yPlusOne = y + 1;
+                        for (float subPixel = (float)y; subPixel < yPlusOne; subPixel += subpixelFraction)
                         {
                             int pointsFound = region.Scan(subPixel + offset, buffer.Array, 0);
                             if (pointsFound == 0)
@@ -197,8 +198,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 
         private static void QuickSort(Span<float> data)
         {
-            int hi = Math.Min(data.Length - 1, data.Length - 1);
-            QuickSort(data, 0, hi);
+            QuickSort(data, 0, data.Length - 1);
         }
 
         private static void QuickSort(Span<float> data, int lo, int hi)

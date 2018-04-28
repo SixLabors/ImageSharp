@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Tests;
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     [Config(typeof(Config.ShortClr))]
-    public class Identify
+    public class IdentifyJpeg
     {
         private byte[] jpegBytes;
 

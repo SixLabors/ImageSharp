@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         public void Dispose()
         {
-            this.SpectralBlocks.Dispose();
+            this.SpectralBlocks?.Dispose();
         }
     }
 }

@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
         /// <summary>
         /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
-        /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
+        /// It's a value type for improved data locality, and reduced number of CALLVIRT-s
         /// </summary>
         public InputProcessor InputProcessor;
 #pragma warning restore SA401
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public int MCUCountY => this.ImageSizeInMCU.Height;
 
         /// <summary>
-        /// Gets the the total number of MCU-s (Minimum Coded Units) in the image.
+        /// Gets the total number of MCU-s (Minimum Coded Units) in the image.
         /// </summary>
         public int TotalMCUCount => this.MCUCountX * this.MCUCountY;
 
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             {
                 foreach (OrigComponent component in this.Components)
                 {
-                    component.Dispose();
+                    component?.Dispose();
                 }
             }
 
@@ -361,12 +361,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case OrigJpegConstants.Markers.SOS:
-                        if (metadataOnly)
+                        if (!metadataOnly)
                         {
-                            return;
+                            this.ProcessStartOfScanMarker(remaining);
                         }
 
-                        this.ProcessStartOfScanMarker(remaining);
                         if (this.InputProcessor.ReachedEOF)
                         {
                             // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
@@ -634,7 +633,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// Processes the Start of Frame marker.  Specified in section B.2.2.
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        /// <param name="metadataOnly">Whether to parse metadata only</param>
+        /// <param name="metadataOnly">Whether to decode metadata only.</param>
         private void ProcessStartOfFrameMarker(int remaining, bool metadataOnly)
         {
             if (this.ComponentCount != 0)
@@ -675,27 +674,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 throw new ImageFormatException("SOF has wrong length");
             }
 
-            this.Components = new OrigComponent[this.ComponentCount];
-
-            for (int i = 0; i < this.ComponentCount; i++)
+            if (!metadataOnly)
             {
-                byte componentIdentifier = this.Temp[6 + (3 * i)];
-                var component = new OrigComponent(componentIdentifier, i);
-                component.InitializeCoreData(this);
-                this.Components[i] = component;
+                this.Components = new OrigComponent[this.ComponentCount];
+
+                for (int i = 0; i < this.ComponentCount; i++)
+                {
+                    byte componentIdentifier = this.Temp[6 + (3 * i)];
+                    var component = new OrigComponent(componentIdentifier, i);
+                    component.InitializeCoreData(this);
+                    this.Components[i] = component;
+                }
+
+                int h0 = this.Components[0].HorizontalSamplingFactor;
+                int v0 = this.Components[0].VerticalSamplingFactor;
+
+                this.ImageSizeInMCU = this.ImageSizeInPixels.DivideRoundUp(8 * h0, 8 * v0);
+
+                this.ColorSpace = this.DeduceJpegColorSpace();
+
+                foreach (OrigComponent component in this.Components)
+                {
+                    component.InitializeDerivedData(this.configuration.MemoryManager, this);
+                }
             }
-
-            int h0 = this.Components[0].HorizontalSamplingFactor;
-            int v0 = this.Components[0].VerticalSamplingFactor;
-
-            this.ImageSizeInMCU = this.ImageSizeInPixels.DivideRoundUp(8 * h0, 8 * v0);
-
-            foreach (OrigComponent component in this.Components)
-            {
-                component.InitializeDerivedData(this.configuration.MemoryManager, this);
-            }
-
-            this.ColorSpace = this.DeduceJpegColorSpace();
         }
 
         /// <summary>

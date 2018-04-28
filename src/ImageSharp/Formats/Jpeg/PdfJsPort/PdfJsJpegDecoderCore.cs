@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
-            this.InputStream = new DoubleBufferedStreamReader(stream);
+            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryManager, stream);
 
             // Check for the Start Of Image marker.
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -339,9 +339,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.InputStream?.Dispose();
             this.Frame?.Dispose();
 
             // Set large fields to null.
+            this.InputStream = null;
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;

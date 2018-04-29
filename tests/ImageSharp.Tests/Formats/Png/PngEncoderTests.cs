@@ -32,21 +32,31 @@ namespace SixLabors.ImageSharp.Tests
             PngColorType.GrayscaleWithAlpha,
         };
 
+        public static readonly TheoryData<PngFilterMethod> PngFilterMethods = new TheoryData<PngFilterMethod>
+        {
+            PngFilterMethod.None,
+            PngFilterMethod.Sub,
+            PngFilterMethod.Up,
+            PngFilterMethod.Average,
+            PngFilterMethod.Paeth,
+            PngFilterMethod.Adaptive
+        };
+
         /// <summary>
         /// All types except Palette
         /// </summary>
         public static readonly TheoryData<int> CompressionLevels = new TheoryData<int>
-                                                                       {
+        {
             1, 2, 3, 4, 5, 6, 7, 8, 9
         };
 
         public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>
-                                                                  {
+        {
             30, 55, 100, 201, 255
         };
 
         public static readonly TheoryData<int> PaletteLargeOnly = new TheoryData<int>
-                                                                      {
+        {
             80, 100, 120, 230
         };
 
@@ -60,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests
         public void WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(provider, pngColorType, appendPngColorType: true);
+            TestPngEncoderCore(provider, pngColorType, PngFilterMethod.Adaptive, appendPngColorType: true);
         }
 
         [Theory]
@@ -68,7 +78,15 @@ namespace SixLabors.ImageSharp.Tests
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(provider, pngColorType, appendPixelType: true, appendPngColorType: true);
+            TestPngEncoderCore(provider, pngColorType, PngFilterMethod.Adaptive, appendPixelType: true, appendPngColorType: true);
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(PngFilterMethods), 24, 24, PixelTypes.Rgba32)]
+        public void WorksWithAllFilterMethods<TPixel>(TestImageProvider<TPixel> provider, PngFilterMethod pngFilterMethod)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TestPngEncoderCore(provider, PngColorType.RgbWithAlpha, pngFilterMethod, appendPngFilterMethod: true);
         }
 
         [Theory]
@@ -76,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests
         public void WorksWithAllCompressionLevels<TPixel>(TestImageProvider<TPixel> provider, int compressionLevel)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(provider, PngColorType.RgbWithAlpha, compressionLevel, appendCompressionLevel: true);
+            TestPngEncoderCore(provider, PngColorType.RgbWithAlpha, PngFilterMethod.Adaptive, compressionLevel, appendCompressionLevel: true);
         }
 
         [Theory]
@@ -84,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
             where TPixel : struct, IPixel<TPixel>
         {
-            TestPngEncoderCore(provider, PngColorType.Palette, paletteSize: paletteSize, appendPaletteSize: true);
+            TestPngEncoderCore(provider, PngColorType.Palette, PngFilterMethod.Adaptive, paletteSize: paletteSize, appendPaletteSize: true);
         }
 
         private static bool HasAlpha(PngColorType pngColorType) =>
@@ -93,9 +111,11 @@ namespace SixLabors.ImageSharp.Tests
         private static void TestPngEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             PngColorType pngColorType,
+            PngFilterMethod pngFilterMethod,
             int compressionLevel = 6,
             int paletteSize = 255,
             bool appendPngColorType = false,
+            bool appendPngFilterMethod = false,
             bool appendPixelType = false,
             bool appendCompressionLevel = false,
             bool appendPaletteSize = false)
@@ -111,14 +131,16 @@ namespace SixLabors.ImageSharp.Tests
                 var encoder = new PngEncoder
                 {
                     PngColorType = pngColorType,
+                    PngFilterMethod = pngFilterMethod,
                     CompressionLevel = compressionLevel,
                     Quantizer = new WuQuantizer(paletteSize)
                 };
 
-                string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : "";
-                string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : "";
-                string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : "";
-                string debugInfo = $"{pngColorTypeInfo}{compressionLevelInfo}{paletteSizeInfo}";
+                string pngColorTypeInfo = appendPngColorType ? pngColorType.ToString() : string.Empty;
+                string pngFilterMethodInfo = appendPngFilterMethod ? pngFilterMethod.ToString() : string.Empty;
+                string compressionLevelInfo = appendCompressionLevel ? $"_C{compressionLevel}" : string.Empty;
+                string paletteSizeInfo = appendPaletteSize ? $"_PaletteSize-{paletteSize}" : string.Empty;
+                string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}";
                 //string referenceInfo = $"{pngColorTypeInfo}";
 
                 // Does DebugSave & load reference CompareToReferenceInput():

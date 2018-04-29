@@ -90,16 +90,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                 {
-                    if (o + 2 == expected.Length)
-                    {
-                        // We've reached the end of the stream
-                        Assert.Equal(0, reader.Read(buffer, 0, 2));
-                    }
-                    else
-                    {
-                        Assert.Equal(2, reader.Read(buffer, 0, 2));
-                    }
 
+                    Assert.Equal(2, reader.Read(buffer, 0, 2));
                     Assert.Equal(expected[o], buffer[0]);
                     Assert.Equal(expected[o + 1], buffer[1]);
                     Assert.Equal(o + 2, reader.Position);

@@ -20,15 +20,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public const int ChunkLength = 4096;
 
+        private const int ChunkLengthMinusOne = ChunkLength - 1;
+
+        private const int ChunkLengthPlusOne = ChunkLength + 1;
+
         private readonly Stream stream;
 
         private readonly IManagedByteBuffer buffer;
 
-        private readonly byte[] chunk;
+        private readonly byte[] bufferChunk;
 
         private int bytesRead;
 
-        private long position;
+        private int position;
+
+        private int length;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DoubleBufferedStreamReader"/> class.
@@ -38,30 +44,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public DoubleBufferedStreamReader(MemoryManager memoryManager, Stream stream)
         {
             this.stream = stream;
-            this.Length = stream.Length;
+            this.length = (int)stream.Length;
             this.buffer = memoryManager.AllocateCleanManagedByteBuffer(ChunkLength);
-            this.chunk = this.buffer.Array;
+            this.bufferChunk = this.buffer.Array;
         }
 
         /// <summary>
         /// Gets the length, in bytes, of the stream
         /// </summary>
-        public long Length { get; }
+        public long Length => this.length;
 
         /// <summary>
         /// Gets or sets the current position within the stream
         /// </summary>
         public long Position
         {
-            get
-            {
-                return this.position;
-            }
+            get => this.position;
 
             set
             {
                 // Reset everything. It's easier than tracking.
-                this.position = value;
+                this.position = (int)value;
                 this.bytesRead = ChunkLength;
             }
         }
@@ -74,19 +77,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadByte()
         {
-            if (this.position >= this.Length)
+            if (this.position >= this.length)
             {
                 return -1;
             }
 
-            if (this.position == 0 || this.bytesRead >= ChunkLength)
+            if (this.position == 0 || this.bytesRead > ChunkLengthMinusOne)
             {
                 return this.ReadByteSlow();
             }
             else
             {
                 this.position++;
-                return this.chunk[this.bytesRead++];
+                return this.bufferChunk[this.bytesRead++];
             }
         }
 
@@ -94,6 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// Skips the number of bytes in the stream
         /// </summary>
         /// <param name="count">The number of bytes to skip</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Skip(int count)
         {
             this.Position += count;
@@ -118,35 +122,50 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// of bytes requested if that many bytes are not currently available, or zero (0)
         /// if the end of the stream has been reached.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Read(byte[] buffer, int offset, int count)
         {
-            int n = 0;
-            if (buffer.Length <= ChunkLength)
+            if (buffer.Length < ChunkLengthPlusOne)
             {
                 if (this.position == 0 || count + this.bytesRead > ChunkLength)
                 {
-                    // Refill our buffer then copy.
-                    this.stream.Seek(this.position, SeekOrigin.Begin);
-                    this.stream.Read(this.chunk, 0, ChunkLength);
-                    this.bytesRead = 0;
+                    return this.ReadToChunkSlow(buffer, offset, count);
                 }
 
-                Buffer.BlockCopy(this.chunk, this.bytesRead, buffer, offset, count);
-                this.position += count;
-                this.bytesRead += count;
+                int n = this.length - this.position;
+                if (n > count)
+                {
+                    n = count;
+                }
 
-                n = Math.Min(count, (int)(this.Length - this.position));
+                if (n < 0)
+                {
+                    n = 0;
+                }
+
+                if (n < 9)
+                {
+                    int byteCount = n;
+                    int read = this.bytesRead;
+                    byte[] chunk = this.bufferChunk;
+
+                    while (--byteCount > -1)
+                    {
+                        buffer[offset + byteCount] = chunk[read + byteCount];
+                    }
+                }
+                else
+                {
+                    Buffer.BlockCopy(this.bufferChunk, this.bytesRead, buffer, offset, n);
+                }
+
+                this.position += n;
+                this.bytesRead += n;
+
+                return n;
             }
-            else
-            {
-                // Read to target but don't copy to our chunk.
-                this.stream.Seek(this.position, SeekOrigin.Begin);
-                n = this.stream.Read(buffer, offset, count);
 
-                this.Position += count;
-            }
-
-            return Math.Max(n, 0);
+            return this.ReadToBufferSlow(buffer, offset, count);
         }
 
         /// <inheritdoc/>
@@ -158,12 +177,75 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.NoInlining)]
         private int ReadByteSlow()
         {
-            this.stream.Seek(this.position, SeekOrigin.Begin);
-            this.stream.Read(this.chunk, 0, ChunkLength);
+            if (this.position != this.stream.Position)
+            {
+                this.stream.Seek(this.position, SeekOrigin.Begin);
+            }
+
+            this.stream.Read(this.bufferChunk, 0, ChunkLength);
             this.bytesRead = 0;
 
             this.position++;
-            return this.chunk[this.bytesRead++];
+            return this.bufferChunk[this.bytesRead++];
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private int ReadToChunkSlow(byte[] buffer, int offset, int count)
+        {
+            // Refill our buffer then copy.
+            if (this.position != this.stream.Position)
+            {
+                this.stream.Seek(this.position, SeekOrigin.Begin);
+            }
+
+            this.stream.Read(this.bufferChunk, 0, ChunkLength);
+            this.bytesRead = 0;
+
+            int n = this.length - this.position;
+            if (n > count)
+            {
+                n = count;
+            }
+
+            if (n < 0)
+            {
+                n = 0;
+            }
+
+            if (n < 9)
+            {
+                int byteCount = n;
+                int read = this.bytesRead;
+                byte[] chunk = this.bufferChunk;
+
+                while (--byteCount > -1)
+                {
+                    buffer[offset + byteCount] = chunk[read + byteCount];
+                }
+            }
+            else
+            {
+                Buffer.BlockCopy(this.bufferChunk, this.bytesRead, buffer, offset, n);
+            }
+
+            this.position += n;
+            this.bytesRead += n;
+
+            return n;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private int ReadToBufferSlow(byte[] buffer, int offset, int count)
+        {
+            // Read to target but don't copy to our chunk.
+            if (this.position != this.stream.Position)
+            {
+                this.stream.Seek(this.position, SeekOrigin.Begin);
+            }
+
+            int n = this.stream.Read(buffer, offset, count);
+            this.Position += n;
+            return n;
         }
     }
 }

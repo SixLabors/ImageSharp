@@ -52,6 +52,18 @@ namespace SixLabors.ImageSharp.Memory
             buffer.Span.Clear();
         }
 
+        /// <summary>
+        /// Fills the contents of this buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer</param>
+        /// <param name="value">The value to fill the buffer with.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Fill<T>(this IBuffer<T> buffer, T value)
+            where T : struct
+        {
+            buffer.Span.Fill(value);
+        }
+
         public static ref T DangerousGetPinnableReference<T>(this IBuffer<T> buffer)
             where T : struct =>
             ref MemoryMarshal.GetReference(buffer.Span);

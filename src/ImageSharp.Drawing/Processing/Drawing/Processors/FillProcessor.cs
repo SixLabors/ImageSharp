@@ -55,7 +55,11 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
             var solidBrush = this.brush as SolidBrush<TPixel>;
 
             // If there's no reason for blending, then avoid it.
-            if (solidBrush != null && this.options.BlendPercentage == 1f && solidBrush.Color.ToVector4().W == 1f)
+            if (solidBrush != null &&
+                (
+                    (this.options.BlenderMode == PixelBlenderMode.Normal && this.options.BlendPercentage == 1f && solidBrush.Color.ToVector4().W == 1f) ||
+                    (this.options.BlenderMode == PixelBlenderMode.Over && this.options.BlendPercentage == 1f && solidBrush.Color.ToVector4().W == 1f) ||
+                    (this.options.BlenderMode == PixelBlenderMode.Src)))
             {
                 Parallel.For(
                     minY,

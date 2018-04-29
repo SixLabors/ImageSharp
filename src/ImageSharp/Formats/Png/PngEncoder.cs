@@ -14,9 +14,14 @@ namespace SixLabors.ImageSharp.Formats.Png
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
         /// <summary>
-        /// Gets or sets the png color type
+        /// Gets or sets the png color type.
         /// </summary>
         public PngColorType PngColorType { get; set; } = PngColorType.RgbWithAlpha;
+
+        /// <summary>
+        /// Gets or sets the png filter method.
+        /// </summary>
+        public PngFilterMethod PngFilterMethod { get; set; } = PngFilterMethod.Adaptive;
 
         /// <summary>
         /// Gets or sets the compression level 1-9.

@@ -213,7 +213,8 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             string extension = "png",
             bool grayscale = false,
-            bool appendPixelTypeToFileName = true)
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
@@ -221,7 +222,8 @@ namespace SixLabors.ImageSharp.Tests
                 provider,
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName))
+                appendPixelTypeToFileName,
+                appendSourceFileOrDescription))
             {
                 firstFrameOnlyImage.Frames.AddFrame(image.Frames.RootFrame);
                 firstFrameOnlyImage.Frames.RemoveFrame(0);

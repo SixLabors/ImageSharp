@@ -1,20 +1,18 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.Primitives;
+using Xunit;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Drawing;
-    using SixLabors.Primitives;
-
-    using Xunit;
-
     [GroupOutput("Drawing")]
     public class SolidFillBlendedShapesTests
     {
@@ -140,6 +138,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             img.DebugSave(
+                provider,
+                new { mode },
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+
+            var comparer = ImageComparer.TolerantPercentage(0.01f, 3);
+            img.CompareFirstFrameToReferenceOutput(comparer, 
                 provider,
                 new { mode },
                 appendPixelTypeToFileName: false,

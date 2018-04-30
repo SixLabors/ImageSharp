@@ -346,13 +346,26 @@ namespace SixLabors.ImageSharp.Tests
             Span<TPixel> expectedPixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            Span<TPixel> actual = image.GetPixelSpan();
+            Span<TPixel> actualPixels = image.GetPixelSpan();
 
-            Assert.True(expectedPixels.Length == actual.Length, "Buffer sizes are not equal!");
+            Assert.True(expectedPixels.Length == actualPixels.Length, "Buffer sizes are not equal!");
 
             for (int i = 0; i < expectedPixels.Length; i++)
             {
-                Assert.True(expectedPixels[i].Equals(actual[i]), $"Pixels are different on position {i}!");
+                Assert.True(expectedPixels[i].Equals(actualPixels[i]), $"Pixels are different on position {i}!");
+            }
+
+            return image;
+        }
+
+        public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, TPixel expectedPixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Span<TPixel> actualPixels = image.GetPixelSpan();
+
+            for (int i = 0; i < actualPixels.Length; i++)
+            {
+                Assert.True(expectedPixel.Equals(actualPixels[i]), $"Pixels are different on position {i}!");
             }
 
             return image;

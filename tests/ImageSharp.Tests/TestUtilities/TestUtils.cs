@@ -147,6 +147,11 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The pixel types</returns>
         internal static PixelTypes[] GetAllPixelTypes() => (PixelTypes[])Enum.GetValues(typeof(PixelTypes));
 
+        internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return (TPixel)typeof(NamedColors<TPixel>).GetTypeInfo().GetField(colorName).GetValue(null);
+        }
 
         /// <summary>
         /// Utility for testing image processor extension methods:

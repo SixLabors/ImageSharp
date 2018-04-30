@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
     {
         private readonly Configuration configuration;
         private readonly ImageFrameCollection<TPixel> frames;
-        private readonly TPixel? clearColor;
+        private readonly TPixel clearColor;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the clear color to initialize the image frame pixels with.
         /// </summary>
-        internal TPixel? ClearColor => this.clearColor;
+        internal TPixel ClearColor => this.clearColor;
 
         /// <summary>
         /// Gets the root frame.

@@ -41,28 +41,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             nameof(KnownResamplers.Welch),
         };
 
-        public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData =
-            new TheoryData<TaperSide, TaperCorner>
-                {
-                    { TaperSide.Bottom, TaperCorner.Both },
-                    { TaperSide.Bottom, TaperCorner.LeftOrTop },
-                    { TaperSide.Bottom, TaperCorner.RightOrBottom },
+        public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData = new TheoryData<TaperSide, TaperCorner>
+        {
+            { TaperSide.Bottom, TaperCorner.Both },
+            { TaperSide.Bottom, TaperCorner.LeftOrTop },
+            { TaperSide.Bottom, TaperCorner.RightOrBottom },
 
-                    { TaperSide.Top, TaperCorner.Both },
-                    { TaperSide.Top, TaperCorner.LeftOrTop },
-                    { TaperSide.Top, TaperCorner.RightOrBottom },
+            { TaperSide.Top, TaperCorner.Both },
+            { TaperSide.Top, TaperCorner.LeftOrTop },
+            { TaperSide.Top, TaperCorner.RightOrBottom },
 
-                    { TaperSide.Left, TaperCorner.Both },
-                    { TaperSide.Left, TaperCorner.LeftOrTop },
-                    { TaperSide.Left, TaperCorner.RightOrBottom },
+            { TaperSide.Left, TaperCorner.Both },
+            { TaperSide.Left, TaperCorner.LeftOrTop },
+            { TaperSide.Left, TaperCorner.RightOrBottom },
 
-                    { TaperSide.Right, TaperCorner.Both },
-                    { TaperSide.Right, TaperCorner.LeftOrTop },
-                    { TaperSide.Right, TaperCorner.RightOrBottom },
+            { TaperSide.Right, TaperCorner.Both },
+            { TaperSide.Right, TaperCorner.LeftOrTop },
+            { TaperSide.Right, TaperCorner.RightOrBottom },
 
-                };
-
-        
+        };
 
         public ProjectiveTransformTests(ITestOutputHelper output)
         {
@@ -98,9 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 string testOutputDetails = $"{taperSide}-{taperCorner}";
                 image.DebugSave(provider, testOutputDetails);
-
-                // TODO: Review ProjectiveTransformHelper API before adding assertion
-                // image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
+                image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
             }
         }
 

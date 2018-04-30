@@ -61,12 +61,14 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="testOutputDetails">Details to be concatenated to the test output file, describing the parameters of the test.</param>
         /// <param name="extension">The extension</param>
         /// <param name="appendPixelTypeToFileName">A boolean indicating whether to append the pixel type to the  output file name.</param>
+        /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         public static Image<TPixel> DebugSave<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
-            bool appendPixelTypeToFileName = true)
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
             if (TestEnvironment.RunsOnCI)
@@ -79,7 +81,8 @@ namespace SixLabors.ImageSharp.Tests
                 image,
                 extension,
                 testOutputDetails: testOutputDetails,
-                appendPixelTypeToFileName: appendPixelTypeToFileName);
+                appendPixelTypeToFileName: appendPixelTypeToFileName,
+                appendSourceFileOrDescription: appendSourceFileOrDescription);
             return image;
         }
 
@@ -210,7 +213,8 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             string extension = "png",
             bool grayscale = false,
-            bool appendPixelTypeToFileName = true)
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
@@ -218,7 +222,8 @@ namespace SixLabors.ImageSharp.Tests
                 provider,
                 testOutputDetails,
                 extension,
-                appendPixelTypeToFileName))
+                appendPixelTypeToFileName,
+                appendSourceFileOrDescription))
             {
                 firstFrameOnlyImage.Frames.AddFrame(image.Frames.RootFrame);
                 firstFrameOnlyImage.Frames.RemoveFrame(0);
@@ -255,10 +260,15 @@ namespace SixLabors.ImageSharp.Tests
         public static Image<TPixel> GetReferenceOutputImage<TPixel>(this ITestImageProvider provider,
                                                                     object testOutputDetails = null,
                                                                     string extension = "png",
-                                                                    bool appendPixelTypeToFileName = true)
+                                                                    bool appendPixelTypeToFileName = true,
+                                                                    bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
-            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName);
+            string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(
+                extension,
+                testOutputDetails,
+                appendPixelTypeToFileName,
+                appendSourceFileOrDescription);
 
             if (!File.Exists(referenceOutputFile))
             {

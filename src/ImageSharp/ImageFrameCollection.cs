@@ -23,14 +23,7 @@ namespace SixLabors.ImageSharp
             this.parent = parent;
 
             // Frames are already cloned within the caller
-            if (parent.ClearColor.HasValue)
-            {
-                this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, parent.ClearColor.Value));
-            }
-            else
-            {
-                this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration().MemoryManager, width, height));
-            }
+            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, parent.ClearColor));
         }
 
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
@@ -150,16 +143,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public ImageFrame<TPixel> CreateFrame()
         {
-            ImageFrame<TPixel> frame;
-            if (this.parent.ClearColor.HasValue)
-            {
-                frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, this.parent.ClearColor.Value);
-            }
-            else
-            {
-                frame = new ImageFrame<TPixel>(this.parent.GetConfiguration().MemoryManager, this.RootFrame.Width, this.RootFrame.Height);
-            }
-
+            ImageFrame<TPixel> frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, this.parent.ClearColor);
             this.frames.Add(frame);
             return frame;
         }

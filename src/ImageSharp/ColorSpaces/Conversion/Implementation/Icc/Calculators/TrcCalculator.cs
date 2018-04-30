@@ -33,23 +33,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
             }
         }
 
-        public Vector4 Calculate(Vector4 value)
+        public unsafe Vector4 Calculate(Vector4 value)
         {
-            value.X = this.calculators[0].Calculate(value.X);
-
-            if (this.calculators.Length > 1)
+            float* valuePointer = (float*)&value;
+            for (int i = 0; i < this.calculators.Length; i++)
             {
-                value.Y = this.calculators[1].Calculate(value.Y);
-
-                if (this.calculators.Length > 2)
-                {
-                    value.Z = this.calculators[2].Calculate(value.Z);
-
-                    if (this.calculators.Length > 3)
-                    {
-                        value.W = this.calculators[3].Calculate(value.W);
-                    }
-                }
+                valuePointer[i] = this.calculators[i].Calculate(valuePointer[i]);
             }
 
             return value;

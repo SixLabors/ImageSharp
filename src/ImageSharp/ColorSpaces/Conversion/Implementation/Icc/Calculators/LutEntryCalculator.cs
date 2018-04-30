@@ -38,25 +38,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
             return this.CalculateLut(this.outputCurve, value);
         }
 
-        private Vector4 CalculateLut(LutCalculator[] lut, Vector4 value)
+        private unsafe Vector4 CalculateLut(LutCalculator[] lut, Vector4 value)
         {
             value = Vector4.Clamp(value, Vector4.Zero, Vector4.One);
 
-            value.X = lut[0].Calculate(value.X);
-
-            if (lut.Length > 1)
+            float* valuePointer = (float*)&value;
+            for (int i = 0; i < lut.Length; i++)
             {
-                value.Y = lut[1].Calculate(value.Y);
-
-                if (lut.Length > 2)
-                {
-                    value.Z = lut[2].Calculate(value.Z);
-
-                    if (lut.Length > 3)
-                    {
-                        value.W = lut[3].Calculate(value.W);
-                    }
-                }
+                valuePointer[i] = lut[i].Calculate(valuePointer[i]);
             }
 
             return value;
@@ -74,7 +63,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
 
         private LutCalculator[] InitLut(IccLut[] curves)
         {
-            LutCalculator[] calculators = new LutCalculator[curves.Length];
+            var calculators = new LutCalculator[curves.Length];
             for (int i = 0; i < curves.Length; i++)
             {
                 calculators[i] = new LutCalculator(curves[i].Values, false);

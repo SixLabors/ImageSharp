@@ -7,13 +7,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
     {
         private enum CalculationType
         {
-            AtoB = 0,
-            BtoA = 1 << 2,
+            AtoB = 1 << 3,
+            BtoA = 1 << 4,
 
-            SingleCurve = 0,
-            CurveMatrix = 1,
-            CurveClut = 2,
-            Full = 3,
+            SingleCurve = 1,
+            CurveMatrix = 2,
+            CurveClut = 3,
+            Full = 4,
         }
     }
 }

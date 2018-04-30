@@ -28,116 +28,57 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
             this.nodeCount = (int)Math.Pow(2, clut.InputChannelCount);
         }
 
-        public Vector4 Calculate(Vector4 value)
+        public unsafe Vector4 Calculate(Vector4 value)
         {
-            Vector4.Clamp(value, Vector4.Zero, Vector4.One);
+            value = Vector4.Clamp(value, Vector4.Zero, Vector4.One);
 
-            float[] result;
-            switch (this.inputCount)
-            {
-                case 1:
-                    result = this.Interpolate(value.X);
-                    break;
-                case 2:
-                    result = this.Interpolate(value.X, value.Y);
-                    break;
-                case 3:
-                    result = this.Interpolate(value.X, value.Y, value.Z);
-                    break;
-                case 4:
-                    result = this.Interpolate(value.X, value.Y, value.Z, value.W);
-                    break;
+            Vector4 result = default;
+            this.Interpolate((float*)&value, this.inputCount, (float*)&result, this.outputCount);
 
-                default:
-                    throw new InvalidOperationException();
-            }
-
-            switch (result.Length)
-            {
-                case 1:
-                    return new Vector4(result[0], 0, 0, 0);
-                case 2:
-                    return new Vector4(result[0], result[1], 0, 0);
-                case 3:
-                    return new Vector4(result[0], result[1], result[2], 0);
-                case 4:
-                    return new Vector4(result[0], result[1], result[2], result[3]);
-
-                default:
-                    throw new InvalidOperationException();
-            }
+            return result;
         }
 
         private int[] CalculateIndexFactor(int inputCount, byte[] gridPointCount)
         {
-            this.indexFactor = new int[inputCount];
+            int[] factors = new int[inputCount];
             int gpc = 1;
             for (int j = inputCount - 1; j >= 0; j--)
             {
-                this.indexFactor[j] = gpc * (gridPointCount[j] - 1);
+                factors[j] = gpc * (gridPointCount[j] - 1);
                 gpc *= gridPointCount[j];
             }
 
-            return this.indexFactor;
+            return factors;
         }
 
-        private float[] Interpolate(float a)
-        {
-            return this.Interpolate(new float[] { a });
-        }
-
-        private float[] Interpolate(float a, float b)
-        {
-            return this.Interpolate(new float[] { a, b });
-        }
-
-        private float[] Interpolate(float a, float b, float c)
-        {
-            return this.Interpolate(new float[] { a, b, c });
-        }
-
-        private float[] Interpolate(float a, float b, float c, float d)
-        {
-            return this.Interpolate(new float[] { a, b, c, d });
-        }
-
-        private float[] Interpolate(float[] values)
+        private unsafe void Interpolate(float* values, int valueLength, float* result, int resultLength)
         {
             float[][] nodes = new float[this.nodeCount][];
             for (int i = 0; i < nodes.Length; i++)
             {
                 int index = 0;
-                for (int j = 0; j < values.Length; j++)
+                for (int j = 0; j < valueLength; j++)
                 {
                     float fraction = 1f / (this.gridPointCount[j] - 1);
-                    int position = (int)(values[j] / fraction);
-                    if (((i >> j) & 1) == 1)
-                    {
-                        position += 1;
-                    }
-
+                    int position = (int)(values[j] / fraction) + ((i >> j) & 1);
                     index += (int)((this.indexFactor[j] * (position * fraction)) + 0.5f);
                 }
 
                 nodes[i] = this.lut[index];
             }
 
-            float[] factors = new float[this.nodeCount];
+            Span<float> factors = stackalloc float[this.nodeCount];
             for (int i = 0; i < factors.Length; i++)
             {
                 float factor = 1;
-                for (int j = 0; j < values.Length; j++)
+                for (int j = 0; j < valueLength; j++)
                 {
                     float fraction = 1f / (this.gridPointCount[j] - 1);
                     int position = (int)(values[j] / fraction);
 
                     float low = position * fraction;
                     float high = (position + 1) * fraction;
-
-                    float mid = high - values[j];
-                    float range = high - low;
-
-                    float percentage = mid / range;
+                    float percentage = (high - values[j]) / (high - low);
 
                     if (((i >> j) & 1) == 1)
                     {
@@ -152,16 +93,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
                 factors[i] = factor;
             }
 
-            float[] output = new float[this.outputCount];
-            for (int i = 0; i < output.Length; i++)
+            for (int i = 0; i < resultLength; i++)
             {
                 for (int j = 0; j < nodes.Length; j++)
                 {
-                    output[i] += nodes[j][i] * factors[j];
+                    result[i] += nodes[j][i] * factors[j];
                 }
             }
-
-            return output;
         }
     }
 }

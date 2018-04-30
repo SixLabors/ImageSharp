@@ -68,7 +68,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calcula
                     value = this.matrixCalculator.Calculate(value);
                     return this.curveMCalculator.Calculate(value);
 
-                case CalculationType.SingleCurve:
+                case CalculationType.SingleCurve | CalculationType.AtoB:
+                case CalculationType.SingleCurve | CalculationType.BtoA:
                     return this.curveBCalculator.Calculate(value);
 
                 default:

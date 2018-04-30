@@ -8,15 +8,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
 {
     public class IccConversionDataTrc
     {
-        private static IccCurveTagDataEntry IdentityCurve = new IccCurveTagDataEntry();
-        private static IccCurveTagDataEntry Gamma2Curve = new IccCurveTagDataEntry(2);
-        private static IccCurveTagDataEntry LutCurve = new IccCurveTagDataEntry(new float[] { 0, 0.7f, 1 });
+        internal static IccCurveTagDataEntry IdentityCurve = new IccCurveTagDataEntry();
+        internal static IccCurveTagDataEntry Gamma2Curve = new IccCurveTagDataEntry(2);
+        internal static IccCurveTagDataEntry LutCurve = new IccCurveTagDataEntry(new float[] { 0, 0.7f, 1 });
 
-        private static IccParametricCurveTagDataEntry ParamCurve1 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f));
-        private static IccParametricCurveTagDataEntry ParamCurve2 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 1.5f, -0.5f));
-        private static IccParametricCurveTagDataEntry ParamCurve3 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 1.5f, -0.5f, 0.3f));
-        private static IccParametricCurveTagDataEntry ParamCurve4 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.4f, 1 / 1.055f, 0.055f / 1.055f, 1 / 12.92f, 0.04045f));
-        private static IccParametricCurveTagDataEntry ParamCurve5 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 0.7f, 0.2f, 0.3f, 0.1f, 0.5f, 0.2f));
+        internal static IccParametricCurveTagDataEntry ParamCurve1 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f));
+        internal static IccParametricCurveTagDataEntry ParamCurve2 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 1.5f, -0.5f));
+        internal static IccParametricCurveTagDataEntry ParamCurve3 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 1.5f, -0.5f, 0.3f));
+        internal static IccParametricCurveTagDataEntry ParamCurve4 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.4f, 1 / 1.055f, 0.055f / 1.055f, 1 / 12.92f, 0.04045f));
+        internal static IccParametricCurveTagDataEntry ParamCurve5 = new IccParametricCurveTagDataEntry(new IccParametricCurve(2.2f, 0.7f, 0.2f, 0.3f, 0.1f, 0.5f, 0.2f));
 
         public static object[][] TrcArrayConversionTestData =
         {

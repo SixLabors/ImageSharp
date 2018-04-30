@@ -16,14 +16,14 @@ namespace SixLabors.ImageSharp
         private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
         private readonly Image<TPixel> parent;
 
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height)
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, TPixel backgroundColor)
         {
             Guard.NotNull(parent, nameof(parent));
 
             this.parent = parent;
 
             // Frames are already cloned within the caller
-            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, parent.ClearColor));
+            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
         }
 
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public ImageFrame<TPixel> CreateFrame()
         {
-            ImageFrame<TPixel> frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, this.parent.ClearColor);
+            var frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, this.RootFrame.BackgroundColor);
             this.frames.Add(frame);
             return frame;
         }

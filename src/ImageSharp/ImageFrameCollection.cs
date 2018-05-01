@@ -201,12 +201,28 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
         /// </summary>
+        /// <returns>
+        /// The new <see cref="ImageFrame{TPixel}" />.
+        /// </returns>
+        public ImageFrame<TPixel> CreateFrame()
+        {
+            return this.CreateFrame(default);
+        }
+
+        /// <summary>
+        /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
+        /// </summary>
         /// <param name="backgroundColor">The background color to initialize the pixels with.</param>
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame<TPixel> CreateFrame(TPixel backgroundColor = default) {
-            var frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, backgroundColor);
+        public ImageFrame<TPixel> CreateFrame(TPixel backgroundColor)
+        {
+            var frame = new ImageFrame<TPixel>(
+                this.parent.GetConfiguration(),
+                this.RootFrame.Width,
+                this.RootFrame.Height,
+                backgroundColor);
             this.frames.Add(frame);
             return frame;
         }

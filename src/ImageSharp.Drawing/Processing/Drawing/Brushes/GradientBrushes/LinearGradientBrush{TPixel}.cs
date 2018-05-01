@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
     /// - a set of colors in relative distances to each other.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    public class LinearGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
+    public sealed class LinearGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Point p1;
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         /// <summary>
         /// The linear gradient brush applicator.
         /// </summary>
-        private class LinearGradientBrushApplicator : AbstractGradientBrushApplicator
+        private sealed class LinearGradientBrushApplicator : AbstractGradientBrushApplicator
         {
             private readonly Point start;
 
@@ -146,30 +146,6 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
 
             public override void Dispose()
             {
-            }
-
-            internal override void Apply(Span<float> scanline, int x, int y)
-            {
-                base.Apply(scanline, x, y);
-
-                // TODO: we should at least(!) speed up the x=0 and y=0 special cases.
-                // But in fact that could be done by special case Applicators directly:
-                // - horizontal would apply a precalc. row independent of given row,
-                // - vertical would get the color of the row once and fill the whole line.
-
-                // Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                // MemoryManager memoryManager = this.Target.MemoryManager;
-                // using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
-                // {
-                //     Span<float> amountSpan = amountBuffer.Span;
-                //
-                //     for (int i = 0; i < scanline.Length; i++)
-                //     {
-                //         amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
-                //     }
-                //
-                //     this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
-                // }
             }
         }
     }

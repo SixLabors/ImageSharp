@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
     /// A Circular Gradient Brush, defined by center point and radius.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class RadialGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
+    public sealed class RadialGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Point center;
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 this.RepetitionMode);
 
         /// <inheritdoc />
-        protected class RadialGradientBrushApplicator : AbstractGradientBrushApplicator
+        private sealed class RadialGradientBrushApplicator : AbstractGradientBrushApplicator
         {
             private readonly Point center;
 

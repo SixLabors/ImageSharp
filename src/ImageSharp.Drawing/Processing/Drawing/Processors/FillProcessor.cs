@@ -52,14 +52,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 
             int width = maxX - minX;
 
-            var solidBrush = this.brush as SolidBrush<TPixel>;
-
             // If there's no reason for blending, then avoid it.
-            if (solidBrush != null &&
-                (
-                    (this.options.BlenderMode == PixelBlenderMode.Normal && this.options.BlendPercentage == 1f && solidBrush.Color.ToVector4().W == 1f) ||
-                    (this.options.BlenderMode == PixelBlenderMode.Over && this.options.BlendPercentage == 1f && solidBrush.Color.ToVector4().W == 1f) ||
-                    (this.options.BlenderMode == PixelBlenderMode.Src)))
+            if (this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush))
             {
                 Parallel.For(
                     minY,
@@ -67,8 +61,6 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                     configuration.ParallelOptions,
                     y =>
                     {
-                        int offsetY = y - startY;
-                        int offsetX = minX - startX;
                         source.GetPixelRowSpan(y).Slice(minX, width).Fill(solidBrush.Color);
                     });
             }
@@ -106,6 +98,18 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                             });
                 }
             }
+        }
+
+        private bool IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush)
+        {
+            solidBrush = this.brush as SolidBrush<TPixel>;
+
+            return solidBrush != null
+                   && ((this.options.BlenderMode == PixelBlenderMode.Normal && this.options.BlendPercentage == 1f
+                                                                            && solidBrush.Color.ToVector4().W == 1f)
+                       || (this.options.BlenderMode == PixelBlenderMode.Over && this.options.BlendPercentage == 1f
+                                                                             && solidBrush.Color.ToVector4().W == 1f)
+                       || (this.options.BlenderMode == PixelBlenderMode.Src));
         }
     }
 }

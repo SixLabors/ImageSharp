@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         public ImageFrame<TPixel> CreateFrame()
         {
-            var frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, this.RootFrame.BackgroundColor);
+            var frame = new ImageFrame<TPixel>(this.parent.GetConfiguration(), this.RootFrame.Width, this.RootFrame.Height, default);
             this.frames.Add(frame);
             return frame;
         }

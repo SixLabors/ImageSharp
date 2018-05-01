@@ -79,7 +79,6 @@ namespace SixLabors.ImageSharp
 
             this.MemoryManager = configuration.MemoryManager;
             this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(width, height, false);
-            this.BackgroundColor = backgroundColor;
             this.Clear(configuration.ParallelOptions, backgroundColor);
             this.MetaData = metaData;
         }
@@ -129,11 +128,6 @@ namespace SixLabors.ImageSharp
         /// Gets the height.
         /// </summary>
         public int Height => this.PixelBuffer.Height;
-
-        /// <summary>
-        /// Gets the background color.
-        /// </summary>
-        public TPixel BackgroundColor { get; }
 
         /// <summary>
         /// Gets the meta data of the frame.

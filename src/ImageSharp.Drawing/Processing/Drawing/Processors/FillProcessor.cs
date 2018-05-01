@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                 sourceRectangle,
                 this.options))
             {
-                amount.Span.Fill(this.options.BlendPercentage);
+                amount.Span.Fill(1f);
 
                 Parallel.For(
                     minY,

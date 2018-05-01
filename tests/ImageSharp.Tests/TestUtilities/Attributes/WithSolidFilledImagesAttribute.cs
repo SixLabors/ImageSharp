@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Guard.NotNull(colorName, nameof(colorName));
 
-            var c = (Rgba32)typeof(Rgba32).GetTypeInfo().GetField(colorName).GetValue(null);
+            Rgba32 c = TestUtils.GetPixelOfNamedColor<Rgba32>(colorName);
             this.R = c.R;
             this.G = c.G;
             this.B = c.B;

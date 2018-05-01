@@ -225,10 +225,21 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void CreateFrame()
+        public void CreateFrame_Default()
         {
             this.image.Frames.CreateFrame();
+
             Assert.Equal(2, this.image.Frames.Count);
+            this.image.Frames[1].ComparePixelBufferTo(default(Rgba32));
+        }
+
+        [Fact]
+        public void CreateFrame_CustomFillColor()
+        {
+            this.image.Frames.CreateFrame(Rgba32.HotPink);
+
+            Assert.Equal(2, this.image.Frames.Count);
+            this.image.Frames[1].ComparePixelBufferTo(Rgba32.HotPink);
         }
 
         [Fact]

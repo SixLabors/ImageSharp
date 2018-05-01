@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
     /// the ratio between longest and shortest extension.
     /// </summary>
     /// <typeparam name="TPixel">The Pixel format that is used.</typeparam>
-    public class EllipticGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
+    public sealed class EllipticGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Point center;
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                 this.RepetitionMode);
 
         /// <inheritdoc />
-        protected class RadialGradientBrushApplicator : AbstractGradientBrushApplicator
+        private sealed class RadialGradientBrushApplicator : AbstractGradientBrushApplicator
         {
             private readonly Point center;
 

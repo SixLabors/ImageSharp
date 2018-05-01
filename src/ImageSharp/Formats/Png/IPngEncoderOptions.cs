@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngColorType PngColorType { get; }
 
         /// <summary>
+        /// Gets the png filter method.
+        /// </summary>
+        PngFilterMethod PngFilterMethod { get; }
+
+        /// <summary>
         /// Gets the compression level 1-9.
         /// <remarks>Defaults to 6.</remarks>
         /// </summary>

@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the frames.
         /// </summary>
-        public IImageFrameCollection<TPixel> Frames => this.frames;
+        public ImageFrameCollection<TPixel> Frames => this.frames;
 
         /// <summary>
         /// Gets the root frame.

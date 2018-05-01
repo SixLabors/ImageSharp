@@ -122,6 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 // Find marker
                 this.bitsCount = 0;
+                this.bitsData = 0;
                 fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
 
                 // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
@@ -433,49 +434,98 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadBit(DoubleBufferedStreamReader stream)
         {
-            // TODO: I wonder if we can do this two bytes at a time; libjpeg turbo seems to do that?
-            if (this.bitsCount > 0)
+            if (this.bitsCount == 0)
             {
-                this.bitsCount--;
-                return (this.bitsData >> this.bitsCount) & 1;
+                this.FillBits(stream);
             }
 
-            this.bitsData = stream.ReadByte();
+            this.bitsCount--;
+            return (this.bitsData >> this.bitsCount) & 1;
+        }
 
-            if (this.bitsData == -0x1)
-            {
-                // We've encountered the end of the file stream which means there's no EOI marker ref the image
-                this.endOfStreamReached = true;
-            }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void FillBits(DoubleBufferedStreamReader stream)
+        {
+            // TODO: Read more then 1 byte at a time.
+            // In LibJpegTurbo this is be 25 bits (32-7) but I cannot get this to work
+            // for some images, I'm assuming because I am crossing MCU boundaries and not managing
+            // to detect it.
+            const int MinGetBits = 7;
 
-            if (this.bitsData == PdfJsJpegConstants.Markers.Prefix)
+            // Attempt to load to the minimum bit count.
+            while (this.bitsCount < MinGetBits)
             {
-                int nextByte = stream.ReadByte();
-                if (nextByte != 0)
+                int c = stream.ReadByte();
+
+                if (c == -0x1)
                 {
-#if DEBUG
-                    Debug.WriteLine($"DecodeScan - Unexpected marker {(this.bitsData << 8) | nextByte:X} at {stream.Position}");
-#endif
+                    // We've encountered the end of the file stream which means there's no EOI marker in the image.
+                    this.endOfStreamReached = true;
 
-                    // We've encountered an unexpected marker. Reverse the stream and exit.
-                    this.unexpectedMarkerReached = true;
-                    stream.Position -= 2;
+                    // Fill buffer with zero bits.
+                    this.bitsData <<= MinGetBits - this.bitsCount;
+                    this.bitsCount = MinGetBits;
+                    break;
                 }
 
-                // Unstuff 0
+                if (c == PdfJsJpegConstants.Markers.Prefix)
+                {
+                    int nextByte = stream.ReadByte();
+                    if (nextByte != 0)
+                    {
+#if DEBUG
+                    Debug.WriteLine($"DecodeScan - Unexpected marker {(c << 8) | nextByte:X} at {stream.Position}");
+#endif
+
+                        // We've encountered an unexpected marker. Reverse the stream and exit.
+                        this.unexpectedMarkerReached = true;
+                        stream.Position -= 2;
+
+                        // Fill buffer with zero bits.
+                        this.bitsData <<= MinGetBits - this.bitsCount;
+                        this.bitsCount = MinGetBits;
+                        break;
+                    }
+                }
+
+                // OK, load c into get_buffer
+                this.bitsData = (this.bitsData << 8) | c;
+                this.bitsCount += 8;
             }
+        }
 
-            this.bitsCount = 7;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int PeekBits(int count)
+        {
+            return this.bitsData >> (this.bitsCount - count) & ((1 << count) - 1);
+        }
 
-            return this.bitsData >> 7;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DropBits(int count)
+        {
+            this.bitsCount -= count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private short DecodeHuffman(ref PdfJsHuffmanTable tree, DoubleBufferedStreamReader stream)
         {
             // TODO: Implement fast Huffman decoding.
-            // NOTES # During investigation of the libjpeg implementation it appears that they pull 32bits at a time and operate on those bits
-            // using 3 methods: FillBits, PeekBits, and ReadBits. We should attempt to do the same.
+            // In LibJpegTurbo a minimum of 25 bits (32-7) is collected from the stream
+            // Then a LUT is used to avoid the loop when decoding the Huffman value.
+            // using 3 methods: FillBits, PeekBits, and DropBits.
+            // The LUT has been ported from LibJpegTurbo as has this code but it doesn't work.
+            // this.FillBits(stream);
+            //
+            // const int LookAhead = 8;
+            // int look = this.PeekBits(LookAhead);
+            // look = tree.Lookahead[look];
+            // int bits = look >> LookAhead;
+            //
+            // if (bits <= LookAhead)
+            // {
+            //    this.DropBits(bits);
+            //    return (short)(look & ((1 << LookAhead) - 1));
+            // }
             short code = (short)this.ReadBit(stream);
             if (this.endOfStreamReached || this.unexpectedMarkerReached)
             {

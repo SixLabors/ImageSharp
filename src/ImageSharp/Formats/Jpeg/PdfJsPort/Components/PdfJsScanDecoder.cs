@@ -474,7 +474,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     if (nextByte != 0)
                     {
 #if DEBUG
-                    Debug.WriteLine($"DecodeScan - Unexpected marker {(c << 8) | nextByte:X} at {stream.Position}");
+                        Debug.WriteLine($"DecodeScan - Unexpected marker {(c << 8) | nextByte:X} at {stream.Position}");
 #endif
 
                         // We've encountered an unexpected marker. Reverse the stream and exit.

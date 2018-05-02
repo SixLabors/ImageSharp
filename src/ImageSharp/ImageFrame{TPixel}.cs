@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -18,8 +19,7 @@ namespace SixLabors.ImageSharp
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
-        where TPixel : struct, IPixel<TPixel>
-    {
+        where TPixel : struct, IPixel<TPixel> {
         private bool isDisposed;
 
         /// <summary>
@@ -29,8 +29,7 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         internal ImageFrame(MemoryManager memoryManager, int width, int height)
-            : this(memoryManager, width, height, new ImageFrameMetaData())
-        {
+            : this(memoryManager, width, height, new ImageFrameMetaData()) {
         }
 
         /// <summary>
@@ -55,12 +54,43 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/> to use for buffer allocation and parallel options to clear the buffer with.</param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="backgroundColor">The color to clear the image with.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor)
+            : this(configuration, width, height, backgroundColor, new ImageFrameMetaData()) {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="configuration">The <see cref="Configuration"/> to use for buffer allocation and parallel options to clear the buffer with.</param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="backgroundColor">The color to clear the image with.</param>
+        /// <param name="metaData">The meta data.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor, ImageFrameMetaData metaData)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+            Guard.NotNull(metaData, nameof(metaData));
+
+            this.MemoryManager = configuration.MemoryManager;
+            this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(width, height, false);
+            this.Clear(configuration.ParallelOptions, backgroundColor);
+            this.MetaData = metaData;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="size">The <see cref="Size"/> of the frame.</param>
         /// <param name="metaData">The meta data.</param>
         internal ImageFrame(MemoryManager memoryManager, Size size, ImageFrameMetaData metaData)
-            : this(memoryManager, size.Width, size.Height, metaData)
-        {
+            : this(memoryManager, size.Width, size.Height, metaData) {
         }
 
         /// <summary>
@@ -265,6 +295,23 @@ namespace SixLabors.ImageSharp
                 });
 
             return target;
+        }
+
+        /// <summary>
+        /// Clears the bitmap.
+        /// </summary>
+        /// <param name="parallelOptions">The parallel options.</param>
+        /// <param name="value">The value to initialize the bitmap with.</param>
+        internal void Clear(ParallelOptions parallelOptions, TPixel value) {
+            Parallel.For(
+                0,
+                this.Height,
+                parallelOptions,
+                (int y) =>
+                {
+                    Span<TPixel> targetRow = this.GetPixelRowSpan(y);
+                    targetRow.Fill(value);
+                });
         }
 
         /// <summary>

@@ -41,6 +41,21 @@ namespace SixLabors.ImageSharp
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
         /// </summary>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="backgroundColor">The color to initialize the pixels with.</param>
+        public Image(Configuration configuration, int width, int height, TPixel backgroundColor)
+            : this(configuration, width, height, backgroundColor, new ImageMetaData())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// with the height and the width of the image.
+        /// </summary>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         public Image(int width, int height)
@@ -63,7 +78,25 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata ?? new ImageMetaData();
-            this.frames = new ImageFrameCollection<TPixel>(this, width, height);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// with the height and the width of the image.
+        /// </summary>
+        /// <param name="configuration">
+        /// The configuration providing initialization code which allows extending the library.
+        /// </param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="backgroundColor">The color to initialize the pixels with.</param>
+        /// <param name="metadata">The images metadata.</param>
+        internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetaData metadata) {
+            this.configuration = configuration ?? Configuration.Default;
+            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
+            this.MetaData = metadata ?? new ImageMetaData();
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
         }
 
         /// <summary>
@@ -102,7 +135,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the frames.
         /// </summary>
-        public IImageFrameCollection<TPixel> Frames => this.frames;
+        public ImageFrameCollection<TPixel> Frames => this.frames;
 
         /// <summary>
         /// Gets the root frame.

@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
-                string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", debugInfo, appendPixelType);
+                string referenceOutputFile = ((ITestImageProvider)provider).Utility.GetReferenceOutputFileName("png", debugInfo, appendPixelType, true);
 
                 using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 using (var referenceImage = Image.Load<TPixel>(referenceOutputFile, referenceDecoder))

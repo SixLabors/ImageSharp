@@ -361,15 +361,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case OrigJpegConstants.Markers.SOS:
-                        if (!metadataOnly)
+                        if (metadataOnly)
+                        {
+                            this.InputProcessor.Skip(remaining);
+                        }
+                        else
                         {
                             this.ProcessStartOfScanMarker(remaining);
-                        }
-
-                        if (this.InputProcessor.ReachedEOF)
-                        {
-                            // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
-                            processBytes = false;
+                            if (this.InputProcessor.ReachedEOF)
+                            {
+                                // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
+                                processBytes = false;
+                            }
                         }
 
                         break;

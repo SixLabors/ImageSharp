@@ -246,7 +246,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             break;
 
                         case PdfJsJpegConstants.Markers.SOS:
-                            if (!metadataOnly)
+                            if (metadataOnly)
+                            {
+                                this.InputStream.Skip(remaining);
+                            }
+                            else
                             {
                                 this.ProcessStartOfScanMarker();
                             }

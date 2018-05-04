@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -70,6 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 
             // Convert from screen to world space.
             Matrix4x4.Invert(matrix, out matrix);
+            const float Epsilon = 0.0000001F;
 
             if (this.Sampler is NearestNeighborResampler)
             {
@@ -83,10 +86,15 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 
                         for (int x = 0; x < width; x++)
                         {
-                            var point = Point.Round(Vector2.Transform(new Vector2(x, y), matrix));
-                            if (sourceBounds.Contains(point.X, point.Y))
+                            var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
+
+                            float z = MathF.Max(v3.Z, Epsilon);
+                            int px = (int)MathF.Round(v3.X / z);
+                            int py = (int)MathF.Round(v3.Y / z);
+
+                            if (sourceBounds.Contains(px, py))
                             {
-                                destRow[x] = source[point.X, point.Y];
+                                destRow[x] = source[px, py];
                             }
                         }
                     });
@@ -100,7 +108,10 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             (float radius, float scale, float ratio) yRadiusScale = this.GetSamplingRadius(source.Height, destination.Height);
             float xScale = xRadiusScale.scale;
             float yScale = yRadiusScale.scale;
-            var radius = new Vector2(xRadiusScale.radius, yRadiusScale.radius);
+
+            // Using Vector4 with dummy 0-s, because Vector2 SIMD implementation is not reliable:
+            var radius = new Vector4(xRadiusScale.radius, yRadiusScale.radius, 0, 0);
+
             IResampler sampler = this.Sampler;
             var maxSource = new Vector4(maxSourceX, maxSourceY, maxSourceX, maxSourceY);
             int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
@@ -117,19 +128,23 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                     configuration.ParallelOptions,
                     y =>
                     {
-                        Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-                        Span<float> ySpan = yBuffer.GetRowSpan(y);
-                        Span<float> xSpan = xBuffer.GetRowSpan(y);
+                        ref TPixel destRowRef = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
+                        ref float ySpanRef = ref MemoryMarshal.GetReference(yBuffer.GetRowSpan(y));
+                        ref float xSpanRef = ref MemoryMarshal.GetReference(xBuffer.GetRowSpan(y));
 
                         for (int x = 0; x < width; x++)
                         {
                             // Use the single precision position to calculate correct bounding pixels
                             // otherwise we get rogue pixels outside of the bounds.
-                            var point = Vector2.Transform(new Vector2(x, y), matrix);
+                            var v3 = Vector3.Transform(new Vector3(x, y, 1), matrix);
+                            float z = MathF.Max(v3.Z, Epsilon);
+
+                            // Using Vector4 with dummy 0-s, because Vector2 SIMD implementation is not reliable:
+                            Vector4 point = new Vector4(v3.X, v3.Y, 0, 0) / z;
 
                             // Clamp sampling pixel radial extents to the source image edges
-                            Vector2 maxXY = point + radius;
-                            Vector2 minXY = point - radius;
+                            Vector4 maxXY = point + radius;
+                            Vector4 minXY = point - radius;
 
                             // max, maxY, minX, minY
                             var extents = new Vector4(
@@ -161,24 +176,24 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                             // I've optimized where I can but am always open to suggestions.
                             if (yScale > 1 && xScale > 1)
                             {
-                                CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ySpan);
-                                CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, xSpan);
+                                CalculateWeightsDown(top, bottom, minY, maxY, point.Y, sampler, yScale, ref ySpanRef, yLength);
+                                CalculateWeightsDown(left, right, minX, maxX, point.X, sampler, xScale, ref xSpanRef, xLength);
                             }
                             else
                             {
-                                CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ySpan);
-                                CalculateWeightsScaleUp(minX, maxX, point.X, sampler, xSpan);
+                                CalculateWeightsScaleUp(minY, maxY, point.Y, sampler, ref ySpanRef);
+                                CalculateWeightsScaleUp(minX, maxX, point.X, sampler, ref xSpanRef);
                             }
 
                             // Now multiply the results against the offsets
                             Vector4 sum = Vector4.Zero;
                             for (int yy = 0, j = minY; j <= maxY; j++, yy++)
                             {
-                                float yWeight = ySpan[yy];
+                                float yWeight = Unsafe.Add(ref ySpanRef, yy);
 
                                 for (int xx = 0, i = minX; i <= maxX; i++, xx++)
                                 {
-                                    float xWeight = xSpan[xx];
+                                    float xWeight = Unsafe.Add(ref xSpanRef, xx);
                                     var vector = source[i, j].ToVector4();
 
                                     // Values are first premultiplied to prevent darkening of edge pixels
@@ -187,7 +202,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                                 }
                             }
 
-                            ref TPixel dest = ref destRow[x];
+                            ref TPixel dest = ref Unsafe.Add(ref destRowRef, x);
 
                             // Reverse the premultiplication
                             dest.PackFromVector4(sum.UnPremultiply());

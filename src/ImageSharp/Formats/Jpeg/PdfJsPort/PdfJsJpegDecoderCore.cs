@@ -169,8 +169,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     m = suffix;
                 }
 
-                marker[1] = (byte)m;
-
                 return new PdfJsFileMarker((byte)m, stream.Position - 2);
             }
 

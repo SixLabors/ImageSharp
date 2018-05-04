@@ -20,11 +20,11 @@ function CheckSubmoduleStatus() {
   # if the result string is empty, the command failed to run (we didn't capture the error stream)
   if ($submoduleStatus) {
     # git has been called successfully, what about the status?
-    if ($submoduleStatus -contains '-')
+    if (($submoduleStatus -match "\-") -or ($submoduleStatus -match "\(\(null\)\)"))
     {
       # submodule has not been initialized!
       return 2;
-    } elseif ($submoduleStatus -contains '+')
+    } elseif ($submoduleStatus -match "\+")
     {
       # submodule is not synced:
       return 1;

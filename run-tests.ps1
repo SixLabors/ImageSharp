@@ -22,19 +22,19 @@ function CheckSubmoduleStatus() {
     # git has been called successfully, what about the status?
     if ($submoduleStatus -contains '-')
     {
-	  # submodule has not been initialized!
-	  return 2;
+      # submodule has not been initialized!
+      return 2;
     } elseif ($submoduleStatus -contains '+')
     {
       # submodule is not synced:
-	  return 1;
+      return 1;
     } else {
-	  # everything fine:
-	  return 0;
-	}
+      # everything fine:
+      return 0;
+    }
   } else {
     # git call failed, so we should warn
-	return 3;
+    return 3;
   }
 }
 
@@ -94,13 +94,13 @@ if (0 -ne ([int]$LASTEXITCODE)) {
   $submoduleStatus = CheckSubmoduleStatus
   if ([int]$submoduleStatus -eq 1) {
     # not synced
-	Write-Host -ForegroundColor Yellow "Check if submodules are up to date. You can use 'git submodule update' to fix this";
+    Write-Host -ForegroundColor Yellow "Check if submodules are up to date. You can use 'git submodule update' to fix this";
   } elseif ($submoduleStatus -eq 2) {
     # not initialized
-	Write-Host -ForegroundColor Yellow "Check if submodules are initialized. You can run 'git submodule init' to initialize them."
+    Write-Host -ForegroundColor Yellow "Check if submodules are initialized. You can run 'git submodule init' to initialize them."
   } elseif ($submoduleStatus -eq 3) {
     # git not found, maybe submodules not synced?
-	Write-Host -ForegroundColor Yellow "Could not check if submodules are initialized correctly. Maybe git is not installed?"
+    Write-Host -ForegroundColor Yellow "Could not check if submodules are initialized correctly. Maybe git is not installed?"
   } else {
     #Write-Host "Submodules are up to date";
   }

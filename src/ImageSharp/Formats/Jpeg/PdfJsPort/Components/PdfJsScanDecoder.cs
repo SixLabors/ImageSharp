@@ -5,7 +5,6 @@ using System;
 #if DEBUG
 using System.Diagnostics;
 #endif
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
@@ -95,7 +94,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 mcuExpected = mcusPerLine * frame.McusPerColumn;
             }
 
-            PdfJsFileMarker fileMarker;
             while (mcu < mcuExpected)
             {
                 // Reset interval stuff
@@ -120,21 +118,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     this.DecodeScanProgressive(huffmanTables, isAc, isFirst, components, componentsLength, mcusPerLine, mcuToRead, ref mcu, stream);
                 }
 
-                // Find marker
+                // Reset
                 this.bitsCount = 0;
                 this.bitsData = 0;
-                fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
+                this.unexpectedMarkerReached = false;
 
-                // Some bad images seem to pad Scan blocks with e.g. zero bytes, skip past
-                // those to attempt to find a valid marker (fixes issue4090.pdf) in original code.
-                if (fileMarker.Invalid)
-                {
-#if DEBUG
-                    Debug.WriteLine($"DecodeScan - Unexpected MCU data at {stream.Position}, next marker is: {fileMarker.Marker:X}");
-#endif
-                }
-
-                ushort marker = fileMarker.Marker;
+                // Some images include more scan blocks than expected, skip past those and
+                // attempt to find the next valid marker
+                PdfJsFileMarker fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
+                byte marker = fileMarker.Marker;
 
                 // RSTn - We've already read the bytes and altered the position so no need to skip
                 if (marker >= PdfJsJpegConstants.Markers.RST0 && marker <= PdfJsJpegConstants.Markers.RST7)
@@ -149,23 +141,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     stream.Position = fileMarker.Position;
                     break;
                 }
-            }
 
-            fileMarker = PdfJsJpegDecoderCore.FindNextFileMarker(this.markerBuffer, stream);
-
-            // Some images include more Scan blocks than expected, skip past those and
-            // attempt to find the next valid marker (fixes issue8182.pdf) ref original code.
-            if (fileMarker.Invalid)
-            {
 #if DEBUG
                 Debug.WriteLine($"DecodeScan - Unexpected MCU data at {stream.Position}, next marker is: {fileMarker.Marker:X}");
 #endif
-            }
-            else
-            {
-                // We've found a valid marker.
-                // Rewind the stream to the position of the marker
-                stream.Position = fileMarker.Position;
             }
         }
 
@@ -295,9 +274,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             for (int k = 0; k < h; k++)
                             {
+                                // No need to continue here.
                                 if (this.endOfStreamReached || this.unexpectedMarkerReached)
                                 {
-                                    continue;
+                                    break;
                                 }
 
                                 if (isAC)
@@ -432,19 +412,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int ReadBit(DoubleBufferedStreamReader stream)
+        private bool TryReadBit(DoubleBufferedStreamReader stream, out int bits)
         {
             if (this.bitsCount == 0)
             {
-                this.FillBits(stream);
+                if (!this.TryFillBits(stream))
+                {
+                    bits = 0;
+                    return false;
+                }
             }
 
             this.bitsCount--;
-            return (this.bitsData >> this.bitsCount) & 1;
+            bits = (this.bitsData >> this.bitsCount) & 1;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private void FillBits(DoubleBufferedStreamReader stream)
+        private bool TryFillBits(DoubleBufferedStreamReader stream)
         {
             // TODO: Read more then 1 byte at a time.
             // In LibJpegTurbo this is be 25 bits (32-7) but I cannot get this to work
@@ -452,46 +437,61 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // to detect it.
             const int MinGetBits = 7;
 
-            // Attempt to load to the minimum bit count.
-            while (this.bitsCount < MinGetBits)
+            if (!this.unexpectedMarkerReached)
             {
-                int c = stream.ReadByte();
-
-                if (c == -0x1)
+                // Attempt to load to the minimum bit count.
+                while (this.bitsCount < MinGetBits)
                 {
-                    // We've encountered the end of the file stream which means there's no EOI marker in the image.
-                    this.endOfStreamReached = true;
+                    int c = stream.ReadByte();
 
-                    // Fill buffer with zero bits.
-                    this.bitsData <<= MinGetBits - this.bitsCount;
-                    this.bitsCount = MinGetBits;
-                    break;
-                }
-
-                if (c == PdfJsJpegConstants.Markers.Prefix)
-                {
-                    int nextByte = stream.ReadByte();
-                    if (nextByte != 0)
+                    switch (c)
                     {
+                        case -0x1:
+
+                            // We've encountered the end of the file stream which means there's no EOI marker in the image.
+                            this.endOfStreamReached = true;
+                            return false;
+
+                        case PdfJsJpegConstants.Markers.Prefix:
+                            int nextByte = stream.ReadByte();
+
+                            if (nextByte == -0x1)
+                            {
+                                this.endOfStreamReached = true;
+                                return false;
+                            }
+
+                            if (nextByte != 0)
+                            {
 #if DEBUG
-                        Debug.WriteLine($"DecodeScan - Unexpected marker {(c << 8) | nextByte:X} at {stream.Position}");
+                                Debug.WriteLine($"DecodeScan - Unexpected marker {(c << 8) | nextByte:X} at {stream.Position}");
 #endif
 
-                        // We've encountered an unexpected marker. Reverse the stream and exit.
-                        this.unexpectedMarkerReached = true;
-                        stream.Position -= 2;
+                                // We've encountered an unexpected marker. Reverse the stream and exit.
+                                this.unexpectedMarkerReached = true;
+                                stream.Position -= 2;
 
-                        // Fill buffer with zero bits.
-                        this.bitsData <<= MinGetBits - this.bitsCount;
-                        this.bitsCount = MinGetBits;
-                        break;
+                                // TODO: double check we need this.
+                                // Fill buffer with zero bits.
+                                if (this.bitsCount == 0)
+                                {
+                                    this.bitsData <<= MinGetBits;
+                                    this.bitsCount = MinGetBits;
+                                }
+
+                                return true;
+                            }
+
+                            break;
                     }
-                }
 
-                // OK, load c into get_buffer
-                this.bitsData = (this.bitsData << 8) | c;
-                this.bitsCount += 8;
+                    // OK, load the next byte into bitsData
+                    this.bitsData = (this.bitsData << 8) | c;
+                    this.bitsCount += 8;
+                }
             }
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -507,14 +507,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private short DecodeHuffman(ref PdfJsHuffmanTable tree, DoubleBufferedStreamReader stream)
+        private bool TryDecodeHuffman(ref PdfJsHuffmanTable tree, DoubleBufferedStreamReader stream, out short value)
         {
+            value = -1;
+
             // TODO: Implement fast Huffman decoding.
             // In LibJpegTurbo a minimum of 25 bits (32-7) is collected from the stream
             // Then a LUT is used to avoid the loop when decoding the Huffman value.
             // using 3 methods: FillBits, PeekBits, and DropBits.
             // The LUT has been ported from LibJpegTurbo as has this code but it doesn't work.
-            // this.FillBits(stream);
+            // this.TryFillBits(stream);
             //
             // const int LookAhead = 8;
             // int look = this.PeekBits(LookAhead);
@@ -524,86 +526,104 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // if (bits <= LookAhead)
             // {
             //    this.DropBits(bits);
-            //    return (short)(look & ((1 << LookAhead) - 1));
+            //    value = (short)(look & ((1 << LookAhead) - 1));
+            //    return true;
             // }
-            short code = (short)this.ReadBit(stream);
-            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            if (!this.TryReadBit(stream, out int bit))
             {
-                return -1;
+                return false;
             }
+
+            short code = (short)bit;
 
             // "DECODE", section F.2.2.3, figure F.16, page 109 of T.81
             int i = 1;
 
             while (code > tree.MaxCode[i])
             {
-                code <<= 1;
-                code |= (short)this.ReadBit(stream);
-
-                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                if (!this.TryReadBit(stream, out bit))
                 {
-                    return -1;
+                    return false;
                 }
 
+                code <<= 1;
+                code |= (short)bit;
                 i++;
             }
 
             int j = tree.ValOffset[i];
-            return tree.HuffVal[(j + code) & 0xFF];
+            value = tree.HuffVal[(j + code) & 0xFF];
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int Receive(int length, DoubleBufferedStreamReader stream)
+        private bool TryReceive(int length, DoubleBufferedStreamReader stream, out int value)
         {
-            int n = 0;
+            value = 0;
             while (length > 0)
             {
-                int bit = this.ReadBit(stream);
-                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                if (!this.TryReadBit(stream, out int bit))
                 {
-                    return -1;
+                    return false;
                 }
 
-                n = (n << 1) | bit;
+                value = (value << 1) | bit;
                 length--;
             }
 
-            return n;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int ReceiveAndExtend(int length, DoubleBufferedStreamReader stream)
+        private bool TryReceiveAndExtend(int length, DoubleBufferedStreamReader stream, out int value)
         {
             if (length == 1)
             {
-                return this.ReadBit(stream) == 1 ? 1 : -1;
-            }
+                if (!this.TryReadBit(stream, out value))
+                {
+                    return false;
+                }
 
-            int n = this.Receive(length, stream);
-            if (n >= 1 << (length - 1))
+                value = value == 1 ? 1 : -1;
+            }
+            else
             {
-                return n;
+                if (!this.TryReceive(length, stream, out value))
+                {
+                    return false;
+                }
+
+                if (value < 1 << (length - 1))
+                {
+                    value += (-1 << length) + 1;
+                }
             }
 
-            return n + (-1 << length) + 1;
+            return true;
         }
 
         private void DecodeBaseline(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable dcHuffmanTable, ref PdfJsHuffmanTable acHuffmanTable, DoubleBufferedStreamReader stream)
         {
-            short t = this.DecodeHuffman(ref dcHuffmanTable, stream);
-            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            if (!this.TryDecodeHuffman(ref dcHuffmanTable, stream, out short t))
             {
                 return;
             }
 
-            int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream);
+            int diff = 0;
+            if (t != 0)
+            {
+                if (!this.TryReceiveAndExtend(t, stream, out diff))
+                {
+                    return;
+                }
+            }
+
             Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
 
             int k = 1;
             while (k < 64)
             {
-                short rs = this.DecodeHuffman(ref acHuffmanTable, stream);
-                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                if (!this.TryDecodeHuffman(ref acHuffmanTable, stream, out short rs))
                 {
                     return;
                 }
@@ -625,8 +645,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 k += r;
 
                 byte z = this.dctZigZag[k];
-                short re = (short)this.ReceiveAndExtend(s, stream);
-                Unsafe.Add(ref blockDataRef, offset + z) = re;
+
+                if (!this.TryReceiveAndExtend(s, stream, out int re))
+                {
+                    return;
+                }
+
+                Unsafe.Add(ref blockDataRef, offset + z) = (short)re;
                 k++;
             }
         }
@@ -634,21 +659,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeDCFirst(PdfJsFrameComponent component, ref short blockDataRef, int offset, ref PdfJsHuffmanTable dcHuffmanTable, DoubleBufferedStreamReader stream)
         {
-            short t = this.DecodeHuffman(ref dcHuffmanTable, stream);
-            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            if (!this.TryDecodeHuffman(ref dcHuffmanTable, stream, out short t))
             {
                 return;
             }
 
-            int diff = t == 0 ? 0 : this.ReceiveAndExtend(t, stream) << this.successiveState;
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
+            int diff = 0;
+            if (t != 0)
+            {
+                if (!this.TryReceiveAndExtend(t, stream, out diff))
+                {
+                    return;
+                }
+            }
+
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff << this.successiveState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DecodeDCSuccessive(PdfJsFrameComponent component, ref short blockDataRef, int offset, DoubleBufferedStreamReader stream)
         {
-            int bit = this.ReadBit(stream);
-            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+            if (!this.TryReadBit(stream, out int bit))
             {
                 return;
             }
@@ -668,8 +699,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             int e = this.specEnd;
             while (k <= e)
             {
-                short rs = this.DecodeHuffman(ref acHuffmanTable, stream);
-                if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                if (!this.TryDecodeHuffman(ref acHuffmanTable, stream, out short rs))
                 {
                     return;
                 }
@@ -681,7 +711,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 {
                     if (r < 15)
                     {
-                        this.eobrun = this.Receive(r, stream) + (1 << r) - 1;
+                        if (!this.TryReceive(r, stream, out int eob))
+                        {
+                            return;
+                        }
+
+                        this.eobrun = eob + (1 << r) - 1;
                         break;
                     }
 
@@ -692,7 +727,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 k += r;
 
                 byte z = this.dctZigZag[k];
-                Unsafe.Add(ref blockDataRef, offset + z) = (short)(this.ReceiveAndExtend(s, stream) * (1 << this.successiveState));
+
+                if (!this.TryReceiveAndExtend(s, stream, out int v))
+                {
+                    return;
+                }
+
+                Unsafe.Add(ref blockDataRef, offset + z) = (short)(v * (1 << this.successiveState));
                 k++;
             }
         }
@@ -712,8 +753,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 switch (this.successiveACState)
                 {
                     case 0: // Initial state
-                        short rs = this.DecodeHuffman(ref acHuffmanTable, stream);
-                        if (this.endOfStreamReached || this.unexpectedMarkerReached)
+
+                        if (!this.TryDecodeHuffman(ref acHuffmanTable, stream, out short rs))
                         {
                             return;
                         }
@@ -724,7 +765,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             if (r < 15)
                             {
-                                this.eobrun = this.Receive(r, stream) + (1 << r);
+                                if (!this.TryReceive(r, stream, out int eob))
+                                {
+                                    return;
+                                }
+
+                                this.eobrun = eob + (1 << r);
                                 this.successiveACState = 4;
                             }
                             else
@@ -740,7 +786,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 throw new ImageFormatException("Invalid ACn encoding");
                             }
 
-                            this.successiveACNextValue = this.ReceiveAndExtend(s, stream);
+                            if (!this.TryReceiveAndExtend(s, stream, out int v))
+                            {
+                                return;
+                            }
+
+                            this.successiveACNextValue = v;
                             this.successiveACState = r > 0 ? 2 : 3;
                         }
 
@@ -749,8 +800,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     case 2:
                         if (blockOffsetZRef != 0)
                         {
-                            int bit = this.ReadBit(stream);
-                            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                            if (!this.TryReadBit(stream, out int bit))
                             {
                                 return;
                             }
@@ -770,8 +820,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     case 3: // Set value for a zero item
                         if (blockOffsetZRef != 0)
                         {
-                            int bit = this.ReadBit(stream);
-                            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                            if (!this.TryReadBit(stream, out int bit))
                             {
                                 return;
                             }
@@ -788,8 +837,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     case 4: // Eob
                         if (blockOffsetZRef != 0)
                         {
-                            int bit = this.ReadBit(stream);
-                            if (this.endOfStreamReached || this.unexpectedMarkerReached)
+                            if (!this.TryReadBit(stream, out int bit))
                             {
                                 return;
                             }

@@ -90,8 +90,9 @@ Invoke-Expression $testRunnerCmd
 
 cd $PSScriptRoot
 
+$exitCodeOfTests = $LASTEXITCODE;
 
-if (0 -ne ([int]$LASTEXITCODE)) {
+if (0 -ne ([int]$exitCodeOfTests)) {
     # check submodule status
     $submoduleStatus = CheckSubmoduleStatus
     if ([int]$submoduleStatus -eq 1) {
@@ -108,4 +109,4 @@ if (0 -ne ([int]$LASTEXITCODE)) {
     }
 }
 
-exit $LASTEXITCODE
+exit $exitCodeOfTests

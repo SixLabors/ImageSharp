@@ -11,12 +11,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class DoubleBufferedStreamReaderTests
     {
-        private MemoryManager manager = Configuration.Default.MemoryManager;
+        private readonly MemoryManager manager = Configuration.Default.MemoryManager;
 
         [Fact]
         public void DoubleBufferedStreamReaderCanReadSingleByteFromOrigin()
         {
-            using (MemoryStream stream = CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
                 var reader = new DoubleBufferedStreamReader(this.manager, stream);
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void DoubleBufferedStreamReaderCanReadSubsequentSingleByteCorrectly()
         {
-            using (MemoryStream stream = CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
                 var reader = new DoubleBufferedStreamReader(this.manager, stream);
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void DoubleBufferedStreamReaderCanReadMultipleBytesFromOrigin()
         {
-            using (MemoryStream stream = CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] buffer = new byte[2];
                 byte[] expected = stream.ToArray();
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void DoubleBufferedStreamReaderCanReadSubsequentMultipleByteCorrectly()
         {
-            using (MemoryStream stream = CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] buffer = new byte[2];
                 byte[] expected = stream.ToArray();
@@ -112,6 +112,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         Assert.Equal(stream.Position, DoubleBufferedStreamReader.ChunkLength * 3);
                     }
                 }
+            }
+        }
+
+        [Fact]
+        public void DoubleBufferedStreamReaderCanSkip()
+        {
+            using (MemoryStream stream = this.CreateTestStream())
+            {
+                byte[] expected = stream.ToArray();
+                var reader = new DoubleBufferedStreamReader(this.manager, stream);
+
+                int skip = 50;
+                int plusOne = 1;
+                int skip2 = DoubleBufferedStreamReader.ChunkLength;
+
+                // Skip
+                reader.Skip(skip);
+                Assert.Equal(skip, reader.Position);
+                Assert.Equal(stream.Position, reader.Position);
+
+                // Read
+                Assert.Equal(expected[skip], reader.ReadByte());
+
+                // Skip Again
+                reader.Skip(skip2);
+
+                // First Skap + First Read + Second Skip
+                int position = skip + plusOne + skip2;
+
+                Assert.Equal(position, reader.Position);
+                Assert.Equal(stream.Position, reader.Position);
+                Assert.Equal(expected[position], reader.ReadByte());
             }
         }
 

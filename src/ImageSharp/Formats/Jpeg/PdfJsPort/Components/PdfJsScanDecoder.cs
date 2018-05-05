@@ -412,19 +412,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryReadBit(DoubleBufferedStreamReader stream, out int bits)
+        private bool TryReadBit(DoubleBufferedStreamReader stream, out int bit)
         {
             if (this.bitsCount == 0)
             {
                 if (!this.TryFillBits(stream))
                 {
-                    bits = 0;
+                    bit = 0;
                     return false;
                 }
             }
 
             this.bitsCount--;
-            bits = (this.bitsData >> this.bitsCount) & 1;
+            bit = (this.bitsData >> this.bitsCount) & 1;
             return true;
         }
 

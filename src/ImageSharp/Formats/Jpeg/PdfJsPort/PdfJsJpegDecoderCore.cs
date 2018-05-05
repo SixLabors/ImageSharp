@@ -185,6 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
+            this.AssignResolution();
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -195,6 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
+            this.AssignResolution();
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
@@ -244,16 +246,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             break;
 
                         case PdfJsJpegConstants.Markers.SOS:
-                            if (metadataOnly)
+                            if (!metadataOnly)
                             {
-                                this.InputStream.Skip(remaining);
+                                this.ProcessStartOfScanMarker();
+                                break;
                             }
                             else
                             {
-                                this.ProcessStartOfScanMarker();
+                                // It's highly unlikely that APPn related data will be found after the SOS marker
+                                // We should have gathered everything we need by now.
+                                return;
                             }
-
-                            break;
 
                         case PdfJsJpegConstants.Markers.DHT:
                             if (metadataOnly)
@@ -331,11 +334,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 // Read on.
                 fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
             }
-
-            this.ImageWidth = this.Frame.SamplesPerLine;
-            this.ImageHeight = this.Frame.Scanlines;
-            this.ComponentCount = this.Frame.ComponentCount;
-            this.AssignResolution();
         }
 
         /// <inheritdoc/>
@@ -389,6 +387,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         private void AssignResolution()
         {
+            this.ImageWidth = this.Frame.SamplesPerLine;
+            this.ImageHeight = this.Frame.Scanlines;
+
             if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
             {
                 this.MetaData.HorizontalResolution = this.jFif.XDensity;
@@ -633,6 +634,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int maxV = 0;
             int index = 6;
 
+            this.ComponentCount = this.Frame.ComponentCount;
             if (!metadataOnly)
             {
                 // No need to pool this. They max out at 4

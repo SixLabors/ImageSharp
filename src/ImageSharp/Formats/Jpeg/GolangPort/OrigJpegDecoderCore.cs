@@ -191,7 +191,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
-
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -202,7 +201,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
-
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
@@ -361,11 +359,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case OrigJpegConstants.Markers.SOS:
-                        if (metadataOnly)
-                        {
-                            this.InputProcessor.Skip(remaining);
-                        }
-                        else
+                        if (!metadataOnly)
                         {
                             this.ProcessStartOfScanMarker(remaining);
                             if (this.InputProcessor.ReachedEOF)
@@ -374,8 +368,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                                 processBytes = false;
                             }
                         }
+                        else
+                        {
+                            // It's highly unlikely that APPn related data will be found after the SOS marker
+                            // We should have gathered everything we need by now.
+                            processBytes = false;
+                        }
 
                         break;
+
                     case OrigJpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {

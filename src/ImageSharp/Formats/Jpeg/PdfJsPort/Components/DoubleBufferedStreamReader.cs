@@ -64,6 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             {
                 // Reset everything. It's easier than tracking.
                 this.position = (int)value;
+                this.stream.Seek(this.position, SeekOrigin.Begin);
                 this.bytesRead = ChunkLength;
             }
         }

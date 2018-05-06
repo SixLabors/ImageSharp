@@ -35,11 +35,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, 250, 250)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 0)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, 250, 0)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 250)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, -100, 250)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 100, 100)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0, 0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 100, 0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0, 100)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, -40, 100)]
         public void RadialGradientBrushWithDifferentCentersReturnsImage<TPixel>(
             TestImageProvider<TPixel> provider,
             int centerX,

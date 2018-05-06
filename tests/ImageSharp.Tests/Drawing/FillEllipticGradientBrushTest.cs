@@ -50,13 +50,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.2)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.6)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 2.0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.1)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.4)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.8)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.2)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.6)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 2.0)]
         public void EllipticGradientBrushProducesAxisParallelEllipsesWithDifferentRatio<TPixel>(
             TestImageProvider<TPixel> provider,
             float ratio)
@@ -85,25 +85,25 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 0)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 0)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 0)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.1, 0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.4, 0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.8, 0)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.0, 0)]
 
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 45)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 45)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 45)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 45)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.1, 45)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.4, 45)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.8, 45)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.0, 45)]
 
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 90)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 90)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 90)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 90)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.1, 90)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.4, 90)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.8, 90)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.0, 90)]
 
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 30)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 30)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 30)]
-        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 30)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.1, 30)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.4, 30)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.8, 30)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.0, 30)]
         public void EllipticGradientBrushProducesRotatedEllipsesWithDifferentRatio<TPixel>(
             TestImageProvider<TPixel> provider,
             float ratio,
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel: struct, IPixel<TPixel>
         {
             string variant = $"{ratio}at{rotationInDegree}°";
-            
+
             using (var image = provider.GetImage())
             {
                 TPixel yellow = NamedColors<TPixel>.Yellow;

@@ -12,113 +12,135 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    [GroupOutput("Drawing/GradientBrushes")]
     public class FillEllipticGradientBrushTests : FileTestBase
     {
-        [Fact]
-        public void EllipticGradientBrushWithEqualColorsAndReturnsUnicolorImage()
+        [Theory]
+        [WithBlankImages(10, 10, PixelTypes.Rgba32)]
+        public void EllipticGradientBrushWithEqualColorsAndReturnsUnicolorImage<TPixel>(
+            TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestEnvironment.CreateOutputDirectory("Fill", "EllipticGradientBrush");
-            using (var image = new Image<Rgba32>(10, 10))
+            TPixel red = NamedColors<TPixel>.Red;
+
+            using (Image<TPixel> image = provider.GetImage())
             {
-                EllipticGradientBrush<Rgba32> unicolorLinearGradientBrush =
-                    new EllipticGradientBrush<Rgba32>(
+                EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
+                    new EllipticGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(10, 0),
                         1.0f,
                         GradientRepetitionMode.None,
-                        new ColorStop<Rgba32>(0, Rgba32.Red),
-                        new ColorStop<Rgba32>(1, Rgba32.Red));
+                        new ColorStop<TPixel>(0, red),
+                        new ColorStop<TPixel>(1, red));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.Save($"{path}/UnicolorCircleGradient.png");
+                image.DebugSave(provider);
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
+                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
                 {
-                    Assert.Equal(Rgba32.Red, sourcePixels[0, 0]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[9, 9]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[5, 5]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[3, 8]);
+                    Assert.Equal(red, sourcePixels[0, 0]);
+                    Assert.Equal(red, sourcePixels[9, 9]);
+                    Assert.Equal(red, sourcePixels[5, 5]);
+                    Assert.Equal(red, sourcePixels[3, 8]);
                 }
+
+                image.CompareToReferenceOutput(provider);
             }
         }
 
         [Theory]
-        [InlineData(0.1)]
-        [InlineData(0.4)]
-        [InlineData(0.8)]
-        [InlineData(1.0)]
-        [InlineData(1.2)]
-        [InlineData(1.6)]
-        [InlineData(2.0)]
-        public void EllipticGradientBrushProducesAxisParallelEllipsesWithDifferentRatio(
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.2)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.6)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 2.0)]
+        public void EllipticGradientBrushProducesAxisParallelEllipsesWithDifferentRatio<TPixel>(
+            TestImageProvider<TPixel> provider,
             float ratio)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestEnvironment.CreateOutputDirectory("Fill", "EllipticGradientBrush");
-            using (var image = new Image<Rgba32>(1000, 1000))
+            TPixel yellow = NamedColors<TPixel>.Yellow;
+            TPixel red = NamedColors<TPixel>.Red;
+            TPixel black = NamedColors<TPixel>.Black;
+
+            using (var image = provider.GetImage())
             {
-                EllipticGradientBrush<Rgba32> unicolorLinearGradientBrush =
-                    new EllipticGradientBrush<Rgba32>(
-                        new SixLabors.Primitives.Point(500, 500),
-                        new SixLabors.Primitives.Point(500, 750),
+                EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
+                    new EllipticGradientBrush<TPixel>(
+                        new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2),
+                        new SixLabors.Primitives.Point(image.Width / 2, (image.Width * 3) / 2),
                         ratio,
                         GradientRepetitionMode.None,
-                        new ColorStop<Rgba32>(0, Rgba32.Yellow),
-                        new ColorStop<Rgba32>(1, Rgba32.Red),
-                        new ColorStop<Rgba32>(1, Rgba32.Black));
+                        new ColorStop<TPixel>(0, yellow),
+                        new ColorStop<TPixel>(1, red),
+                        new ColorStop<TPixel>(1, black));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.Save($"{path}/Ellipsis{ratio}.png");
+                image.DebugSave(provider, ratio);
+                image.CompareToReferenceOutput(provider, ratio);
             }
         }
 
         [Theory]
-        [InlineData(0.1, 0)]
-        [InlineData(0.4, 0)]
-        [InlineData(0.8, 0)]
-        [InlineData(1.0, 0)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 0)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 0)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 0)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 0)]
 
-        [InlineData(0.1, 45)]
-        [InlineData(0.4, 45)]
-        [InlineData(0.8, 45)]
-        [InlineData(1.0, 45)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 45)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 45)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 45)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 45)]
 
-        [InlineData(0.1, 90)]
-        [InlineData(0.4, 90)]
-        [InlineData(0.8, 90)]
-        [InlineData(1.0, 90)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 90)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 90)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 90)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 90)]
 
-        [InlineData(0.1, 30)]
-        [InlineData(0.4, 30)]
-        [InlineData(0.8, 30)]
-        [InlineData(1.0, 30)]
-        public void EllipticGradientBrushProducesRotatedEllipsesWithDifferentRatio(
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.1, 30)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.4, 30)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 0.8, 30)]
+        [WithBlankImages(1000, 1000, PixelTypes.Rgba32, 1.0, 30)]
+        public void EllipticGradientBrushProducesRotatedEllipsesWithDifferentRatio<TPixel>(
+            TestImageProvider<TPixel> provider,
             float ratio,
             float rotationInDegree)
+            where TPixel: struct, IPixel<TPixel>
         {
-            var center = new SixLabors.Primitives.Point(500, 500);
-
-            var rotation = (Math.PI * rotationInDegree) / 180.0;
-            var cos = Math.Cos(rotation);
-            var sin = Math.Sin(rotation);
-
-            int axisX = (int)((center.X * cos) - (center.Y * sin));
-            int axisY = (int)((center.X * sin) + (center.Y * cos));
-
-            string path = TestEnvironment.CreateOutputDirectory("Fill", "EllipticGradientBrush");
-            using (var image = new Image<Rgba32>(1000, 1000))
+            string variant = $"{ratio}at{rotationInDegree}°";
+            
+            using (var image = provider.GetImage())
             {
-                EllipticGradientBrush<Rgba32> unicolorLinearGradientBrush =
-                    new EllipticGradientBrush<Rgba32>(
+                TPixel yellow = NamedColors<TPixel>.Yellow;
+                TPixel red = NamedColors<TPixel>.Red;
+                TPixel black = NamedColors<TPixel>.Black;
+
+                var center = new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2);
+
+                var rotation = (Math.PI * rotationInDegree) / 180.0;
+                var cos = Math.Cos(rotation);
+                var sin = Math.Sin(rotation);
+
+                int axisX = (int)((center.X * cos) - (center.Y * sin));
+                int axisY = (int)((center.X * sin) + (center.Y * cos));
+
+
+                EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
+                    new EllipticGradientBrush<TPixel>(
                         center,
                         new SixLabors.Primitives.Point(axisX, axisY),
                         ratio,
                         GradientRepetitionMode.None,
-                        new ColorStop<Rgba32>(0, Rgba32.Yellow),
-                        new ColorStop<Rgba32>(1, Rgba32.Red),
-                        new ColorStop<Rgba32>(1, Rgba32.Black));
+                        new ColorStop<TPixel>(0, yellow),
+                        new ColorStop<TPixel>(1, red),
+                        new ColorStop<TPixel>(1, black));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.Save($"{path}/Ellipsis{ratio}_rot{rotationInDegree}°.png");
+                image.DebugSave(provider, variant);
+                image.CompareToReferenceOutput(provider, variant);
             }
         }
     }

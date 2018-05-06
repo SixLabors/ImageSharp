@@ -110,11 +110,5 @@ namespace SixLabors.ImageSharp.Tests
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
             Assert.IsType(expectedDecoderType, decoder);
         }
-
-        [Fact]
-        public void TemporaryFailingTest()
-        {
-            Assert.True(false);
-        }
     }
 }

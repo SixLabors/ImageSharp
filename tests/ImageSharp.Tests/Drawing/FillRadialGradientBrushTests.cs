@@ -9,80 +9,56 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 {
     public class FillRadialGradientBrushTests : FileTestBase
     {
-        [Fact]
-        public void RadialGradientBrushWithEqualColorsReturnsUnicolorImage()
+        [Theory]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32)]
+        public void RadialGradientBrushWithEqualColorsReturnsUnicolorImage<TPixel>(
+            TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
         {
-            string path = TestEnvironment.CreateOutputDirectory("Fill", "RadialGradientBrush");
-            using (var image = new Image<Rgba32>(200, 200))
+            using (var image = provider.GetImage())
             {
-                RadialGradientBrush<Rgba32> unicolorRadialGradientBrush =
-                    new RadialGradientBrush<Rgba32>(
+                TPixel red = NamedColors<TPixel>.Red;
+
+                RadialGradientBrush<TPixel> unicolorRadialGradientBrush =
+                    new RadialGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(0, 0),
                         100,
                         GradientRepetitionMode.None,
-                        new ColorStop<Rgba32>(0, Rgba32.Red),
-                        new ColorStop<Rgba32>(1, Rgba32.Red));
+                        new ColorStop<TPixel>(0, red),
+                        new ColorStop<TPixel>(1, red));
 
                 image.Mutate(x => x.Fill(unicolorRadialGradientBrush));
-                image.Save($"{path}/UnicolorGradient.png");
+                image.DebugSave(provider);
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(Rgba32.Red, sourcePixels[0, 0]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[9, 9]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[5, 5]);
-                    Assert.Equal(Rgba32.Red, sourcePixels[3, 8]);
-                }
+                image.CompareToReferenceOutput(provider);
             }
         }
 
         [Theory]
-        [InlineData(250, 250)]
-        [InlineData(0, 0)]
-        [InlineData(250, 0)]
-        [InlineData(0, 250)]
-        [InlineData(-100, 250)]
-        public void RadialGradientBrushWithDifferentCentersReturnsImage(
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, 250, 250)]
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 0)]
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, 250, 0)]
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 250)]
+        [WithBlankImages(500, 500, PixelTypes.Rgba32, -100, 250)]
+        public void RadialGradientBrushWithDifferentCentersReturnsImage<TPixel>(
+            TestImageProvider<TPixel> provider,
             int centerX,
             int centerY)
+            where TPixel : struct, IPixel<TPixel>
         {
-            int width = 500;
-
-            string path = TestEnvironment.CreateOutputDirectory("Fill", "RadialGradientBrush");
-            using (var image = new Image<Rgba32>(width, width))
+            using (var image = provider.GetImage())
             {
-                RadialGradientBrush<Rgba32> brush =
-                    new RadialGradientBrush<Rgba32>(
+                RadialGradientBrush<TPixel> brush =
+                    new RadialGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(centerX, centerY),
-                        width / 2f,
+                        image.Width / 2f,
                         GradientRepetitionMode.None,
-                        new ColorStop<Rgba32>(0, Rgba32.Red),
-                        new ColorStop<Rgba32>(1, Rgba32.Yellow));
+                        new ColorStop<TPixel>(0, NamedColors<TPixel>.Red),
+                        new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
 
                 image.Mutate(x => x.Fill(brush));
-                image.Save($"{path}/CenterAt{centerX}_{centerY}.png");
-
-                // using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                // {
-                //     Rgba32 columnColor0 = sourcePixels[0, 0];
-                //     Rgba32 columnColor23 = sourcePixels[23, 0];
-                //     Rgba32 columnColor42 = sourcePixels[42, 0];
-                //     Rgba32 columnColor333 = sourcePixels[333, 0];
-                //
-                //     Rgba32 lastColumnColor = sourcePixels[lastColumnIndex, 0];
-                //
-                //     for (int i = 0; i < width; i++)
-                //     {
-                //         // check first and last column:
-                //         Assert.Equal(columnColor0, sourcePixels[0, i]);
-                //         Assert.Equal(lastColumnColor, sourcePixels[lastColumnIndex, i]);
-                //
-                //         // check the random colors:
-                //         Assert.True(columnColor23 == sourcePixels[23, i], $"at {i}");
-                //         Assert.Equal(columnColor42, sourcePixels[42, i]);
-                //         Assert.Equal(columnColor333, sourcePixels[333, i]);
-                //     }
-                // }
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(provider);
             }
         }
     }

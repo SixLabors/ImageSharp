@@ -63,29 +63,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.DebugSave(provider);
-
-                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
-                {
-                    TPixel columnColor0 = sourcePixels[0, 0];
-                    TPixel columnColor23 = sourcePixels[23, 0];
-                    TPixel columnColor42 = sourcePixels[42, 0];
-                    TPixel columnColor333 = sourcePixels[333, 0];
-
-                    TPixel lastColumnColor = sourcePixels[lastColumnIndex, 0];
-
-                    for (int i = 0; i < image.Height; i++)
-                    {
-                        // check first and last column:
-                        Assert.Equal(columnColor0, sourcePixels[0, i]);
-                        Assert.Equal(lastColumnColor, sourcePixels[lastColumnIndex, i]);
-
-                        // check the random colors:
-                        Assert.True(columnColor23.Equals(sourcePixels[23, i]), $"at {i}");
-                        Assert.Equal(columnColor42, sourcePixels[42, i]);
-                        Assert.Equal(columnColor333, sourcePixels[333, i]);
-                    }
-                }
-
                 image.CompareToReferenceOutput(provider);
             }
         }
@@ -102,8 +79,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (var image = provider.GetImage())
             {
-                int lastColumnIndex = image.Width - 1;
-
                 TPixel red = NamedColors<TPixel>.Red;
                 TPixel yellow = NamedColors<TPixel>.Yellow;
 
@@ -302,7 +277,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 499, 499, 0, new[] { 0f, 0.2f, 0.5f, 0.9f }, new[] { 0, 1, 2, 3 })]
         [WithBlankImages(500, 500, PixelTypes.Rgba32, 499, 499, 0, 0, new[] { 0f, 0.7f, 0.8f, 0.9f}, new[] { 0, 1, 2, 0 })]
         [WithBlankImages(500, 500, PixelTypes.Rgba32, 0, 0, 499, 499, new[] { 0f, .5f, 1f}, new[]{0, 1, 3})]
-        // TODO: add some more tests with arbitrary gradient orders!
         public void ArbitraryGradients<TPixel>(
             TestImageProvider<TPixel> provider,
             int startX, int startY,

@@ -65,7 +65,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             }
 
             string args = $@"""{sourceFile}"" ""{destFile}""";
-            var process = Process.Start(DumpToolFullPath, args);
+            var process = new Process
+                              {
+                                  StartInfo =
+                                      {
+                                          FileName = DumpToolFullPath,
+                                          Arguments = args,
+                                          WindowStyle = ProcessWindowStyle.Hidden
+                                      }
+                              };
+            process.Start();
             process.WaitForExit();
         }
 

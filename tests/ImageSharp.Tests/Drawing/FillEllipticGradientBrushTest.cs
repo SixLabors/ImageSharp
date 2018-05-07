@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
                     new EllipticGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2),
-                        new SixLabors.Primitives.Point(image.Width / 2, (image.Width * 3) / 2),
+                        new SixLabors.Primitives.Point(image.Width / 2, (image.Width * 2) / 3),
                         ratio,
                         GradientRepetitionMode.None,
                         new ColorStop<TPixel>(0, yellow),
@@ -124,9 +124,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 var cos = Math.Cos(rotation);
                 var sin = Math.Sin(rotation);
 
-                int axisX = (int)((center.X * cos) - (center.Y * sin));
-                int axisY = (int)((center.X * sin) + (center.Y * cos));
-
+                int offsetY = image.Height / 6;
+                int axisX = center.X + (int)-(offsetY * sin);
+                int axisY = center.Y + (int)(offsetY * cos);
 
                 EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
                     new EllipticGradientBrush<TPixel>(

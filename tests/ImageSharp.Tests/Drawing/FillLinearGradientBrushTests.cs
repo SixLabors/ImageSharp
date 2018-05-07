@@ -16,7 +16,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
     [GroupOutput("Drawing/GradientBrushes")]
-    public class FillLinearGradientBrushTests : FileTestBase
+    public class FillLinearGradientBrushTests
     {
         [Theory]
         [WithBlankImages(10, 10, PixelTypes.Rgba32)]
@@ -117,29 +117,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                 image.DebugSave(provider, repetitionMode);
-
-                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
-                {
-                    TPixel columnColor0 = sourcePixels[0, 0];
-                    TPixel columnColor23 = sourcePixels[23, 0];
-                    TPixel columnColor42 = sourcePixels[42, 0];
-                    TPixel columnColor333 = sourcePixels[333, 0];
-
-                    TPixel lastColumnColor = sourcePixels[lastColumnIndex, 0];
-
-                    for (int i = 0; i < image.Height; i++)
-                    {
-                        // check first and last column:
-                        Assert.Equal(columnColor0, sourcePixels[0, i]);
-                        Assert.Equal(lastColumnColor, sourcePixels[lastColumnIndex, i]);
-
-                        // check the random colors:
-                        Assert.True(columnColor23.Equals(sourcePixels[23, i]), $"at {i}");
-                        Assert.Equal(columnColor42, sourcePixels[42, i]);
-                        Assert.Equal(columnColor333, sourcePixels[333, i]);
-                    }
-                }
-
                 image.CompareToReferenceOutput(provider, repetitionMode);
             }
         }

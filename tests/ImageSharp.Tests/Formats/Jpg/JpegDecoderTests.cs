@@ -22,7 +22,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
-    public class JpegDecoderTests
+    public partial class JpegDecoderTests
     {
         public static string[] BaselineTestJpegs =
         {
@@ -115,9 +115,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        private static IImageDecoder OrigJpegDecoder => new OrigJpegDecoder();
+        private static OrigJpegDecoder OrigJpegDecoder => new OrigJpegDecoder();
 
-        private static IImageDecoder PdfJsJpegDecoder => new PdfJsJpegDecoder();
+        private static PdfJsJpegDecoder PdfJsJpegDecoder => new PdfJsJpegDecoder();
 
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
-            IImageDecoder decoder = useOldDecoder ? OrigJpegDecoder : PdfJsJpegDecoder;
+            IImageDecoder decoder = useOldDecoder ? (IImageDecoder)OrigJpegDecoder : PdfJsJpegDecoder;
             using (Image<TPixel> image = provider.GetImage(decoder))
             {
                 image.DebugSave(provider);
@@ -406,39 +406,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(72, image.MetaData.VerticalResolution);
             }
         }
-
-        [Fact]
-        public void Decode_IgnoreMetadataIsFalse_ExifProfileIsRead()
-        {
-            var decoder = new JpegDecoder()
-            {
-                IgnoreMetadata = false
-            };
-
-            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
-
-            using (Image<Rgba32> image = testFile.CreateImage(decoder))
-            {
-                Assert.NotNull(image.MetaData.ExifProfile);
-            }
-        }
-
-        [Fact]
-        public void Decode_IgnoreMetadataIsTrue_ExifProfileIgnored()
-        {
-            var options = new JpegDecoder()
-            {
-                IgnoreMetadata = true
-            };
-
-            var testFile = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan);
-
-            using (Image<Rgba32> image = testFile.CreateImage(options))
-            {
-                Assert.Null(image.MetaData.ExifProfile);
-            }
-        }
-
+        
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
@@ -468,38 +436,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 this.Output.WriteLine($"Difference for PDF.js ORIGINAL: {originalReport.DifferencePercentageString}");
                 this.Output.WriteLine($"Difference for PORT: {portReport.DifferencePercentageString}");
-            }
-        }
-
-        [Theory]
-        [InlineData(TestImages.Jpeg.Progressive.Progress, 24)]
-        [InlineData(TestImages.Jpeg.Progressive.Fb, 24)]
-        [InlineData(TestImages.Jpeg.Baseline.Cmyk, 32)]
-        [InlineData(TestImages.Jpeg.Baseline.Ycck, 32)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg400, 8)]
-        [InlineData(TestImages.Jpeg.Baseline.Snake, 24)]
-        public void DetectPixelSizeGolang(string imagePath, int expectedPixelSize)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                Assert.Equal(expectedPixelSize, ((IImageInfoDetector)OrigJpegDecoder).Identify(Configuration.Default, stream)?.PixelType?.BitsPerPixel);
-            }
-        }
-
-        [Theory]
-        [InlineData(TestImages.Jpeg.Progressive.Progress, 24)]
-        [InlineData(TestImages.Jpeg.Progressive.Fb, 24)]
-        [InlineData(TestImages.Jpeg.Baseline.Cmyk, 32)]
-        [InlineData(TestImages.Jpeg.Baseline.Ycck, 32)]
-        [InlineData(TestImages.Jpeg.Baseline.Jpeg400, 8)]
-        [InlineData(TestImages.Jpeg.Baseline.Snake, 24)]
-        public void DetectPixelSizePdfJs(string imagePath, int expectedPixelSize)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                Assert.Equal(expectedPixelSize, ((IImageInfoDetector)PdfJsJpegDecoder).Identify(Configuration.Default, stream)?.PixelType?.BitsPerPixel);
             }
         }
     }

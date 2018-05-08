@@ -27,12 +27,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the huffman value array
         /// </summary>
-        public FixedByteBuffer256 HuffVal;
+        public FixedByteBuffer256 Values;
 
         /// <summary>
         /// Gets the lookahead array
         /// </summary>
         public FixedInt16Buffer256 Lookahead;
+
+        /// <summary>
+        /// Gets the sizes array
+        /// </summary>
+        public FixedInt16Buffer257 Sizes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
@@ -42,20 +47,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="values">The huffman values</param>
         public PdfJsHuffmanTable(MemoryManager memoryManager, ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> values)
         {
-            const int length = 257;
-            using (IBuffer<short> huffsize = memoryManager.Allocate<short>(length))
-            using (IBuffer<short> huffcode = memoryManager.Allocate<short>(length))
+            const int Length = 257;
+            using (IBuffer<short> huffcode = memoryManager.Allocate<short>(Length))
             {
-                ref short huffsizeRef = ref MemoryMarshal.GetReference(huffsize.Span);
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.Span);
 
-                GenerateSizeTable(lengths, ref huffsizeRef);
-                GenerateCodeTable(ref huffsizeRef, ref huffcodeRef, length);
+                this.GenerateSizeTable(lengths);
+                this.GenerateCodeTable(ref huffcodeRef, Length);
                 this.GenerateDecoderTables(lengths, ref huffcodeRef);
                 this.GenerateLookaheadTables(lengths, values, ref huffcodeRef);
             }
 
-            fixed (byte* huffValRef = this.HuffVal.Data)
+            fixed (byte* huffValRef = this.Values.Data)
             {
                 var huffValSpan = new Span<byte>(huffValRef, 256);
 
@@ -67,45 +70,49 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// Figure C.1: make table of Huffman code length for each symbol
         /// </summary>
         /// <param name="lengths">The code lengths</param>
-        /// <param name="huffsizeRef">The huffman size span ref</param>
-        private static void GenerateSizeTable(ReadOnlySpan<byte> lengths, ref short huffsizeRef)
+        private void GenerateSizeTable(ReadOnlySpan<byte> lengths)
         {
-            short index = 0;
-            for (short l = 1; l <= 16; l++)
+            fixed (short* sizesRef = this.Sizes.Data)
             {
-                byte i = lengths[l];
-                for (short j = 0; j < i; j++)
+                short index = 0;
+                for (short l = 1; l <= 16; l++)
                 {
-                    Unsafe.Add(ref huffsizeRef, index) = l;
-                    index++;
+                    byte i = lengths[l];
+                    for (short j = 0; j < i; j++)
+                    {
+                        sizesRef[index] = l;
+                        index++;
+                    }
                 }
-            }
 
-            Unsafe.Add(ref huffsizeRef, index) = 0;
+                sizesRef[index] = 0;
+            }
         }
 
         /// <summary>
         /// Figure C.2: generate the codes themselves
         /// </summary>
-        /// <param name="huffsizeRef">The huffman size span ref</param>
         /// <param name="huffcodeRef">The huffman code span ref</param>
         /// <param name="length">The length of the huffsize span</param>
-        private static void GenerateCodeTable(ref short huffsizeRef, ref short huffcodeRef, int length)
+        private void GenerateCodeTable(ref short huffcodeRef, int length)
         {
-            short k = 0;
-            short si = huffsizeRef;
-            short code = 0;
-            for (short i = 0; i < length; i++)
+            fixed (short* sizesRef = this.Sizes.Data)
             {
-                while (Unsafe.Add(ref huffsizeRef, k) == si)
+                short k = 0;
+                short si = sizesRef[0];
+                short code = 0;
+                for (short i = 0; i < length; i++)
                 {
-                    Unsafe.Add(ref huffcodeRef, k) = code;
-                    code++;
-                    k++;
-                }
+                    while (sizesRef[k] == si)
+                    {
+                        Unsafe.Add(ref huffcodeRef, k) = code;
+                        code++;
+                        k++;
+                    }
 
-                code <<= 1;
-                si++;
+                    code <<= 1;
+                    si++;
+                }
             }
         }
 
@@ -148,6 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="huffcodeRef">The huffman code span ref</param>
         private void GenerateLookaheadTables(ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> huffval, ref short huffcodeRef)
         {
+            // TODO: Rewrite this to match stb_Image
             // TODO: This generation code matches the libJpeg code but the lookahead table is not actually used yet.
             // To use it we need to implement fast lookup path in PdfJsScanDecoder.DecodeHuffman
             // This should yield much faster scan decoding as usually, more than 95% of the Huffman codes

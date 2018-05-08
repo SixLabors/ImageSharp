@@ -36,9 +36,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public byte Id { get; }
 
         /// <summary>
-        /// Gets or sets Pred TODO: What does pred stand for?
+        /// Gets or sets DC coefficient predictor
         /// </summary>
-        public int Pred { get; set; }
+        public int DcPredictor { get; set; }
 
         /// <summary>
         /// Gets the horizontal sampling factor.

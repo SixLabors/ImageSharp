@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 for (int i = 0; i < components.Length; i++)
                 {
                     PdfJsFrameComponent c = components[i];
-                    c.Pred = 0;
+                    c.DcPredictor = 0;
                 }
 
                 this.eobrun = 0;
@@ -552,7 +552,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             int j = tree.ValOffset[i];
-            value = tree.HuffVal[(j + code) & 0xFF];
+            value = tree.Values[(j + code) & 0xFF];
             return true;
         }
 
@@ -618,7 +618,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
 
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.DcPredictor += diff);
 
             int k = 1;
             while (k < 64)
@@ -673,7 +673,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
 
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff << this.successiveState);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.DcPredictor += diff << this.successiveState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -859,6 +859,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     this.successiveACState = 0;
                 }
             }
+        }
+
+        private void Reset()
+        {
+            // Reset
+            // TODO: I do not understand why these values are reset? We should surely be tracking the bits across mcu's?
+            this.bitsCount = 0;
+            this.bitsData = 0;
+            this.unexpectedMarkerReached = false;
         }
     }
 }

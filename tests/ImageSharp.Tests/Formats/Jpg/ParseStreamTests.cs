@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var expecteColorSpace = (JpegColorSpace)expectedColorSpaceValue;
 
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
+            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
             {
                 Assert.Equal(expecteColorSpace, decoder.ColorSpace);
             }
@@ -42,11 +42,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void ComponentScalingIsCorrect_1ChannelJpeg()
         {
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Baseline.Jpeg400, true))
+            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Baseline.Jpeg400, false))
             {
                 Assert.Equal(1, decoder.ComponentCount);
                 Assert.Equal(1, decoder.Components.Length);
-                
+
                 Size expectedSizeInBlocks = decoder.ImageSizeInPixels.DivideRoundUp(8);
 
                 Assert.Equal(expectedSizeInBlocks, decoder.ImageSizeInMCU);
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var sb = new StringBuilder();
 
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
+            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
             {
                 sb.AppendLine(imageFile);
                 sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
@@ -103,23 +103,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Size fLuma = (Size)expectedLumaFactors;
             Size fChroma = (Size)expectedChromaFactors;
 
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, true))
+            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
             {
                 Assert.Equal(componentCount, decoder.ComponentCount);
                 Assert.Equal(componentCount, decoder.Components.Length);
-                
+
                 OrigComponent c0 = decoder.Components[0];
                 OrigComponent c1 = decoder.Components[1];
                 OrigComponent c2 = decoder.Components[2];
 
                 var uniform1 = new Size(1, 1);
 
-                Size expectedLumaSizeInBlocks = decoder.ImageSizeInMCU.MultiplyBy(fLuma) ;
+                Size expectedLumaSizeInBlocks = decoder.ImageSizeInMCU.MultiplyBy(fLuma);
 
                 Size divisor = fLuma.DivideBy(fChroma);
 
                 Size expectedChromaSizeInBlocks = expectedLumaSizeInBlocks.DivideRoundUp(divisor);
-                
+
                 VerifyJpeg.VerifyComponent(c0, expectedLumaSizeInBlocks, fLuma, uniform1);
                 VerifyJpeg.VerifyComponent(c1, expectedChromaSizeInBlocks, fChroma, divisor);
                 VerifyJpeg.VerifyComponent(c2, expectedChromaSizeInBlocks, fChroma, divisor);

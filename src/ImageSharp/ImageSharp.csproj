@@ -43,7 +43,6 @@
     <PackageReference Include="System.Buffers" Version="4.4.0" />
     <PackageReference Include="System.Memory" Version="4.5.0-rc1" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0-rc1" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-rc1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' OR '$(TargetFramework)' == 'netstandard1.3'">
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />

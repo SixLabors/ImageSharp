@@ -58,6 +58,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private PdfJsHuffmanTables acHuffmanTables;
 
         /// <summary>
+        /// The fast AC tables used for entropy decoding
+        /// </summary>
+        private FastACTables fastACTables;
+
+        /// <summary>
         /// The reset interval determined by RST markers
         /// </summary>
         private ushort resetInterval;
@@ -228,6 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 this.QuantizationTables = new Block8x8F[4];
                 this.dcHuffmanTables = new PdfJsHuffmanTables();
                 this.acHuffmanTables = new PdfJsHuffmanTables();
+                this.fastACTables = new FastACTables(this.configuration.MemoryManager);
             }
 
             while (fileMarker.Marker != PdfJsJpegConstants.Markers.EOI)
@@ -341,12 +347,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             this.InputStream?.Dispose();
             this.Frame?.Dispose();
+            this.fastACTables?.Dispose();
 
             // Set large fields to null.
             this.InputStream = null;
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
+            this.fastACTables = null;
         }
 
         /// <summary>
@@ -714,11 +722,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
                             i += 17 + codeLengthSum;
 
+                            int tableType = huffmanTableSpec >> 4;
+                            int tableIndex = huffmanTableSpec & 15;
+
                             this.BuildHuffmanTable(
-                                huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
-                                huffmanTableSpec & 15,
+                                tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                                tableIndex,
                                 codeLengths.Span,
                                 huffmanValues.Span);
+
+                            if (tableType != 0)
+                            {
+                                // Build a table that decodes both magnitude and value of small ACs in one go.
+                                this.BuildFastACTable(tableIndex);
+                            }
                         }
                     }
                 }
@@ -827,6 +844,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);
                 return image;
+            }
+        }
+
+        private void BuildFastACTable(int index)
+        {
+            const int FastBits = ScanDecoder.FastBits;
+            Span<short> fastac = this.fastACTables.Tables.GetRowSpan(index);
+            ref PdfJsHuffmanTable huffman = ref this.acHuffmanTables[index];
+
+            int i;
+            for (i = 0; i < (1 << FastBits); i++)
+            {
+                short fast = huffman.Lookahead[i];
+                fastac[i] = 0;
+                if (fast < 255)
+                {
+                    int rs = huffman.Values[fast];
+                    int run = (rs >> 4) & 15;
+                    int magbits = rs & 15;
+                    int len = huffman.Sizes[fast];
+
+                    if (magbits > 0 && len + magbits <= FastBits)
+                    {
+                        // Magnitude code followed by receive_extend code
+                        int k = ((i << len) & ((1 << FastBits) - 1)) >> (FastBits - magbits);
+                        int m = 1 << (magbits - 1);
+                        if (k < m)
+                        {
+                            k += (int)((~0U << magbits) + 1);
+                        }
+
+                        // if the result is small enough, we can fit it in fastac table
+                        if (k >= -128 && k <= 127)
+                        {
+                            fastac[i] = (short)((k * 256) + (run * 16) + (len + magbits));
+                        }
+                    }
+                }
             }
         }
     }

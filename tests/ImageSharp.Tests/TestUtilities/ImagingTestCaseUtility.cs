@@ -111,7 +111,11 @@ namespace SixLabors.ImageSharp.Tests
         {
             string detailsString = null;
 
-            if (testOutputDetails is string s)
+            if (testOutputDetails is FormattableString fs)
+            {
+                detailsString = fs.AsInvariantString();
+            }
+            else if (testOutputDetails is string s)
             {
                 detailsString = s;
             }

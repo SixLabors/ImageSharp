@@ -22,98 +22,98 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// <summary>
             /// The Start of Image marker
             /// </summary>
-            public const ushort SOI = 0xFFD8;
+            public const byte SOI = 0xD8;
 
             /// <summary>
             /// The End of Image marker
             /// </summary>
-            public const ushort EOI = 0xFFD9;
+            public const byte EOI = 0xD9;
 
             /// <summary>
             /// Application specific marker for marking the jpeg format.
             /// <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html"/>
             /// </summary>
-            public const ushort APP0 = 0xFFE0;
+            public const byte APP0 = 0xE0;
 
             /// <summary>
             /// Application specific marker for marking where to store metadata.
             /// </summary>
-            public const ushort APP1 = 0xFFE1;
+            public const byte APP1 = 0xE1;
 
             /// <summary>
             /// Application specific marker for marking where to store ICC profile information.
             /// </summary>
-            public const ushort APP2 = 0xFFE2;
+            public const byte APP2 = 0xE2;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP3 = 0xFFE3;
+            public const byte APP3 = 0xE3;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP4 = 0xFFE4;
+            public const byte APP4 = 0xE4;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP5 = 0xFFE5;
+            public const byte APP5 = 0xE5;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP6 = 0xFFE6;
+            public const byte APP6 = 0xE6;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP7 = 0xFFE7;
+            public const byte APP7 = 0xE7;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP8 = 0xFFE8;
+            public const byte APP8 = 0xE8;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP9 = 0xFFE9;
+            public const byte APP9 = 0xE9;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP10 = 0xFFEA;
+            public const byte APP10 = 0xEA;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP11 = 0xFFEB;
+            public const byte APP11 = 0xEB;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP12 = 0xFFEC;
+            public const byte APP12 = 0xEC;
 
             /// <summary>
             /// Application specific marker.
             /// </summary>
-            public const ushort APP13 = 0xFFED;
+            public const byte APP13 = 0xED;
 
             /// <summary>
             /// Application specific marker used by Adobe for storing encoding information for DCT filters.
             /// </summary>
-            public const ushort APP14 = 0xFFEE;
+            public const byte APP14 = 0xEE;
 
             /// <summary>
             /// Application specific marker used by GraphicConverter to store JPEG quality.
             /// </summary>
-            public const ushort APP15 = 0xFFEF;
+            public const byte APP15 = 0xEF;
 
             /// <summary>
             /// The text comment marker
             /// </summary>
-            public const ushort COM = 0xFFFE;
+            public const byte COM = 0xFE;
 
             /// <summary>
             /// Define Quantization Table(s) marker
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// Specifies one or more quantization tables.
             /// </remarks>
             /// </summary>
-            public const ushort DQT = 0xFFDB;
+            public const byte DQT = 0xDB;
 
             /// <summary>
             /// Start of Frame (baseline DCT)
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
-            public const ushort SOF0 = 0xFFC0;
+            public const byte SOF0 = 0xC0;
 
             /// <summary>
             /// Start Of Frame (Extended Sequential DCT)
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
-            public const ushort SOF1 = 0xFFC1;
+            public const byte SOF1 = 0xC1;
 
             /// <summary>
             /// Start Of Frame (progressive DCT)
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// and component subsampling (e.g., 4:2:0).
             /// </remarks>
             /// </summary>
-            public const ushort SOF2 = 0xFFC2;
+            public const byte SOF2 = 0xC2;
 
             /// <summary>
             /// Define Huffman Table(s)
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// Specifies one or more Huffman tables.
             /// </remarks>
             /// </summary>
-            public const ushort DHT = 0xFFC4;
+            public const byte DHT = 0xC4;
 
             /// <summary>
             /// Define Restart Interval
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// Specifies the interval between RSTn markers, in macroblocks.This marker is followed by two bytes indicating the fixed size so it can be treated like any other variable size segment.
             /// </remarks>
             /// </summary>
-            public const ushort DRI = 0xFFDD;
+            public const byte DRI = 0xDD;
 
             /// <summary>
             /// Start of Scan
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// will contain, and is immediately followed by entropy-coded data.
             /// </remarks>
             /// </summary>
-            public const ushort SOS = 0xFFDA;
+            public const byte SOS = 0xDA;
 
             /// <summary>
             /// Define First Restart
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
             /// </remarks>
             /// </summary>
-            public const ushort RST0 = 0xFFD0;
+            public const byte RST0 = 0xD0;
 
             /// <summary>
             /// Define Eigth Restart
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// Not used if there was no DRI marker. The low three bits of the marker code cycle in value from 0 to 7.
             /// </remarks>
             /// </summary>
-            public const ushort RST7 = 0xFFD7;
+            public const byte RST7 = 0xD7;
 
             /// <summary>
             /// Contains Adobe specific markers

@@ -853,7 +853,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-            byte[] pal = this.palette;
+            Span<byte> pal = this.palette;
             var color = default(TPixel);
 
             var rgba = default(Rgba32);
@@ -868,7 +868,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     int pixelOffset = index * 3;
 
                     rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
-                    rgba.Rgb = pal.GetRgb24(pixelOffset);
+                    rgba.Rgb = pal.Slice(pixelOffset).AsRgb24();
 
                     color.PackFromRgba32(rgba);
                     row[x] = color;
@@ -883,7 +883,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     int index = newScanline[x];
                     int pixelOffset = index * 3;
 
-                    rgba.Rgb = pal.GetRgb24(pixelOffset);
+                    rgba.Rgb = pal.Slice(pixelOffset).AsRgb24();
 
                     color.PackFromRgba32(rgba);
                     row[x] = color;
@@ -946,9 +946,11 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
                     var rgba = default(Rgba32);
+                    Span<byte> pal = this.palette;
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
+
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
@@ -957,7 +959,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             int offset = index * 3;
 
                             rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : (byte)255;
-                            rgba.Rgb = this.palette.GetRgb24(offset);
+                            rgba.Rgb = pal.Slice(offset).AsRgb24();
 
                             color.PackFromRgba32(rgba);
                             rowSpan[x] = color;
@@ -972,7 +974,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             int index = newScanline[o];
                             int offset = index * 3;
 
-                            rgba.Rgb = this.palette.GetRgb24(offset);
+                            rgba.Rgb = pal.Slice(offset).AsRgb24();
 
                             color.PackFromRgba32(rgba);
                             rowSpan[x] = color;

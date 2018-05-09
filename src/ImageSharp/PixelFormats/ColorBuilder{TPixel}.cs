@@ -76,7 +76,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </returns>
         private static string ToRgbaHex(string hex)
         {
-            hex = hex.StartsWith("#") ? hex.Substring(1) : hex;
+            if (hex[0] == '#')
+            {
+                hex = hex.Substring(1);
+            }
 
             if (hex.Length == 8)
             {

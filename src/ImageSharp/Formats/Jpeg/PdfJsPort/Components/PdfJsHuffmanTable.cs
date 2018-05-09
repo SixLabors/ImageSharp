@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the lookahead array
         /// </summary>
-        public FixedInt16Buffer256 Lookahead;
+        public FixedByteBuffer512 Lookahead;
 
         /// <summary>
         /// Gets the sizes array
@@ -43,19 +43,76 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
-        /// <param name="lengths">The code lengths</param>
+        /// <param name="count">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(MemoryManager memoryManager, ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> values)
+        public PdfJsHuffmanTable(MemoryManager memoryManager, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
         {
             const int Length = 257;
             using (IBuffer<short> huffcode = memoryManager.Allocate<short>(Length))
             {
+                // Span<short> codes = huffcode.Span;
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.Span);
 
-                this.GenerateSizeTable(lengths);
-                this.GenerateCodeTable(ref huffcodeRef, Length);
-                this.GenerateDecoderTables(lengths, ref huffcodeRef);
-                this.GenerateLookaheadTables(lengths, values, ref huffcodeRef);
+                this.GenerateSizeTable(count);
+
+                //int k = 0;
+                //fixed (short* sizesRef = this.Sizes.Data)
+                //fixed (short* deltaRef = this.ValOffset.Data)
+                //fixed (long* maxcodeRef = this.MaxCode.Data)
+                //{
+                //    uint code = 0;
+                //    int j;
+                //    for (j = 1; j <= 16; j++)
+                //    {
+                //        // Compute delta to add to code to compute symbol id.
+                //        deltaRef[j] = (short)(k - code);
+                //        if (sizesRef[k] == j)
+                //        {
+                //            while (sizesRef[k] == j)
+                //            {
+                //                codes[k++] = (short)code++;
+
+                //                // Unsafe.Add(ref huffcodeRef, k++) = (short)code++;
+
+                //                // TODO: Throw if invalid?
+                //            }
+                //        }
+
+                //        // Compute largest code + 1 for this size. preshifted as neeed later.
+                //        maxcodeRef[j] = code << (16 - j);
+                //        code <<= 1;
+                //    }
+
+                //    maxcodeRef[j] = 0xFFFFFFFF;
+                //}
+
+                //fixed (short* lookaheadRef = this.Lookahead.Data)
+                //{
+                //    const int FastBits = ScanDecoder.FastBits;
+                //    var fast = new Span<short>(lookaheadRef, 1 << FastBits);
+                //    fast.Fill(255); // Flag for non-accelerated
+
+                //    fixed (short* sizesRef = this.Sizes.Data)
+                //    {
+                //        for (int i = 0; i < k; i++)
+                //        {
+                //            int s = sizesRef[i];
+                //            if (s <= ScanDecoder.FastBits)
+                //            {
+                //                int c = codes[i] << (FastBits - s);
+                //                int m = 1 << (FastBits - s);
+                //                for (int j = 0; j < m; j++)
+                //                {
+                //                    fast[c + j] = (byte)i;
+                //                }
+                //            }
+                //        }
+                //    }
+                //}
+
+                this.GenerateCodeTable(ref huffcodeRef, Length, out int k);
+                this.GenerateDecoderTables(count, ref huffcodeRef);
+                this.GenerateLookaheadTables(count, values, ref huffcodeRef, k);
             }
 
             fixed (byte* huffValRef = this.Values.Data)
@@ -74,18 +131,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             fixed (short* sizesRef = this.Sizes.Data)
             {
-                short index = 0;
-                for (short l = 1; l <= 16; l++)
+                short k = 0;
+                for (short i = 1; i < 17; i++)
                 {
-                    byte i = lengths[l];
-                    for (short j = 0; j < i; j++)
+                    byte l = lengths[i];
+                    for (short j = 0; j < l; j++)
                     {
-                        sizesRef[index] = l;
-                        index++;
+                        sizesRef[k] = i;
+                        k++;
                     }
                 }
 
-                sizesRef[index] = 0;
+                sizesRef[k] = 0;
             }
         }
 
@@ -94,11 +151,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="huffcodeRef">The huffman code span ref</param>
         /// <param name="length">The length of the huffsize span</param>
-        private void GenerateCodeTable(ref short huffcodeRef, int length)
+        /// <param name="k">The length of any valid codes</param>
+        private void GenerateCodeTable(ref short huffcodeRef, int length, out int k)
         {
             fixed (short* sizesRef = this.Sizes.Data)
             {
-                short k = 0;
+                k = 0;
                 short si = sizesRef[0];
                 short code = 0;
                 for (short i = 0; i < length; i++)
@@ -134,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         // valOffsetRef[l] = huffcodeRef[] index of 1st symbol of code length i, minus the minimum code of length i
                         valOffsetRef[i] = (short)(bitcount - Unsafe.Add(ref huffcodeRef, bitcount));
                         bitcount += lengths[i];
-                        maxcodeRef[i] = Unsafe.Add(ref huffcodeRef, bitcount - 1); // maximum code of length i
+                        maxcodeRef[i] = Unsafe.Add(ref huffcodeRef, bitcount - 1) << (16 - i); // maximum code of length i preshifted for faster reading later
                     }
                     else
                     {
@@ -143,41 +201,43 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
 
                 valOffsetRef[17] = 0;
-                maxcodeRef[17] = 0xFFFFFL;
+                maxcodeRef[17] = 0xFFFFFFFFL;
             }
         }
 
         /// <summary>
-        /// Generates lookup tables to speed up decoding
+        /// Generates non-spec lookup tables to speed up decoding
         /// </summary>
         /// <param name="lengths">The code lengths</param>
         /// <param name="huffval">The huffman value array</param>
         /// <param name="huffcodeRef">The huffman code span ref</param>
-        private void GenerateLookaheadTables(ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> huffval, ref short huffcodeRef)
+        /// <param name="k">The lengths of any valid codes</param>
+        private void GenerateLookaheadTables(ReadOnlySpan<byte> lengths, ReadOnlySpan<byte> huffval, ref short huffcodeRef, int k)
         {
             // TODO: Rewrite this to match stb_Image
             // TODO: This generation code matches the libJpeg code but the lookahead table is not actually used yet.
             // To use it we need to implement fast lookup path in PdfJsScanDecoder.DecodeHuffman
             // This should yield much faster scan decoding as usually, more than 95% of the Huffman codes
             // will be 8 or fewer bits long and can be handled without looping.
-            fixed (short* lookaheadRef = this.Lookahead.Data)
+            fixed (byte* lookaheadRef = this.Lookahead.Data)
             {
-                var lookaheadSpan = new Span<short>(lookaheadRef, 256);
+                const int FastBits = ScanDecoder.FastBits;
+                var lookaheadSpan = new Span<short>(lookaheadRef, 1 << ScanDecoder.FastBits);
 
-                lookaheadSpan.Fill(2034); // 9 << 8;
-
-                int p = 0;
-                for (int l = 1; l <= 8; l++)
+                lookaheadSpan.Fill(255); // Flag for non-accelerated
+                fixed (short* sizesRef = this.Sizes.Data)
                 {
-                    for (int i = 1; i <= lengths[l]; i++, p++)
+                    for (int i = 0; i < k; ++i)
                     {
-                        // l = current code's length, p = its index in huffcode[] & huffval[].
-                        // Generate left-justified code followed by all possible bit sequences
-                        int lookBits = Unsafe.Add(ref huffcodeRef, p) << (8 - l);
-                        for (int ctr = 1 << (8 - l); ctr > 0; ctr--)
+                        int s = sizesRef[i];
+                        if (s <= ScanDecoder.FastBits)
                         {
-                            lookaheadRef[lookBits] = (short)((l << 8) | huffval[p]);
-                            lookBits++;
+                            int c = Unsafe.Add(ref huffcodeRef, i) << (FastBits - s);
+                            int m = 1 << (FastBits - s);
+                            for (int j = 0; j < m; ++j)
+                            {
+                                lookaheadRef[c + j] = (byte)i;
+                            }
                         }
                     }
                 }

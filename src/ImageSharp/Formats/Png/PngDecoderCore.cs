@@ -948,7 +948,6 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
                     {
-
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)

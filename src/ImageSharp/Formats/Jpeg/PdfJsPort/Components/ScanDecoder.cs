@@ -15,10 +15,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public const int FastBits = 9;
 
         // bmask[n] = (1 << n) - 1
-        private static readonly uint[] stbi__bmask = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
+        private static readonly uint[] Bmask = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
 
         // bias[n] = (-1 << n) + 1
-        private static readonly int[] stbi__jbias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
+        private static readonly int[] Bias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
 
         private readonly DoubleBufferedStreamReader stream;
         private readonly PdfJsFrameComponent[] components;
@@ -141,8 +141,61 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 else
                 {
                     // Interleaved
-                    int i, j, k, x, y;
+                    int mcu = 0;
+                    int mcusPerColumn = frame.McusPerColumn;
+                    int mcusPerLine = frame.McusPerLine;
+                    for (int j = 0; j < mcusPerColumn; j++)
+                    {
+                        for (int i = 0; i < mcusPerLine; i++)
+                        {
+                            // Scan an interleaved mcu... process components in order
+                            for (int k = 0; k < this.componentsLength; k++)
+                            {
+                                PdfJsFrameComponent component = this.components[k];
+                                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                                Span<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                                int h = component.HorizontalSamplingFactor;
+                                int v = component.VerticalSamplingFactor;
 
+                                // Scan out an mcu's worth of this component; that's just determined
+                                // by the basic H and V specified for the component
+                                for (int y = 0; y < v; y++)
+                                {
+                                    for (int x = 0; x < h; x++)
+                                    {
+                                        int mcuRow = mcu / mcusPerLine;
+                                        int mcuCol = mcu % mcusPerLine;
+                                        int blockRow = (mcuRow * v) + y;
+                                        int blockCol = (mcuCol * h) + x;
+                                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                                    }
+                                }
+                            }
+
+                            // After all interleaved components, that's an interleaved MCU,
+                            // so now count down the restart interval
+                            mcu++;
+                            if (this.todo-- <= 0)
+                            {
+                                if (this.codeBits < 24)
+                                {
+                                    this.GrowBufferUnsafe();
+                                }
+
+                                // If it's NOT a restart, then just bail, so we get corrupt data
+                                // rather than no data
+                                if (!this.IsRestartMarker(this.marker))
+                                {
+                                    return 1;
+                                }
+
+                                this.Reset();
+                            }
+                        }
+                    }
                 }
             }
 
@@ -156,11 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             ref PdfJsHuffmanTable acTable,
             Span<short> fac)
         {
-            if (this.codeBits < 16)
-            {
-                this.GrowBufferUnsafe();
-            }
-
+            this.CheckBits();
             int t = this.DecodeHuffman(ref dcTable);
 
             if (t < 0)
@@ -477,8 +526,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             uint k = this.Lrot(this.codeBuffer, n);
-            this.codeBuffer = k & ~stbi__bmask[n];
-            k &= stbi__bmask[n];
+            this.codeBuffer = k & ~Bmask[n];
+            k &= Bmask[n];
             this.codeBits -= n;
             return (int)k;
         }
@@ -503,7 +552,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             do
             {
                 // TODO: EOF
-                uint b = (uint)(this.nomore ? 0 : this.stream.ReadByte());
+                int b = this.nomore ? 0 : this.stream.ReadByte();
                 if (b == PdfJsJpegConstants.Markers.Prefix)
                 {
                     long position = this.stream.Position - 1;
@@ -514,13 +563,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             this.marker = (byte)c;
                             this.nomore = true;
-                            this.stream.Position = position;
+                            if (!this.IsRestartMarker(this.marker))
+                            {
+                                this.stream.Position = position;
+                            }
+
                             return;
                         }
                     }
                 }
 
-                this.codeBuffer |= b << (24 - this.codeBits);
+                this.codeBuffer |= (uint)b << (24 - this.codeBits);
                 this.codeBits += 8;
             }
             while (this.codeBits <= 24);
@@ -575,7 +628,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             // Convert the huffman code to the symbol id
-            c = (int)((this.codeBuffer >> (32 - k)) & stbi__bmask[k]) + table.ValOffset[k];
+            c = (int)((this.codeBuffer >> (32 - k)) & Bmask[k]) + table.ValOffset[k];
 
             // Convert the id to a symbol
             this.codeBits -= k;
@@ -593,10 +646,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             int sgn = (int)(this.codeBuffer >> 31);
             uint k = this.Lrot(this.codeBuffer, n);
-            this.codeBuffer = k & ~stbi__bmask[n];
-            k &= stbi__bmask[n];
+            this.codeBuffer = k & ~Bmask[n];
+            k &= Bmask[n];
             this.codeBits -= n;
-            return (int)(k + (stbi__jbias[n] & ~sgn));
+            return (int)(k + (Bias[n] & ~sgn));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

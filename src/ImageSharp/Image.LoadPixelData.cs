@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Span<TPixel> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(Span<TPixel> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(Configuration.Default, data, width, height);
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Span<byte> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(Span<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData<TPixel>(Configuration.Default, data, width, height);
 
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<byte> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<TPixel> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<TPixel> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             int count = width * height;

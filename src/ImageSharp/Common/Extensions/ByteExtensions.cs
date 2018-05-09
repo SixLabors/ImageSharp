@@ -21,6 +21,6 @@ namespace SixLabors.ImageSharp
         public static ref Rgb24 AsRgb24(this Span<byte> bytes)
         {
             return ref Unsafe.As<byte, Rgb24>(ref bytes[0]);
-        }     
+        }
     }
 }

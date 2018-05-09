@@ -461,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         int indexOffset = index * 3;
 
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
-                        rgba.Rgb = colorTable.GetRgb24(indexOffset);
+                        rgba.Rgb = colorTable.Slice(indexOffset).AsRgb24();
 
                         pixel.PackFromRgba32(rgba);
                     }

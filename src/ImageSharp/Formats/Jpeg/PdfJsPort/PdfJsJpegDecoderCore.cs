@@ -731,10 +731,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                                 codeLengths.Span,
                                 huffmanValues.Span);
 
-                            if (tableType != 0)
+                            if (huffmanTableSpec >> 4 != 0)
                             {
                                 // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.BuildFastACTable(tableIndex);
+                                this.BuildFastACTable(huffmanTableSpec & 15);
                             }
                         }
                     }
@@ -794,21 +794,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
-            var scanDecoder = default(PdfJsScanDecoder);
 
-            scanDecoder.DecodeScan(
-                 this.Frame,
-                 this.InputStream,
-                 this.dcHuffmanTables,
-                 this.acHuffmanTables,
-                 this.Frame.Components,
-                 componentIndex,
-                 selectorsCount,
-                 this.resetInterval,
-                 spectralStart,
-                 spectralEnd,
-                 successiveApproximation >> 4,
-                 successiveApproximation & 15);
+            var sd = new ScanDecoder(
+                this.InputStream,
+                this.Frame.Components,
+                componentIndex,
+                selectorsCount,
+                this.resetInterval,
+                spectralStart,
+                spectralEnd,
+                successiveApproximation >> 4,
+                successiveApproximation & 15);
+
+            sd.ParseEntropyCodedData(this.Frame, this.dcHuffmanTables, this.acHuffmanTables, this.fastACTables);
+
+            //var scanDecoder = default(PdfJsScanDecoder);
+
+            //scanDecoder.DecodeScan(
+            //     this.Frame,
+            //     this.InputStream,
+            //     this.dcHuffmanTables,
+            //     this.acHuffmanTables,
+            //     this.Frame.Components,
+            //     componentIndex,
+            //     selectorsCount,
+            //     this.resetInterval,
+            //     spectralStart,
+            //     spectralEnd,
+            //     successiveApproximation >> 4,
+            //     successiveApproximation & 15);
         }
 
         /// <summary>
@@ -856,7 +870,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int i;
             for (i = 0; i < (1 << FastBits); i++)
             {
-                short fast = huffman.Lookahead[i];
+                byte fast = huffman.Lookahead[i];
                 fastac[i] = 0;
                 if (fast < 255)
                 {

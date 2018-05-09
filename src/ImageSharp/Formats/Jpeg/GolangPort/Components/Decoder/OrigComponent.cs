@@ -57,8 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
         /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        /// <param name="metadataOnly">Whether to decode metadata only. If this is true, memory allocation for SpectralBlocks will not be necessary</param>
-        public void InitializeDerivedData(MemoryManager memoryManager, OrigJpegDecoderCore decoder, bool metadataOnly)
+        public void InitializeDerivedData(MemoryManager memoryManager, OrigJpegDecoderCore decoder)
         {
             // For 4-component images (either CMYK or YCbCrK), we only support two
             // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
@@ -81,10 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            if (!metadataOnly)
-            {
-                this.SpectralBlocks = memoryManager.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
-            }
+            this.SpectralBlocks = memoryManager.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
         }
 
         /// <summary>

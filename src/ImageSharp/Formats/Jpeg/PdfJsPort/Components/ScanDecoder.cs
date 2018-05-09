@@ -94,9 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             {
                 if (this.componentsLength == 1)
                 {
-                    int i, j;
-                    int n = this.componentIndex;
-                    PdfJsFrameComponent component = this.components[n];
+                    PdfJsFrameComponent component = this.components[this.componentIndex];
 
                     // Non-interleaved data, we just need to process one block at a time,
                     // in trivial scanline order
@@ -110,17 +108,41 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     Span<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
 
                     int mcu = 0;
-                    for (j = 0; j < h; j++)
+                    for (int j = 0; j < h; j++)
                     {
-                        for (i = 0; i < w; i++)
+                        for (int i = 0; i < w; i++)
                         {
                             int blockRow = mcu / w;
                             int blockCol = mcu % w;
                             int offset = component.GetBlockBufferOffset(blockRow, blockCol);
                             this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
                             mcu++;
+
+                            // Every data block is an MCU, so countdown the restart interval
+                            if (this.todo-- <= 0)
+                            {
+                                if (this.codeBits < 24)
+                                {
+                                    this.GrowBufferUnsafe();
+                                }
+
+                                // If it's NOT a restart, then just bail, so we get corrupt data
+                                // rather than no data
+                                if (!this.IsRestartMarker(this.marker))
+                                {
+                                    return 1;
+                                }
+
+                                this.Reset();
+                            }
                         }
                     }
+                }
+                else
+                {
+                    // Interleaved
+                    int i, j, k, x, y;
+
                 }
             }
 

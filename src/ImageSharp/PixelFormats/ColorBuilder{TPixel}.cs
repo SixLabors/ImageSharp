@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>Returns a <typeparamref name="TPixel"/> that represents the color defined by the provided RGBA heax string.</returns>
         public static TPixel FromHex(string hex)
         {
-            Guard.NotNullOrEmpty(hex, nameof(hex));
+            Guard.NotNullOrWhiteSpace(hex, nameof(hex));
 
             hex = ToRgbaHex(hex);
             uint packedValue;

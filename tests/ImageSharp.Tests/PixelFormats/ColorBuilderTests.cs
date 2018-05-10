@@ -3,12 +3,21 @@
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colors
 {
     public class ColorBuilderTests
     {
+        [Fact]
+        public void ParseShortHex()
+        {
+            Assert.Equal(new Rgb24(255, 255, 255), ColorBuilder<Rgb24>.FromHex("#fff"));
+            Assert.Equal(new Rgb24(255, 255, 255), ColorBuilder<Rgb24>.FromHex("fff"));
+            Assert.Equal(new Rgba32(0, 0, 0, 255), ColorBuilder<Rgba32>.FromHex("000f"));
+        }
+
         [Fact]
         public void ParseHexLeadingPoundIsOptional()
         {

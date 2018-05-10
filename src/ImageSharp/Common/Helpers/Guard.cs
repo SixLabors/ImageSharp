@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace SixLabors.ImageSharp
 {
@@ -19,17 +18,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="value">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null</exception>
-        public static void NotNull(object value, string parameterName, string message = "")
+        public static void NotNull(object value, string parameterName)
         {
             if (value == null)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentNullException(parameterName, message);
-                }
-
                 throw new ArgumentNullException(parameterName);
             }
         }
@@ -60,17 +53,16 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="T">The type of objects in the <paramref name="value"/></typeparam>
         /// <param name="value">The target enumeration, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
-        public static void NotNullOrEmpty<T>(IEnumerable<T> value, string parameterName)
+        public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
         {
             if (value == null)
             {
                 throw new ArgumentNullException(parameterName);
             }
 
-            if (!value.Any())
+            if (value.Count == 0)
             {
                 throw new ArgumentException("Must not be empty.", parameterName);
             }
@@ -182,15 +174,9 @@ namespace SixLabors.ImageSharp
         /// Verifies, that the method parameter with specified target value is true
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">
-        /// The target value, which cannot be false.
-        /// </param>
-        /// <param name="parameterName">
-        /// The name of the parameter that is to be checked.
-        /// </param>
-        /// <param name="message">
-        /// The error message, if any to add to the exception.
-        /// </param>
+        /// <param name="target">The target value, which cannot be false.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentException">
         /// <paramref name="target"/> is false
         /// </exception>

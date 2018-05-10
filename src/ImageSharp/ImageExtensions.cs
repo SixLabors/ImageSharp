@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNullOrWhiteSpace(filePath, nameof(filePath));
 
-            string ext = Path.GetExtension(filePath).Trim('.');
+            string ext = Path.GetExtension(filePath);
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
             if (format == null)
             {

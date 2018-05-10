@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static IImageFormat GetImageFormat(string filePath)
         {
-            string extension = Path.GetExtension(filePath).ToLower();
-            if (extension[0] == '.') extension = extension.Substring(1);
+            string extension = Path.GetExtension(filePath);
+            
             IImageFormat format = Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
             return format;
         }

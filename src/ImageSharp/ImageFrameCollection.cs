@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
         {
             Guard.NotNull(parent, nameof(parent));
-            Guard.NotNullOrEmpty(frames, nameof(frames));
+            Guard.NotNull(frames, nameof(frames));
 
             this.parent = parent;
 
@@ -41,6 +41,12 @@ namespace SixLabors.ImageSharp
             {
                 this.ValidateFrame(f);
                 this.frames.Add(f);
+            }
+
+            // Ensure at least 1 frame was added to the frames collection
+            if (this.frames.Count == 0)
+            {
+                throw new ArgumentException("Must not be empty.", nameof(frames));
             }
         }
 

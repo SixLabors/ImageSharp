@@ -19,13 +19,14 @@ namespace SixLabors.ImageSharp.Tests
                 this.Width = width;
                 this.Height = height;
             }
+
             public BlankProvider()
             {
                 this.Width = 100;
                 this.Height = 100;
             }
 
-            public override string SourceFileOrDescription => $"Blank{this.Width}x{this.Height}";
+            public override string SourceFileOrDescription => TestUtils.AsInvariantString($"Blank{this.Width}x{this.Height}");
 
             protected int Height { get; private set; }
 

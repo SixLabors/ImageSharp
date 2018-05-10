@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 SizeF newSize = image.Size() * ratio;
                 image.Mutate(x => x.Resize((Size)newSize, sampler, false));
-                string details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                FormattableString details = $"{name}-{ratio.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 
                 image.DebugSave(provider, details);
                 image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.005f), provider, details);

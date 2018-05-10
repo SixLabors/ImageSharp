@@ -4,13 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -198,24 +196,24 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Saves the raw image to the given bytes.
+        /// Saves the raw image to the given byte buffer.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <param name="buffer">The buffer to save the raw pixel data to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        internal static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
+        public static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.SavePixelData(MemoryMarshal.Cast<byte, TPixel>(buffer));
 
         /// <summary>
-        /// Saves the raw image to the given bytes.
+        /// Saves the raw image to the given byte buffer.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <param name="buffer">The buffer to save the raw pixel data to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        internal static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, Span<TPixel> buffer)
+        public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, Span<TPixel> buffer)
             where TPixel : struct, IPixel<TPixel>
         {
             Span<TPixel> sourceBuffer = source.GetPixelSpan();

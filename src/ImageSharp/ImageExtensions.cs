@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp
         public static void Save<TPixel>(this Image<TPixel> source, string filePath)
             where TPixel : struct, IPixel<TPixel>
         {
-            Guard.NotNullOrEmpty(filePath, nameof(filePath));
+            Guard.NotNullOrWhiteSpace(filePath, nameof(filePath));
 
             string ext = Path.GetExtension(filePath).Trim('.');
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);

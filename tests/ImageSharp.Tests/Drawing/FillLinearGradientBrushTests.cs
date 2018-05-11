@@ -12,9 +12,12 @@ using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes;
 
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Advanced;
+
     [GroupOutput("Drawing/GradientBrushes")]
     public class FillLinearGradientBrushTests
     {
@@ -51,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         TPixel red = NamedColors<TPixel>.Red;
                         TPixel yellow = NamedColors<TPixel>.Yellow;
 
-                        LinearGradientBrush<TPixel> unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
                             new SixLabors.Primitives.Point(0, 0),
                             new SixLabors.Primitives.Point(image.Width, 0),
                             GradientRepetitionMode.None,
@@ -155,57 +158,41 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
         [Theory]
         [WithBlankImages(10, 500, PixelTypes.Rgba32)]
-        public void VerticalReturnsUnicolorColumns<TPixel>(
+        public void VerticalBrushReturnsUnicolorRows<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
-            {
-                int lastRowIndex = image.Height - 1;
-
-                TPixel red = NamedColors<TPixel>.Red;
-                TPixel yellow = NamedColors<TPixel>.Yellow;
-
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new LinearGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(0, 0),
-                        new SixLabors.Primitives.Point(0, image.Height),
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, yellow));
-
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider);
-
-                Random random = new Random();
-
-                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
-                {
-                    TPixel firstRowColor = sourcePixels[0, 0];
-
-                    int columnA = random.Next(0, image.Height);
-                    int columnB = random.Next(0, image.Height);
-                    int columnC = random.Next(0, image.Height);
-                    TPixel columnColorA = sourcePixels[0, columnA];
-                    TPixel columnColorB = sourcePixels[0, columnB];
-                    TPixel columnColorC = sourcePixels[0, columnC];
-
-                    TPixel lastRowColor = sourcePixels[0, lastRowIndex];
-
-                    for (int i = 0; i < image.Width; i++)
+            provider.VerifyOperation(
+                image =>
                     {
-                        // check first and last column, these are known:
-                        Assert.Equal(firstRowColor, sourcePixels[i, 0]);
-                        Assert.Equal(lastRowColor, sourcePixels[i, lastRowIndex]);
+                        TPixel red = NamedColors<TPixel>.Red;
+                        TPixel yellow = NamedColors<TPixel>.Yellow;
 
-                        // check the random colors:
-                        Assert.Equal(columnColorA, sourcePixels[i, columnA]);
-                        Assert.Equal(columnColorB, sourcePixels[i, columnB]);
-                        Assert.Equal(columnColorC, sourcePixels[i, columnC]);
+                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(0, 0),
+                            new SixLabors.Primitives.Point(0, image.Height),
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, red),
+                            new ColorStop<TPixel>(1, yellow));
+
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+
+                        VerifyAllRowsAreUnicolor(image);
+                    },
+                false,
+                false);
+
+            void VerifyAllRowsAreUnicolor(Image<TPixel> image)
+            {
+                for (int y = 0; y < image.Height; y++)
+                {
+                    Span<TPixel> row = image.GetPixelRowSpan(y);
+                    TPixel firstColorOfRow = row[0];
+                    foreach (TPixel p in row)
+                    {
+                        Assert.Equal(firstColorOfRow, p);
                     }
                 }
-
-                image.CompareToReferenceOutput(provider);
             }
         }
 

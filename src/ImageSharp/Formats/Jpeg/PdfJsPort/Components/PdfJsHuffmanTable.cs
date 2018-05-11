@@ -50,69 +50,69 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             const int Length = 257;
             using (IBuffer<short> huffcode = memoryManager.Allocate<short>(Length))
             {
-                // Span<short> codes = huffcode.Span;
+                Span<short> codes = huffcode.Span;
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.Span);
 
                 this.GenerateSizeTable(count);
 
-                //int k = 0;
-                //fixed (short* sizesRef = this.Sizes.Data)
-                //fixed (short* deltaRef = this.ValOffset.Data)
-                //fixed (long* maxcodeRef = this.MaxCode.Data)
-                //{
-                //    uint code = 0;
-                //    int j;
-                //    for (j = 1; j <= 16; j++)
-                //    {
-                //        // Compute delta to add to code to compute symbol id.
-                //        deltaRef[j] = (short)(k - code);
-                //        if (sizesRef[k] == j)
-                //        {
-                //            while (sizesRef[k] == j)
-                //            {
-                //                codes[k++] = (short)code++;
+                int k = 0;
+                fixed (short* size = this.Sizes.Data)
+                fixed (short* delta = this.ValOffset.Data)
+                fixed (long* maxcode = this.MaxCode.Data)
+                {
+                    uint code = 0;
+                    int j;
+                    for (j = 1; j <= 16; j++)
+                    {
+                        // Compute delta to add to code to compute symbol id.
+                        delta[j] = (short)(k - code);
+                        if (size[k] == j)
+                        {
+                            while (size[k] == j)
+                            {
+                                codes[k++] = (short)code++;
 
-                //                // Unsafe.Add(ref huffcodeRef, k++) = (short)code++;
+                                // Unsafe.Add(ref huffcodeRef, k++) = (short)code++;
 
-                //                // TODO: Throw if invalid?
-                //            }
-                //        }
+                                // TODO: Throw if invalid?
+                            }
+                        }
 
-                //        // Compute largest code + 1 for this size. preshifted as neeed later.
-                //        maxcodeRef[j] = code << (16 - j);
-                //        code <<= 1;
-                //    }
+                        // Compute largest code + 1 for this size. preshifted as neeed later.
+                        maxcode[j] = code << (16 - j);
+                        code <<= 1;
+                    }
 
-                //    maxcodeRef[j] = 0xFFFFFFFF;
-                //}
+                    maxcode[j] = 0xFFFFFFFF;
+                }
 
-                //fixed (short* lookaheadRef = this.Lookahead.Data)
-                //{
-                //    const int FastBits = ScanDecoder.FastBits;
-                //    var fast = new Span<short>(lookaheadRef, 1 << FastBits);
-                //    fast.Fill(255); // Flag for non-accelerated
+                fixed (byte* lookaheadRef = this.Lookahead.Data)
+                {
+                    const int FastBits = ScanDecoder.FastBits;
+                    var fast = new Span<short>(lookaheadRef, 1 << FastBits);
+                    fast.Fill(255); // Flag for non-accelerated
 
-                //    fixed (short* sizesRef = this.Sizes.Data)
-                //    {
-                //        for (int i = 0; i < k; i++)
-                //        {
-                //            int s = sizesRef[i];
-                //            if (s <= ScanDecoder.FastBits)
-                //            {
-                //                int c = codes[i] << (FastBits - s);
-                //                int m = 1 << (FastBits - s);
-                //                for (int j = 0; j < m; j++)
-                //                {
-                //                    fast[c + j] = (byte)i;
-                //                }
-                //            }
-                //        }
-                //    }
-                //}
+                    fixed (short* sizesRef = this.Sizes.Data)
+                    {
+                        for (int i = 0; i < k; i++)
+                        {
+                            int s = sizesRef[i];
+                            if (s <= ScanDecoder.FastBits)
+                            {
+                                int c = codes[i] << (FastBits - s);
+                                int m = 1 << (FastBits - s);
+                                for (int j = 0; j < m; j++)
+                                {
+                                    fast[c + j] = (byte)i;
+                                }
+                            }
+                        }
+                    }
+                }
 
-                this.GenerateCodeTable(ref huffcodeRef, Length, out int k);
-                this.GenerateDecoderTables(count, ref huffcodeRef);
-                this.GenerateLookaheadTables(count, values, ref huffcodeRef, k);
+                // this.GenerateCodeTable(ref huffcodeRef, Length, out int k);
+                // this.GenerateDecoderTables(count, ref huffcodeRef);
+                // this.GenerateLookaheadTables(count, values, ref huffcodeRef, k);
             }
 
             fixed (byte* huffValRef = this.Values.Data)
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 const int FastBits = ScanDecoder.FastBits;
                 var lookaheadSpan = new Span<short>(lookaheadRef, 1 << ScanDecoder.FastBits);
 
-                lookaheadSpan.Fill(255); // Flag for non-accelerated
+                lookaheadSpan.Fill(byte.MaxValue); // Flag for non-accelerated
                 fixed (short* sizesRef = this.Sizes.Data)
                 {
                     for (int i = 0; i < k; ++i)

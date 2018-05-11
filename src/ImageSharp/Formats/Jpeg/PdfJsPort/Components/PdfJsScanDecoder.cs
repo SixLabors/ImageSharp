@@ -860,14 +860,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
         }
-
-        private void Reset()
-        {
-            // Reset
-            // TODO: I do not understand why these values are reset? We should surely be tracking the bits across mcu's?
-            this.bitsCount = 0;
-            this.bitsData = 0;
-            this.unexpectedMarkerReached = false;
-        }
     }
 }

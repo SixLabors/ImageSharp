@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     /// <summary>
     /// On-stack worker struct to efficiently encapsulate the TPixel -> Rgb24 -> YCbCr conversion chain of 8x8 pixel blocks.

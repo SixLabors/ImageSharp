@@ -3,9 +3,7 @@
 
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Memory;
-
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
@@ -68,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         /// <returns>The intialized <see cref="RgbToYCbCrTables"/></returns>
         public static RgbToYCbCrTables Create()
         {
-            RgbToYCbCrTables tables = default(RgbToYCbCrTables);
+            RgbToYCbCrTables tables = default;
 
             for (int i = 0; i <= 255; i++)
             {
@@ -122,12 +120,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
         private static int Fix(float x)
         {
             return (int)((x * (1L << ScaleBits)) + 0.5F);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int RightShift(int x)
-        {
-            return x >> ScaleBits;
         }
     }
 }

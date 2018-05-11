@@ -607,7 +607,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // wants to be compared against something shifted to have 16;
             // that way we don't need to shift inside the loop.
             uint temp = this.codeBuffer >> 16;
-            for (k = FastBits + 1; ; ++k)
+            for (k = FastBits + 1; ; k++)
             {
                 if (temp < table.MaxCode[k])
                 {

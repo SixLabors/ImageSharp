@@ -3,7 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
@@ -558,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                 if (bit)
                 {
-                    int stuff = (int)Block8x8.GetScalarAt(b, 0);
+                    int stuff = Block8x8.GetScalarAt(b, 0);
 
                     // int stuff = (int)b[0];
                     stuff |= delta;

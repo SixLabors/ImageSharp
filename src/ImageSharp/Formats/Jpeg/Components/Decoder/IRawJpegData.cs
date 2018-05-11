@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder

@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
     internal partial struct Block8x8F
     {
         /// <summary>
-        /// A number of scalar coefficients in a <see cref="Block8x8F"/>
+        /// A number of scalar coefficients in a <see cref="Components.Block8x8F"/>
         /// </summary>
         public const int Size = 64;
 
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             get
             {
                 GuardBlockIndex(idx);
-                ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
+                ref float selfRef = ref Unsafe.As<Components.Block8x8F, float>(ref this);
                 return Unsafe.Add(ref selfRef, idx);
             }
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             set
             {
                 GuardBlockIndex(idx);
-                ref float selfRef = ref Unsafe.As<Block8x8F, float>(ref this);
+                ref float selfRef = ref Unsafe.As<Components.Block8x8F, float>(ref this);
                 Unsafe.Add(ref selfRef, idx) = value;
             }
         }
@@ -80,9 +80,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             set => this[(y * 8) + x] = value;
         }
 
-        public static Block8x8F operator *(Block8x8F block, float value)
+        public static Components.Block8x8F operator *(Components.Block8x8F block, float value)
         {
-            Block8x8F result = block;
+            Components.Block8x8F result = block;
             for (int i = 0; i < Size; i++)
             {
                 float val = result[i];
@@ -93,9 +93,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        public static Block8x8F operator /(Block8x8F block, float value)
+        public static Components.Block8x8F operator /(Components.Block8x8F block, float value)
         {
-            Block8x8F result = block;
+            Components.Block8x8F result = block;
             for (int i = 0; i < Size; i++)
             {
                 float val = result[i];
@@ -106,9 +106,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        public static Block8x8F operator +(Block8x8F block, float value)
+        public static Components.Block8x8F operator +(Components.Block8x8F block, float value)
         {
-            Block8x8F result = block;
+            Components.Block8x8F result = block;
             for (int i = 0; i < Size; i++)
             {
                 float val = result[i];
@@ -119,9 +119,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        public static Block8x8F operator -(Block8x8F block, float value)
+        public static Components.Block8x8F operator -(Components.Block8x8F block, float value)
         {
-            Block8x8F result = block;
+            Components.Block8x8F result = block;
             for (int i = 0; i < Size; i++)
             {
                 float val = result[i];
@@ -132,16 +132,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
             return result;
         }
 
-        public static Block8x8F Load(Span<float> data)
+        public static Components.Block8x8F Load(Span<float> data)
         {
-            var result = default(Block8x8F);
+            var result = default(Components.Block8x8F);
             result.LoadFrom(data);
             return result;
         }
 
-        public static Block8x8F Load(Span<int> data)
+        public static Components.Block8x8F Load(Span<int> data)
         {
-            var result = default(Block8x8F);
+            var result = default(Components.Block8x8F);
             result.LoadFrom(data);
             return result;
         }
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void Clear()
         {
             // The cheapest way to do this in C#:
-            this = default(Block8x8F);
+            this = default(Components.Block8x8F);
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void LoadFrom(Span<float> source)
         {
             ref byte s = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(source));
-            ref byte d = ref Unsafe.As<Block8x8F, byte>(ref this);
+            ref byte d = ref Unsafe.As<Components.Block8x8F, byte>(ref this);
 
             Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
         }
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="source">Source</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void LoadFrom(Block8x8F* blockPtr, Span<float> source)
+        public static unsafe void LoadFrom(Components.Block8x8F* blockPtr, Span<float> source)
         {
             blockPtr->LoadFrom(source);
         }
@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         public void CopyTo(Span<float> dest)
         {
             ref byte d = ref Unsafe.As<float, byte>(ref MemoryMarshal.GetReference(dest));
-            ref byte s = ref Unsafe.As<Block8x8F, byte>(ref this);
+            ref byte s = ref Unsafe.As<Components.Block8x8F, byte>(ref this);
 
             Unsafe.CopyBlock(ref d, ref s, Size * sizeof(float));
         }
@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Pointer to block</param>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void CopyTo(Block8x8F* blockPtr, Span<byte> dest)
+        public static unsafe void CopyTo(Components.Block8x8F* blockPtr, Span<byte> dest)
         {
             float* fPtr = (float*)blockPtr;
             for (int i = 0; i < Size; i++)
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="blockPtr">Block pointer</param>
         /// <param name="dest">Destination</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void CopyTo(Block8x8F* blockPtr, Span<float> dest)
+        public static unsafe void CopyTo(Components.Block8x8F* blockPtr, Span<float> dest)
         {
             blockPtr->CopyTo(dest);
         }
@@ -301,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// Multiply all elements of the block by the corresponding elements of 'other'
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void MultiplyInplace(ref Block8x8F other)
+        public void MultiplyInplace(ref Components.Block8x8F other)
         {
             this.V0L *= other.V0L;
             this.V0R *= other.V0R;
@@ -353,7 +353,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="qtPtr">Qt pointer</param>
         /// <param name="unzigPtr">Unzig pointer</param>
         // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
+        public static unsafe void DequantizeBlock(Components.Block8x8F* blockPtr, Components.Block8x8F* qtPtr, byte* unzigPtr)
         {
             float* b = (float*)blockPtr;
             float* qtp = (float*)qtPtr;
@@ -378,9 +378,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// <param name="qt">The quantization table</param>
         /// <param name="unzigPtr">Pointer to elements of <see cref="ZigZag"/></param>
         public static unsafe void Quantize(
-            Block8x8F* block,
-            Block8x8F* dest,
-            Block8x8F* qt,
+            Components.Block8x8F* block,
+            Components.Block8x8F* dest,
+            Components.Block8x8F* qt,
             byte* unzigPtr)
         {
             float* s = (float*)block;
@@ -399,7 +399,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         /// </summary>
         /// <param name="destination">The destination block.</param>
         /// <param name="source">The source block.</param>
-        public static unsafe void Scale16X16To8X8(Block8x8F* destination, Block8x8F* source)
+        public static unsafe void Scale16X16To8X8(Components.Block8x8F* destination, Components.Block8x8F* source)
         {
             float* d = (float*)destination;
             for (int i = 0; i < 4; i++)
@@ -421,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
+        private static void DivideRoundAll(ref Components.Block8x8F a, ref Components.Block8x8F b)
         {
             a.V0L = DivideRound(a.V0L, b.V0L);
             a.V0R = DivideRound(a.V0R, b.V0R);

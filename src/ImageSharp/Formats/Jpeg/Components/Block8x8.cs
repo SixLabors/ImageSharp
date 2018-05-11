@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
     /// Represents a Jpeg block with <see cref="short"/> coefficiens.

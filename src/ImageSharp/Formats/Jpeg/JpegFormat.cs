@@ -3,8 +3,6 @@
 
 using System.Collections.Generic;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>

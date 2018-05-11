@@ -3,7 +3,6 @@
 
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 

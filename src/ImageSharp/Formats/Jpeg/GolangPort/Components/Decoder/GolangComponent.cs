@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents a single color component
     /// </summary>
-    internal class OrigComponent : IDisposable, IJpegComponent
+    internal class GolangComponent : IDisposable, IJpegComponent
     {
-        public OrigComponent(byte identifier, int index)
+        public GolangComponent(byte identifier, int index)
         {
             this.Identifier = identifier;
             this.Index = index;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
             else
             {
-                OrigComponent c0 = decoder.Components[0];
+                GolangComponent c0 = decoder.Components[0];
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 

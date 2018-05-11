@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expectedSizeInBlocks, decoder.ImageSizeInMCU);
 
                 var uniform1 = new Size(1, 1);
-                OrigComponent c0 = decoder.Components[0];
+                GolangComponent c0 = decoder.Components[0];
                 VerifyJpeg.VerifyComponent(c0, expectedSizeInBlocks, uniform1, uniform1);
             }
         }
@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 sb.AppendLine(imageFile);
                 sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
-                OrigComponent c0 = decoder.Components[0];
-                OrigComponent c1 = decoder.Components[1];
+                GolangComponent c0 = decoder.Components[0];
+                GolangComponent c1 = decoder.Components[1];
 
                 sb.AppendLine($"Luma: SAMP: {c0.SamplingFactors} BLOCKS: {c0.SizeInBlocks}");
                 sb.AppendLine($"Chroma: {c1.SamplingFactors} BLOCKS: {c1.SizeInBlocks}");
@@ -108,9 +108,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(componentCount, decoder.ComponentCount);
                 Assert.Equal(componentCount, decoder.Components.Length);
 
-                OrigComponent c0 = decoder.Components[0];
-                OrigComponent c1 = decoder.Components[1];
-                OrigComponent c2 = decoder.Components[2];
+                GolangComponent c0 = decoder.Components[0];
+                GolangComponent c1 = decoder.Components[1];
+                GolangComponent c2 = decoder.Components[2];
 
                 var uniform1 = new Size(1, 1);
 
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 if (componentCount == 4)
                 {
-                    OrigComponent c3 = decoder.Components[2];
+                    GolangComponent c3 = decoder.Components[2];
                     VerifyJpeg.VerifyComponent(c3, expectedLumaSizeInBlocks, fLuma, uniform1);
                 }
             }

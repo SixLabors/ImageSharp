@@ -102,11 +102,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             };
 
         /// <summary>
-        /// Lookup tables for converting Rgb to YCbCr
-        /// </summary>
-        private static RgbToYCbCrTables rgbToYCbCrTables = RgbToYCbCrTables.Create();
-
-        /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];

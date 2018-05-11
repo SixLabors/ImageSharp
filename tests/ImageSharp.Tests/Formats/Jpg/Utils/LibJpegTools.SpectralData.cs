@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static SpectralData LoadFromImageSharpDecoder(GolangJpegDecoderCore decoder)
             {
-                OrigComponent[] srcComponents = decoder.Components;
+                GolangComponent[] srcComponents = decoder.Components;
                 LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);

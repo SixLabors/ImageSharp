@@ -94,15 +94,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         public PdfJsFrame Frame { get; private set; }
 
+        /// <inheritdoc/>
+        public Size ImageSizeInPixels { get; private set; }
+
+        /// <summary>
+        /// Gets the number of MCU blocks in the image as <see cref="Size"/>.
+        /// </summary>
+        public Size ImageSizeInMCU { get; private set; }
+
         /// <summary>
         /// Gets the image width
         /// </summary>
-        public int ImageWidth { get; private set; }
+        public int ImageWidth => this.ImageSizeInPixels.Width;
 
         /// <summary>
         /// Gets the image height
         /// </summary>
-        public int ImageHeight { get; private set; }
+        public int ImageHeight => this.ImageSizeInPixels.Height;
 
         /// <summary>
         /// Gets the color depth, in number of bits per pixel.
@@ -125,16 +133,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public ImageMetaData MetaData { get; private set; }
 
         /// <inheritdoc/>
-        public Size ImageSizeInPixels => new Size(this.ImageWidth, this.ImageHeight);
-
-        /// <inheritdoc/>
         public int ComponentCount { get; private set; }
 
         /// <inheritdoc/>
         public JpegColorSpace ColorSpace { get; private set; }
 
+        /// <summary>
+        /// Gets the components.
+        /// </summary>
+        public PdfJsFrameComponent[] Components => this.Frame.Components;
+
         /// <inheritdoc/>
-        public IEnumerable<IJpegComponent> Components => this.Frame.Components;
+        IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
 
         /// <inheritdoc/>
         public Block8x8F[] QuantizationTables { get; private set; }
@@ -367,7 +377,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 {
                     return JpegColorSpace.YCbCr;
                 }
-                else if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
+
+                if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                 {
                     return JpegColorSpace.RGB;
                 }
@@ -388,9 +399,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         private void AssignResolution()
         {
-            this.ImageWidth = this.Frame.SamplesPerLine;
-            this.ImageHeight = this.Frame.Scanlines;
-
             if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
             {
                 this.MetaData.HorizontalResolution = this.jFif.XDensity;
@@ -631,51 +639,50 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 ComponentCount = this.temp[5]
             };
 
+            this.ImageSizeInPixels = new Size(this.Frame.SamplesPerLine, this.Frame.Scanlines);
+
             int maxH = 0;
             int maxV = 0;
             int index = 6;
 
             this.ComponentCount = this.Frame.ComponentCount;
+
             if (!metadataOnly)
             {
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
                 this.Frame.Components = new PdfJsFrameComponent[this.Frame.ComponentCount];
-            }
+                this.ColorSpace = this.DeduceJpegColorSpace();
 
-            for (int i = 0; i < this.Frame.ComponentCount; i++)
-            {
-                byte hv = this.temp[index + 1];
-                int h = hv >> 4;
-                int v = hv & 15;
-
-                if (maxH < h)
+                for (int i = 0; i < this.Frame.ComponentCount; i++)
                 {
-                    maxH = h;
-                }
+                    byte hv = this.temp[index + 1];
+                    int h = hv >> 4;
+                    int v = hv & 15;
 
-                if (maxV < v)
-                {
-                    maxV = v;
-                }
+                    if (maxH < h)
+                    {
+                        maxH = h;
+                    }
 
-                if (!metadataOnly)
-                {
+                    if (maxV < v)
+                    {
+                        maxV = v;
+                    }
+
                     var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
+
+                    index += 3;
                 }
 
-                index += 3;
-            }
-
-            this.Frame.MaxHorizontalFactor = maxH;
-            this.Frame.MaxVerticalFactor = maxV;
-
-            if (!metadataOnly)
-            {
+                this.Frame.MaxHorizontalFactor = maxH;
+                this.Frame.MaxVerticalFactor = maxV;
+                this.ColorSpace = this.DeduceJpegColorSpace();
                 this.Frame.InitComponents();
+                this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
             }
         }
 
@@ -822,7 +829,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            this.ColorSpace = this.DeduceJpegColorSpace();
             using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);

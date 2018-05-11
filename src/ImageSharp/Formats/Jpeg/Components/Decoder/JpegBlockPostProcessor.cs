@@ -2,10 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Encapsulates the implementation of processing "raw" <see cref="IBuffer{T}"/>-s into Jpeg image channels.

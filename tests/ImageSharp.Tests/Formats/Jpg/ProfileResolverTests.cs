@@ -3,7 +3,7 @@
 
 using System.Text;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 using Xunit;
 

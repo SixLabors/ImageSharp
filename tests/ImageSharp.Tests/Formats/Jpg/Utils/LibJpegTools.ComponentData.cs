@@ -1,3 +1,4 @@
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
@@ -7,7 +8,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     using System.Numerics;
 
     using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
     using SixLabors.ImageSharp.Memory;

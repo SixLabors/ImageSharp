@@ -4,7 +4,7 @@
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;

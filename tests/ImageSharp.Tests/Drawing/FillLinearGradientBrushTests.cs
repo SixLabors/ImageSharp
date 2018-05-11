@@ -20,50 +20,48 @@ namespace SixLabors.ImageSharp.Tests.Drawing
     {
         [Theory]
         [WithBlankImages(10, 10, PixelTypes.Rgba32)]
-        public void WithEqualColorsReturnsUnicolorImage<TPixel>(
-            TestImageProvider<TPixel> provider)
+        public void WithEqualColorsReturnsUnicolorImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel red = NamedColors<TPixel>.Red;
-            using (var image = provider.GetImage())
-            {
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new LinearGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(0, 0),
-                        new SixLabors.Primitives.Point(10, 0),
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, red));
+            provider.VerifyOperation(
+                image =>
+                    {
+                        TPixel red = NamedColors<TPixel>.Red;
+                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(0, 0),
+                            new SixLabors.Primitives.Point(10, 0),
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, red),
+                            new ColorStop<TPixel>(1, red));
 
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
-            }
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    },
+                false,
+                false);
         }
 
         [Theory]
         [WithBlankImages(500, 10, PixelTypes.Rgba32)]
-        public void HorizontalReturnsUnicolorColumns<TPixel>(
-            TestImageProvider<TPixel> provider)
+        public void HorizontalReturnsUnicolorColumns<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
-            {
-                TPixel red = NamedColors<TPixel>.Red;
-                TPixel yellow = NamedColors<TPixel>.Yellow;
+            provider.VerifyOperation(
+                image =>
+                    {
+                        TPixel red = NamedColors<TPixel>.Red;
+                        TPixel yellow = NamedColors<TPixel>.Yellow;
 
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new LinearGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(0, 0),
-                        new SixLabors.Primitives.Point(image.Width, 0),
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, yellow));
+                        LinearGradientBrush<TPixel> unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(0, 0),
+                            new SixLabors.Primitives.Point(image.Width, 0),
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, red),
+                            new ColorStop<TPixel>(1, yellow));
 
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
-            }
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    },
+                false,
+                false);
         }
 
         [Theory]
@@ -76,23 +74,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             GradientRepetitionMode repetitionMode)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
-            {
-                TPixel red = NamedColors<TPixel>.Red;
-                TPixel yellow = NamedColors<TPixel>.Yellow;
+            provider.VerifyOperation(
+                image =>
+                    {
+                        TPixel red = NamedColors<TPixel>.Red;
+                        TPixel yellow = NamedColors<TPixel>.Yellow;
 
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new LinearGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(0, 0),
-                        new SixLabors.Primitives.Point(image.Width / 10, 0),
-                        repetitionMode,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, yellow));
+                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(0, 0),
+                            new SixLabors.Primitives.Point(image.Width / 10, 0),
+                            repetitionMode,
+                            new ColorStop<TPixel>(0, red),
+                            new ColorStop<TPixel>(1, yellow));
 
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, repetitionMode);
-                image.CompareToReferenceOutput(provider, repetitionMode);
-            }
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    },
+                false,
+                false);
         }
 
         [Theory]
@@ -104,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             float[] pattern)
             where TPixel : struct, IPixel<TPixel>
         {
-            string variant = string.Join(",", pattern.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+            string variant = string.Join("_", pattern.Select(i => i.ToString(CultureInfo.InvariantCulture)));
 
             // ensure the input data is valid
             Assert.True(pattern.Length > 0);
@@ -127,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
+                var unicolorLinearGradientBrush =
                     new LinearGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(image.Width, 0),
@@ -135,17 +133,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         colorStops);
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, variant);
 
-                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
-                {
-                    // the result must be a black and white pattern, no other color should occur:
-                    Assert.All(
-                        Enumerable.Range(0, image.Width).Select(i => sourcePixels[i, 0]),
-                        color => Assert.True(color.Equals(black) || color.Equals(white)));
-                }
+                image.DebugSave(
+                    provider,
+                    variant,
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
 
-                image.CompareToReferenceOutput(provider, variant);
+                // the result must be a black and white pattern, no other color should occur:
+                Assert.All(
+                    Enumerable.Range(0, image.Width).Select(i => image[i, 0]),
+                    color => Assert.True(color.Equals(black) || color.Equals(white)));
+
+                image.CompareToReferenceOutput(
+                    provider,
+                    variant,
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
             }
         }
 

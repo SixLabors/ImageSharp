@@ -49,7 +49,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             using (var image = provider.GetImage())
             {
-                int lastColumnIndex = image.Width - 1;
                 TPixel red = NamedColors<TPixel>.Red;
                 TPixel yellow = NamedColors<TPixel>.Yellow;
 

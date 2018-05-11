@@ -4,11 +4,11 @@
 using System;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal class FromYCbCrBasic : ColorConverters.JpegColorConverter
+        internal class FromYCbCrBasic : JpegColorConverter
         {
             public FromYCbCrBasic()
                 : base(JpegColorSpace.YCbCr)

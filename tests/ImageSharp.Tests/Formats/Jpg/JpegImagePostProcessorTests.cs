@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
                     this.Output.WriteLine($"*** {imageFile} ***");
-                    this.Output.WriteLine($"Difference: "+ report.DifferencePercentageString);
+                    this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
 
                     // ReSharper disable once PossibleInvalidOperationException
                     Assert.True(report.TotalNormalizedDifference.Value < 0.005f);

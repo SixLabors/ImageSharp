@@ -1,12 +1,18 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Linq;
 using System.Numerics;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+using JpegColorConverter = SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters.JpegColorConverter;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Encapsulates the execution od post-processing algorithms to be applied on a <see cref="IRawJpegData"/> to produce a valid <see cref="Image{TPixel}"/>: <br/>
@@ -36,9 +42,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
         private readonly IBuffer<Vector4> rgbaBuffer;
 
         /// <summary>
-        /// The <see cref="ColorConverters.JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.
+        /// The <see cref="JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.
         /// </summary>
-        private ColorConverters.JpegColorConverter colorConverter;
+        private readonly JpegColorConverter colorConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
@@ -54,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
 
             this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryManager, this, c)).ToArray();
             this.rgbaBuffer = memoryManager.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
-            this.colorConverter = ColorConverters.JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
+            this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 
         /// <summary>
@@ -148,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
             {
                 int y = yy - this.PixelRowCounter;
 
-                var values = new ColorConverters.JpegColorConverter.ComponentValues(buffers, y);
+                var values = new JpegColorConverter.ComponentValues(buffers, y);
                 this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer.Span);
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);

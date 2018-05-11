@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 for (int i = 0; i < components.Length; i++)
                 {
                     PdfJsFrameComponent c = components[i];
-                    c.Pred = 0;
+                    c.DcPredictor = 0;
                 }
 
                 this.eobrun = 0;
@@ -618,7 +618,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
 
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.DcPredictor += diff);
 
             int k = 1;
             while (k < 64)
@@ -673,7 +673,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
 
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff << this.successiveState);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.DcPredictor += diff << this.successiveState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

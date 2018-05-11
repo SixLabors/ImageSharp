@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="temp">Temporal buffer, same as <see cref="GolangJpegDecoderCore.Temp"/></param>
         public InputProcessor(Stream inputStream, byte[] temp)
         {
-            this.Bits = default(Bits);
+            this.Bits = default;
             this.Bytes = Bytes.Create();
             this.InputStream = inputStream;
             this.Temp = temp;
@@ -386,7 +386,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// </summary>
         public void ResetHuffmanDecoder()
         {
-            this.Bits = default(Bits);
+            this.Bits = default;
         }
     }
 }

@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
@@ -768,7 +768,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             var scan = default(GolangJpegScanDecoder);
             GolangJpegScanDecoder.InitStreamReading(&scan, this, remaining);
-            this.InputProcessor.Bits = default(Bits);
+            this.InputProcessor.Bits = default;
             scan.DecodeBlocks(this);
         }
 

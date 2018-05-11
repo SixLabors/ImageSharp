@@ -4,7 +4,7 @@
 using System;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Provides information about the Adobe marker segment.
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
                 return true;
             }
 
-            marker = default(AdobeMarker);
+            marker = default;
             return false;
         }
 

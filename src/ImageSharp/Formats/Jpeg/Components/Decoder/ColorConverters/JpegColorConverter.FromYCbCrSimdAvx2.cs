@@ -5,14 +5,15 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using SixLabors.ImageSharp.Common.Tuples;
 
 // ReSharper disable ImpureMethodCallOnReadonlyValueField
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal class FromYCbCrSimdAvx2 : ColorConverters.JpegColorConverter
+        internal class FromYCbCrSimdAvx2 : JpegColorConverter
         {
             public FromYCbCrSimdAvx2()
                 : base(JpegColorSpace.YCbCr)

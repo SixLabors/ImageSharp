@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public override string SourceFileOrDescription
-                => $"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})";
+                => TestUtils.AsInvariantString($"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})");
 
             public override Image<TPixel> GetImage()
             {

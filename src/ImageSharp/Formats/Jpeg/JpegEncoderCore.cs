@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.

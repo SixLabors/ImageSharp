@@ -5,13 +5,14 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
 using SixLabors.ImageSharp.Common.Tuples;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal class FromYCbCrSimd : ColorConverters.JpegColorConverter
+        internal class FromYCbCrSimd : JpegColorConverter
         {
             public FromYCbCrSimd()
                 : base(JpegColorSpace.YCbCr)

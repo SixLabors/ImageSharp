@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
     /// Contains jpeg constant values defined in the specification.

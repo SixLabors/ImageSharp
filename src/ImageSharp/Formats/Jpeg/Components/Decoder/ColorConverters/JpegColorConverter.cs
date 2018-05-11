@@ -5,10 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+
 using SixLabors.ImageSharp.Common.Tuples;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     /// <summary>
     /// Encapsulates the conversion of Jpeg channels to RGBA values packed in <see cref="Vector4"/> buffer.
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
         /// </summary>
         private static readonly JpegColorConverter[] Converters =
             {
-                GetYCbCrConverter(), new FromYccK(), new FromCmyk(), new FromGrayscale(), new FromRgb()
+                GetYCbCrConverter(), new JpegColorConverter.FromYccK(), new JpegColorConverter.FromCmyk(), new JpegColorConverter.FromGrayscale(), new JpegColorConverter.FromRgb()
             };
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters
         /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
         /// </summary>
         private static JpegColorConverter GetYCbCrConverter() =>
-            FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2() : new FromYCbCrSimd();
+            JpegColorConverter.FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new JpegColorConverter.FromYCbCrSimdAvx2() : new JpegColorConverter.FromYCbCrSimd();
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

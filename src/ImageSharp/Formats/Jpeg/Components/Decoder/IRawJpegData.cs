@@ -1,13 +1,17 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Generic;
 
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <inheritdoc />
     /// <summary>
-    /// Represents decompressed, unprocessed jpeg data with spectral space <see cref="T:SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.IJpegComponent" />-s.
+    /// Represents decompressed, unprocessed jpeg data with spectral space <see cref="IJpegComponent" />-s.
     /// </summary>
     internal interface IRawJpegData : IDisposable
     {

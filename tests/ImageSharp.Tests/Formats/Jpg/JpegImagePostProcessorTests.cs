@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
+            using (GolangJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
             using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
             using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, decoder.ImageWidth, decoder.ImageHeight))
             {
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
+            using (GolangJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
             using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
             using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
             {

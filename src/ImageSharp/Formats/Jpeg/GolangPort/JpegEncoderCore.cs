@@ -1,17 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Common;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 {
@@ -58,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         private static readonly byte[] SosHeaderYCbCr =
             {
-                OrigJpegConstants.Markers.XFF, OrigJpegConstants.Markers.SOS,
+                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
 
                 // Marker
                 0x00, 0x0c,
@@ -190,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            ushort max = OrigJpegConstants.MaxLength;
+            ushort max = JpegConstants.MaxLength;
             if (image.Width >= max || image.Height >= max)
             {
                 throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
@@ -234,8 +231,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.WriteStartOfScan(image);
 
             // Write the End Of Image marker.
-            this.buffer[0] = OrigJpegConstants.Markers.XFF;
-            this.buffer[1] = OrigJpegConstants.Markers.EOI;
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.EOI;
             stream.Write(this.buffer, 0, 2);
             stream.Flush();
         }
@@ -382,18 +379,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // (Partially done with YCbCrForwardConverter<TPixel>)
-            Block8x8F temp1 = default(Block8x8F);
-            Block8x8F temp2 = default(Block8x8F);
+            Block8x8F temp1 = default;
+            Block8x8F temp2 = default;
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
-            ZigZag unzig = ZigZag.CreateUnzigTable();
+            var unzig = ZigZag.CreateUnzigTable();
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
-            YCbCrForwardConverter<TPixel> pixelConverter = YCbCrForwardConverter<TPixel>.Create();
+            var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
@@ -437,12 +434,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
         {
             // Write the start of image marker. Markers are always prefixed with with 0xff.
-            this.buffer[0] = OrigJpegConstants.Markers.XFF;
-            this.buffer[1] = OrigJpegConstants.Markers.SOI;
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.SOI;
 
             // Write the JFIF headers
-            this.buffer[2] = OrigJpegConstants.Markers.XFF;
-            this.buffer[3] = OrigJpegConstants.Markers.APP0; // Application Marker
+            this.buffer[2] = JpegConstants.Markers.XFF;
+            this.buffer[3] = JpegConstants.Markers.APP0; // Application Marker
             this.buffer[4] = 0x00;
             this.buffer[5] = 0x10;
             this.buffer[6] = 0x4a; // J
@@ -502,7 +499,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
 
             // Emit the AC components.
-            HuffIndex h = (HuffIndex)((2 * (int)index) + 1);
+            var h = (HuffIndex)((2 * (int)index) + 1);
             int runLength = 0;
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
@@ -556,7 +553,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 markerlen += 1 + 16 + s.Values.Length;
             }
 
-            this.WriteMarkerHeader(OrigJpegConstants.Markers.DHT, markerlen);
+            this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
             for (int i = 0; i < specs.Length; i++)
             {
                 HuffmanSpec spec = specs[i];
@@ -590,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             // Marker + quantization table lengths
             int markerlen = 2 + (QuantizationTableCount * (1 + Block8x8F.Size));
-            this.WriteMarkerHeader(OrigJpegConstants.Markers.DQT, markerlen);
+            this.WriteMarkerHeader(JpegConstants.Markers.DQT, markerlen);
 
             // Loop through and collect the tables as one array.
             // This allows us to reduce the number of writes to the stream.
@@ -627,8 +624,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             int length = data.Length + 2;
 
-            this.buffer[0] = OrigJpegConstants.Markers.XFF;
-            this.buffer[1] = OrigJpegConstants.Markers.APP1; // Application Marker
+            this.buffer[0] = JpegConstants.Markers.XFF;
+            this.buffer[1] = JpegConstants.Markers.APP1; // Application Marker
             this.buffer[2] = (byte)((length >> 8) & 0xFF);
             this.buffer[3] = (byte)(length & 0xFF);
 
@@ -686,8 +683,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 dataLength -= length;
 
-                this.buffer[0] = OrigJpegConstants.Markers.XFF;
-                this.buffer[1] = OrigJpegConstants.Markers.APP2; // Application Marker
+                this.buffer[0] = JpegConstants.Markers.XFF;
+                this.buffer[1] = JpegConstants.Markers.APP2; // Application Marker
                 int markerLength = length + 16;
                 this.buffer[2] = (byte)((markerLength >> 8) & 0xFF);
                 this.buffer[3] = (byte)(markerLength & 0xFF);
@@ -759,7 +756,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             // Length (high byte, low byte), 8 + components * 3.
             int markerlen = 8 + (3 * componentCount);
-            this.WriteMarkerHeader(OrigJpegConstants.Markers.SOF0, markerlen);
+            this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen);
             this.buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
             this.buffer[1] = (byte)(height >> 8);
             this.buffer[2] = (byte)(height & 0xff); // (2 bytes, Hi-Lo), must be > 0 if DNL not supported
@@ -827,20 +824,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
-            Block8x8F b = default(Block8x8F);
+            Block8x8F b = default;
 
-            BlockQuad cb = default(BlockQuad);
-            BlockQuad cr = default(BlockQuad);
-            Block8x8F* cbPtr = (Block8x8F*)cb.Data;
-            Block8x8F* crPtr = (Block8x8F*)cr.Data;
+            BlockQuad cb = default;
+            BlockQuad cr = default;
+            var cbPtr = (Block8x8F*)cb.Data;
+            var crPtr = (Block8x8F*)cr.Data;
 
-            Block8x8F temp1 = default(Block8x8F);
-            Block8x8F temp2 = default(Block8x8F);
+            Block8x8F temp1 = default;
+            Block8x8F temp2 = default;
 
             Block8x8F onStackLuminanceQuantTable = this.luminanceQuantTable;
             Block8x8F onStackChrominanceQuantTable = this.chrominanceQuantTable;
 
-            ZigZag unzig = ZigZag.CreateUnzigTable();
+            var unzig = ZigZag.CreateUnzigTable();
 
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
 
@@ -902,7 +899,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private void WriteMarkerHeader(byte marker, int length)
         {
             // Markers are always prefixed with with 0xff.
-            this.buffer[0] = OrigJpegConstants.Markers.XFF;
+            this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = marker;
             this.buffer[2] = (byte)(length >> 8);
             this.buffer[3] = (byte)(length & 0xff);

@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var expecteColorSpace = (JpegColorSpace)expectedColorSpaceValue;
 
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
+            using (GolangJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
             {
                 Assert.Equal(expecteColorSpace, decoder.ColorSpace);
             }
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void ComponentScalingIsCorrect_1ChannelJpeg()
         {
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Baseline.Jpeg400, false))
+            using (GolangJpegDecoderCore decoder = JpegFixture.ParseStream(TestImages.Jpeg.Baseline.Jpeg400, false))
             {
                 Assert.Equal(1, decoder.ComponentCount);
                 Assert.Equal(1, decoder.Components.Length);
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             var sb = new StringBuilder();
 
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
+            using (GolangJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
             {
                 sb.AppendLine(imageFile);
                 sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Size fLuma = (Size)expectedLumaFactors;
             Size fChroma = (Size)expectedChromaFactors;
 
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
+            using (GolangJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile, false))
             {
                 Assert.Equal(componentCount, decoder.ComponentCount);
                 Assert.Equal(componentCount, decoder.Components.Length);

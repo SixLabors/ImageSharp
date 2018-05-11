@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// </summary>
-    internal sealed unsafe class OrigJpegDecoderCore : IRawJpegData
+    internal sealed unsafe class GolangJpegDecoderCore : IRawJpegData
     {
         /// <summary>
         /// The maximum number of color components
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 #pragma warning disable SA1401 // FieldsMustBePrivate
 
         /// <summary>
-        /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
+        /// Encapsulates stream reading and processing data and operations for <see cref="GolangJpegDecoderCore"/>.
         /// It's a value type for improved data locality, and reduced number of CALLVIRT-s
         /// </summary>
         public InputProcessor InputProcessor;
@@ -79,11 +79,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private AdobeMarker adobe;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OrigJpegDecoderCore" /> class.
+        /// Initializes a new instance of the <see cref="GolangJpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public OrigJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
+        public GolangJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);
 
-            if (this.Temp[0] != OrigJpegConstants.Markers.XFF || this.Temp[1] != OrigJpegConstants.Markers.SOI)
+            if (this.Temp[0] != JpegConstants.Markers.XFF || this.Temp[1] != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
@@ -302,12 +302,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 }
 
                 // End Of Image.
-                if (marker == OrigJpegConstants.Markers.EOI)
+                if (marker == JpegConstants.Markers.EOI)
                 {
                     break;
                 }
 
-                if (marker >= OrigJpegConstants.Markers.RST0 && marker <= OrigJpegConstants.Markers.RST7)
+                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
                 {
                     // Figures B.2 and B.16 of the specification suggest that restart markers should
                     // only occur between Entropy Coded Segments and not after the final ECS.
@@ -329,14 +329,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 switch (marker)
                 {
-                    case OrigJpegConstants.Markers.SOF0:
-                    case OrigJpegConstants.Markers.SOF1:
-                    case OrigJpegConstants.Markers.SOF2:
-                        this.IsProgressive = marker == OrigJpegConstants.Markers.SOF2;
+                    case JpegConstants.Markers.SOF0:
+                    case JpegConstants.Markers.SOF1:
+                    case JpegConstants.Markers.SOF2:
+                        this.IsProgressive = marker == JpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining, metadataOnly);
 
                         break;
-                    case OrigJpegConstants.Markers.DHT:
+                    case JpegConstants.Markers.DHT:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -347,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OrigJpegConstants.Markers.DQT:
+                    case JpegConstants.Markers.DQT:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -358,7 +358,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OrigJpegConstants.Markers.SOS:
+                    case JpegConstants.Markers.SOS:
                         if (!metadataOnly)
                         {
                             this.ProcessStartOfScanMarker(remaining);
@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
 
-                    case OrigJpegConstants.Markers.DRI:
+                    case JpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -388,21 +388,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                         }
 
                         break;
-                    case OrigJpegConstants.Markers.APP0:
+                    case JpegConstants.Markers.APP0:
                         this.ProcessApplicationHeaderMarker(remaining);
                         break;
-                    case OrigJpegConstants.Markers.APP1:
+                    case JpegConstants.Markers.APP1:
                         this.ProcessApp1Marker(remaining);
                         break;
-                    case OrigJpegConstants.Markers.APP2:
+                    case JpegConstants.Markers.APP2:
                         this.ProcessApp2Marker(remaining);
                         break;
-                    case OrigJpegConstants.Markers.APP14:
+                    case JpegConstants.Markers.APP14:
                         this.ProcessApp14Marker(remaining);
                         break;
                     default:
-                        if ((marker >= OrigJpegConstants.Markers.APP0 && marker <= OrigJpegConstants.Markers.APP15)
-                            || marker == OrigJpegConstants.Markers.COM)
+                        if ((marker >= JpegConstants.Markers.APP0 && marker <= JpegConstants.Markers.APP15)
+                            || marker == JpegConstants.Markers.COM)
                         {
                             this.InputProcessor.Skip(remaining);
                         }
@@ -779,19 +779,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 case 1:
                     return JpegColorSpace.Grayscale;
                 case 3:
-                    if (!this.isAdobe || this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYCbCr)
+                    if (!this.isAdobe || this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYCbCr)
                     {
                         return JpegColorSpace.YCbCr;
                     }
 
-                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformUnknown)
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformUnknown)
                     {
                         return JpegColorSpace.RGB;
                     }
 
                     break;
                 case 4:
-                    if (this.adobe.ColorTransform == OrigJpegConstants.Adobe.ColorTransformYcck)
+                    if (this.adobe.ColorTransform == JpegConstants.Adobe.ColorTransformYcck)
                     {
                         return JpegColorSpace.Ycck;
                     }

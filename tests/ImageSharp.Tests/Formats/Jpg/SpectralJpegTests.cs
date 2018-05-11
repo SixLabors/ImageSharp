@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void OriginalDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            var decoder = new GolangJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            var decoder = new GolangJpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 

@@ -44,6 +44,28 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Theory]
+        [WithBlankImages(20, 10, PixelTypes.Rgba32)]
+        [WithBlankImages(20, 10, PixelTypes.Argb32)]
+        [WithBlankImages(20, 10, PixelTypes.Rgb24)]
+        public void DoesNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.VerifyOperation(
+                image =>
+                    {
+                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(0, 0),
+                            new SixLabors.Primitives.Point(image.Width, 0),
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, NamedColors<TPixel>.Blue),
+                            new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
+
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    }, 
+                appendSourceFileOrDescription: false);
+        }
+
+        [Theory]
         [WithBlankImages(500, 10, PixelTypes.Rgba32)]
         public void HorizontalReturnsUnicolorColumns<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -92,6 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                         image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
                     },
+                $"{repetitionMode}",
                 false,
                 false);
         }
@@ -205,16 +228,16 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         [Theory]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, ImageCorner.TopLeft)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, ImageCorner.TopRight)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, ImageCorner.BottomLeft)]
-        [WithBlankImages(500, 500, PixelTypes.Rgba32, ImageCorner.BottomRight)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, ImageCorner.TopLeft)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, ImageCorner.TopRight)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, ImageCorner.BottomLeft)]
+        [WithBlankImages(200, 200, PixelTypes.Rgba32, ImageCorner.BottomRight)]
         public void DiagonalReturnsCorrectImages<TPixel>(
             TestImageProvider<TPixel> provider,
             ImageCorner startCorner)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 Assert.True(image.Height == image.Width, "For the math check block at the end the image must be squared, but it is not.");
 
@@ -226,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 TPixel red = NamedColors<TPixel>.Red;
                 TPixel yellow = NamedColors<TPixel>.Yellow;
 
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
+                var unicolorLinearGradientBrush =
                     new LinearGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(startX, startY),
                         new SixLabors.Primitives.Point(endX, endY),
@@ -235,30 +258,35 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new ColorStop<TPixel>(1, yellow));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, startCorner);
+                image.DebugSave(
+                    provider,
+                    startCorner,
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
 
                 int verticalSign = startY == 0 ? 1 : -1;
                 int horizontalSign = startX == 0 ? 1 : -1;
 
-                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
-                {
-                    // check first and last pixel, these are known:
-                    Assert.Equal(red, sourcePixels[startX, startY]);
-                    Assert.Equal(yellow, sourcePixels[endX, endY]);
+                // check first and last pixel, these are known:
+                Assert.Equal(red, image[startX, startY]);
+                Assert.Equal(yellow, image[endX, endY]);
 
-                    for (int i = 0; i < image.Height; i++)
+                for (int i = 0; i < image.Height; i++)
+                {
+                    // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
+                    TPixel colorOnDiagonal = image[i, i];
+                    int orthoCount = 0;
+                    for (int offset = -orthoCount; offset < orthoCount; offset++)
                     {
-                        // it's diagonal, so for any (a, a) on the gradient line, for all (a-x, b+x) - +/- depending on the diagonal direction - must be the same color)
-                        TPixel colorOnDiagonal = sourcePixels[i, i];
-                        int orthoCount = 0;
-                        for (int offset = -orthoCount; offset < orthoCount; offset++)
-                        {
-                            Assert.Equal(colorOnDiagonal, sourcePixels[i + horizontalSign * offset, i + verticalSign * offset]);
-                        }
+                        Assert.Equal(colorOnDiagonal, image[i + horizontalSign * offset, i + verticalSign * offset]);
                     }
                 }
 
-                image.CompareToReferenceOutput(provider, startCorner);
+                image.CompareToReferenceOutput(
+                    provider,
+                    startCorner,
+                    appendPixelTypeToFileName: false,
+                    appendSourceFileOrDescription: false);
             }
         }
 
@@ -275,46 +303,38 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             int[] stopColorCodes)
             where TPixel : struct, IPixel<TPixel>
         {
-            var colors = new []
-                             {
-                                 NamedColors<TPixel>.Navy,
-                                 NamedColors<TPixel>.LightGreen,
-                                 NamedColors<TPixel>.Yellow,
+            TPixel[] colors = {
+                                 NamedColors<TPixel>.Navy, NamedColors<TPixel>.LightGreen, NamedColors<TPixel>.Yellow,
                                  NamedColors<TPixel>.Red
                              };
 
-            StringBuilder coloringVariant = new StringBuilder();
-            var colorStops = new ColorStop<TPixel>[stopPositions.Length];
+            var coloringVariant = new StringBuilder();
+            ColorStop<TPixel>[] colorStops = new ColorStop<TPixel>[stopPositions.Length];
             for (int i = 0; i < stopPositions.Length; i++)
             {
                 TPixel color = colors[stopColorCodes[i % colors.Length]];
                 float position = stopPositions[i];
 
-                colorStops[i] = new ColorStop<TPixel>(
-                    position,
-                    color);
-                coloringVariant.AppendFormat(
-                    CultureInfo.InvariantCulture,
-                    "{0}@{1};",
-                    color,
-                    position);
+                colorStops[i] = new ColorStop<TPixel>(position, color);
+                coloringVariant.AppendFormat(CultureInfo.InvariantCulture, "{0}@{1};", color, position);
             }
 
-            string variant = $"{startX},{startY}to{endX},{endY};[{coloringVariant}]";
+            FormattableString variant = $"({startX},{startY})_TO_({endX},{endY})__[{coloringVariant}]";
 
-            using (var image = provider.GetImage())
-            {
-                LinearGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new LinearGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(startX, startY),
-                        new SixLabors.Primitives.Point(endX, endY),
-                        GradientRepetitionMode.None,
-                        colorStops);
+            provider.VerifyOperation(
+                image =>
+                    {
+                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(startX, startY),
+                            new SixLabors.Primitives.Point(endX, endY),
+                            GradientRepetitionMode.None,
+                            colorStops);
 
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, variant);
-                image.CompareToReferenceOutput(provider, variant);
-            }
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    },
+                variant,
+                false,
+                false);
         }
     }
 }

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
     {
         [Theory]
         [WithBlankImages(10, 10, PixelTypes.Rgba32)]
-        public void EllipticGradientBrushWithEqualColorsAndReturnsUnicolorImage<TPixel>(
+        public void WithEqualColorsReturnsUnicolorImage<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.2)]
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.6)]
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 2.0)]
-        public void EllipticGradientBrushProducesAxisParallelEllipsesWithDifferentRatio<TPixel>(
+        public void AxisParallelEllipsesWithDifferentRatio<TPixel>(
             TestImageProvider<TPixel> provider,
             float ratio)
             where TPixel : struct, IPixel<TPixel>
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new ColorStop<TPixel>(1, black));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, ratio);
+                image.DebugSave(provider, ratio.ToString("F1"));
                 image.CompareToReferenceOutput(provider, ratio);
             }
         }
@@ -104,13 +104,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.4, 30)]
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 0.8, 30)]
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 1.0, 30)]
-        public void EllipticGradientBrushProducesRotatedEllipsesWithDifferentRatio<TPixel>(
+        public void RotatedEllipsesWithDifferentRatio<TPixel>(
             TestImageProvider<TPixel> provider,
             float ratio,
             float rotationInDegree)
             where TPixel: struct, IPixel<TPixel>
         {
-            string variant = $"{ratio}at{rotationInDegree}°";
+            string variant = $"{ratio:F2}at{rotationInDegree:00}°";
 
             using (var image = provider.GetImage())
             {

@@ -7,6 +7,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using System;
+
     [GroupOutput("Drawing/GradientBrushes")]
     public class FillRadialGradientBrushTests
     {
@@ -16,23 +18,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
-            {
-                TPixel red = NamedColors<TPixel>.Red;
+            provider.VerifyOperation(
+                image =>
+                    {
+                        TPixel red = NamedColors<TPixel>.Red;
 
-                RadialGradientBrush<TPixel> unicolorRadialGradientBrush =
-                    new RadialGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(0, 0),
-                        100,
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, red),
-                        new ColorStop<TPixel>(1, red));
+                        var unicolorRadialGradientBrush =
+                            new RadialGradientBrush<TPixel>(
+                                new SixLabors.Primitives.Point(0, 0),
+                                100,
+                                GradientRepetitionMode.None,
+                                new ColorStop<TPixel>(0, red),
+                                new ColorStop<TPixel>(1, red));
 
-                image.Mutate(x => x.Fill(unicolorRadialGradientBrush));
-                image.DebugSave(provider);
-
-                image.CompareToReferenceOutput(provider);
-            }
+                        image.Mutate(x => x.Fill(unicolorRadialGradientBrush));
+                    },
+                false,
+                false);
         }
 
         [Theory]
@@ -47,20 +49,21 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             int centerY)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var image = provider.GetImage())
-            {
-                RadialGradientBrush<TPixel> brush =
-                    new RadialGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(centerX, centerY),
-                        image.Width / 2f,
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, NamedColors<TPixel>.Red),
-                        new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
+            provider.VerifyOperation(
+                image =>
+                    {
+                        var brush = new RadialGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(centerX, centerY),
+                            image.Width / 2f,
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, NamedColors<TPixel>.Red),
+                            new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
 
-                image.Mutate(x => x.Fill(brush));
-                image.DebugSave(provider, $"center{centerX:D3},{centerY:D3}");
-                image.CompareToReferenceOutput(provider);
-            }
+                        image.Mutate(x => x.Fill(brush));
+                    },
+                $"center({centerX},{centerY})",
+                false,
+                false);
         }
     }
 }

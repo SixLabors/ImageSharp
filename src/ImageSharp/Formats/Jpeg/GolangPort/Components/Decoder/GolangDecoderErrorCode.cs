@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// <summary>
     /// Represents "recoverable" decoder errors.
     /// </summary>
-    internal enum OrigDecoderErrorCode
+    internal enum GolangDecoderErrorCode
     {
         /// <summary>
         /// NoError

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// Represents a component scan
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal struct OrigComponentScan
+    internal struct GolangComponentScan
     {
         /// <summary>
         /// Gets or sets the component index.

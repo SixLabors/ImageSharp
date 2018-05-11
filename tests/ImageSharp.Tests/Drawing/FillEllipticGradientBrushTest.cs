@@ -13,7 +13,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
     [GroupOutput("Drawing/GradientBrushes")]
-    public class FillEllipticGradientBrushTests : FileTestBase
+    public class FillEllipticGradientBrushTests
     {
         [Theory]
         [WithBlankImages(10, 10, PixelTypes.Rgba32)]

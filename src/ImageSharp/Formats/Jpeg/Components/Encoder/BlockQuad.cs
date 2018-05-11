@@ -3,7 +3,7 @@
 
 using Block8x8F = SixLabors.ImageSharp.Formats.Jpeg.Common.Block8x8F;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Encoder
 {
     /// <summary>
     /// Poor man's stackalloc: Contains a value-type <see cref="float"/> buffer sized for 4 <see cref="Common.Block8x8F"/> instances.
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components
     internal unsafe struct BlockQuad
     {
         /// <summary>
-        /// The value-type <see cref="float"/> buffer sized for 4 <see cref="Common.Block8x8F"/> instances.
+        /// The value-type <see cref="float"/> buffer sized for 4 <see cref="Block8x8F"/> instances.
         /// </summary>
         public fixed float Data[4 * Block8x8F.Size];
     }

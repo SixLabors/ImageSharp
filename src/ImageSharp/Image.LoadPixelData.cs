@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> LoadPixelData<TPixel>(Span<byte> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData<TPixel>(Configuration.Default, data, width, height);
 

@@ -273,6 +273,27 @@ namespace SixLabors.ImageSharp.Tests
             this Image<TPixel> image,
             ImageComparer comparer,
             ITestImageProvider provider,
+            FormattableString testOutputDetails,
+            string extension = "png",
+            bool grayscale = false,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return image.CompareFirstFrameToReferenceOutput(
+                comparer,
+                provider,
+                (object)testOutputDetails,
+                extension,
+                grayscale,
+                appendPixelTypeToFileName,
+                appendSourceFileOrDescription);
+        }
+
+        public static Image<TPixel> CompareFirstFrameToReferenceOutput<TPixel>(
+            this Image<TPixel> image,
+            ImageComparer comparer,
+            ITestImageProvider provider,
             object testOutputDetails = null,
             string extension = "png",
             bool grayscale = false,

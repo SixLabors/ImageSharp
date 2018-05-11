@@ -3,9 +3,10 @@
 
 using System;
 using System.Numerics;
+
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
     /// <summary>
     /// Extension methods for <see cref="Size"/>

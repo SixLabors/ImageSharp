@@ -18,7 +18,7 @@ using System.Runtime.CompilerServices;
 <#
 char[] coordz = {'X', 'Y', 'Z', 'W'};
 #>
-namespace SixLabors.ImageSharp.Formats.Jpeg.Common
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
 	internal partial struct Block8x8F
     {

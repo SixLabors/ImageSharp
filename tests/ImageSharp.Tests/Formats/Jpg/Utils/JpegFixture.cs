@@ -9,7 +9,7 @@ using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 
 using Xunit;
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     double val = rnd.NextDouble();
                     val *= maxValue - minValue;
                     val += minValue;
-                    
+
                     result[i * 8 + j] = (float)val;
                 }
             }
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         internal void CompareBlocks(Block8x8 a, Block8x8 b, int tolerance) =>
             this.CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), (float)tolerance + 1e-5f);
 
-        internal void CompareBlocks(Block8x8F a, Block8x8F b, float tolerance) 
+        internal void CompareBlocks(Block8x8F a, Block8x8F b, float tolerance)
             => this.CompareBlocks(a.ToArray(), b.ToArray(), tolerance);
 
         internal void CompareBlocks(Span<float> a, Span<float> b, float tolerance)
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 }
             }
 
-            this.Output.WriteLine("TOTAL DIFF: "+totalDifference);
+            this.Output.WriteLine("TOTAL DIFF: " + totalDifference);
             Assert.False(failed);
         }
 

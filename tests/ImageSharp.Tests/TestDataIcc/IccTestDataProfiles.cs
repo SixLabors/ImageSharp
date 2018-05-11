@@ -9,6 +9,27 @@ namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataProfiles
     {
+        public static readonly IccProfileId Header_Random_Id_Value = new IccProfileId(0x84A8D460, 0xC716B6F3, 0x9B0E4C3D, 0xAB95F838);
+        public static readonly IccProfileId Profile_Random_Id_Value = new IccProfileId(0x917D6DE6, 0x84C958D1, 0x3BB0F5BB, 0xADD1134F);
+
+        public static readonly byte[] Header_Random_Id_Array =
+        {
+#if !NETSTANDARD1_1
+                0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38,
+#else
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+#endif
+        };
+
+        public static readonly byte[] Profile_Random_Id_Array =
+        {
+#if !NETSTANDARD1_1
+                0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F,
+#else
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+#endif
+        };
+
         public static readonly IccProfileHeader Header_Random_Write = CreateHeaderRandomValue(
             562,        // should be overwritten
             new IccProfileId(1, 2, 3, 4),   // should be overwritten
@@ -16,20 +37,13 @@ namespace SixLabors.ImageSharp.Tests
 
         public static readonly IccProfileHeader Header_Random_Read = CreateHeaderRandomValue(132,
 #if !NETSTANDARD1_1
-            new IccProfileId(2931428592, 418415738, 3086756963, 2237536530),
+            Header_Random_Id_Value,
 #else
             IccProfileId.Zero,
 #endif
             "acsp");
 
-        public static readonly byte[] Header_Random_Array = CreateHeaderRandomArray(132, 0, new byte[]
-        {
-#if !NETSTANDARD1_1
-                0xAE, 0xBA, 0x0C, 0xF0, 0x18, 0xF0, 0x84, 0x7A, 0xB7, 0xFC, 0x2C, 0x63, 0x85, 0x5E, 0x19, 0x12,
-#else
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-#endif
-        });
+        public static readonly byte[] Header_Random_Array = CreateHeaderRandomArray(132, 0, Header_Random_Id_Array);
 
         public static IccProfileHeader CreateHeaderRandomValue(uint size, IccProfileId id, string fileSignature)
         {
@@ -45,11 +59,7 @@ namespace SixLabors.ImageSharp.Tests
                 DeviceModel = 987654321u,
                 FileSignature = "acsp",
                 Flags = IccProfileFlag.Embedded | IccProfileFlag.Independent,
-#if !NETSTANDARD1_1
-                Id = new IccProfileId(2931428592, 418415738, 3086756963, 2237536530),
-#else
-            Id = IccProfileId.Zero,
-#endif
+                Id = id,
                 PcsIlluminant = new Vector3(4, 5, 6),
                 PrimaryPlatformSignature = IccPrimaryPlatformType.MicrosoftCorporation,
                 ProfileConnectionSpace = IccColorSpaceType.CieXyz,
@@ -94,14 +104,7 @@ namespace SixLabors.ImageSharp.Tests
                  });
         }
 
-        public static byte[] Profile_Random_Array = ArrayHelper.Concat(CreateHeaderRandomArray(168, 2, new byte[] 
-            {
-#if !NETSTANDARD1_1
-                0xA9, 0x71, 0x8F, 0xC1, 0x1E, 0x2D, 0x64, 0x1B, 0x10, 0xF4, 0x7D, 0x6A, 0x5B, 0xF6, 0xAC, 0xB9
-#else
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-#endif
-            }),
+        public static byte[] Profile_Random_Array = ArrayHelper.Concat(CreateHeaderRandomArray(168, 2, Profile_Random_Id_Array),
             new byte[]
             {
                 0x00, 0x00, 0x00, 0x00,     // tag signature (Unknown)
@@ -118,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public static IccProfile Profile_Random_Val = new IccProfile(CreateHeaderRandomValue(168,
 #if !NETSTANDARD1_1
-            new IccProfileId(0xA9718FC1, 0x1E2D641B, 0x10F47D6A, 0x5BF6ACB9),
+            Profile_Random_Id_Value,
 #else
             IccProfileId.Zero,
 #endif
@@ -128,5 +131,11 @@ namespace SixLabors.ImageSharp.Tests
                 IccTestDataTagDataEntry.Unknown_Val,
                 IccTestDataTagDataEntry.Unknown_Val
             });
+
+        public static object[][] ProfileIdTestData =
+        {
+            new object[] { Header_Random_Array, Header_Random_Id_Value },
+            new object[] { Profile_Random_Array, Profile_Random_Id_Value },
+        };
     }
 }

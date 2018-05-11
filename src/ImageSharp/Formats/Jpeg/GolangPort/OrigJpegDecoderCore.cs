@@ -87,8 +87,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.configuration = configuration ?? Configuration.Default;
-            this.HuffmanTrees = OrigHuffmanTree.CreateHuffmanTrees();
-            this.QuantizationTables = new Block8x8F[MaxTq + 1];
             this.Temp = new byte[2 * Block8x8F.Size];
         }
 
@@ -103,10 +101,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the huffman trees
         /// </summary>
-        public OrigHuffmanTree[] HuffmanTrees { get; }
+        public OrigHuffmanTree[] HuffmanTrees { get; private set; }
 
         /// <inheritdoc />
-        public Block8x8F[] QuantizationTables { get; }
+        public Block8x8F[] QuantizationTables { get; private set; }
 
         /// <summary>
         /// Gets the temporary buffer used to store bytes read from the stream.
@@ -193,7 +191,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
-
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -204,7 +201,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
-
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
@@ -215,7 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             {
                 foreach (OrigComponent component in this.Components)
                 {
-                    component.Dispose();
+                    component?.Dispose();
                 }
             }
 
@@ -232,6 +228,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             this.MetaData = new ImageMetaData();
             this.InputStream = stream;
             this.InputProcessor = new InputProcessor(stream, this.Temp);
+
+            if (!metadataOnly)
+            {
+                this.HuffmanTrees = OrigHuffmanTree.CreateHuffmanTrees();
+                this.QuantizationTables = new Block8x8F[MaxTq + 1];
+            }
 
             // Check for the Start Of Image marker.
             this.InputProcessor.ReadFull(this.Temp, 0, 2);
@@ -332,10 +334,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     case OrigJpegConstants.Markers.SOF2:
                         this.IsProgressive = marker == OrigJpegConstants.Markers.SOF2;
                         this.ProcessStartOfFrameMarker(remaining, metadataOnly);
-                        if (metadataOnly && this.isJFif)
-                        {
-                            return;
-                        }
 
                         break;
                     case OrigJpegConstants.Markers.DHT:
@@ -361,19 +359,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case OrigJpegConstants.Markers.SOS:
-                        if (metadataOnly)
+                        if (!metadataOnly)
                         {
-                            return;
+                            this.ProcessStartOfScanMarker(remaining);
+                            if (this.InputProcessor.ReachedEOF)
+                            {
+                                // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
+                                processBytes = false;
+                            }
                         }
-
-                        this.ProcessStartOfScanMarker(remaining);
-                        if (this.InputProcessor.ReachedEOF)
+                        else
                         {
-                            // If unexpected EOF reached. We can stop processing bytes as we now have the image data.
+                            // It's highly unlikely that APPn related data will be found after the SOS marker
+                            // We should have gathered everything we need by now.
                             processBytes = false;
                         }
 
                         break;
+
                     case OrigJpegConstants.Markers.DRI:
                         if (metadataOnly)
                         {
@@ -425,7 +428,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </summary>
         private void InitDerivedMetaDataProperties()
         {
-            if (this.isExif)
+            if (this.isJFif)
+            {
+                this.MetaData.HorizontalResolution = this.jFif.XDensity;
+                this.MetaData.VerticalResolution = this.jFif.YDensity;
+            }
+            else if (this.isExif)
             {
                 double horizontalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizonalTag)
                     ? ((Rational)horizonalTag.Value).ToDouble()
@@ -440,11 +448,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
-            }
-            else if (this.isJFif)
-            {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -675,26 +678,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 throw new ImageFormatException("SOF has wrong length");
             }
 
-            this.Components = new OrigComponent[this.ComponentCount];
-
-            for (int i = 0; i < this.ComponentCount; i++)
+            if (!metadataOnly)
             {
-                byte componentIdentifier = this.Temp[6 + (3 * i)];
-                var component = new OrigComponent(componentIdentifier, i);
-                component.InitializeCoreData(this);
-                this.Components[i] = component;
-            }
+                this.Components = new OrigComponent[this.ComponentCount];
 
-            int h0 = this.Components[0].HorizontalSamplingFactor;
-            int v0 = this.Components[0].VerticalSamplingFactor;
+                for (int i = 0; i < this.ComponentCount; i++)
+                {
+                    byte componentIdentifier = this.Temp[6 + (3 * i)];
+                    var component = new OrigComponent(componentIdentifier, i);
+                    component.InitializeCoreData(this);
+                    this.Components[i] = component;
+                }
 
-            this.ImageSizeInMCU = this.ImageSizeInPixels.DivideRoundUp(8 * h0, 8 * v0);
+                int h0 = this.Components[0].HorizontalSamplingFactor;
+                int v0 = this.Components[0].VerticalSamplingFactor;
 
-            this.ColorSpace = this.DeduceJpegColorSpace();
+                this.ImageSizeInMCU = this.ImageSizeInPixels.DivideRoundUp(8 * h0, 8 * v0);
 
-            foreach (OrigComponent component in this.Components)
-            {
-                component.InitializeDerivedData(this.configuration.MemoryManager, this, metadataOnly);
+                this.ColorSpace = this.DeduceJpegColorSpace();
+
+                foreach (OrigComponent component in this.Components)
+                {
+                    component.InitializeDerivedData(this.configuration.MemoryManager, this);
+                }
             }
         }
 

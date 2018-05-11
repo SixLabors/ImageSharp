@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
 
-                string testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
+                FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
                 image.DebugSave(provider, testOutputDetails);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
             }
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
 
-                string testOutputDetails = $"R({angleDeg})_S({s})";
+                FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
                 image.DebugSave(provider, testOutputDetails);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
             }

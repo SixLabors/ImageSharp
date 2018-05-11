@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 #if !NETSTANDARD1_1
 
         /// <summary>
-        /// Calculates the MD5 hash value of an ICC profile header
+        /// Calculates the MD5 hash value of an ICC profile
         /// </summary>
         /// <param name="data">The data of which to calculate the hash value</param>
         /// <returns>The calculated hash</returns>
@@ -117,22 +117,38 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
 
-            byte[] header = new byte[128];
-            Buffer.BlockCopy(data, 0, header, 0, 128);
+            const int profileFlagPos = 44;
+            const int renderingIntentPos = 64;
+            const int profileIdPos = 84;
+
+            // need to copy some values because they need to be zero for the hashing
+            byte[] temp = new byte[24];
+            Buffer.BlockCopy(data, profileFlagPos, temp, 0, 4);
+            Buffer.BlockCopy(data, renderingIntentPos, temp, 4, 4);
+            Buffer.BlockCopy(data, profileIdPos, temp, 8, 16);
 
             using (var md5 = MD5.Create())
             {
-                // Zero out some values
-                Array.Clear(header, 44, 4);     // Profile flags
-                Array.Clear(header, 64, 4);     // Rendering Intent
-                Array.Clear(header, 84, 16);    // Profile ID
+                try
+                {
+                    // Zero out some values
+                    Array.Clear(data, profileFlagPos, 4);
+                    Array.Clear(data, renderingIntentPos, 4);
+                    Array.Clear(data, profileIdPos, 16);
 
-                // Calculate hash
-                byte[] hash = md5.ComputeHash(data);
+                    // Calculate hash
+                    byte[] hash = md5.ComputeHash(data);
 
-                // Read values from hash
-                var reader = new IccDataReader(hash);
-                return reader.ReadProfileId();
+                    // Read values from hash
+                    var reader = new IccDataReader(hash);
+                    return reader.ReadProfileId();
+                }
+                finally
+                {
+                    Buffer.BlockCopy(temp, 0, data, profileFlagPos, 4);
+                    Buffer.BlockCopy(temp, 4, data, renderingIntentPos, 4);
+                    Buffer.BlockCopy(temp, 8, data, profileIdPos, 16);
+                }
             }
         }
 

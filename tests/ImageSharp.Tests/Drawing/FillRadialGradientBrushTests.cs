@@ -7,11 +7,12 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    public class FillRadialGradientBrushTests : FileTestBase
+    [GroupOutput("Drawing/GradientBrushes")]
+    public class FillRadialGradientBrushTests
     {
         [Theory]
         [WithBlankImages(200, 200, PixelTypes.Rgba32)]
-        public void RadialGradientBrushWithEqualColorsReturnsUnicolorImage<TPixel>(
+        public void WithEqualColorsReturnsUnicolorImage<TPixel>(
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 100, 0)]
         [WithBlankImages(200, 200, PixelTypes.Rgba32, 0, 100)]
         [WithBlankImages(200, 200, PixelTypes.Rgba32, -40, 100)]
-        public void RadialGradientBrushWithDifferentCentersReturnsImage<TPixel>(
+        public void WithDifferentCentersReturnsImage<TPixel>(
             TestImageProvider<TPixel> provider,
             int centerX,
             int centerY)
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
 
                 image.Mutate(x => x.Fill(brush));
-                image.DebugSave(provider);
+                image.DebugSave(provider, $"center{centerX:D3},{centerY:D3}");
                 image.CompareToReferenceOutput(provider);
             }
         }

@@ -22,7 +22,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 {
     /// <summary>
     /// Performs the jpeg decoding operation.
-    /// Ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/> with additional fixes to handle common encoding errors
+    /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
+    /// with additional fixes for both performance and common encoding errors.
     /// </summary>
     internal sealed class PdfJsJpegDecoderCore : IRawJpegData
     {
@@ -31,7 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         public const int SupportedPrecision = 8;
 
-#pragma warning disable SA1401 // Fields should be private
         /// <summary>
         /// The global configuration
         /// </summary>
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <summary>
         /// Gets the input stream.
         /// </summary>
-        public Stream InputStream { get; private set; }
+        public DoubleBufferedStreamReader InputStream { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="PdfJsFileMarker"/></returns>
-        public static PdfJsFileMarker FindNextFileMarker(byte[] marker, Stream stream)
+        public static PdfJsFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
         {
             int value = stream.Read(marker, 0, 2);
 
@@ -157,7 +157,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             {
                 // According to Section B.1.1.2:
                 // "Any marker may optionally be preceded by any number of fill bytes, which are bytes assigned code 0xFF."
-                while (marker[1] == PdfJsJpegConstants.Markers.Prefix)
+                int m = marker[1];
+                while (m == PdfJsJpegConstants.Markers.Prefix)
                 {
                     int suffix = stream.ReadByte();
                     if (suffix == -1)
@@ -165,13 +166,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         return new PdfJsFileMarker(PdfJsJpegConstants.Markers.EOI, stream.Length - 2);
                     }
 
-                    marker[1] = (byte)suffix;
+                    m = suffix;
                 }
 
-                return new PdfJsFileMarker(BinaryPrimitives.ReadUInt16BigEndian(marker), stream.Position - 2);
+                return new PdfJsFileMarker((byte)m, stream.Position - 2);
             }
 
-            return new PdfJsFileMarker(BinaryPrimitives.ReadUInt16BigEndian(marker), stream.Position - 2, true);
+            return new PdfJsFileMarker(marker[1], stream.Position - 2, true);
         }
 
         /// <summary>
@@ -184,6 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
+            this.AssignResolution();
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -206,136 +208,142 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
-            this.InputStream = stream;
+            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryManager, stream);
 
             // Check for the Start Of Image marker.
-            var fileMarker = new PdfJsFileMarker(this.ReadUint16(), 0);
+            this.InputStream.Read(this.markerBuffer, 0, 2);
+            var fileMarker = new PdfJsFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != PdfJsJpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
             }
 
-            ushort marker = this.ReadUint16();
+            this.InputStream.Read(this.markerBuffer, 0, 2);
+            byte marker = this.markerBuffer[1];
             fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
 
-            this.QuantizationTables = new Block8x8F[4];
-
-            // this.quantizationTables = new PdfJsQuantizationTables(this.configuration.MemoryManager);
-            this.dcHuffmanTables = new PdfJsHuffmanTables();
-            this.acHuffmanTables = new PdfJsHuffmanTables();
+            // Only assign what we need
+            if (!metadataOnly)
+            {
+                this.QuantizationTables = new Block8x8F[4];
+                this.dcHuffmanTables = new PdfJsHuffmanTables();
+                this.acHuffmanTables = new PdfJsHuffmanTables();
+            }
 
             while (fileMarker.Marker != PdfJsJpegConstants.Markers.EOI)
             {
-                // Get the marker length
-                int remaining = this.ReadUint16() - 2;
-
-                switch (fileMarker.Marker)
+                if (!fileMarker.Invalid)
                 {
-                    case PdfJsJpegConstants.Markers.APP0:
-                        this.ProcessApplicationHeaderMarker(remaining);
-                        break;
+                    // Get the marker length
+                    int remaining = this.ReadUint16() - 2;
 
-                    case PdfJsJpegConstants.Markers.APP1:
-                        this.ProcessApp1Marker(remaining);
-                        break;
+                    switch (fileMarker.Marker)
+                    {
+                        case PdfJsJpegConstants.Markers.SOF0:
+                        case PdfJsJpegConstants.Markers.SOF1:
+                        case PdfJsJpegConstants.Markers.SOF2:
+                            this.ProcessStartOfFrameMarker(remaining, fileMarker, metadataOnly);
+                            break;
 
-                    case PdfJsJpegConstants.Markers.APP2:
-                        this.ProcessApp2Marker(remaining);
-                        break;
-                    case PdfJsJpegConstants.Markers.APP3:
-                    case PdfJsJpegConstants.Markers.APP4:
-                    case PdfJsJpegConstants.Markers.APP5:
-                    case PdfJsJpegConstants.Markers.APP6:
-                    case PdfJsJpegConstants.Markers.APP7:
-                    case PdfJsJpegConstants.Markers.APP8:
-                    case PdfJsJpegConstants.Markers.APP9:
-                    case PdfJsJpegConstants.Markers.APP10:
-                    case PdfJsJpegConstants.Markers.APP11:
-                    case PdfJsJpegConstants.Markers.APP12:
-                    case PdfJsJpegConstants.Markers.APP13:
-                        this.InputStream.Skip(remaining);
-                        break;
+                        case PdfJsJpegConstants.Markers.SOS:
+                            if (!metadataOnly)
+                            {
+                                this.ProcessStartOfScanMarker();
+                                break;
+                            }
+                            else
+                            {
+                                // It's highly unlikely that APPn related data will be found after the SOS marker
+                                // We should have gathered everything we need by now.
+                                return;
+                            }
 
-                    case PdfJsJpegConstants.Markers.APP14:
-                        this.ProcessApp14Marker(remaining);
-                        break;
+                        case PdfJsJpegConstants.Markers.DHT:
+                            if (metadataOnly)
+                            {
+                                this.InputStream.Skip(remaining);
+                            }
+                            else
+                            {
+                                this.ProcessDefineHuffmanTablesMarker(remaining);
+                            }
 
-                    case PdfJsJpegConstants.Markers.APP15:
-                    case PdfJsJpegConstants.Markers.COM:
-                        this.InputStream.Skip(remaining);
-                        break;
+                            break;
 
-                    case PdfJsJpegConstants.Markers.DQT:
-                        if (metadataOnly)
-                        {
+                        case PdfJsJpegConstants.Markers.DQT:
+                            if (metadataOnly)
+                            {
+                                this.InputStream.Skip(remaining);
+                            }
+                            else
+                            {
+                                this.ProcessDefineQuantizationTablesMarker(remaining);
+                            }
+
+                            break;
+
+                        case PdfJsJpegConstants.Markers.DRI:
+                            if (metadataOnly)
+                            {
+                                this.InputStream.Skip(remaining);
+                            }
+                            else
+                            {
+                                this.ProcessDefineRestartIntervalMarker(remaining);
+                            }
+
+                            break;
+
+                        case PdfJsJpegConstants.Markers.APP0:
+                            this.ProcessApplicationHeaderMarker(remaining);
+                            break;
+
+                        case PdfJsJpegConstants.Markers.APP1:
+                            this.ProcessApp1Marker(remaining);
+                            break;
+
+                        case PdfJsJpegConstants.Markers.APP2:
+                            this.ProcessApp2Marker(remaining);
+                            break;
+
+                        case PdfJsJpegConstants.Markers.APP3:
+                        case PdfJsJpegConstants.Markers.APP4:
+                        case PdfJsJpegConstants.Markers.APP5:
+                        case PdfJsJpegConstants.Markers.APP6:
+                        case PdfJsJpegConstants.Markers.APP7:
+                        case PdfJsJpegConstants.Markers.APP8:
+                        case PdfJsJpegConstants.Markers.APP9:
+                        case PdfJsJpegConstants.Markers.APP10:
+                        case PdfJsJpegConstants.Markers.APP11:
+                        case PdfJsJpegConstants.Markers.APP12:
+                        case PdfJsJpegConstants.Markers.APP13:
                             this.InputStream.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineQuantizationTablesMarker(remaining);
-                        }
+                            break;
 
-                        break;
+                        case PdfJsJpegConstants.Markers.APP14:
+                            this.ProcessApp14Marker(remaining);
+                            break;
 
-                    case PdfJsJpegConstants.Markers.SOF0:
-                    case PdfJsJpegConstants.Markers.SOF1:
-                    case PdfJsJpegConstants.Markers.SOF2:
-                        this.ProcessStartOfFrameMarker(remaining, fileMarker);
-                        if (metadataOnly && !this.jFif.Equals(default))
-                        {
+                        case PdfJsJpegConstants.Markers.APP15:
+                        case PdfJsJpegConstants.Markers.COM:
                             this.InputStream.Skip(remaining);
-                        }
-
-                        break;
-
-                    case PdfJsJpegConstants.Markers.DHT:
-                        if (metadataOnly)
-                        {
-                            this.InputStream.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineHuffmanTablesMarker(remaining);
-                        }
-
-                        break;
-
-                    case PdfJsJpegConstants.Markers.DRI:
-                        if (metadataOnly)
-                        {
-                            this.InputStream.Skip(remaining);
-                        }
-                        else
-                        {
-                            this.ProcessDefineRestartIntervalMarker(remaining);
-                        }
-
-                        break;
-
-                    case PdfJsJpegConstants.Markers.SOS:
-                        if (!metadataOnly)
-                        {
-                            this.ProcessStartOfScanMarker();
-                        }
-
-                        break;
+                            break;
+                    }
                 }
 
                 // Read on.
                 fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
             }
-
-            this.ImageWidth = this.Frame.SamplesPerLine;
-            this.ImageHeight = this.Frame.Scanlines;
-            this.ComponentCount = this.Frame.ComponentCount;
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.InputStream?.Dispose();
             this.Frame?.Dispose();
 
             // Set large fields to null.
+            this.InputStream = null;
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
@@ -379,7 +387,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         private void AssignResolution()
         {
-            if (this.isExif)
+            this.ImageWidth = this.Frame.SamplesPerLine;
+            this.ImageHeight = this.Frame.Scanlines;
+
+            if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
+            {
+                this.MetaData.HorizontalResolution = this.jFif.XDensity;
+                this.MetaData.VerticalResolution = this.jFif.YDensity;
+            }
+            else if (this.isExif)
             {
                 double horizontalValue = this.MetaData.ExifProfile.TryGetValue(ExifTag.XResolution, out ExifValue horizontalTag)
                     ? ((Rational)horizontalTag.Value).ToDouble()
@@ -394,11 +410,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
-            }
-            else if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
-            {
-                this.MetaData.HorizontalResolution = this.jFif.XDensity;
-                this.MetaData.VerticalResolution = this.jFif.YDensity;
             }
         }
 
@@ -593,7 +604,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="frameMarker">The current frame marker.</param>
-        private void ProcessStartOfFrameMarker(int remaining, PdfJsFileMarker frameMarker)
+        /// <param name="metadataOnly">Whether to parse metadata only</param>
+        private void ProcessStartOfFrameMarker(int remaining, PdfJsFileMarker frameMarker, bool metadataOnly)
         {
             if (this.Frame != null)
             {
@@ -622,11 +634,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int maxV = 0;
             int index = 6;
 
-            // No need to pool this. They max out at 4
-            this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
-            this.Frame.Components = new PdfJsFrameComponent[this.Frame.ComponentCount];
+            this.ComponentCount = this.Frame.ComponentCount;
+            if (!metadataOnly)
+            {
+                // No need to pool this. They max out at 4
+                this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
+                this.Frame.Components = new PdfJsFrameComponent[this.Frame.ComponentCount];
+            }
 
-            for (int i = 0; i < this.Frame.Components.Length; i++)
+            for (int i = 0; i < this.Frame.ComponentCount; i++)
             {
                 byte hv = this.temp[index + 1];
                 int h = hv >> 4;
@@ -642,17 +658,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     maxV = v;
                 }
 
-                var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                if (!metadataOnly)
+                {
+                    var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
-                this.Frame.Components[i] = component;
-                this.Frame.ComponentIds[i] = component.Id;
+                    this.Frame.Components[i] = component;
+                    this.Frame.ComponentIds[i] = component.Id;
+                }
 
                 index += 3;
             }
 
             this.Frame.MaxHorizontalFactor = maxH;
             this.Frame.MaxVerticalFactor = maxV;
-            this.Frame.InitComponents();
+
+            if (!metadataOnly)
+            {
+                this.Frame.InitComponents();
+            }
         }
 
         /// <summary>
@@ -799,7 +822,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ColorSpace = this.DeduceJpegColorSpace();
-            this.AssignResolution();
             using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);

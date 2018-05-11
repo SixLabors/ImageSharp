@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp
 
             var frame = ImageFrame.LoadPixelData(
                 this.parent.GetMemoryManager(),
-                new Span<TPixel>(source),
+                new ReadOnlySpan<TPixel>(source),
                 this.RootFrame.Width,
                 this.RootFrame.Height);
             this.frames.Add(frame);

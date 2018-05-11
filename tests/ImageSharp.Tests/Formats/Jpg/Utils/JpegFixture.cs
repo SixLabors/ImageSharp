@@ -174,12 +174,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             Assert.False(failed);
         }
 
-        internal static OrigJpegDecoderCore ParseStream(string testFileName, bool metaDataOnly = false)
+        internal static GolangJpegDecoderCore ParseStream(string testFileName, bool metaDataOnly = false)
         {
             byte[] bytes = TestFile.Create(testFileName).Bytes;
             using (var ms = new MemoryStream(bytes))
             {
-                var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                var decoder = new GolangJpegDecoderCore(Configuration.Default, new JpegDecoder());
                 decoder.ParseStream(ms, metaDataOnly);
                 return decoder;
             }

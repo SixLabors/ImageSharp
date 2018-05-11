@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return result;
             }
 
-            public static ComponentData Load(OrigComponent c)
+            public static ComponentData Load(GolangComponent c)
             {
                 var result = new ComponentData(
                     c.SizeInBlocks.Width,

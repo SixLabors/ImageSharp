@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -12,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     /// Represents a Huffman tree
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct OrigHuffmanTree
+    internal unsafe struct GolangHuffmanTree
     {
         /// <summary>
         /// The index of the AC table row
@@ -95,12 +93,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public FixedInt32Buffer16 Indices;
 
         /// <summary>
-        /// Creates and initializes an array of <see cref="OrigHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
+        /// Creates and initializes an array of <see cref="GolangHuffmanTree" /> instances of size <see cref="NumberOfTrees" />
         /// </summary>
-        /// <returns>An array of <see cref="OrigHuffmanTree" /> instances representing the Huffman tables</returns>
-        public static OrigHuffmanTree[] CreateHuffmanTrees()
+        /// <returns>An array of <see cref="GolangHuffmanTree" /> instances representing the Huffman tables</returns>
+        public static GolangHuffmanTree[] CreateHuffmanTrees()
         {
-            return new OrigHuffmanTree[NumberOfTrees];
+            return new GolangHuffmanTree[NumberOfTrees];
         }
 
         /// <summary>

@@ -96,12 +96,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// <summary>
         /// Gets the component array
         /// </summary>
-        public OrigComponent[] Components { get; private set; }
+        public GolangComponent[] Components { get; private set; }
 
         /// <summary>
         /// Gets the huffman trees
         /// </summary>
-        public OrigHuffmanTree[] HuffmanTrees { get; private set; }
+        public GolangHuffmanTree[] HuffmanTrees { get; private set; }
 
         /// <inheritdoc />
         public Block8x8F[] QuantizationTables { get; private set; }
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             if (this.Components != null)
             {
-                foreach (OrigComponent component in this.Components)
+                foreach (GolangComponent component in this.Components)
                 {
                     component?.Dispose();
                 }
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         }
 
         /// <summary>
-        /// Read metadata from stream and read the blocks in the scans into <see cref="OrigComponent.SpectralBlocks"/>.
+        /// Read metadata from stream and read the blocks in the scans into <see cref="GolangComponent.SpectralBlocks"/>.
         /// </summary>
         /// <param name="stream">The stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (!metadataOnly)
             {
-                this.HuffmanTrees = OrigHuffmanTree.CreateHuffmanTrees();
+                this.HuffmanTrees = GolangHuffmanTree.CreateHuffmanTrees();
                 this.QuantizationTables = new Block8x8F[MaxTq + 1];
             }
 
@@ -680,12 +680,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
             if (!metadataOnly)
             {
-                this.Components = new OrigComponent[this.ComponentCount];
+                this.Components = new GolangComponent[this.ComponentCount];
 
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte componentIdentifier = this.Temp[6 + (3 * i)];
-                    var component = new OrigComponent(componentIdentifier, i);
+                    var component = new GolangComponent(componentIdentifier, i);
                     component.InitializeCoreData(this);
                     this.Components[i] = component;
                 }
@@ -697,7 +697,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
-                foreach (OrigComponent component in this.Components)
+                foreach (GolangComponent component in this.Components)
                 {
                     component.InitializeDerivedData(this.configuration.MemoryManager, this);
                 }
@@ -721,18 +721,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                 this.InputProcessor.ReadFull(this.Temp, 0, 17);
 
                 int tc = this.Temp[0] >> 4;
-                if (tc > OrigHuffmanTree.MaxTc)
+                if (tc > GolangHuffmanTree.MaxTc)
                 {
                     throw new ImageFormatException("Bad Tc value");
                 }
 
                 int th = this.Temp[0] & 0x0f;
-                if (th > OrigHuffmanTree.MaxTh)
+                if (th > GolangHuffmanTree.MaxTh)
                 {
                     throw new ImageFormatException("Bad Th value");
                 }
 
-                int huffTreeIndex = (tc * OrigHuffmanTree.ThRowSize) + th;
+                int huffTreeIndex = (tc * GolangHuffmanTree.ThRowSize) + th;
                 this.HuffmanTrees[huffTreeIndex].ProcessDefineHuffmanTablesMarkerLoop(
                     ref this.InputProcessor,
                     this.Temp,
@@ -766,8 +766,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </exception>
         private void ProcessStartOfScanMarker(int remaining)
         {
-            var scan = default(OrigJpegScanDecoder);
-            OrigJpegScanDecoder.InitStreamReading(&scan, this, remaining);
+            var scan = default(GolangJpegScanDecoder);
+            GolangJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default(Bits);
             scan.DecodeBlocks(this);
         }

@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
@@ -86,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 x = this.BufferAsInt[this.I];
                 this.I++;
                 this.UnreadableBytes = 1;
-                if (x != OrigJpegConstants.Markers.XFFInt)
+                if (x != JpegConstants.Markers.XFFInt)
                 {
                     return OrigDecoderErrorCode.NoError;
                 }
@@ -98,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
                 this.I++;
                 this.UnreadableBytes = 2;
-                x = OrigJpegConstants.Markers.XFF;
+                x = JpegConstants.Markers.XFF;
                 return OrigDecoderErrorCode.NoError;
             }
 
@@ -111,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 return errorCode;
             }
 
-            if (x != OrigJpegConstants.Markers.XFF)
+            if (x != JpegConstants.Markers.XFF)
             {
                 return OrigDecoderErrorCode.NoError;
             }
@@ -128,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 return OrigDecoderErrorCode.MissingFF00;
             }
 
-            x = OrigJpegConstants.Markers.XFF;
+            x = JpegConstants.Markers.XFF;
             return OrigDecoderErrorCode.NoError;
         }
 

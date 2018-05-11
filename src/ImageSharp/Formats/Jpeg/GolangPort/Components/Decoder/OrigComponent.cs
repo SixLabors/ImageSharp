@@ -56,8 +56,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Initializes <see cref="SpectralBlocks"/>
         /// </summary>
         /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
-        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        public void InitializeDerivedData(MemoryManager memoryManager, OrigJpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="GolangJpegDecoderCore"/> instance</param>
+        public void InitializeDerivedData(MemoryManager memoryManager, GolangJpegDecoderCore decoder)
         {
             // For 4-component images (either CMYK or YCbCrK), we only support two
             // hv vectors: [0x11 0x11 0x11 0x11] and [0x22 0x11 0x11 0x22].
@@ -86,8 +86,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <summary>
         /// Initializes all component data except <see cref="SpectralBlocks"/>.
         /// </summary>
-        /// <param name="decoder">The <see cref="OrigJpegDecoderCore"/> instance</param>
-        public void InitializeCoreData(OrigJpegDecoderCore decoder)
+        /// <param name="decoder">The <see cref="GolangJpegDecoderCore"/> instance</param>
+        public void InitializeCoreData(GolangJpegDecoderCore decoder)
         {
             // Section B.2.2 states that "the value of C_i shall be different from
             // the values of C_1 through C_(i-1)".
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             }
 
             this.QuantizationTableIndex = decoder.Temp[8 + (3 * i)];
-            if (this.QuantizationTableIndex > OrigJpegDecoderCore.MaxTq)
+            if (this.QuantizationTableIndex > GolangJpegDecoderCore.MaxTq)
             {
                 throw new ImageFormatException("Bad Tq value");
             }

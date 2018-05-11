@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 {
     /// <summary>
-    /// Encapsulates stream reading and processing data and operations for <see cref="OrigJpegDecoderCore"/>.
+    /// Encapsulates stream reading and processing data and operations for <see cref="GolangJpegDecoderCore"/>.
     /// It's a value type for imporved data locality, and reduced number of CALLVIRT-s
     /// </summary>
     internal struct InputProcessor : IDisposable
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Initializes a new instance of the <see cref="InputProcessor"/> struct.
         /// </summary>
         /// <param name="inputStream">The input <see cref="Stream"/></param>
-        /// <param name="temp">Temporal buffer, same as <see cref="OrigJpegDecoderCore.Temp"/></param>
+        /// <param name="temp">Temporal buffer, same as <see cref="GolangJpegDecoderCore.Temp"/></param>
         public InputProcessor(Stream inputStream, byte[] temp)
         {
             this.Bits = default(Bits);
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         public Stream InputStream { get; }
 
         /// <summary>
-        /// Gets the temporary buffer, same instance as <see cref="OrigJpegDecoderCore.Temp"/>
+        /// Gets the temporary buffer, same instance as <see cref="GolangJpegDecoderCore.Temp"/>
         /// </summary>
         public byte[] Temp { get; }
 
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
 
         /// <summary>
         /// Reads exactly length bytes into data. It does not care about byte stuffing.
-        /// Does not throw on errors, returns <see cref="OrigJpegDecoderCore"/> instead!
+        /// Does not throw on errors, returns <see cref="GolangJpegDecoderCore"/> instead!
         /// </summary>
         /// <param name="data">The data to write to.</param>
         /// <param name="offset">The offset in the source buffer</param>

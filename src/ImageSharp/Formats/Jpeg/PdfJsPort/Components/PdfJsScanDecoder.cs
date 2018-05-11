@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 byte marker = fileMarker.Marker;
 
                 // RSTn - We've already read the bytes and altered the position so no need to skip
-                if (marker >= PdfJsJpegConstants.Markers.RST0 && marker <= PdfJsJpegConstants.Markers.RST7)
+                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
                 {
                     continue;
                 }
@@ -452,7 +452,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             this.endOfStreamReached = true;
                             return false;
 
-                        case PdfJsJpegConstants.Markers.Prefix:
+                        case JpegConstants.Markers.XFF:
                             int nextByte = stream.ReadByte();
 
                             if (nextByte == -0x1)

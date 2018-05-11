@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using (var decoder = new OrigJpegDecoderCore(configuration, this))
+            using (var decoder = new GolangJpegDecoderCore(configuration, this))
             {
                 return decoder.Decode<TPixel>(stream);
             }
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using (var decoder = new OrigJpegDecoderCore(configuration, this))
+            using (var decoder = new GolangJpegDecoderCore(configuration, this))
             {
                 return decoder.Identify(stream);
             }

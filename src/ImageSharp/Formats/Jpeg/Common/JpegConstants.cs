@@ -1,23 +1,45 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
+using System.Collections.Generic;
+
+namespace SixLabors.ImageSharp.Formats.Jpeg.Common
 {
     /// <summary>
-    /// Contains jpeg constant values
+    /// Contains jpeg constant values defined in the specification.
     /// </summary>
-    internal static class PdfJsJpegConstants
+    internal static class JpegConstants
     {
+        /// <summary>
+        /// The maximum allowable length in each dimension of a jpeg image.
+        /// </summary>
+        public const ushort MaxLength = 65535;
+
+        /// <summary>
+        /// The list of mimetypes that equate to a jpeg.
+        /// </summary>
+        public static readonly IEnumerable<string> MimeTypes = new[] { "image/jpeg", "image/pjpeg" };
+
+        /// <summary>
+        /// The list of file extensions that equate to a jpeg.
+        /// </summary>
+        public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
+
         /// <summary>
         /// Contains marker specific constants
         /// </summary>
-        public static class Markers
+        // ReSharper disable InconsistentNaming
+        internal static class Markers
         {
             /// <summary>
             /// The prefix used for all markers.
             /// </summary>
-            public const byte Prefix = 0xFF;
+            public const byte XFF = 0xFF;
+
+            /// <summary>
+            /// Same as <see cref="XFF"/> but of type <see cref="int"/>
+            /// </summary>
+            public const int XFFInt = XFF;
 
             /// <summary>
             /// The Start of Image marker
@@ -161,7 +183,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// <summary>
             /// Define Restart Interval
             /// <remarks>
-            /// Specifies the interval between RSTn markers, in macroblocks.This marker is followed by two bytes indicating the fixed size so it can be treated like any other variable size segment.
+            /// Specifies the interval between RSTn markers, in macroblocks.This marker is followed by two bytes indicating the fixed size so
+            /// it can be treated like any other variable size segment.
             /// </remarks>
             /// </summary>
             public const byte DRI = 0xDD;
@@ -193,27 +216,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             /// </remarks>
             /// </summary>
             public const byte RST7 = 0xD7;
+        }
+
+        /// <summary>
+        /// Contains Adobe specific constants
+        /// </summary>
+        internal static class Adobe
+        {
+            /// <summary>
+            /// The color transform is unknown.(RGB or CMYK)
+            /// </summary>
+            public const byte ColorTransformUnknown = 0;
 
             /// <summary>
-            /// Contains Adobe specific markers
+            /// The color transform is YCbCr (luminance, red chroma, blue chroma)
             /// </summary>
-            public static class Adobe
-            {
-                /// <summary>
-                /// The color transform is unknown.(RGB or CMYK)
-                /// </summary>
-                public const byte ColorTransformUnknown = 0;
+            public const byte ColorTransformYCbCr = 1;
 
-                /// <summary>
-                /// The color transform is YCbCr (luminance, red chroma, blue chroma)
-                /// </summary>
-                public const byte ColorTransformYCbCr = 1;
-
-                /// <summary>
-                /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
-                /// </summary>
-                public const byte ColorTransformYcck = 2;
-            }
+            /// <summary>
+            /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
+            /// </summary>
+            public const byte ColorTransformYcck = 2;
         }
     }
 }

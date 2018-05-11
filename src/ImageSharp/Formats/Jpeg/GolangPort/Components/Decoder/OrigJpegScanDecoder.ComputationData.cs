@@ -30,12 +30,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <summary>
             /// The buffer storing the <see cref="OrigComponentScan"/>-s for each component
             /// </summary>
-            public fixed byte ScanData[3 * OrigJpegDecoderCore.MaxComponents];
+            public fixed byte ScanData[3 * GolangJpegDecoderCore.MaxComponents];
 
             /// <summary>
             /// The DC values for each component
             /// </summary>
-            public fixed int Dc[OrigJpegDecoderCore.MaxComponents];
+            public fixed int Dc[GolangJpegDecoderCore.MaxComponents];
 
             /// <summary>
             /// Creates and initializes a new <see cref="ComputationData"/> instance

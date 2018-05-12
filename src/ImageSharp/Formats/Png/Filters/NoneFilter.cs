@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         /// <param name="scanline">The scanline to encode</param>
         /// <param name="result">The filtered scanline result.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Encode(Span<byte> scanline, Span<byte> result)
+        public static void Encode(ReadOnlySpan<byte> scanline, Span<byte> result)
         {
             // Insert a byte before the data.
             result[0] = 0;

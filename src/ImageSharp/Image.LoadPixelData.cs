@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Span<TPixel> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<TPixel> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(Configuration.Default, data, width, height);
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Span<byte> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(ReadOnlySpan<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData<TPixel>(Configuration.Default, data, width, height);
 
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, byte[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
-            => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(data.AsSpan()), width, height);
+            => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(new ReadOnlySpan<byte>(data)), width, height);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array in <typeparamref name="TPixel"/> format.
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<byte> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, ReadOnlySpan<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(config, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, TPixel[] data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            return LoadPixelData(config, data.AsSpan(), width, height);
+            return LoadPixelData(config, new ReadOnlySpan<TPixel>(data), width, height);
         }
 
         /// <summary>
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        private static Image<TPixel> LoadPixelData<TPixel>(Configuration config, Span<TPixel> data, int width, int height)
+        public static Image<TPixel> LoadPixelData<TPixel>(Configuration config, ReadOnlySpan<TPixel> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             int count = width * height;

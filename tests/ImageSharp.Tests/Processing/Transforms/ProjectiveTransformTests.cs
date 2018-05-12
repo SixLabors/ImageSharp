@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                 Matrix4x4 m = ProjectiveTransformHelper.CreateTaperMatrix(image.Size(), taperSide, taperCorner, .5F);
                 image.Mutate(i => { i.Transform(m); });
 
-                string testOutputDetails = $"{taperSide}-{taperCorner}";
+                FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
                 image.DebugSave(provider, testOutputDetails);
                 image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
             }

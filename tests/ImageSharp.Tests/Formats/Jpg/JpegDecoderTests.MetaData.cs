@@ -191,12 +191,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                         Assert.Equal(72, imageInfo.MetaData.HorizontalResolution);
                         Assert.Equal(72, imageInfo.MetaData.VerticalResolution);
                     });
-
-            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420Exif).CreateImage())
-            {
-                Assert.Equal(72, image.MetaData.HorizontalResolution);
-                Assert.Equal(72, image.MetaData.VerticalResolution);
-            }
         }
     }
 }

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static readonly JpegColorConverter[] Converters =
             {
-                GetYCbCrConverter(), new JpegColorConverter.FromYccK(), new JpegColorConverter.FromCmyk(), new JpegColorConverter.FromGrayscale(), new JpegColorConverter.FromRgb()
+                GetYCbCrConverter(), new FromYccK(), new FromCmyk(), new FromGrayscale(), new FromRgb()
             };
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         /// <param name="values">The input as a stack-only <see cref="ComponentValues"/> struct</param>
         /// <param name="result">The destination buffer of <see cref="Vector4"/> values</param>
-        public abstract void ConvertToRGBA(ComponentValues values, Span<Vector4> result);
+        public abstract void ConvertToRgba(ComponentValues values, Span<Vector4> result);
 
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.

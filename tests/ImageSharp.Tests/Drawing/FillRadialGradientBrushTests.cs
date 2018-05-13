@@ -18,23 +18,25 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.VerifyOperation(
-                image =>
-                    {
-                        TPixel red = NamedColors<TPixel>.Red;
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                TPixel red = NamedColors<TPixel>.Red;
 
-                        var unicolorRadialGradientBrush =
-                            new RadialGradientBrush<TPixel>(
-                                new SixLabors.Primitives.Point(0, 0),
-                                100,
-                                GradientRepetitionMode.None,
-                                new ColorStop<TPixel>(0, red),
-                                new ColorStop<TPixel>(1, red));
+                var unicolorRadialGradientBrush =
+                    new RadialGradientBrush<TPixel>(
+                        new SixLabors.Primitives.Point(0, 0),
+                        100,
+                        GradientRepetitionMode.None,
+                        new ColorStop<TPixel>(0, red),
+                        new ColorStop<TPixel>(1, red));
 
-                        image.Mutate(x => x.Fill(unicolorRadialGradientBrush));
-                    },
-                false,
-                false);
+                image.Mutate(x => x.Fill(unicolorRadialGradientBrush));
+
+                image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
+
+                // no need for reference image in this test:
+                image.ComparePixelBufferTo(red);
+            }
         }
 
         [Theory]

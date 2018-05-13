@@ -12,9 +12,13 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
     [GroupOutput("Drawing/GradientBrushes")]
     public class FillEllipticGradientBrushTests
     {
+        public static ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.01f);
+
         [Theory]
         [WithBlankImages(10, 10, PixelTypes.Rgba32)]
         public void WithEqualColorsReturnsUnicolorImage<TPixel>(
@@ -61,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             TPixel black = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
+                TolerantComparer,
                 image =>
                     {
                         var unicolorLinearGradientBrush = new EllipticGradientBrush<TPixel>(
@@ -108,6 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             FormattableString variant = $"{ratio:F2}_AT_{rotationInDegree:00}deg";
 
             provider.VerifyOperation(
+                TolerantComparer,
                 image =>
                     {
                         TPixel yellow = NamedColors<TPixel>.Yellow;

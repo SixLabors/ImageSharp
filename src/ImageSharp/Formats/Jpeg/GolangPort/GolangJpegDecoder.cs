@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
     /// <summary>
     /// Image decoder for generating an image out of a jpg stream.
     /// </summary>
-    internal sealed class OrigJpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
+    internal sealed class GolangJpegDecoder : IImageDecoder, IJpegDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.

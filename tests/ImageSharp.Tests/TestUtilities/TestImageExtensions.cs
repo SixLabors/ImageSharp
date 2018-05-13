@@ -450,6 +450,9 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        /// <summary>
+        /// All pixels in all frames should be exactly equal to 'expectedPixel'.
+        /// </summary>
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, TPixel expectedPixel)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -461,6 +464,9 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        /// <summary>
+        /// All pixels in the frame should be exactly equal to 'expectedPixel'.
+        /// </summary>
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(this ImageFrame<TPixel> imageFrame, TPixel expectedPixel)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -473,7 +479,7 @@ namespace SixLabors.ImageSharp.Tests
 
             return imageFrame;
         }
-
+        
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(
                     this ImageFrame<TPixel> image,
                     Span<TPixel> expectedPixels)

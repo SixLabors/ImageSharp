@@ -544,6 +544,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         internal static void VerifyOperation<TPixel>(
             this TestImageProvider<TPixel> provider,
+            ImageComparer comparer,
             Action<Image<TPixel>> operation,
             FormattableString testOutputDetails,
             bool appendPixelTypeToFileName = true,
@@ -560,11 +561,56 @@ namespace SixLabors.ImageSharp.Tests
                     appendPixelTypeToFileName: appendPixelTypeToFileName,
                     appendSourceFileOrDescription: appendSourceFileOrDescription);
 
-                image.CompareToReferenceOutput(provider,
+                image.CompareToReferenceOutput(comparer, 
+                    provider,
                     testOutputDetails,
                     appendPixelTypeToFileName: appendPixelTypeToFileName,
                     appendSourceFileOrDescription: appendSourceFileOrDescription);
             }
+        }
+
+        /// <summary>
+        /// Utility method for doing the following in one step:
+        /// 1. Executing an operation (taken as a delegate)
+        /// 2. Executing DebugSave()
+        /// 3. Executing CopareToReferenceOutput()
+        /// </summary>
+        internal static void VerifyOperation<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<Image<TPixel>> operation,
+            FormattableString testOutputDetails,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.VerifyOperation(
+                ImageComparer.Tolerant(),
+                operation,
+                testOutputDetails,
+                appendPixelTypeToFileName,
+                appendSourceFileOrDescription);
+        }
+
+        /// <summary>
+        /// Utility method for doing the following in one step:
+        /// 1. Executing an operation (taken as a delegate)
+        /// 2. Executing DebugSave()
+        /// 3. Executing CopareToReferenceOutput()
+        /// </summary>
+        internal static void VerifyOperation<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            ImageComparer comparer,
+            Action<Image<TPixel>> operation,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.VerifyOperation(
+                comparer,
+                operation,
+                $"",
+                appendPixelTypeToFileName,
+                appendSourceFileOrDescription);
         }
 
         /// <summary>
@@ -582,23 +628,28 @@ namespace SixLabors.ImageSharp.Tests
         {
             provider.VerifyOperation(operation, $"", appendPixelTypeToFileName, appendSourceFileOrDescription);
         }
-        
+
         /// <summary>
-            /// Loads the expected image with a reference decoder + compares it to <paramref name="image"/>.
-            /// Also performs a debug save using <see cref="ImagingTestCaseUtility.SaveTestOutputFile{TPixel}"/>.
-            /// </summary>
-            internal static void VerifyEncoder<TPixel>(this Image<TPixel> image,
-                                                   ITestImageProvider provider,
-                                                   string extension,
-                                                   object testOutputDetails,
-                                                   IImageEncoder encoder,
-                                                   ImageComparer customComparer = null,
-                                                   bool appendPixelTypeToFileName = true,
-                                                   string referenceImageExtension = null
-                                                   )
+        /// Loads the expected image with a reference decoder + compares it to <paramref name="image"/>.
+        /// Also performs a debug save using <see cref="ImagingTestCaseUtility.SaveTestOutputFile{TPixel}"/>.
+        /// </summary>
+        internal static void VerifyEncoder<TPixel>(
+            this Image<TPixel> image,
+            ITestImageProvider provider,
+            string extension,
+            object testOutputDetails,
+            IImageEncoder encoder,
+            ImageComparer customComparer = null,
+            bool appendPixelTypeToFileName = true,
+            string referenceImageExtension = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            string actualOutputFile = provider.Utility.SaveTestOutputFile(image, extension, encoder, testOutputDetails, appendPixelTypeToFileName);
+            string actualOutputFile = provider.Utility.SaveTestOutputFile(
+                image,
+                extension,
+                encoder,
+                testOutputDetails,
+                appendPixelTypeToFileName);
             IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
             using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))

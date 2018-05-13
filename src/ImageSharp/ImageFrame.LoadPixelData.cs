@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static ImageFrame<TPixel> LoadPixelData<TPixel>(MemoryManager memoryManager, Span<byte> data, int width, int height)
+        public static ImageFrame<TPixel> LoadPixelData<TPixel>(MemoryManager memoryManager, ReadOnlySpan<byte> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
             => LoadPixelData(memoryManager, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static ImageFrame<TPixel> LoadPixelData<TPixel>(MemoryManager memoryManager, Span<TPixel> data, int width, int height)
+        public static ImageFrame<TPixel> LoadPixelData<TPixel>(MemoryManager memoryManager, ReadOnlySpan<TPixel> data, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
             int count = width * height;

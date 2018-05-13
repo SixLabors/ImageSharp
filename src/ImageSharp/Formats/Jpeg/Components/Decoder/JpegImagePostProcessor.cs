@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int y = yy - this.PixelRowCounter;
 
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
-                this.colorConverter.ConvertToRGBA(values, this.rgbaBuffer.Span);
+                this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.Span);
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 

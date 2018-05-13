@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgba(ComponentValues values, Span<Vector4> result)
             {
                 ConvertCore(values, result);
             }

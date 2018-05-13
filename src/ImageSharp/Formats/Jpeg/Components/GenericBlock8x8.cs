@@ -21,8 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     {
         public const int Size = 64;
 
-        public const int SizeInBytes = Size * 3;
-
         /// <summary>
         /// FOR TESTING ONLY!
         /// Gets or sets a <see cref="Rgb24"/> value at the given index

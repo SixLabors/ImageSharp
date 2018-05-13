@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 
-        [Theory]
+        [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void PdfJsDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        [Theory]
+        [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void OriginalDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             LibJpegTools.SpectralData imageSharpData)
             where TPixel : struct, IPixel<TPixel>
         {
-            var libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
+            LibJpegTools.SpectralData libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
 
             bool equality = libJpegData.Equals(imageSharpData);
             this.Output.WriteLine("Spectral data equality: " + equality);
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void VerifySpectralResults_OriginalDecoder<TPixel>(TestImageProvider<TPixel> provider)
+        public void VerifySpectralCorrectness_Golang<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             if (!TestEnvironment.IsWindows)
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            var decoder = new GolangJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            var decoder = new GolangJpegDecoderCore(Configuration.Default, new GolangJpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 

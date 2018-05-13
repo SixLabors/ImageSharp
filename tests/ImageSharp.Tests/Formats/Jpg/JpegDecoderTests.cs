@@ -115,9 +115,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private ITestOutputHelper Output { get; }
 
-        private static OrigJpegDecoder OrigJpegDecoder => new OrigJpegDecoder();
+        private static GolangJpegDecoder GolangJpegDecoder => new GolangJpegDecoder();
 
         private static PdfJsJpegDecoder PdfJsJpegDecoder => new PdfJsJpegDecoder();
+
+        private static JpegDecoder DefaultJpegDecoder => new JpegDecoder();
 
         [Fact]
         public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()
@@ -151,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
-            IImageDecoder decoder = useOldDecoder ? (IImageDecoder)OrigJpegDecoder : PdfJsJpegDecoder;
+            IImageDecoder decoder = useOldDecoder ? (IImageDecoder)GolangJpegDecoder : PdfJsJpegDecoder;
             using (Image<TPixel> image = provider.GetImage(decoder))
             {
                 image.DebugSave(provider);
@@ -176,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
-            using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
+            using (Image<TPixel> image = provider.GetImage(GolangJpegDecoder))
             {
                 image.DebugSave(provider);
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
@@ -240,11 +242,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFile(TestImages.Jpeg.Issues.CriticalEOF214, PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow_Orig<TPixel>(TestImageProvider<TPixel> provider)
+        public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow_Golang<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             // TODO: We need a public ImageDecoderException class in ImageSharp!
-            Assert.ThrowsAny<Exception>(() => provider.GetImage(OrigJpegDecoder));
+            Assert.ThrowsAny<Exception>(() => provider.GetImage(GolangJpegDecoder));
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.CriticalEOF214, PixelTypes.Rgba32)]
+        public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            // TODO: We need a public ImageDecoderException class in ImageSharp!
+            Assert.ThrowsAny<Exception>(() => provider.GetImage(PdfJsJpegDecoder));
         }
 
         public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";
@@ -254,15 +265,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (SkipTest(provider))
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
             {
+                // skipping to avoid OutOfMemoryException on CI
                 return;
             }
-
+            
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
-            using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
+            using (Image<TPixel> image = provider.GetImage(GolangJpegDecoder))
             {
                 image.DebugSave(provider);
 
@@ -281,7 +293,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            if (SkipTest(provider))
             {
                 // skipping to avoid OutOfMemoryException on CI
                 return;
@@ -329,7 +341,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine(provider.SourceFileOrDescription);
             provider.Utility.TestName = testName;
 
-            using (Image<TPixel> image = provider.GetImage(OrigJpegDecoder))
+            using (Image<TPixel> image = provider.GetImage(GolangJpegDecoder))
             {
                 string d = this.GetDifferenceInPercentageString(image, provider);
 
@@ -365,7 +377,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 75)]
         [WithSolidFilledImages(16, 16, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
         [WithSolidFilledImages(8, 8, 255, 0, 0, PixelTypes.Rgba32, JpegSubsample.Ratio444, 100)]
-        public void DecodeGenerated_Orig<TPixel>(
+        public void DecodeGenerated<TPixel>(
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
             int quality)
@@ -383,30 +395,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
 
-            var mirror = Image.Load<TPixel>(data, OrigJpegDecoder);
+            var mirror = Image.Load<TPixel>(data, GolangJpegDecoder);
             mirror.DebugSave(provider, $"_{subsample}_Q{quality}");
         }
 
-        [Fact]
-        public void Decoder_Reads_Correct_Resolution_From_Jfif()
-        {
-            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
-            {
-                Assert.Equal(300, image.MetaData.HorizontalResolution);
-                Assert.Equal(300, image.MetaData.VerticalResolution);
-            }
-        }
-
-        [Fact]
-        public void Decoder_Reads_Correct_Resolution_From_Exif()
-        {
-            using (Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Jpeg420Exif).CreateImage())
-            {
-                Assert.Equal(72, image.MetaData.HorizontalResolution);
-                Assert.Equal(72, image.MetaData.VerticalResolution);
-            }
-        }
-        
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"

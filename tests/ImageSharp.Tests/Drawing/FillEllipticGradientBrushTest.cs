@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
+                var unicolorLinearGradientBrush =
                     new EllipticGradientBrush<TPixel>(
                         new SixLabors.Primitives.Point(0, 0),
                         new SixLabors.Primitives.Point(10, 0),
@@ -35,17 +35,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new ColorStop<TPixel>(1, red));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider);
 
-                using (PixelAccessor<TPixel> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(red, sourcePixels[0, 0]);
-                    Assert.Equal(red, sourcePixels[9, 9]);
-                    Assert.Equal(red, sourcePixels[5, 5]);
-                    Assert.Equal(red, sourcePixels[3, 8]);
-                }
+                image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
 
-                image.CompareToReferenceOutput(provider);
+                // no need for reference image in this test:
+                image.ComparePixelBufferTo(red);
             }
         }
 
@@ -66,22 +60,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             TPixel red = NamedColors<TPixel>.Red;
             TPixel black = NamedColors<TPixel>.Black;
 
-            using (var image = provider.GetImage())
-            {
-                EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new EllipticGradientBrush<TPixel>(
-                        new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2),
-                        new SixLabors.Primitives.Point(image.Width / 2, (image.Width * 2) / 3),
-                        ratio,
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, yellow),
-                        new ColorStop<TPixel>(1, red),
-                        new ColorStop<TPixel>(1, black));
+            provider.VerifyOperation(
+                image =>
+                    {
+                        var unicolorLinearGradientBrush = new EllipticGradientBrush<TPixel>(
+                            new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2),
+                            new SixLabors.Primitives.Point(image.Width / 2, (image.Width * 2) / 3),
+                            ratio,
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, yellow),
+                            new ColorStop<TPixel>(1, red),
+                            new ColorStop<TPixel>(1, black));
 
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, ratio.ToString("F1"));
-                image.CompareToReferenceOutput(provider, ratio);
-            }
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    },
+                $"{ratio:F2}",
+                false,
+                false);
         }
 
         [Theory]
@@ -110,38 +105,39 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             float rotationInDegree)
             where TPixel: struct, IPixel<TPixel>
         {
-            string variant = $"{ratio:F2}at{rotationInDegree:00}°";
+            FormattableString variant = $"{ratio:F2}_AT_{rotationInDegree:00}deg";
 
-            using (var image = provider.GetImage())
-            {
-                TPixel yellow = NamedColors<TPixel>.Yellow;
-                TPixel red = NamedColors<TPixel>.Red;
-                TPixel black = NamedColors<TPixel>.Black;
+            provider.VerifyOperation(
+                image =>
+                    {
+                        TPixel yellow = NamedColors<TPixel>.Yellow;
+                        TPixel red = NamedColors<TPixel>.Red;
+                        TPixel black = NamedColors<TPixel>.Black;
 
-                var center = new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2);
+                        var center = new SixLabors.Primitives.Point(image.Width / 2, image.Height / 2);
 
-                var rotation = (Math.PI * rotationInDegree) / 180.0;
-                var cos = Math.Cos(rotation);
-                var sin = Math.Sin(rotation);
+                        double rotation = (Math.PI * rotationInDegree) / 180.0;
+                        double cos = Math.Cos(rotation);
+                        double sin = Math.Sin(rotation);
 
-                int offsetY = image.Height / 6;
-                int axisX = center.X + (int)-(offsetY * sin);
-                int axisY = center.Y + (int)(offsetY * cos);
+                        int offsetY = image.Height / 6;
+                        int axisX = center.X + (int)-(offsetY * sin);
+                        int axisY = center.Y + (int)(offsetY * cos);
 
-                EllipticGradientBrush<TPixel> unicolorLinearGradientBrush =
-                    new EllipticGradientBrush<TPixel>(
-                        center,
-                        new SixLabors.Primitives.Point(axisX, axisY),
-                        ratio,
-                        GradientRepetitionMode.None,
-                        new ColorStop<TPixel>(0, yellow),
-                        new ColorStop<TPixel>(1, red),
-                        new ColorStop<TPixel>(1, black));
+                        var unicolorLinearGradientBrush = new EllipticGradientBrush<TPixel>(
+                            center,
+                            new SixLabors.Primitives.Point(axisX, axisY),
+                            ratio,
+                            GradientRepetitionMode.None,
+                            new ColorStop<TPixel>(0, yellow),
+                            new ColorStop<TPixel>(1, red),
+                            new ColorStop<TPixel>(1, black));
 
-                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                image.DebugSave(provider, variant);
-                image.CompareToReferenceOutput(provider, variant);
-            }
+                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                    },
+                variant,
+                false,
+                false);
         }
     }
 }

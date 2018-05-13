@@ -26,21 +26,24 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void WithEqualColorsReturnsUnicolorImage<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.VerifyOperation(
-                image =>
-                    {
-                        TPixel red = NamedColors<TPixel>.Red;
-                        var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
-                            new SixLabors.Primitives.Point(0, 0),
-                            new SixLabors.Primitives.Point(10, 0),
-                            GradientRepetitionMode.None,
-                            new ColorStop<TPixel>(0, red),
-                            new ColorStop<TPixel>(1, red));
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                TPixel red = NamedColors<TPixel>.Red;
 
-                        image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                    },
-                false,
-                false);
+                var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
+                    new SixLabors.Primitives.Point(0, 0),
+                    new SixLabors.Primitives.Point(10, 0),
+                    GradientRepetitionMode.None,
+                    new ColorStop<TPixel>(0, red),
+                    new ColorStop<TPixel>(1, red));
+
+                image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
+                
+                image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
+
+                // no need for reference image in this test:
+                image.ComparePixelBufferTo(red);
+            }
         }
 
         [Theory]

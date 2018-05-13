@@ -17,10 +17,13 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
     using SixLabors.ImageSharp.Advanced;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
     [GroupOutput("Drawing/GradientBrushes")]
     public class FillLinearGradientBrushTests
     {
+        public static ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.01f);
+
         [Theory]
         [WithBlankImages(10, 10, PixelTypes.Rgba32)]
         public void WithEqualColorsReturnsUnicolorImage<TPixel>(TestImageProvider<TPixel> provider)
@@ -54,6 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             provider.VerifyOperation(
+                TolerantComparer,
                 image =>
                     {
                         var unicolorLinearGradientBrush = new LinearGradientBrush<TPixel>(
@@ -74,6 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             provider.VerifyOperation(
+                TolerantComparer,
                 image =>
                     {
                         TPixel red = NamedColors<TPixel>.Red;
@@ -103,6 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             provider.VerifyOperation(
+                TolerantComparer,
                 image =>
                     {
                         TPixel red = NamedColors<TPixel>.Red;
@@ -175,6 +181,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     color => Assert.True(color.Equals(black) || color.Equals(white)));
 
                 image.CompareToReferenceOutput(
+                    TolerantComparer,
                     provider,
                     variant,
                     appendPixelTypeToFileName: false,
@@ -286,6 +293,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
 
                 image.CompareToReferenceOutput(
+                    TolerantComparer,
                     provider,
                     startCorner,
                     appendPixelTypeToFileName: false,

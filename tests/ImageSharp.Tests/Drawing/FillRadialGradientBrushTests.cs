@@ -9,9 +9,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 {
     using System;
 
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
     [GroupOutput("Drawing/GradientBrushes")]
     public class FillRadialGradientBrushTests
     {
+        public static ImageComparer TolerantComparer = ImageComparer.TolerantPercentage(0.01f);
+
         [Theory]
         [WithBlankImages(200, 200, PixelTypes.Rgba32)]
         public void WithEqualColorsReturnsUnicolorImage<TPixel>(
@@ -52,6 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             where TPixel : struct, IPixel<TPixel>
         {
             provider.VerifyOperation(
+                TolerantComparer,
                 image =>
                     {
                         var brush = new RadialGradientBrush<TPixel>(

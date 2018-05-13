@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.IsAvx2CompatibleArchitecture;
 
-            public override void ConvertToRGBA(ComponentValues values, Span<Vector4> result)
+            public override void ConvertToRgba(ComponentValues values, Span<Vector4> result)
             {
                 int remainder = result.Length % 8;
                 int simdCount = result.Length - remainder;

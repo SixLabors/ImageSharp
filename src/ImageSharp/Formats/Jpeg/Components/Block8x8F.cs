@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     internal partial struct Block8x8F
     {
         /// <summary>
-        /// A number of scalar coefficients in a <see cref="Components.Block8x8F"/>
+        /// A number of scalar coefficients in a <see cref="Block8x8F"/>
         /// </summary>
         public const int Size = 64;
 

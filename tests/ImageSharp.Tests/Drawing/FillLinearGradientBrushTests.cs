@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     new ColorStop<TPixel>(1, red));
 
                 image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                
+
                 image.DebugSave(provider, appendPixelTypeToFileName: false, appendSourceFileOrDescription: false);
 
                 // no need for reference image in this test:
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             new ColorStop<TPixel>(1, NamedColors<TPixel>.Yellow));
 
                         image.Mutate(x => x.Fill(unicolorLinearGradientBrush));
-                    }, 
+                    },
                 appendSourceFileOrDescription: false);
         }
 

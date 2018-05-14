@@ -54,28 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
-        public void DoProcessorStepGolang<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            string imageFile = provider.SourceFileOrDescription;
-            using (GolangJpegDecoderCore decoder = JpegFixture.ParseGolangStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
-            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, decoder.ImageWidth, decoder.ImageHeight))
-            {
-                pp.DoPostProcessorStep(imageFrame);
-
-                JpegComponentPostProcessor[] cp = pp.ComponentProcessors;
-
-                SaveBuffer(cp[0], provider);
-                SaveBuffer(cp[1], provider);
-                SaveBuffer(cp[2], provider);
-            }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
-        public void DoProcessorStepPdfJs<TPixel>(TestImageProvider<TPixel> provider)
+        public void DoProcessorStep<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;

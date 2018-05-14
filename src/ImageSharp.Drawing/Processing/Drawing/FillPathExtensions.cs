@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing
     public static class FillPathExtensions
     {
         /// <summary>
-        /// Flood fills the image in the shape of the provided polygon with the specified brush..
+        /// Flood fills the image in the shape of the provided polygon with the specified brush.
         /// </summary>
         /// <typeparam name="TPixel">The type of the color.</typeparam>
         /// <param name="source">The image this method extends.</param>

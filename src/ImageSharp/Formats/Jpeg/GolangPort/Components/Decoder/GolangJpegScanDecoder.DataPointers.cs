@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     internal unsafe partial struct GolangJpegScanDecoder
     {
         /// <summary>
-        /// Contains pointers to the memory regions of <see cref="ComputationData"/> so they can be easily passed around to pointer based utility methods of <see cref="Jpeg.Components.Block8x8F"/>
+        /// Contains pointers to the memory regions of <see cref="ComputationData"/> so they can be easily passed around to pointer based utility methods of <see cref="Block8x8F"/>
         /// </summary>
         public struct DataPointers
         {

@@ -11,13 +11,13 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
     /// Base class for Gradient brushes
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    public abstract class AbstractGradientBrush<TPixel> : IBrush<TPixel>
+    public abstract class GradientBrushBase<TPixel> : IBrush<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <inheritdoc cref="IBrush{TPixel}"/>
         /// <param name="repetitionMode">Defines how the colors are repeated beyond the interval [0..1]</param>
         /// <param name="colorStops">The gradient colors.</param>
-        protected AbstractGradientBrush(
+        protected GradientBrushBase(
             GradientRepetitionMode repetitionMode,
             params ColorStop<TPixel>[] colorStops)
         {
@@ -44,20 +44,20 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         /// <summary>
         /// Base class for gradient brush applicators
         /// </summary>
-        protected abstract class AbstractGradientBrushApplicator : BrushApplicator<TPixel>
+        protected abstract class GradientBrushApplicatorBase : BrushApplicator<TPixel>
         {
             private readonly ColorStop<TPixel>[] colorStops;
 
             private readonly GradientRepetitionMode repetitionMode;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="AbstractGradientBrushApplicator"/> class.
+            /// Initializes a new instance of the <see cref="GradientBrushApplicatorBase"/> class.
             /// </summary>
             /// <param name="target">The target.</param>
             /// <param name="options">The options.</param>
             /// <param name="colorStops">An array of color stops sorted by their position.</param>
             /// <param name="repetitionMode">Defines if and how the gradient should be repeated.</param>
-            protected AbstractGradientBrushApplicator(
+            protected GradientBrushApplicatorBase(
                 ImageFrame<TPixel> target,
                 GraphicsOptions options,
                 ColorStop<TPixel>[] colorStops,

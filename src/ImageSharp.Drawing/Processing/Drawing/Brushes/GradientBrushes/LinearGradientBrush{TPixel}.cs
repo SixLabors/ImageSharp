@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
     /// - a set of colors in relative distances to each other.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
-    public sealed class LinearGradientBrush<TPixel> : AbstractGradientBrush<TPixel>
+    public sealed class LinearGradientBrush<TPixel> : GradientBrushBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Point p1;
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
         /// <summary>
         /// The linear gradient brush applicator.
         /// </summary>
-        private sealed class LinearGradientBrushApplicator : AbstractGradientBrushApplicator
+        private sealed class LinearGradientBrushApplicator : GradientBrushApplicatorBase
         {
             private readonly Point start;
 

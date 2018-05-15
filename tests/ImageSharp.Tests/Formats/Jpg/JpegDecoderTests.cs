@@ -48,14 +48,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
             TestImages.Jpeg.Issues.BadCoeffsProgressive178,
             TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159,
+            TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
             TestImages.Jpeg.Issues.BadZigZagProgressive385,
-            TestImages.Jpeg.Progressive.Bad.ExifUndefType
+            TestImages.Jpeg.Progressive.Bad.ExifUndefType,
+
+            TestImages.Jpeg.Issues.NoEoiProgressive517,
+            TestImages.Jpeg.Issues.BadRstProgressive518,
+            TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
         };
 
-        public static string[] FalsePositiveIssueJpegs =
+        /// <summary>
+        /// Golang decoder is unable to decode these
+        /// </summary>
+        public static string[] PdfJsOnly =
         {
-            TestImages.Jpeg.Issues.NoEOI517,
-            TestImages.Jpeg.Issues.BadRST518,
+            TestImages.Jpeg.Issues.NoEoiProgressive517,
+            TestImages.Jpeg.Issues.BadRstProgressive518,
+            TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159
         };
 
         private static readonly Dictionary<string, float> CustomToleranceValues = new Dictionary<string, float>
@@ -213,33 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     appendPixelTypeToFileName: false);
             }
         }
-
-        /// <summary>
-        /// Only <see cref="PdfJsJpegDecoder"/> can decode these images.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
-        /// <param name="provider">The test image provider</param>
-        [Theory]
-        [WithFileCollection(nameof(FalsePositiveIssueJpegs), PixelTypes.Rgba32)]
-        public void DecodeFalsePositiveJpeg_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
-            {
-                // skipping to avoid OutOfMemoryException on CI
-                return;
-            }
-
-            using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToReferenceOutput(
-                    ImageComparer.Tolerant(BaselineTolerance),
-                    provider,
-                    appendPixelTypeToFileName: true);
-            }
-        }
-
+        
         [Theory]
         [WithFile(TestImages.Jpeg.Issues.CriticalEOF214, PixelTypes.Rgba32)]
         public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow_Golang<TPixel>(TestImageProvider<TPixel> provider)
@@ -271,6 +254,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
             
+            // Golang decoder is unable to decode these:
+            if (PdfJsOnly.Any(fn => fn.Contains(provider.SourceFileOrDescription)))
+            {
+                return;
+            }
+            
             // For 32 bit test enviroments:
             provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
 
@@ -298,7 +287,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // skipping to avoid OutOfMemoryException on CI
                 return;
             }
-
+            
             using (Image<TPixel> image = provider.GetImage(PdfJsJpegDecoder))
             {
                 image.DebugSave(provider);
@@ -333,11 +322,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private void CompareJpegDecodersImpl<TPixel>(TestImageProvider<TPixel> provider, string testName)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (TestEnvironment.RunsOnCI) // Debug only test
-            {
-                return;
-            }
-
             this.Output.WriteLine(provider.SourceFileOrDescription);
             provider.Utility.TestName = testName;
 
@@ -355,7 +339,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        [Theory]
+        [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void CompareJpegDecoders_Baseline<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -363,7 +347,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.CompareJpegDecodersImpl(provider, DecodeBaselineJpegOutputName);
         }
 
-        [Theory]
+        [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
         public void CompareJpegDecoders_Progressive<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

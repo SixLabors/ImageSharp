@@ -6,6 +6,8 @@ skip_branch_with_pr: true
 
 environment:
   matrix:
+    - target_framework: netcoreapp2.1
+      is_32bit: False
     - target_framework: net471
       is_32bit: True
     - target_framework: net462
@@ -35,6 +37,9 @@ install:
           } else { 
             cinst mono
           }
+        }
+        else {
+          cinst dotnetcore-sdk --pre 
         }
 
 before_build:

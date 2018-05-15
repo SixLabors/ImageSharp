@@ -49,7 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float[] sourceArray = JpegFixture.Create8x8FloatData();
                 float[] expectedDestArray = new float[64];
 
-                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D8x4_32f(sourceArray.AsSpan(4), expectedDestArray.AsSpan(4));
+                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D8x4_32f(
+                    sourceArray.AsSpan().Slice(4),
+                    expectedDestArray.AsSpan().Slice(4));
 
                 var source = new Block8x8F();
                 source.LoadFrom(sourceArray);
@@ -142,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 float[] expectedDest = new float[64];
 
-                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan(4));
+                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D8x4_32f(src.Slice(4), expectedDest.AsSpan().Slice(4));
                 FastFloatingPointDCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
 
                 float[] actualDest = new float[64];

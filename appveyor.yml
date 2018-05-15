@@ -39,7 +39,7 @@ install:
           }
         }
         else {
-          cinst dotnetcore-sdk --pre 
+          cinst dotnetcore-sdk --version 2.1.300-rc1-008673
         }
 
 before_build:

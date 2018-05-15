@@ -22,16 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Testorig420,
-                TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Baseline.Jpeg444,
-                TestImages.Jpeg.Baseline.Bad.BadEOF,
-            };
-
-        public static string[] ProgressiveTestJpegs =
-            {
-                TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
-                TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-                TestImages.Jpeg.Progressive.Bad.ExifUndefType,
             };
 
         public JpegImagePostProcessorTests(ITestOutputHelper output)
@@ -48,7 +39,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 image.DebugSave(provider, $"-C{cp.Component.Index}-");
             }
-
         }
 
         [Theory]
@@ -71,46 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 SaveBuffer(cp[2], provider);
             }
         }
-
+        
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
-        public void PostProcessGolang<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            string imageFile = provider.SourceFileOrDescription;
-            using (GolangJpegDecoderCore decoder = JpegFixture.ParseGolangStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
-            using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
-            {
-                pp.PostProcess(image.Frames.RootFrame);
-
-                image.DebugSave(provider);
-
-                ImagingTestCaseUtility testUtil = provider.Utility;
-                testUtil.TestGroupName = nameof(JpegDecoderTests);
-                testUtil.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
-
-                using (Image<TPixel> referenceImage =
-                    provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false))
-                {
-                    ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
-
-                    this.Output.WriteLine($"*** {imageFile} ***");
-                    this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
-
-                    // ReSharper disable once PossibleInvalidOperationException
-                    Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
-                }
-            }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
-        public void PostProcessPdfJs<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
+        public void PostProcess<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;

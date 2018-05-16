@@ -38,11 +38,11 @@ install:
             cinst mono
           }
         }
-        else {
+#        else {
 # Disable the installer for now, it should be installed within the environment.
 # I've contacted the package maintainers.          
 #          cinst dotnetcore-sdk --version 2.1.300-rc1-008673
-        }
+#        }
 
 before_build:
   - git submodule -q update --init

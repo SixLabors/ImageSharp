@@ -130,11 +130,12 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
                 public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";
+                public const string MissingFF00ProgressiveBedroom159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Bedroom.jpg";
                 public const string BadCoeffsProgressive178 = "Jpg/issues/Issue178-BadCoeffsProgressive-Lemon.jpg";
                 public const string BadZigZagProgressive385 = "Jpg/issues/Issue385-BadZigZag-Progressive.jpg";
                 public const string MultiHuffmanBaseline394 = "Jpg/issues/Issue394-MultiHuffmanBaseline-Speakers.jpg";
-                public const string NoEOI517 = "Jpg/issues/Issue517-No-EOI.jpg";
-                public const string BadRST518 = "Jpg/issues/Issue518-Bad-RST.jpg";
+                public const string NoEoiProgressive517 = "Jpg/issues/Issue517-No-EOI-Progressive.jpg";
+                public const string BadRstProgressive518 = "Jpg/issues/Issue518-Bad-RST-Progressive.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

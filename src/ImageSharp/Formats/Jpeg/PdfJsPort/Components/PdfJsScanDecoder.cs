@@ -7,7 +7,8 @@ using System.Diagnostics;
 #endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
@@ -107,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 for (int i = 0; i < components.Length; i++)
                 {
                     PdfJsFrameComponent c = components[i];
-                    c.Pred = 0;
+                    c.DcPredictor = 0;
                 }
 
                 this.eobrun = 0;
@@ -136,7 +137,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 byte marker = fileMarker.Marker;
 
                 // RSTn - We've already read the bytes and altered the position so no need to skip
-                if (marker >= PdfJsJpegConstants.Markers.RST0 && marker <= PdfJsJpegConstants.Markers.RST7)
+                if (marker >= JpegConstants.Markers.RST0 && marker <= JpegConstants.Markers.RST7)
                 {
                     continue;
                 }
@@ -452,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             this.endOfStreamReached = true;
                             return false;
 
-                        case PdfJsJpegConstants.Markers.Prefix:
+                        case JpegConstants.Markers.XFF:
                             int nextByte = stream.ReadByte();
 
                             if (nextByte == -0x1)
@@ -618,7 +619,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
 
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.DcPredictor += diff);
 
             int k = 1;
             while (k < 64)
@@ -673,7 +674,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
 
-            Unsafe.Add(ref blockDataRef, offset) = (short)(component.Pred += diff << this.successiveState);
+            Unsafe.Add(ref blockDataRef, offset) = (short)(component.DcPredictor += diff << this.successiveState);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

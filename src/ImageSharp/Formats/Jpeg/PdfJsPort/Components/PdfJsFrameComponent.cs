@@ -4,8 +4,9 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 
@@ -36,9 +37,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public byte Id { get; }
 
         /// <summary>
-        /// Gets or sets Pred TODO: What does pred stand for?
+        /// Gets or sets DC coefficient predictor
         /// </summary>
-        public int Pred { get; set; }
+        public int DcPredictor { get; set; }
 
         /// <summary>
         /// Gets the horizontal sampling factor.

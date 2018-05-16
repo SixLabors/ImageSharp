@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
@@ -66,14 +66,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             string args = $@"""{sourceFile}"" ""{destFile}""";
             var process = new Process
-                              {
-                                  StartInfo =
+            {
+                StartInfo =
                                       {
                                           FileName = DumpToolFullPath,
                                           Arguments = args,
                                           WindowStyle = ProcessWindowStyle.Hidden
                                       }
-                              };
+            };
             process.Start();
             process.WaitForExit();
         }

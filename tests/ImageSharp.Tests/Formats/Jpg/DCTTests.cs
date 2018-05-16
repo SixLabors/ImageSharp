@@ -1,7 +1,7 @@
 // ReSharper disable InconsistentNaming
 using System;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var temp = default(Block8x8F);
                 var actual = default(Block8x8F);
                 FastFloatingPointDCT.TransformIDCT(ref source, ref actual, ref temp);
-                
+
                 this.CompareBlocks(expected, actual, 1f);
             }
 

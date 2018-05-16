@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
@@ -18,9 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public string DefaultMimeType => "image/jpeg";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => OrigJpegConstants.MimeTypes;
+        public IEnumerable<string> MimeTypes => JpegConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => OrigJpegConstants.FileExtensions;
+        public IEnumerable<string> FileExtensions => JpegConstants.FileExtensions;
     }
 }

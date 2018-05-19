@@ -76,9 +76,6 @@ else {
     if ($targetFramework -eq "netcoreapp2.0") {
         $xunitArgs += " --fx-version 2.0.3"
     }
-    elseif ($targetFramework -eq "netcoreapp2.1") {
-        $xunitArgs += " --fx-version 2.1.0-rc1"
-    }
 
     if ($is32Bit -eq "True") {
         $xunitArgs += " -x86"

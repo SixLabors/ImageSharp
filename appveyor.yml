@@ -6,8 +6,11 @@ skip_branch_with_pr: true
 
 environment:
   matrix:
+    #- target_framework: netcoreapp2.1
+    #  is_32bit: False
+
     - target_framework: netcoreapp2.1
-      is_32bit: False
+      is_32bit: True
 
     - target_framework: netcoreapp2.0
       is_32bit: False

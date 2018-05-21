@@ -56,12 +56,12 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             Guard.MustBeGreaterThan(tempWidth, 0, nameof(tempWidth));
             Guard.MustBeGreaterThan(tempHeight, 0, nameof(tempHeight));
 
-            (Size size, Rectangle rectangle) locationBounds = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, tempWidth, tempHeight);
+            (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, tempWidth, tempHeight);
 
             this.Sampler = options.Sampler;
-            this.Width = locationBounds.size.Width;
-            this.Height = locationBounds.size.Height;
-            this.ResizeRectangle = locationBounds.rectangle;
+            this.Width = size.Width;
+            this.Height = size.Height;
+            this.ResizeRectangle = rectangle;
             this.Compand = options.Compand;
         }
 

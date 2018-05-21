@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters
 {
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             // Insert a byte before the data.
             result[0] = 0;
             result = result.Slice(1);
-            SpanHelper.Copy(scanline, result);
+            scanline.Slice(0, Math.Min(scanline.Length, result.Length)).CopyTo(result);
         }
     }
 }

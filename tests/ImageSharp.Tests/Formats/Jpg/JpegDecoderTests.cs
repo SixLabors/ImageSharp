@@ -48,11 +48,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             string[] largeImagesToSkipOn32Bit =
                 {
                     TestImages.Jpeg.Baseline.Jpeg420Exif,
-                    TestImages.Jpeg.Issues.BadZigZagProgressive385
+                    TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
+                    TestImages.Jpeg.Issues.BadZigZagProgressive385,
+                    TestImages.Jpeg.Issues.NoEoiProgressive517,
+                    TestImages.Jpeg.Issues.BadRstProgressive518,
                 };
 
-            return TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess
-                                            && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
+            return !TestEnvironment.Is64BitProcess && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
         }
 
         public JpegDecoderTests(ITestOutputHelper output)

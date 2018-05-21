@@ -73,4 +73,4 @@ deploy:
       secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
     artifact: /.*\.nupkg/
     on:
-branch: master
+      branch: master

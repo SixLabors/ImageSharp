@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
+            Vector<float> x = Unsafe.As<float, Vector<float>>(ref source[0]);
 
             x = (x * scale) + magick;
 
@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             //Tuple8.OfUInt32 ii = Unsafe.As<Vector<float>, Tuple8.OfUInt32>(ref x);
 
-            ref Tuple8.OfByte d = ref MemoryMarshal.Cast<byte, Tuple8.OfByte>(dest)[0];
+            ref Tuple8.OfByte d = ref Unsafe.As<byte, Tuple8.OfByte>(ref dest[0]);
             d.LoadFrom(ref ii);
 
             this.Output.WriteLine(ii.ToString());

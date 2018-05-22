@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             {
                                 // It's highly unlikely that APPn related data will be found after the SOS marker
                                 // We should have gathered everything we need by now.
-                                return;
+                                break;
                             }
 
                         case PdfJsJpegConstants.Markers.DHT:
@@ -333,6 +333,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
                 // Read on.
                 fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
+            }
+
+            if (this.MetaData.IccProfile?.CheckIsValid() == false)
+            {
+                this.MetaData.IccProfile = null;
             }
         }
 

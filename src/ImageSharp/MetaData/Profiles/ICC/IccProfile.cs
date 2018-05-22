@@ -166,6 +166,20 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
+        /// Checks for signs of a corrupt profile.
+        /// </summary>
+        /// <remarks>This is not an absolute proof of validity but should weed out most corrupt data.</remarks>
+        /// <returns>True if the profile is valid; False otherwise</returns>
+        public bool CheckIsValid()
+        {
+            return Enum.IsDefined(typeof(IccColorSpaceType), this.Header.DataColorSpace) &&
+                   Enum.IsDefined(typeof(IccColorSpaceType), this.Header.ProfileConnectionSpace) &&
+                   Enum.IsDefined(typeof(IccRenderingIntent), this.Header.RenderingIntent) &&
+                   this.Header.Size >= 128 &&
+                   this.Header.Size < 50_000_000; // it's unlikely there is a profile bigger than 50MB
+        }
+
+        /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
         /// <returns>The <see cref="T:byte[]"/></returns>

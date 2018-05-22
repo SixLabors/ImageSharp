@@ -35,5 +35,15 @@ namespace SixLabors.ImageSharp.Tests.Icc
 
 #endif
 
+        [Theory]
+        [MemberData(nameof(IccTestDataProfiles.ProfileValidityTestData), MemberType = typeof(IccTestDataProfiles))]
+        public void CheckIsValid_WithProfiles_ReturnsValidity(byte[] data, bool expected)
+        {
+            var profile = new IccProfile(data);
+
+            bool result = profile.CheckIsValid();
+
+            Assert.Equal(expected, result);
+        }
     }
 }

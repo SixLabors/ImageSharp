@@ -412,6 +412,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             this.InitDerivedMetaDataProperties();
+
+            if (this.MetaData.IccProfile?.CheckIsValid() == false)
+            {
+                this.MetaData.IccProfile = null;
+            }
         }
 
         /// <summary>

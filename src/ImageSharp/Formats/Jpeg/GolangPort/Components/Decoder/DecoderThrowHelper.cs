@@ -12,22 +12,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
     internal static class DecoderThrowHelper
     {
         /// <summary>
-        /// Throws an exception that belongs to the given <see cref="OrigDecoderErrorCode"/>
+        /// Throws an exception that belongs to the given <see cref="GolangDecoderErrorCode"/>
         /// </summary>
-        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
+        /// <param name="errorCode">The <see cref="GolangDecoderErrorCode"/></param>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowExceptionForErrorCode(this OrigDecoderErrorCode errorCode)
+        public static void ThrowExceptionForErrorCode(this GolangDecoderErrorCode errorCode)
         {
             // REMARK: If this method throws for an image that is expected to be decodable,
             // consider using the ***Unsafe variant of the parsing method that asks for ThrowExceptionForErrorCode()
             // then verify the error code + implement fallback logic manually!
             switch (errorCode)
             {
-                case OrigDecoderErrorCode.NoError:
+                case GolangDecoderErrorCode.NoError:
                     throw new ArgumentException("ThrowExceptionForErrorCode() called with NoError!", nameof(errorCode));
-                case OrigDecoderErrorCode.MissingFF00:
+                case GolangDecoderErrorCode.MissingFF00:
                     throw new MissingFF00Exception();
-                case OrigDecoderErrorCode.UnexpectedEndOfStream:
+                case GolangDecoderErrorCode.UnexpectedEndOfStream:
                     throw new EOFException();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(errorCode), errorCode, null);
@@ -35,26 +35,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         }
 
         /// <summary>
-        /// Throws an exception if the given <see cref="OrigDecoderErrorCode"/> defines an error.
+        /// Throws an exception if the given <see cref="GolangDecoderErrorCode"/> defines an error.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
+        /// <param name="errorCode">The <see cref="GolangDecoderErrorCode"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureNoError(this OrigDecoderErrorCode errorCode)
+        public static void EnsureNoError(this GolangDecoderErrorCode errorCode)
         {
-            if (errorCode != OrigDecoderErrorCode.NoError)
+            if (errorCode != GolangDecoderErrorCode.NoError)
             {
                 ThrowExceptionForErrorCode(errorCode);
             }
         }
 
         /// <summary>
-        /// Throws an exception if the given <see cref="OrigDecoderErrorCode"/> is <see cref="OrigDecoderErrorCode.UnexpectedEndOfStream"/>.
+        /// Throws an exception if the given <see cref="GolangDecoderErrorCode"/> is <see cref="GolangDecoderErrorCode.UnexpectedEndOfStream"/>.
         /// </summary>
-        /// <param name="errorCode">The <see cref="OrigDecoderErrorCode"/></param>
+        /// <param name="errorCode">The <see cref="GolangDecoderErrorCode"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void EnsureNoEOF(this OrigDecoderErrorCode errorCode)
+        public static void EnsureNoEOF(this GolangDecoderErrorCode errorCode)
         {
-            if (errorCode == OrigDecoderErrorCode.UnexpectedEndOfStream)
+            if (errorCode == GolangDecoderErrorCode.UnexpectedEndOfStream)
             {
                 errorCode.ThrowExceptionForErrorCode();
             }

@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration is not null.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationIsNotNull()
+        public void TestDefaultConfigurationIsNotNull()
         {
             Assert.True(Configuration.Default != null);
         }
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration parallel options is not null.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationParallelOptionsIsNotNull()
+        public void TestDefaultConfigurationParallelOptionsIsNotNull()
         {
             Assert.True(Configuration.Default.ParallelOptions != null);
         }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationReadOriginIsCurrent()
+        public void TestDefaultConfigurationReadOriginIsCurrent()
         {
             Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
         }
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests
         /// environment processor count.
         /// </summary>
         [Fact]
-        public void TestDefultConfigurationMaxDegreeOfParallelism()
+        public void TestDefaultConfigurationMaxDegreeOfParallelism()
         {
             Assert.True(Configuration.Default.ParallelOptions.MaxDegreeOfParallelism == Environment.ProcessorCount);
         }

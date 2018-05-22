@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Text;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -11,7 +10,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// </summary>
     internal sealed partial class IccDataReader
     {
-        private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
         private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
 
         /// <summary>
@@ -32,6 +30,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             Guard.NotNull(data, nameof(data));
             this.data = data;
+        }
+
+        /// <summary>
+        /// Gets the length in bytes of the raw data
+        /// </summary>
+        public int DataLength
+        {
+            get { return this.data.Length; }
         }
 
         /// <summary>

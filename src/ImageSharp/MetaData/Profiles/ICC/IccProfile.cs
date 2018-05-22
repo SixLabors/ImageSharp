@@ -52,17 +52,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// by making a copy from another ICC profile.
         /// </summary>
         /// <param name="other">The other ICC profile, where the clone should be made from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>>
         public IccProfile(IccProfile other)
         {
             Guard.NotNull(other, nameof(other));
 
-            // TODO: Do we need to copy anything else?
-            if (other.data != null)
-            {
-                this.data = new byte[other.data.Length];
-                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
-            }
+            this.data = other.ToByteArray();
         }
 
         /// <summary>
@@ -185,8 +180,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The <see cref="T:byte[]"/></returns>
         public byte[] ToByteArray()
         {
-            var writer = new IccWriter();
-            return writer.Write(this);
+            if (this.data != null)
+            {
+                byte[] copy = new byte[this.data.Length];
+                Buffer.BlockCopy(this.data, 0, copy, 0, copy.Length);
+                return copy;
+            }
+            else
+            {
+                var writer = new IccWriter();
+                return writer.Write(this);
+            }
         }
 
         private void InitializeHeader()

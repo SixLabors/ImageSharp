@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.Load<Rgba32>(memoryStream, new OrigJpegDecoder()))
+                using (var image = Image.Load<Rgba32>(memoryStream, new GolangJpegDecoder()))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

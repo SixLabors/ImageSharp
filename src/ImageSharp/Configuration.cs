@@ -18,7 +18,7 @@ using SixLabors.ImageSharp.Processing;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Provides initialization code which allows extending the library.
+    /// Provides configuration code which allows altering default behaviour or extending the library.
     /// </summary>
     public sealed class Configuration
     {

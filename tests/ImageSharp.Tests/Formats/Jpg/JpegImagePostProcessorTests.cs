@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             string imageFile = provider.SourceFileOrDescription;
             using (PdfJsJpegDecoderCore decoder = JpegFixture.ParsePdfJsStream(imageFile))
             using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
-            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, decoder.ImageWidth, decoder.ImageHeight))
+            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.DoPostProcessorStep(imageFrame);
 

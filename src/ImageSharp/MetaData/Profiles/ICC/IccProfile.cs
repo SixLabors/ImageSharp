@@ -52,17 +52,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// by making a copy from another ICC profile.
         /// </summary>
         /// <param name="other">The other ICC profile, where the clone should be made from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="other"/> is null.</exception>>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>>
         public IccProfile(IccProfile other)
         {
             Guard.NotNull(other, nameof(other));
 
-            // TODO: Do we need to copy anything else?
-            if (other.data != null)
-            {
-                this.data = new byte[other.data.Length];
-                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
-            }
+            this.data = other.ToByteArray();
         }
 
         /// <summary>
@@ -108,7 +103,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 #if !NETSTANDARD1_1
 
         /// <summary>
-        /// Calculates the MD5 hash value of an ICC profile header
+        /// Calculates the MD5 hash value of an ICC profile
         /// </summary>
         /// <param name="data">The data of which to calculate the hash value</param>
         /// <returns>The calculated hash</returns>
@@ -117,22 +112,38 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             Guard.NotNull(data, nameof(data));
             Guard.IsTrue(data.Length >= 128, nameof(data), "Data length must be at least 128 to be a valid profile header");
 
-            byte[] header = new byte[128];
-            Buffer.BlockCopy(data, 0, header, 0, 128);
+            const int profileFlagPos = 44;
+            const int renderingIntentPos = 64;
+            const int profileIdPos = 84;
+
+            // need to copy some values because they need to be zero for the hashing
+            byte[] temp = new byte[24];
+            Buffer.BlockCopy(data, profileFlagPos, temp, 0, 4);
+            Buffer.BlockCopy(data, renderingIntentPos, temp, 4, 4);
+            Buffer.BlockCopy(data, profileIdPos, temp, 8, 16);
 
             using (var md5 = MD5.Create())
             {
-                // Zero out some values
-                Array.Clear(header, 44, 4);     // Profile flags
-                Array.Clear(header, 64, 4);     // Rendering Intent
-                Array.Clear(header, 84, 16);    // Profile ID
+                try
+                {
+                    // Zero out some values
+                    Array.Clear(data, profileFlagPos, 4);
+                    Array.Clear(data, renderingIntentPos, 4);
+                    Array.Clear(data, profileIdPos, 16);
 
-                // Calculate hash
-                byte[] hash = md5.ComputeHash(data);
+                    // Calculate hash
+                    byte[] hash = md5.ComputeHash(data);
 
-                // Read values from hash
-                var reader = new IccDataReader(hash);
-                return reader.ReadProfileId();
+                    // Read values from hash
+                    var reader = new IccDataReader(hash);
+                    return reader.ReadProfileId();
+                }
+                finally
+                {
+                    Buffer.BlockCopy(temp, 0, data, profileFlagPos, 4);
+                    Buffer.BlockCopy(temp, 4, data, renderingIntentPos, 4);
+                    Buffer.BlockCopy(temp, 8, data, profileIdPos, 16);
+                }
             }
         }
 
@@ -150,13 +161,36 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
+        /// Checks for signs of a corrupt profile.
+        /// </summary>
+        /// <remarks>This is not an absolute proof of validity but should weed out most corrupt data.</remarks>
+        /// <returns>True if the profile is valid; False otherwise</returns>
+        public bool CheckIsValid()
+        {
+            return Enum.IsDefined(typeof(IccColorSpaceType), this.Header.DataColorSpace) &&
+                   Enum.IsDefined(typeof(IccColorSpaceType), this.Header.ProfileConnectionSpace) &&
+                   Enum.IsDefined(typeof(IccRenderingIntent), this.Header.RenderingIntent) &&
+                   this.Header.Size >= 128 &&
+                   this.Header.Size < 50_000_000; // it's unlikely there is a profile bigger than 50MB
+        }
+
+        /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
         /// <returns>The <see cref="T:byte[]"/></returns>
         public byte[] ToByteArray()
         {
-            var writer = new IccWriter();
-            return writer.Write(this);
+            if (this.data != null)
+            {
+                byte[] copy = new byte[this.data.Length];
+                Buffer.BlockCopy(this.data, 0, copy, 0, copy.Length);
+                return copy;
+            }
+            else
+            {
+                var writer = new IccWriter();
+                return writer.Write(this);
+            }
         }
 
         private void InitializeHeader()

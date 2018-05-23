@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg_Orig<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            if (SkipTest(provider))
             {
                 // skipping to avoid OutOfMemoryException on CI
                 return;

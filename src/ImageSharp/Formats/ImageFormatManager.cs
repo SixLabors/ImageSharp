@@ -85,6 +85,13 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>The <see cref="IImageFormat"/> if found otherwise null</returns>
         public IImageFormat FindFormatByFileExtension(string extension)
         {
+            Guard.NotNullOrWhiteSpace(extension, nameof(extension));
+
+            if (extension[0] == '.')
+            {
+                extension = extension.Substring(1);
+            }
+
             return this.imageFormats.FirstOrDefault(x => x.FileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
         }
 

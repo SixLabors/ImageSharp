@@ -292,6 +292,22 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        [Fact]
+        public void TestArrayValueWithUnspecifiedSize()
+        {
+            // This images contains array in the exif profile that has zero components.
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Issues.InvalidCast520).CreateImage();
+
+            ExifProfile profile = image.MetaData.ExifProfile;
+            Assert.NotNull(profile);
+
+            // Force parsing of the profile.
+            Assert.Equal(24, profile.Values.Count);
+
+            byte[] bytes = profile.ToByteArray();
+            Assert.Equal(495, bytes.Length);
+        }
+
         private static ExifProfile GetExifProfile()
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();

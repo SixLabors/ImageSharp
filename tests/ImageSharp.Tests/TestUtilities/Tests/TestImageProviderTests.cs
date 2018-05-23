@@ -121,6 +121,12 @@ namespace SixLabors.ImageSharp.Tests
         public void GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // We don't cache with the 32 bit build.
+                return;
+            }
+
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
 
             TestDecoder.DoTestThreadSafe(() =>
@@ -179,6 +185,12 @@ namespace SixLabors.ImageSharp.Tests
         public void GetImage_WithCustomParametricDecoder_ShouldUtilizeCache_WhenParametersAreEqual<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                // We don't cache with the 32 bit build.
+                return;
+            }
+
             Assert.NotNull(provider.Utility.SourceFileOrDescription);
 
             TestDecoderWithParameters.DoTestThreadSafe(() =>

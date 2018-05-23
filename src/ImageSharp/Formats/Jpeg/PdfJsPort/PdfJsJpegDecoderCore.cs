@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
-            this.AssignResolution();
+            this.InitDerivedMetaDataProperties();
             return this.PostProcessIntoImage<TPixel>();
         }
 
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
-            this.AssignResolution();
+            this.InitDerivedMetaDataProperties();
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
 
@@ -395,9 +395,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         /// <summary>
-        /// Assigns the horizontal and vertical resolution to the image if it has a JFIF header or EXIF metadata.
+        /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
-        private void AssignResolution()
+        private void InitDerivedMetaDataProperties()
         {
             if (this.jFif.XDensity > 0 && this.jFif.YDensity > 0)
             {
@@ -419,6 +419,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
+            }
+
+            if (this.MetaData.IccProfile?.CheckIsValid() == false)
+            {
+                this.MetaData.IccProfile = null;
             }
         }
 

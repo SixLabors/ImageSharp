@@ -1,3 +1,5 @@
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
@@ -6,8 +8,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
     using System.Linq;
     using System.Numerics;
 
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
     using SixLabors.ImageSharp.Memory;
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return result;
             }
 
-            public static ComponentData Load(OrigComponent c)
+            public static ComponentData Load(GolangComponent c)
             {
                 var result = new ComponentData(
                     c.SizeInBlocks.Width,

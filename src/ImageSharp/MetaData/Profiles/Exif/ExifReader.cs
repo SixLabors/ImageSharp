@@ -387,7 +387,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 value = this.ConvertValue(dataType, offsetBuffer, numberOfComponents);
             }
 
-            exifValue = new ExifValue(tag, dataType, value, isArray: value != null && numberOfComponents > 1);
+            exifValue = new ExifValue(tag, dataType, value, isArray: value != null && numberOfComponents != 1);
 
             return true;
         }

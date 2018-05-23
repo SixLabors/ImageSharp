@@ -6,7 +6,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {

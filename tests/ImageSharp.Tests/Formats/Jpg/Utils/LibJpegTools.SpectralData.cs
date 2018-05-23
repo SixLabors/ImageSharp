@@ -1,8 +1,11 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Linq;
 using System.Numerics;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
@@ -37,9 +40,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 return new SpectralData(destComponents);
             }
 
-            public static SpectralData LoadFromImageSharpDecoder(OrigJpegDecoderCore decoder)
+            public static SpectralData LoadFromImageSharpDecoder(GolangJpegDecoderCore decoder)
             {
-                OrigComponent[] srcComponents = decoder.Components;
+                GolangComponent[] srcComponents = decoder.Components;
                 LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);

@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Description = "DecodeJpegMultiple - ImageSharp")]
         public void DecodeJpegImageSharpOrig()
         {
-            this.ForEachStream(ms => Image.Load<Rgba32>(ms, new OrigJpegDecoder()));
+            this.ForEachStream(ms => Image.Load<Rgba32>(ms, new GolangJpegDecoder()));
         }
 
         [Benchmark(Description = "DecodeJpegMultiple - ImageSharp PDFJs")]

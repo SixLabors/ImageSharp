@@ -450,6 +450,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.VerticalResolution = verticalValue;
                 }
             }
+
+            if (this.MetaData.IccProfile?.CheckIsValid() == false)
+            {
+                this.MetaData.IccProfile = null;
+            }
         }
 
         /// <summary>

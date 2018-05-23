@@ -1,7 +1,7 @@
 // ReSharper disable InconsistentNaming
 using System;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 result.LoadFrom(temp);
                 return result;
             }
-            
+
             /// <summary>
             /// Performs a forward DCT on an 8x8 block of coefficients, including a level shift.
             /// Leave results scaled up by an overall factor of 8.

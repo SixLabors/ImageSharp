@@ -46,6 +46,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly PngColorType pngColorType;
 
         /// <summary>
+        /// The png filter method.
+        /// </summary>
+        private readonly PngFilterMethod pngFilterMethod;
+
+        /// <summary>
         /// The quantizer for reducing the color count.
         /// </summary>
         private readonly IQuantizer quantizer;
@@ -144,6 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             this.memoryManager = memoryManager;
             this.pngColorType = options.PngColorType;
+            this.pngFilterMethod = options.PngFilterMethod;
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
@@ -276,7 +282,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
-        private void CollecTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
+        private void CollectTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
             if (this.bytesPerPixel == 4)
@@ -296,7 +302,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
         /// <param name="row">The row.</param>
-        /// <returns>The <see cref="T:byte[]"/></returns>
+        /// <returns>The <see cref="IManagedByteBuffer"/></returns>
         private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, int row)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -313,11 +319,35 @@ namespace SixLabors.ImageSharp.Formats.Png
                     this.CollectGrayscaleBytes(rowSpan);
                     break;
                 default:
-                    this.CollecTPixelBytes(rowSpan);
+                    this.CollectTPixelBytes(rowSpan);
                     break;
             }
 
-            return this.GetOptimalFilteredScanline();
+            switch (this.pngFilterMethod)
+            {
+                case PngFilterMethod.None:
+                    NoneFilter.Encode(this.rawScanline.Span, this.result.Span);
+                    return this.result;
+
+                case PngFilterMethod.Sub:
+                    SubFilter.Encode(this.rawScanline.Span, this.sub.Span, this.bytesPerPixel, out int _);
+                    return this.sub;
+
+                case PngFilterMethod.Up:
+                    UpFilter.Encode(this.rawScanline.Span, this.previousScanline.Span, this.up.Span, out int _);
+                    return this.up;
+
+                case PngFilterMethod.Average:
+                    AverageFilter.Encode(this.rawScanline.Span, this.previousScanline.Span, this.average.Span, this.bytesPerPixel, out int _);
+                    return this.average;
+
+                case PngFilterMethod.Paeth:
+                    PaethFilter.Encode(this.rawScanline.Span, this.previousScanline.Span, this.paeth.Span, this.bytesPerPixel, out int _);
+                    return this.paeth;
+
+                default:
+                    return this.GetOptimalFilteredScanline();
+            }
         }
 
         /// <summary>
@@ -327,15 +357,15 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="T:byte[]"/></returns>
         private IManagedByteBuffer GetOptimalFilteredScanline()
         {
-            Span<byte> scanSpan = this.rawScanline.Span;
-            Span<byte> prevSpan = this.previousScanline.Span;
-
             // Palette images don't compress well with adaptive filtering.
             if (this.pngColorType == PngColorType.Palette || this.bitDepth < 8)
             {
                 NoneFilter.Encode(this.rawScanline.Span, this.result.Span);
                 return this.result;
             }
+
+            Span<byte> scanSpan = this.rawScanline.Span;
+            Span<byte> prevSpan = this.previousScanline.Span;
 
             // This order, while different to the enumerated order is more likely to produce a smaller sum
             // early on which shaves a couple of milliseconds off the processing time.

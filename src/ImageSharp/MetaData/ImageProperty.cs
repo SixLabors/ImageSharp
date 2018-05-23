@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <param name="value">The value of the property.</param>
         public ImageProperty(string name, string value)
         {
-            Guard.NotNullOrEmpty(name, nameof(name));
+            Guard.NotNullOrWhiteSpace(name, nameof(name));
 
             this.Name = name;
             this.Value = value;

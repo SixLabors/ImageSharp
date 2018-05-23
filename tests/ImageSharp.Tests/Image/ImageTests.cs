@@ -13,10 +13,60 @@ namespace SixLabors.ImageSharp.Tests
     /// <summary>
     /// Tests the <see cref="Image"/> class.
     /// </summary>
-    public class ImageTests : FileTestBase
+    public class ImageTests
     {
+        public class Constructor
+        {
+            [Fact]
+            public void Width_Height()
+            {
+                using (var image = new Image<Rgba32>(11, 23))
+                {
+                    Assert.Equal(11, image.Width);
+                    Assert.Equal(23, image.Height);
+                    Assert.Equal(11*23, image.GetPixelSpan().Length);
+                    image.ComparePixelBufferTo(default(Rgba32));
+
+                    Assert.Equal(Configuration.Default, image.GetConfiguration());
+                }
+            }
+
+            [Fact]
+            public void Configuration_Width_Height()
+            {
+                Configuration configuration = Configuration.Default.ShallowCopy();
+
+                using (var image = new Image<Rgba32>(configuration, 11, 23))
+                {
+                    Assert.Equal(11, image.Width);
+                    Assert.Equal(23, image.Height);
+                    Assert.Equal(11 * 23, image.GetPixelSpan().Length);
+                    image.ComparePixelBufferTo(default(Rgba32));
+
+                    Assert.Equal(configuration, image.GetConfiguration());
+                }
+            }
+
+            [Fact]
+            public void Configuration_Width_Height_BackroundColor()
+            {
+                Configuration configuration = Configuration.Default.ShallowCopy();
+                Rgba32 color = Rgba32.Aquamarine;
+
+                using (var image = new Image<Rgba32>(configuration, 11, 23, color))
+                {
+                    Assert.Equal(11, image.Width);
+                    Assert.Equal(23, image.Height);
+                    Assert.Equal(11 * 23, image.GetPixelSpan().Length);
+                    image.ComparePixelBufferTo(color);
+
+                    Assert.Equal(configuration, image.GetConfiguration());
+                }
+            }
+        }
+
         [Fact]
-        public void ConstructorByteArray()
+        public void Load_ByteArray()
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
@@ -32,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void ConstructorFileSystem()
+        public void Load_FileSystemPath()
         {
             TestFile file = TestFile.Create(TestImages.Bmp.Car);
             using (Image<Rgba32> image = Image.Load<Rgba32>(file.FullPath))
@@ -43,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void ConstructorFileSystem_FileNotFound()
+        public void Load_FileSystemPath_FileNotFound()
         {
             System.IO.FileNotFoundException ex = Assert.Throws<System.IO.FileNotFoundException>(
                 () =>
@@ -53,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
-        public void ConstructorFileSystem_NullPath()
+        public void Load_FileSystemPath_NullPath()
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () =>

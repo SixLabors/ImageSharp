@@ -413,11 +413,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             }
 
             this.InitDerivedMetaDataProperties();
-
-            if (this.MetaData.IccProfile?.CheckIsValid() == false)
-            {
-                this.MetaData.IccProfile = null;
-            }
         }
 
         /// <summary>
@@ -454,6 +449,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
                 }
+            }
+
+            if (this.MetaData.IccProfile?.CheckIsValid() == false)
+            {
+                this.MetaData.IccProfile = null;
             }
         }
 

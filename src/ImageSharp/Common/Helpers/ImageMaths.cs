@@ -28,6 +28,22 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Returns a specified number raised to the power of 2
+        /// </summary>
+        /// <param name="x">A single-precision floating-point number</param>
+        /// <returns>The number <paramref name="x" /> raised to the power of 2.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Pow2(float x) => x * x;
+
+        /// <summary>
+        /// Returns a specified number raised to the power of 3
+        /// </summary>
+        /// <param name="x">A single-precision floating-point number</param>
+        /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Pow3(float x) => x * x * x;
+
+        /// <summary>
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
         /// </summary>
@@ -36,10 +52,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="int"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetBitsNeededForColorDepth(int colors)
-        {
-            return (int)Math.Ceiling(Math.Log(colors, 2));
-        }
+        public static int GetBitsNeededForColorDepth(int colors) => (int)Math.Ceiling(Math.Log(colors, 2));
 
         /// <summary>
         /// Implementation of 1D Gaussian G(x) function
@@ -54,7 +67,7 @@ namespace SixLabors.ImageSharp
             float denominator = MathF.Sqrt(2 * MathF.PI) * sigma;
 
             float exponentNumerator = -x * x;
-            float exponentDenominator = (float)(2 * Math.Pow(sigma, 2));
+            float exponentDenominator = 2 * Pow2(sigma);
 
             float left = Numerator / denominator;
             float right = MathF.Exp(exponentNumerator / exponentDenominator);
@@ -96,14 +109,12 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetBcValue(float x, float b, float c)
         {
-            float temp;
-
             if (x < 0F)
             {
                 x = -x;
             }
 
-            temp = x * x;
+            float temp = x * x;
             if (x < 1F)
             {
                 x = ((12 - (9 * b) - (6 * c)) * (x * temp)) + ((-18 + (12 * b) + (6 * c)) * temp) + (6 - (2 * b));
@@ -132,10 +143,7 @@ namespace SixLabors.ImageSharp
         /// The bounding <see cref="Rectangle"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight)
-        {
-            return new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
-        }
+        public static Rectangle GetBoundingRectangle(Point topLeft, Point bottomRight) => new Rectangle(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
 
         /// <summary>
         /// Finds the bounding rectangle based on the first instance of any color component other

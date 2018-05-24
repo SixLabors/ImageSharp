@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             Lms sourceWhitePointLms = this.converter.Convert(sourceWhitePoint);
             Lms targetWhitePointLms = this.converter.Convert(targetWhitePoint);
 
-            var vector = new Vector3(targetWhitePointLms.L / sourceWhitePointLms.L, targetWhitePointLms.M / sourceWhitePointLms.M, targetWhitePointLms.S / sourceWhitePointLms.S);
+            Vector3 vector = targetWhitePointLms.Vector / sourceWhitePointLms.Vector;
             var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.Vector));
 
             return this.converter.Convert(targetColorLms);

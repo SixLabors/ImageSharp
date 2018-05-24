@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var input = new Cmyk(c, m, y, k);
 
             // Act
-            Rgb output = Converter.ToRgb(input);
+            var output = Converter.ToRgb(input);
 
             // Assert
             Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var input = new Rgb(r, g, b);
 
             // Act
-            Cmyk output = Converter.ToCmyk(input);
+            var output = Converter.ToCmyk(input);
 
             // Assert
             Assert.Equal(c, output.C, FloatRoundingComparer);

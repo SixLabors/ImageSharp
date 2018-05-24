@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -23,11 +23,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
             Guard.NotNull(sourceWhitePoint, nameof(sourceWhitePoint));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             return this.ChromaticAdaptation.Transform(color, sourceWhitePoint, this.WhitePoint);
         }
@@ -40,18 +36,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLab Adapt(CieLab color)
         {
             Guard.NotNull(color, nameof(color));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
             {
                 return color;
             }
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
 
@@ -63,18 +55,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLch Adapt(CieLch color)
         {
             Guard.NotNull(color, nameof(color));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
             {
                 return color;
             }
 
-            CieLab labColor = this.ToCieLab(color);
+            var labColor = this.ToCieLab(color);
             return this.ToCieLch(labColor);
         }
 
@@ -86,18 +74,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLchuv Adapt(CieLchuv color)
         {
             Guard.NotNull(color, nameof(color));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
             {
                 return color;
             }
 
-            CieLuv luvColor = this.ToCieLuv(color);
+            var luvColor = this.ToCieLuv(color);
             return this.ToCieLchuv(luvColor);
         }
 
@@ -109,18 +93,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLuv Adapt(CieLuv color)
         {
             Guard.NotNull(color, nameof(color));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLuvWhitePoint))
             {
                 return color;
             }
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
         }
 
@@ -132,18 +112,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public HunterLab Adapt(HunterLab color)
         {
             Guard.NotNull(color, nameof(color));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetHunterLabWhitePoint))
             {
                 return color;
             }
 
-            CieXyz xyzColor = this.ToCieXyz(color);
+            var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
 
@@ -155,11 +131,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public LinearRgb Adapt(LinearRgb color)
         {
             Guard.NotNull(color, nameof(color));
-
-            if (!this.IsChromaticAdaptationPerformed)
-            {
-                throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
-            }
+            this.CheckChromaticAdaptation();
 
             if (color.WorkingSpace.Equals(this.TargetRgbWorkingSpace))
             {
@@ -187,9 +159,19 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         {
             Guard.NotNull(color, nameof(color));
 
-            LinearRgb linearInput = this.ToLinearRgb(color);
+            var linearInput = this.ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);
             return this.ToRgb(linearOutput);
+        }
+
+        private void CheckChromaticAdaptation()
+        {
+            const string NoAdapterMessage = "Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.";
+
+            if (!this.IsChromaticAdaptationPerformed)
+            {
+                throw new InvalidOperationException(NoAdapterMessage);
+            }
         }
     }
 }

@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var output = converter.ToCieXyz(input);
 
             // Assert
             Assert.Equal(x, output.X, FloatRoundingComparer);

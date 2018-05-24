@@ -6,16 +6,29 @@ skip_branch_with_pr: true
 
 environment:
   matrix:
-    - target_framework: net471
-      is_32bit: True
-    - target_framework: net462
-      is_32bit: False
-    - target_framework: net462
-      is_32bit: True
-    - target_framework: net471
-      is_32bit: False
+    ### TODO: Enable the netcoreapp2.1 target when RC2 has been released!
+
+    #- target_framework: netcoreapp2.1
+    #  is_32bit: False
+
+    #- target_framework: netcoreapp2.1
+    #  is_32bit: True
+
     - target_framework: netcoreapp2.0
       is_32bit: False
+
+    - target_framework: net471
+      is_32bit: False
+
+    - target_framework: net471
+      is_32bit: True
+
+    - target_framework: net462
+      is_32bit: False
+
+    - target_framework: net462
+      is_32bit: True
+    
     #- target_framework: netcoreapp2.0 # As far as I understand, 32 bit test execution is not supported by "dotnet xunit"
     #  is_32bit: True
     #- target_framework: mono
@@ -39,7 +52,7 @@ install:
 
 before_build:
   - git submodule -q update --init
-  - cmd: dotnet --version
+  - cmd: dotnet --info
   
 build_script:
 - cmd: build.cmd

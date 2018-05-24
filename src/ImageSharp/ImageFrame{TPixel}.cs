@@ -20,58 +20,90 @@ namespace SixLabors.ImageSharp
     public sealed class ImageFrame<TPixel> : IPixelSource<TPixel>, IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly Configuration configuration;
         private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        internal ImageFrame(MemoryManager memoryManager, int width, int height)
-            : this(memoryManager, width, height, new ImageFrameMetaData())
+        internal ImageFrame(Configuration configuration, int width, int height)
+            : this(configuration, width, height, new ImageFrameMetaData())
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="size">The <see cref="Size"/> of the frame.</param>
+        /// <param name="metaData">The meta data.</param>
+        internal ImageFrame(Configuration configuration, Size size, ImageFrameMetaData metaData)
+            : this(configuration, size.Width, size.Height, metaData)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(MemoryManager memoryManager, int width, int height, ImageFrameMetaData metaData)
+        internal ImageFrame(Configuration configuration, int width, int height, ImageFrameMetaData metaData)
+            : this(configuration, width, height, default, metaData)
         {
-            Guard.NotNull(memoryManager, nameof(memoryManager));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="backgroundColor">The color to clear the image with.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor)
+            : this(configuration, width, height, backgroundColor, new ImageFrameMetaData())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="backgroundColor">The color to clear the image with.</param>
+        /// <param name="metaData">The meta data.</param>
+        internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor, ImageFrameMetaData metaData)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
             Guard.NotNull(metaData, nameof(metaData));
 
-            this.MemoryManager = memoryManager;
-            this.PixelBuffer = memoryManager.AllocateClean2D<TPixel>(width, height);
+            this.configuration = configuration;
+            this.MemoryManager = configuration.MemoryManager;
+            this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(width, height, false);
             this.MetaData = metaData;
+            this.Clear(configuration.ParallelOptions, backgroundColor);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
-        /// <param name="size">The <see cref="Size"/> of the frame.</param>
-        /// <param name="metaData">The meta data.</param>
-        internal ImageFrame(MemoryManager memoryManager, Size size, ImageFrameMetaData metaData)
-            : this(memoryManager, size.Width, size.Height, metaData)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
-        /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source.</param>
-        internal ImageFrame(MemoryManager memoryManager, ImageFrame<TPixel> source)
+        internal ImageFrame(Configuration configuration, ImageFrame<TPixel> source)
         {
-            this.MemoryManager = memoryManager;
-            this.PixelBuffer = memoryManager.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(source, nameof(source));
+
+            this.configuration = configuration;
+            this.MemoryManager = configuration.MemoryManager;
+            this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.Span.CopyTo(this.PixelBuffer.Span);
             this.MetaData = source.MetaData.Clone();
         }
@@ -246,13 +278,12 @@ namespace SixLabors.ImageSharp
                 return this.Clone() as ImageFrame<TPixel2>;
             }
 
-            var target = new ImageFrame<TPixel2>(this.MemoryManager, this.Width, this.Height, this.MetaData.Clone());
+            var target = new ImageFrame<TPixel2>(this.configuration, this.Width, this.Height, this.MetaData.Clone());
 
-            // TODO: ImageFrame has no visibility of the current configuration. It should have.
             ParallelFor.WithTemporaryBuffer(
                 0,
                 this.Height,
-                Configuration.Default,
+                this.configuration,
                 this.Width,
                 (int y, IBuffer<Vector4> tempRowBuffer) =>
                 {
@@ -268,12 +299,30 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Clears the bitmap.
+        /// </summary>
+        /// <param name="parallelOptions">The parallel options.</param>
+        /// <param name="value">The value to initialize the bitmap with.</param>
+        internal void Clear(ParallelOptions parallelOptions, TPixel value)
+        {
+            Parallel.For(
+                0,
+                this.Height,
+                parallelOptions,
+                y =>
+                {
+                    Span<TPixel> targetRow = this.GetPixelRowSpan(y);
+                    targetRow.Fill(value);
+                });
+        }
+
+        /// <summary>
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
         internal ImageFrame<TPixel> Clone()
         {
-            return new ImageFrame<TPixel>(this.MemoryManager, this);
+            return new ImageFrame<TPixel>(this.configuration, this);
         }
 
         /// <inheritdoc/>

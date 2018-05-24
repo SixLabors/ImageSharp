@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 

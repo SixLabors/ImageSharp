@@ -115,17 +115,21 @@ For more examples check out:
 
 ### Manual build
 
-If you prefer, you can compile ImageSharp yourself (please do and help!), you'll need:
+If you prefer, you can compile ImageSharp yourself (please do and help!)
 
-- [Visual Studio 2017 (or above)](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
-- The [.NET Core SDK Installer](https://www.microsoft.com/net/core#windows) - Non VSCode link.
+- Using [Visual Studio 2017 Preview](https://docs.microsoft.com/en-us/visualstudio/releasenotes/vs2017-preview-relnotes)
+  - Make sure you have the latest version installed
+  - Make sure you have [the newest 2.1 RC1 SDK installed](https://www.microsoft.com/net/core#windows)
 
-Alternatively on Linux you can use:
+- Using [Visual Studio 2017](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
+  - If you are unable and/or don't want to build ImageSharp.Tests against 2.1 RC, remove the `netcoreapp2.1` target [from TargetFrameworks](https://github.com/SixLabors/ImageSharp/blob/master/tests/ImageSharp.Tests/ImageSharp.Tests.csproj#L3) locally
+
+Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 
 - [Visual Studio Code](https://code.visualstudio.com/) with [C# Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.csharp)
 - [.Net Core](https://www.microsoft.com/net/core#linuxubuntu)
 
-To clone it locally click the "Clone in Windows" button above or run the following git commands.
+To clone ImageSharp locally click the "Clone in Windows" button above or run the following git commands.
 
 ```bash
 git clone https://github.com/SixLabors/ImageSharp

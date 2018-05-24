@@ -264,7 +264,9 @@ namespace SixLabors.ImageSharp.PixelFormats
             return byte4 | byte3 | byte2 | byte1;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // Intentionally disabled AggressiveInlining, because it seems to cause problems on linux in release mode,
+        // see: https://github.com/SixLabors/ImageSharp/issues/594
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Vector4 ToByteScaledVector4()
         {
             var vector = this.ToVector4();

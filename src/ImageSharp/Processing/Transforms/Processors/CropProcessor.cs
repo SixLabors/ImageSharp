@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetMemoryManager(), this.CropRectangle.Width, this.CropRectangle.Height, x.MetaData.Clone()));
+            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetConfiguration(), this.CropRectangle.Width, this.CropRectangle.Height, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);

@@ -6,11 +6,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
 using SixLabors.Primitives;
 
@@ -56,12 +56,12 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             Guard.MustBeGreaterThan(tempWidth, 0, nameof(tempWidth));
             Guard.MustBeGreaterThan(tempHeight, 0, nameof(tempHeight));
 
-            (Size size, Rectangle rectangle) locationBounds = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, tempWidth, tempHeight);
+            (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options, tempWidth, tempHeight);
 
             this.Sampler = options.Sampler;
-            this.Width = locationBounds.size.Width;
-            this.Height = locationBounds.size.Height;
-            this.ResizeRectangle = locationBounds.rectangle;
+            this.Width = size.Width;
+            this.Height = size.Height;
+            this.ResizeRectangle = rectangle;
             this.Compand = options.Compand;
         }
 
@@ -167,13 +167,13 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                 float center = ((i + .5F) * ratio) - .5F;
 
                 // Keep inside bounds.
-                int left = (int)Math.Ceiling(center - radius);
+                int left = (int)MathF.Ceiling(center - radius);
                 if (left < 0)
                 {
                     left = 0;
                 }
 
-                int right = (int)Math.Floor(center + radius);
+                int right = (int)MathF.Floor(center + radius);
                 if (right > sourceSize - 1)
                 {
                     right = sourceSize - 1;
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         protected override Image<TPixel> CreateDestination(Image<TPixel> source, Rectangle sourceRectangle)
         {
             // We will always be creating the clone even for mutate because we may need to resize the canvas
-            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetMemoryManager(), this.Width, this.Height, x.MetaData.Clone()));
+            IEnumerable<ImageFrame<TPixel>> frames = source.Frames.Select(x => new ImageFrame<TPixel>(source.GetConfiguration(), this.Width, this.Height, x.MetaData.Clone()));
 
             // Use the overload to prevent an extra frame being added
             return new Image<TPixel>(source.GetConfiguration(), source.MetaData.Clone(), frames);
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             // Handle resize dimensions identical to the original
             if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.ResizeRectangle)
             {
-                // the cloned will be blank here copy all the pixel data over
+                // The cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
                 return;
             }
@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                     source.Width,
                     (int y, IBuffer<Vector4> tempRowBuffer) =>
                         {
-                            Span<Vector4> firstPassRow = firstPassPixels.GetRowSpan(y);
+                            ref Vector4 firstPassRow = ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
                             Span<Vector4> tempRowSpan = tempRowBuffer.Span;
 
@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                                 for (int x = minX; x < maxX; x++)
                                 {
                                     WeightsWindow window = this.horizontalWeights.Weights[x - startX];
-                                    firstPassRow[x] = window.ComputeExpandedWeightedRowSum(tempRowSpan, sourceX);
+                                    Unsafe.Add(ref firstPassRow, x) = window.ComputeExpandedWeightedRowSum(tempRowSpan, sourceX);
                                 }
                             }
                             else
@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                                 for (int x = minX; x < maxX; x++)
                                 {
                                     WeightsWindow window = this.horizontalWeights.Weights[x - startX];
-                                    firstPassRow[x] = window.ComputeWeightedRowSum(tempRowSpan, sourceX);
+                                    Unsafe.Add(ref firstPassRow, x) = window.ComputeWeightedRowSum(tempRowSpan, sourceX);
                                 }
                             }
                         });
@@ -339,7 +339,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                     {
                         // Ensure offsets are normalized for cropping and padding.
                         WeightsWindow window = this.verticalWeights.Weights[y - startY];
-                        Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
+                        ref TPixel targetRow = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));
 
                         if (this.Compand)
                         {
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                                 Vector4 destinationVector = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
                                 destinationVector = destinationVector.Compress();
 
-                                ref TPixel pixel = ref targetRow[x];
+                                ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
                                 pixel.PackFromVector4(destinationVector);
                             }
                         }
@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                                 // Destination color components
                                 Vector4 destinationVector = window.ComputeWeightedColumnSum(firstPassPixels, x, sourceY);
 
-                                ref TPixel pixel = ref targetRow[x];
+                                ref TPixel pixel = ref Unsafe.Add(ref targetRow, x);
                                 pixel.PackFromVector4(destinationVector);
                             }
                         }

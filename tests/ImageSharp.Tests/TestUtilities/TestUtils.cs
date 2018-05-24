@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
 
         public static string ToCsv<T>(this IEnumerable<T> items, string separator = ",")
         {
-            return string.Join(separator, items.Select(o => string.Format(CultureInfo.InvariantCulture, "{0}", o)));
+            return String.Join(separator, items.Select(o => String.Format(CultureInfo.InvariantCulture, "{0}", o)));
         }
 
         public static Type GetClrType(this PixelTypes pixelType) => PixelTypes2ClrTypes[pixelType];
@@ -147,6 +147,11 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The pixel types</returns>
         internal static PixelTypes[] GetAllPixelTypes() => (PixelTypes[])Enum.GetValues(typeof(PixelTypes));
 
+        internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return (TPixel)typeof(NamedColors<TPixel>).GetTypeInfo().GetField(colorName).GetValue(null);
+        }
 
         /// <summary>
         /// Utility for testing image processor extension methods:
@@ -222,5 +227,7 @@ namespace SixLabors.ImageSharp.Tests
                 image.DebugSave(provider, testOutputDetails);
             }
         }
+
+        public static string AsInvariantString(this FormattableString formattable) => System.FormattableString.Invariant(formattable);
     }
 }

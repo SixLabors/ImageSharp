@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
             {
             }
 
-            public override string SourceFileOrDescription => $"TestPattern{this.Width}x{this.Height}";
+            public override string SourceFileOrDescription => TestUtils.AsInvariantString($"TestPattern{this.Width}x{this.Height}");
 
             public override Image<TPixel> GetImage()
             {

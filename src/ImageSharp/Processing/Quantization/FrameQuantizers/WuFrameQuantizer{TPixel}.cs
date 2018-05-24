@@ -157,13 +157,13 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             }
             finally
             {
-                this.vwt.Dispose();
-                this.vmr.Dispose();
-                this.vmg.Dispose();
-                this.vmb.Dispose();
-                this.vma.Dispose();
-                this.m2.Dispose();
-                this.tag.Dispose();
+                this.vwt?.Dispose();
+                this.vmr?.Dispose();
+                this.vmg?.Dispose();
+                this.vmb?.Dispose();
+                this.vma?.Dispose();
+                this.m2?.Dispose();
+                this.tag?.Dispose();
             }
         }
 

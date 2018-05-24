@@ -39,25 +39,24 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                       { 0, 1f, 2f, 0, 0 },
                   };
 
-        public static readonly TheoryData<string> ResamplerNames =
-            new TheoryData<string>
-                  {
-                      nameof(KnownResamplers.Bicubic),
-                      nameof(KnownResamplers.Box),
-                      nameof(KnownResamplers.CatmullRom),
-                      nameof(KnownResamplers.Hermite),
-                      nameof(KnownResamplers.Lanczos2),
-                      nameof(KnownResamplers.Lanczos3),
-                      nameof(KnownResamplers.Lanczos5),
-                      nameof(KnownResamplers.Lanczos8),
-                      nameof(KnownResamplers.MitchellNetravali),
-                      nameof(KnownResamplers.NearestNeighbor),
-                      nameof(KnownResamplers.Robidoux),
-                      nameof(KnownResamplers.RobidouxSharp),
-                      nameof(KnownResamplers.Spline),
-                      nameof(KnownResamplers.Triangle),
-                      nameof(KnownResamplers.Welch),
-                  };
+        public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
+        {
+            nameof(KnownResamplers.Bicubic),
+            nameof(KnownResamplers.Box),
+            nameof(KnownResamplers.CatmullRom),
+            nameof(KnownResamplers.Hermite),
+            nameof(KnownResamplers.Lanczos2),
+            nameof(KnownResamplers.Lanczos3),
+            nameof(KnownResamplers.Lanczos5),
+            nameof(KnownResamplers.Lanczos8),
+            nameof(KnownResamplers.MitchellNetravali),
+            nameof(KnownResamplers.NearestNeighbor),
+            nameof(KnownResamplers.Robidoux),
+            nameof(KnownResamplers.RobidouxSharp),
+            nameof(KnownResamplers.Spline),
+            nameof(KnownResamplers.Triangle),
+            nameof(KnownResamplers.Welch),
+        };
 
         public static readonly TheoryData<string> Transform_DoesNotCreateEdgeArtifacts_ResamplerNames =
             new TheoryData<string>
@@ -119,12 +118,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
 
-                string testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
+                FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
                 image.DebugSave(provider, testOutputDetails);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
             }
         }
-        
+
         [Theory]
         [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
         public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
@@ -136,7 +135,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
                 image.Mutate(i => i.Transform(m, KnownResamplers.Bicubic));
 
-                string testOutputDetails = $"R({angleDeg})_S({s})";
+                FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
                 image.DebugSave(provider, testOutputDetails);
                 image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
             }
@@ -166,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             using (Image<TPixel> image = provider.GetImage())
             {
                 var m = Matrix3x2.CreateScale(2.0F, 1.5F);
-                
+
                 image.Mutate(i => i.Transform(m, KnownResamplers.Spline, rectangle));
 
                 image.DebugSave(provider);

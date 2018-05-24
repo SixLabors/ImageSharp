@@ -15,6 +15,32 @@ function VerifyPath($path, $errorMessage) {
     }
 }
 
+function CheckSubmoduleStatus() {
+    $submoduleStatus = (git submodule status) | Out-String
+    # if the result string is empty, the command failed to run (we didn't capture the error stream)
+    if ($submoduleStatus) {
+        # git has been called successfully, what about the status?
+        if (($submoduleStatus -match "\-") -or ($submoduleStatus -match "\(\(null\)\)"))
+        {
+            # submodule has not been initialized!
+            return 2;
+        } 
+        elseif ($submoduleStatus -match "\+")
+        {
+            # submodule is not synced:
+            return 1;
+        }
+        else {
+            # everything fine:
+            return 0;
+        }
+    } else {
+          # git call failed, so we should warn
+          return 3;
+    }
+}
+
+
 if ( ($targetFramework -eq "netcoreapp2.0") -and ($env:CI -eq "True") -and ($is32Bit -ne "True")) {
     # We execute CodeCoverage.cmd only for one specific job on CI (netcoreapp2.0 + 64bit )
     $testRunnerCmd = ".\tests\CodeCoverage\CodeCoverage.cmd"
@@ -64,4 +90,23 @@ Invoke-Expression $testRunnerCmd
 
 cd $PSScriptRoot
 
-exit $LASTEXITCODE
+$exitCodeOfTests = $LASTEXITCODE;
+
+if (0 -ne ([int]$exitCodeOfTests)) {
+    # check submodule status
+    $submoduleStatus = CheckSubmoduleStatus
+    if ([int]$submoduleStatus -eq 1) {
+        # not synced
+        Write-Host -ForegroundColor Yellow "Check if submodules are up to date. You can use 'git submodule update' to fix this";
+    } elseif ($submoduleStatus -eq 2) {
+        # not initialized
+        Write-Host -ForegroundColor Yellow "Check if submodules are initialized. You can run 'git submodule init' to initialize them."
+    } elseif ($submoduleStatus -eq 3) {
+        # git not found, maybe submodules not synced?
+        Write-Host -ForegroundColor Yellow "Could not check if submodules are initialized correctly. Maybe git is not installed?"
+    } else {
+        #Write-Host "Submodules are up to date";
+    }
+}
+
+exit $exitCodeOfTests

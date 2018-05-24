@@ -90,16 +90,23 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 
                 MemoryManager memoryManager = this.Target.MemoryManager;
 
-                using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
+                if (this.Options.BlendPercentage == 1f)
                 {
-                    Span<float> amountSpan = amountBuffer.Span;
-
-                    for (int i = 0; i < scanline.Length; i++)
+                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, scanline);
+                }
+                else
+                {
+                    using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
                     {
-                        amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
-                    }
+                        Span<float> amountSpan = amountBuffer.Span;
 
-                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
+                        for (int i = 0; i < scanline.Length; i++)
+                        {
+                            amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
+                        }
+
+                        this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
+                    }
                 }
             }
         }

@@ -86,26 +86,25 @@ namespace SixLabors.ImageSharp.Processing.Transforms
         /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
+        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix)
             where TPixel : struct, IPixel<TPixel>
             => Transform(source, matrix, KnownResamplers.Bicubic);
 
         /// <summary>
         /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.
-        /// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <param name="sampler">The <see cref="IResampler"/> to perform the resampling.</param>
         /// <returns>The <see cref="Image{TPixel}"/></returns>
-        internal static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler)
+        public static IImageProcessingContext<TPixel> Transform<TPixel>(this IImageProcessingContext<TPixel> source, Matrix4x4 matrix, IResampler sampler)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new ProjectiveTransformProcessor<TPixel>(matrix, sampler, source.GetCurrentSize()));
 
         /// <summary>
         /// Applies a projective transform to the image by the given matrix using the specified sampling algorithm.
-        /// TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior
+        /// TODO: Should we be offsetting the matrix here?
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image to transform.</param>

@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EnsureNBits(int n, ref InputProcessor inputProcessor)
         {
-            OrigDecoderErrorCode errorCode = this.EnsureNBitsUnsafe(n, ref inputProcessor);
+            GolangDecoderErrorCode errorCode = this.EnsureNBitsUnsafe(n, ref inputProcessor);
             errorCode.EnsureNoError();
         }
 
@@ -46,17 +46,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Reads bytes from the byte buffer to ensure that bits.UnreadBits is at
         /// least n. For best performance (avoiding function calls inside hot loops),
         /// the caller is the one responsible for first checking that bits.UnreadBits &lt; n.
-        /// This method does not throw. Returns <see cref="OrigDecoderErrorCode"/> instead.
+        /// This method does not throw. Returns <see cref="GolangDecoderErrorCode"/> instead.
         /// </summary>
         /// <param name="n">The number of bits to ensure.</param>
         /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <returns>Error code</returns>
-        public OrigDecoderErrorCode EnsureNBitsUnsafe(int n, ref InputProcessor inputProcessor)
+        public GolangDecoderErrorCode EnsureNBitsUnsafe(int n, ref InputProcessor inputProcessor)
         {
             while (true)
             {
-                OrigDecoderErrorCode errorCode = this.EnsureBitsStepImpl(ref inputProcessor);
-                if (errorCode != OrigDecoderErrorCode.NoError || this.UnreadBits >= n)
+                GolangDecoderErrorCode errorCode = this.EnsureBitsStepImpl(ref inputProcessor);
+                if (errorCode != GolangDecoderErrorCode.NoError || this.UnreadBits >= n)
                 {
                     return errorCode;
                 }
@@ -67,8 +67,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==8
         /// </summary>
         /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
-        /// <returns>A <see cref="OrigDecoderErrorCode"/></returns>
-        public OrigDecoderErrorCode Ensure8BitsUnsafe(ref InputProcessor inputProcessor)
+        /// <returns>A <see cref="GolangDecoderErrorCode"/></returns>
+        public GolangDecoderErrorCode Ensure8BitsUnsafe(ref InputProcessor inputProcessor)
         {
             return this.EnsureBitsStepImpl(ref inputProcessor);
         }
@@ -77,8 +77,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// Unrolled version of <see cref="EnsureNBitsUnsafe"/> for n==1
         /// </summary>
         /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
-        /// <returns>A <see cref="OrigDecoderErrorCode"/></returns>
-        public OrigDecoderErrorCode Ensure1BitUnsafe(ref InputProcessor inputProcessor)
+        /// <returns>A <see cref="GolangDecoderErrorCode"/></returns>
+        public GolangDecoderErrorCode Ensure1BitUnsafe(ref InputProcessor inputProcessor)
         {
             return this.EnsureBitsStepImpl(ref inputProcessor);
         }
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReceiveExtend(int t, ref InputProcessor inputProcessor)
         {
-            OrigDecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, ref inputProcessor, out int x);
+            GolangDecoderErrorCode errorCode = this.ReceiveExtendUnsafe(t, ref inputProcessor, out int x);
             errorCode.EnsureNoError();
             return x;
         }
@@ -103,13 +103,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
         /// <param name="t">Byte</param>
         /// <param name="inputProcessor">The <see cref="InputProcessor"/></param>
         /// <param name="x">Read bits value</param>
-        /// <returns>The <see cref="OrigDecoderErrorCode"/></returns>
-        public OrigDecoderErrorCode ReceiveExtendUnsafe(int t, ref InputProcessor inputProcessor, out int x)
+        /// <returns>The <see cref="GolangDecoderErrorCode"/></returns>
+        public GolangDecoderErrorCode ReceiveExtendUnsafe(int t, ref InputProcessor inputProcessor, out int x)
         {
             if (this.UnreadBits < t)
             {
-                OrigDecoderErrorCode errorCode = this.EnsureNBitsUnsafe(t, ref inputProcessor);
-                if (errorCode != OrigDecoderErrorCode.NoError)
+                GolangDecoderErrorCode errorCode = this.EnsureNBitsUnsafe(t, ref inputProcessor);
+                if (errorCode != GolangDecoderErrorCode.NoError)
                 {
                     x = int.MaxValue;
                     return errorCode;
@@ -126,14 +126,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 x += ((-1) << t) + 1;
             }
 
-            return OrigDecoderErrorCode.NoError;
+            return GolangDecoderErrorCode.NoError;
         }
 
-        private OrigDecoderErrorCode EnsureBitsStepImpl(ref InputProcessor inputProcessor)
+        private GolangDecoderErrorCode EnsureBitsStepImpl(ref InputProcessor inputProcessor)
         {
-            OrigDecoderErrorCode errorCode = inputProcessor.Bytes.ReadByteStuffedByteUnsafe(inputProcessor.InputStream, out int c);
+            GolangDecoderErrorCode errorCode = inputProcessor.Bytes.ReadByteStuffedByteUnsafe(inputProcessor.InputStream, out int c);
 
-            if (errorCode != OrigDecoderErrorCode.NoError)
+            if (errorCode != GolangDecoderErrorCode.NoError)
             {
                 return errorCode;
             }

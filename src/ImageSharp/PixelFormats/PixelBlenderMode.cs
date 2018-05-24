@@ -54,62 +54,62 @@ namespace SixLabors.ImageSharp.PixelFormats
         HardLight,
 
         /// <summary>
-        /// returns the source colors
+        /// returns the source colors.
         /// </summary>
         Src,
 
         /// <summary>
-        /// returns the source over the destination
+        /// returns the source over the destination.
         /// </summary>
         Atop,
 
         /// <summary>
-        /// returns the detination over the source
+        /// returns the destination over the source.
         /// </summary>
         Over,
 
         /// <summary>
-        /// the source where the desitnation and source overlap
+        /// The source where the destination and source overlap.
         /// </summary>
         In,
 
         /// <summary>
-        /// the destination where the desitnation and source overlap
+        /// The destination where the destination and source overlap.
         /// </summary>
         Out,
 
         /// <summary>
-        /// the destination where the source does not overlap it
+        /// The destination where the source does not overlap it.
         /// </summary>
         Dest,
 
         /// <summary>
-        /// the source where they dont overlap othersie dest in overlapping parts
+        /// The source where they don't overlap othersie dest in overlapping parts.
         /// </summary>
         DestAtop,
 
         /// <summary>
-        /// the destnation over the source
+        /// The destination over the source.
         /// </summary>
         DestOver,
 
         /// <summary>
-        /// the destination where the desitnation and source overlap
+        /// The destination where the destination and source overlap.
         /// </summary>
         DestIn,
 
         /// <summary>
-        /// the source where the desitnation and source overlap
+        /// The source where the destination and source overlap.
         /// </summary>
         DestOut,
 
         /// <summary>
-        /// the clear.
+        /// The clear.
         /// </summary>
         Clear,
 
         /// <summary>
-        /// clear where they overlap
+        /// Clear where they overlap.
         /// </summary>
         Xor
     }

@@ -23,6 +23,9 @@
     <PackageReference Include="Colourful" Version="1.2.1" />
     <PackageReference Include="System.Memory" Version="4.5.0-preview2-26406-04" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-preview2-26406-04" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.10.12" />
+    <PackageReference Include="Colourful" Version="1.1.2" />
+    <PackageReference Include="System.Drawing.Common" Version="4.5.0-rc1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />

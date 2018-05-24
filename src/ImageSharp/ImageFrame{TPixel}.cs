@@ -87,13 +87,8 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration;
             this.MemoryManager = configuration.MemoryManager;
             this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(width, height, false);
-
-            if (!default(TPixel).Equals(backgroundColor))
-            {
-                this.Clear(configuration.ParallelOptions, backgroundColor);
-            }
-
             this.MetaData = metaData;
+            this.Clear(configuration.ParallelOptions, backgroundColor);
         }
 
         /// <summary>

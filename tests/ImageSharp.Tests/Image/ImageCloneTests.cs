@@ -33,10 +33,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        /// <summary>
-        /// https://github.com/SixLabors/ImageSharp/issues/576
-        /// </summary>
-        [Theory(Skip = "See https://github.com/SixLabors/ImageSharp/issues/576")]
+        [Theory]
         [WithTestPatternImages(9, 9, PixelTypes.Rgba32)]
         public void CloneAs_ToBgr24(TestImageProvider<Rgba32> provider)
         {

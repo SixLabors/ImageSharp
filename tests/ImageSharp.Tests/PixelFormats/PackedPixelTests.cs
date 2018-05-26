@@ -1332,8 +1332,17 @@ namespace SixLabors.ImageSharp.Tests.Colors
         public void Short4_Clamping()
         {
             // Test clamping.
-            Assert.Equal(Vector4.One * 0x7FFF, new Short4(Vector4.One * 1234567.0f).ToVector4());
-            Assert.Equal(Vector4.One * -0x8000, new Short4(Vector4.One * -1234567.0f).ToVector4());
+            // arrange
+            var short1 = new Short4(Vector4.One * 1234567.0f);
+            var short2 = new Short4(Vector4.One * -1234567.0f);
+
+            // act
+           var vector1 = short1.ToVector4();
+           var vector2 = short2.ToVector4();
+
+            // assert
+            Assert.Equal(Vector4.One * 0x7FFF, vector1);
+            Assert.Equal(Vector4.One * -0x8000, vector2);
         }
 
         [Fact]
@@ -1348,7 +1357,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             // assert
             var expectedRgb24 = new Rgb24(172, 177, 243);
-            Assert.Equal(rgb24, expectedRgb24);
+            Assert.Equal(expectedRgb24, rgb24);
         }
 
         [Fact]
@@ -1363,7 +1372,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             // assert
             var expectedBgr24 = new Bgr24(172, 177, 243);
-            Assert.Equal(bgr24, expectedBgr24);
+            Assert.Equal(expectedBgr24, bgr24);
         }
 
         [Fact]
@@ -1378,7 +1387,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             // assert
             var expectedRgba32 = new Rgba32(172, 177, 243, 128);
-            Assert.Equal(rgba32, expectedRgba32);
+            Assert.Equal(expectedRgba32, rgba32);
         }
 
         [Fact]
@@ -1393,7 +1402,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             // assert
             var expectedBgra32 = new Bgra32(172, 177, 243, 128);
-            Assert.Equal(bgra32, expectedBgra32);
+            Assert.Equal(expectedBgra32, bgra32);
         }
 
         [Fact]
@@ -1408,7 +1417,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             // assert
             var expectedArgb32 = new Argb32(172, 177, 243, 128);
-            Assert.Equal(argb32, expectedArgb32);
+            Assert.Equal(expectedArgb32, argb32);
         }
 
         [Fact]

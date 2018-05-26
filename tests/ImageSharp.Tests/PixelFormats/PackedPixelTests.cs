@@ -1148,15 +1148,6 @@ namespace SixLabors.ImageSharp.Tests.Colors
         [Fact]
         public void Rgba64()
         {
-            if (!TestEnvironment.Is64BitProcess)
-            {
-                // Can't decide if these assertions are robust enough to be portable across CPU architectures.
-                // Let's just skip it for 32 bits!
-                // TODO: Someone should review this!
-                // see https://github.com/SixLabors/ImageSharp/issues/594
-                return;
-            }
-
             // Test the limits.
             Assert.Equal((ulong)0x0, new Rgba64(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFFFFFFFFFF, new Rgba64(Vector4.One).PackedValue);
@@ -1282,17 +1273,187 @@ namespace SixLabors.ImageSharp.Tests.Colors
         }
 
         [Fact]
+        public void Short4_TestLimits()
+        {
+            // Test the limits.
+            Assert.Equal((ulong)0x0, new Short4(Vector4.Zero).PackedValue);
+            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new Short4(Vector4.One * 0x7FFF).PackedValue);
+            Assert.Equal(0x8000800080008000, new Short4(Vector4.One * -0x8000).PackedValue);
+        }
+
+        [Fact]
+        public void Short4_ToVector4()
+        {
+            // Test ToVector4.
+            Assert.Equal(Vector4.One * 0x7FFF, new Short4(Vector4.One * 0x7FFF).ToVector4());
+            Assert.Equal(Vector4.Zero, new Short4(Vector4.Zero).ToVector4());
+            Assert.Equal(Vector4.One * -0x8000, new Short4(Vector4.One * -0x8000).ToVector4());
+            Assert.Equal(Vector4.UnitX * 0x7FFF, new Short4(Vector4.UnitX * 0x7FFF).ToVector4());
+            Assert.Equal(Vector4.UnitY * 0x7FFF, new Short4(Vector4.UnitY * 0x7FFF).ToVector4());
+            Assert.Equal(Vector4.UnitZ * 0x7FFF, new Short4(Vector4.UnitZ * 0x7FFF).ToVector4());
+            Assert.Equal(Vector4.UnitW * 0x7FFF, new Short4(Vector4.UnitW * 0x7FFF).ToVector4());
+        }
+
+        [Fact]
+        public void Short4_ToScaledVector4()
+        {
+            // Test ToScaledVector4.
+            // arrange
+            var short4 = new Short4(Vector4.One * 0x7FFF);
+
+            // act
+            Vector4 scaled = short4.ToScaledVector4();
+
+            // assert
+            Assert.Equal(1, scaled.X);
+            Assert.Equal(1, scaled.Y);
+            Assert.Equal(1, scaled.Z);
+            Assert.Equal(1, scaled.W);
+        }
+
+        [Fact]
+        public void Short4_PackFromScaledVector4()
+        {
+            // Test PackFromScaledVector4.
+            // arrange
+            var short4 = new Short4(Vector4.One * 0x7FFF);
+            Vector4 scaled = short4.ToScaledVector4();
+
+            // act
+            var pixel = default(Short4);
+            pixel.PackFromScaledVector4(scaled);
+
+            // assert
+            long expectedPackedValue = 0x7FFF7FFF7FFF7FFF;
+            Assert.Equal((ulong)expectedPackedValue, pixel.PackedValue);
+        }
+
+        [Fact]
+        public void Short4_Clamping()
+        {
+            // Test clamping.
+            Assert.Equal(Vector4.One * 0x7FFF, new Short4(Vector4.One * 1234567.0f).ToVector4());
+            Assert.Equal(Vector4.One * -0x8000, new Short4(Vector4.One * -1234567.0f).ToVector4());
+        }
+
+        [Fact]
+        public void Short4_ToRgb24()
+        {
+            // arrange
+            var shortValue = new Short4(11547, 12653, 29623, 193);
+            var rgb24 = default(Rgb24);
+
+            // act
+            shortValue.ToRgb24(ref rgb24);
+
+            // assert
+            var expectedRgb24 = new Rgb24(172, 177, 243);
+            Assert.Equal(rgb24, expectedRgb24);
+        }
+
+        [Fact]
+        public void Short4_ToBgr24()
+        {
+            // arrange
+            var shortValue = new Short4(11547, 12653, 29623, 193);
+            var bgr24 = default(Bgr24);
+
+            // act
+            shortValue.ToBgr24(ref bgr24);
+
+            // assert
+            var expectedBgr24 = new Bgr24(172, 177, 243);
+            Assert.Equal(bgr24, expectedBgr24);
+        }
+
+        [Fact]
+        public void Short4_ToRgba32()
+        {
+            // arrange
+            var shortValue = new Short4(11547, 12653, 29623, 193);
+            var rgba32 = default(Rgba32);
+
+            // act
+            shortValue.ToRgba32(ref rgba32);
+
+            // assert
+            var expectedRgba32 = new Rgba32(172, 177, 243, 128);
+            Assert.Equal(rgba32, expectedRgba32);
+        }
+
+        [Fact]
+        public void Short4_ToBgra32()
+        {
+            // arrange
+            var shortValue = new Short4(11547, 12653, 29623, 193);
+            var bgra32 = default(Bgra32);
+
+            // act
+            shortValue.ToBgra32(ref bgra32);
+
+            // assert
+            var expectedBgra32 = new Bgra32(172, 177, 243, 128);
+            Assert.Equal(bgra32, expectedBgra32);
+        }
+
+        [Fact]
+        public void Short4_ToArgb32()
+        {
+            // arrange
+            var shortValue = new Short4(11547, 12653, 29623, 193);
+            var argb32 = default(Argb32);
+
+            // act
+            shortValue.ToArgb32(ref argb32);
+
+            // assert
+            var expectedArgb32 = new Argb32(172, 177, 243, 128);
+            Assert.Equal(argb32, expectedArgb32);
+        }
+
+        [Fact]
+        public void Short4_Ordering()
+        {
+            // arrange
+            float x = 0.1f;
+            float y = -0.3f;
+            float z = 0.5f;
+            float w = -0.7f;
+            var shortValue1 = new Short4(x, y, z, w);
+
+            // act
+            var shortValue1Packed = shortValue1.PackedValue;
+            Assert.Equal(18446462598732840960, shortValue1.PackedValue);
+
+            x = 11547;
+            y = 12653;
+            z = 29623;
+            w = 193;
+            Assert.Equal((ulong)0x00c173b7316d2d1b, new Short4(x, y, z, w).PackedValue);
+
+            var rgba = default(Rgba32);
+            var bgra = default(Bgra32);
+            var argb = default(Argb32);
+
+            var r = default(Short4);
+            r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
+            r.ToRgba32(ref rgba);
+            Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
+
+            r = default(Short4);
+            r.PackFromBgra32(new Bgra32(20, 38, 0, 255));
+            r.ToBgra32(ref bgra);
+            Assert.Equal(bgra, new Bgra32(20, 38, 0, 255));
+
+            r = default(Short4);
+            r.PackFromArgb32(new Argb32(20, 38, 0, 255));
+            r.ToArgb32(ref argb);
+            Assert.Equal(argb, new Argb32(20, 38, 0, 255));
+        }
+
+        [Fact]
         public void Short4()
         {
-            if (TestEnvironment.IsLinux)
-            {
-                // Can't decide if these assertions are robust enough to be portable across CPU architectures.
-                // Let's just skip it for 32 bits!
-                // TODO: Someone should review this!
-                // see https://github.com/SixLabors/ImageSharp/issues/594
-                return;
-            }
-
             // Test the limits.
             Assert.Equal((ulong)0x0, new Short4(Vector4.Zero).PackedValue);
             Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new Short4(Vector4.One * 0x7FFF).PackedValue);
@@ -1343,8 +1504,8 @@ namespace SixLabors.ImageSharp.Tests.Colors
             var argb = default(Argb32);
 
             new Short4(x, y, z, w).ToRgb24(ref rgb);
-            Assert.Equal(rgb, new Rgb24(172, 177, 243));
-
+            Assert.Equal(rgb, new Rgb24(172, 177, 243)); // this seems to be causing the problem #594
+            
             new Short4(x, y, z, w).ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(172, 177, 243, 128));
 

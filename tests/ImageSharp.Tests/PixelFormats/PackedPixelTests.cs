@@ -1273,9 +1273,15 @@ namespace SixLabors.ImageSharp.Tests.Colors
         }
 
         [Fact]
-        public void Short4_TestLimits()
+        public void Short4_TestPackedValues()
         {
-            // Test the limits.
+            var shortValue1 = new Short4(11547, 12653, 29623, 193);
+            var shortValue2 = new Short4(0.1f, -0.3f, 0.5f, -0.7f);
+
+            ulong expectedPackedValue1 = 0x00c173b7316d2d1b;
+            ulong expectedPackedValue2 = 18446462598732840960;
+            Assert.Equal(expectedPackedValue1, shortValue1.PackedValue);
+            Assert.Equal(expectedPackedValue2, shortValue2.PackedValue);
             Assert.Equal((ulong)0x0, new Short4(Vector4.Zero).PackedValue);
             Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new Short4(Vector4.One * 0x7FFF).PackedValue);
             Assert.Equal(0x8000800080008000, new Short4(Vector4.One * -0x8000).PackedValue);
@@ -1417,47 +1423,55 @@ namespace SixLabors.ImageSharp.Tests.Colors
 
             // assert
             var expectedArgb32 = new Argb32(172, 177, 243, 128);
-            Assert.Equal(expectedArgb32, argb32);
+            Assert.Equal(expectedArgb32, argb32);            
         }
 
         [Fact]
-        public void Short4_Ordering()
+        public void Short4_PackFromRgba32_ToRgba32()
         {
             // arrange
-            float x = 0.1f;
-            float y = -0.3f;
-            float z = 0.5f;
-            float w = -0.7f;
-            var shortValue1 = new Short4(x, y, z, w);
+            var rgba32 = default(Rgba32);
+            var short4 = default(Short4);
 
-            // act
-            var shortValue1Packed = shortValue1.PackedValue;
-            Assert.Equal(18446462598732840960, shortValue1.PackedValue);
+            // act 
+            short4.PackFromRgba32(new Rgba32(20, 38, 0, 255));
+            short4.ToRgba32(ref rgba32);
 
-            x = 11547;
-            y = 12653;
-            z = 29623;
-            w = 193;
-            Assert.Equal((ulong)0x00c173b7316d2d1b, new Short4(x, y, z, w).PackedValue);
+            // assert
+            var expectedRgba32 = new Rgba32(20, 38, 0, 255);
+            Assert.Equal(rgba32, expectedRgba32);
+        }
 
-            var rgba = default(Rgba32);
-            var bgra = default(Bgra32);
-            var argb = default(Argb32);
+        [Fact]
+        public void Short4_PackFromBgra32_ToRgba32()
+        {
+            // arrange
+            var bgra32 = default(Bgra32);
+            var short4 = default(Short4);
 
-            var r = default(Short4);
-            r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
-            r.ToRgba32(ref rgba);
-            Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
+            // act 
+            short4.PackFromBgra32(new Bgra32(20, 38, 0, 255));
+            short4.ToBgra32(ref bgra32);
 
-            r = default(Short4);
-            r.PackFromBgra32(new Bgra32(20, 38, 0, 255));
-            r.ToBgra32(ref bgra);
-            Assert.Equal(bgra, new Bgra32(20, 38, 0, 255));
+            // assert
+            var expectedBgra32 = new Bgra32(20, 38, 0, 255);
+            Assert.Equal(bgra32, expectedBgra32);
+        }
 
-            r = default(Short4);
-            r.PackFromArgb32(new Argb32(20, 38, 0, 255));
-            r.ToArgb32(ref argb);
-            Assert.Equal(argb, new Argb32(20, 38, 0, 255));
+        [Fact]
+        public void Short4_PackFromArgb32_ToRgba32()
+        {
+            // arrange
+            var argb32 = default(Argb32);
+            var short4 = default(Short4);
+
+            // act 
+            short4.PackFromArgb32(new Argb32(20, 38, 0, 255));
+            short4.ToArgb32(ref argb32);
+
+            // assert
+            var expectedArgb32 = new Argb32(20, 38, 0, 255);
+            Assert.Equal(argb32, expectedArgb32);
         }
 
         [Fact]

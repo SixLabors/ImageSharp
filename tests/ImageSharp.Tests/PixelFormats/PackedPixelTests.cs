@@ -698,6 +698,166 @@ namespace SixLabors.ImageSharp.Tests.Colors
         }
 
         [Fact]
+        public void NormalizedByte4_PackedValues()
+        {
+            Assert.Equal(0xA740DA0D, new NormalizedByte4(0.1f, -0.3f, 0.5f, -0.7f).PackedValue);
+            Assert.Equal((uint)958796544, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+            Assert.Equal((uint)0x0, new NormalizedByte4(Vector4.Zero).PackedValue);
+            Assert.Equal((uint)0x7F7F7F7F, new NormalizedByte4(Vector4.One).PackedValue);
+            Assert.Equal(0x81818181, new NormalizedByte4(-Vector4.One).PackedValue);
+        }
+
+        [Fact]
+        public void NormalizedByte4_ToVector4()
+        {
+            // Test ToVector4
+            Assert.True(Equal(Vector4.One, new NormalizedByte4(Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.Zero, new NormalizedByte4(Vector4.Zero).ToVector4()));
+            Assert.True(Equal(-Vector4.One, new NormalizedByte4(-Vector4.One).ToVector4()));
+            Assert.True(Equal(Vector4.One, new NormalizedByte4(Vector4.One * 1234.0f).ToVector4()));
+            Assert.True(Equal(-Vector4.One, new NormalizedByte4(Vector4.One * -1234.0f).ToVector4()));
+        }
+
+        [Fact]
+        public void NormalizedByte4_ToScaledVector4()
+        {
+            // arrange
+            var short4 = new NormalizedByte4(-Vector4.One);
+
+            // act
+            Vector4 scaled = short4.ToScaledVector4();
+
+            // assert
+            Assert.Equal(0, scaled.X);
+            Assert.Equal(0, scaled.Y);
+            Assert.Equal(0, scaled.Z);
+            Assert.Equal(0, scaled.W);
+        }
+
+        [Fact]
+        public void NormalizedByte4_PackFromScaledVector4()
+        {
+            // arrange
+            var pixel = default(NormalizedByte4);
+            Vector4 scaled = new NormalizedByte4(-Vector4.One).ToScaledVector4();
+
+            // act 
+            pixel.PackFromScaledVector4(scaled);
+
+            // assert
+            var expectedPackedValue = 0x81818181;
+            Assert.Equal(expectedPackedValue, pixel.PackedValue);
+        }
+
+        [Fact]
+        public void NormalizedByte4_ToRgb24()
+        {
+            // arrange
+            var short4 = new NormalizedByte4(0.1f, -0.3f, 0.5f, -0.7f);
+            var rgb24 = default(Rgb24);
+
+            // act
+            short4.ToRgb24(ref rgb24);
+
+            // assert
+            var expectedRgb24 = new Rgb24(141, 90, 192);
+            Assert.Equal(expectedRgb24, rgb24);
+        }
+
+        [Fact]
+        public void NormalizedByte4_ToRgba32()
+        {
+            // arrange
+            var short4 = new NormalizedByte4(0.1f, -0.3f, 0.5f, -0.7f);
+            var rgba32 = default(Rgba32);
+
+            // act
+            short4.ToRgba32(ref rgba32);
+
+            // assert
+            var expectedRgba32 = new Rgba32(141, 90, 192, 39);
+            Assert.Equal(expectedRgba32, rgba32);
+        }
+
+        [Fact]
+        public void NormalizedByte4_ToBgr24()
+        {
+            // arrange
+            var short4 = new NormalizedByte4(0.1f, -0.3f, 0.5f, -0.7f);
+            var bgr24 = default(Bgr24);
+
+            // act
+            short4.ToBgr24(ref bgr24);
+
+            // assert
+            var expectedBgr24 = new Bgr24(141, 90, 192);
+            Assert.Equal(expectedBgr24, bgr24);
+        }
+
+        [Fact]
+        public void NormalizedByte4_ToArgb32()
+        {
+            // arrange
+            var short4 = new NormalizedByte4(0.1f, -0.3f, 0.5f, -0.7f);
+            var argb32 = default(Argb32);
+
+            // act
+            short4.ToArgb32(ref argb32);
+
+            // assert
+            var expectedArgb32 = new Argb32(141, 90, 192, 39);
+            Assert.Equal(expectedArgb32, argb32);
+        }
+
+        [Fact]
+        public void NormalizedByte4_PackFromRgba32_ToRgba32()
+        {
+            // arrange
+            var rgba32 = default(Rgba32);
+            var short4 = default(NormalizedByte4);
+
+            // act 
+            short4.PackFromRgba32(new Rgba32(9, 115, 202, 127));
+            short4.ToRgba32(ref rgba32);
+
+            // assert
+            var expectedRgba32 = new Rgba32(9, 115, 202, 127);
+            Assert.Equal(rgba32, expectedRgba32);
+        }
+
+        [Fact]
+        public void NormalizedByte4_PackFromBgra32_ToRgba32()
+        {
+            // arrange
+            var bgra32 = default(Bgra32);
+            var short4 = default(NormalizedByte4);
+
+            // act 
+            short4.PackFromBgra32(new Bgra32(9, 115, 202, 127));
+            short4.ToBgra32(ref bgra32);
+
+            // assert
+            var expectedBgra32 = new Bgra32(9, 115, 202, 127);
+            Assert.Equal(bgra32, expectedBgra32);
+        }
+
+        [Fact]
+        public void NormalizedByte4_PackFromArgb32_ToRgba32()
+        {
+            // arrange
+            var argb32 = default(Argb32);
+            var short4 = default(NormalizedByte4);
+
+            // act 
+            short4.PackFromArgb32(new Argb32(9, 115, 202, 127));
+            short4.ToArgb32(ref argb32);
+
+            // assert
+            var expectedArgb32 = new Argb32(9, 115, 202, 127);
+            Assert.Equal(argb32, expectedArgb32);
+        }
+
+        [Fact]
         public void NormalizedByte4()
         {
             if (TestEnvironment.IsLinux)

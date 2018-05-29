@@ -710,7 +710,6 @@ namespace SixLabors.ImageSharp.Tests.Colors
         [Fact]
         public void NormalizedByte4_ToVector4()
         {
-            // Test ToVector4
             Assert.True(Equal(Vector4.One, new NormalizedByte4(Vector4.One).ToVector4()));
             Assert.True(Equal(Vector4.Zero, new NormalizedByte4(Vector4.Zero).ToVector4()));
             Assert.True(Equal(-Vector4.One, new NormalizedByte4(-Vector4.One).ToVector4()));
@@ -831,13 +830,13 @@ namespace SixLabors.ImageSharp.Tests.Colors
             // arrange
             var bgra32 = default(Bgra32);
             var short4 = default(NormalizedByte4);
+            var expectedBgra32 = new Bgra32(9, 115, 202, 127);
 
             // act 
-            short4.PackFromBgra32(new Bgra32(9, 115, 202, 127));
+            short4.PackFromBgra32(expectedBgra32);
             short4.ToBgra32(ref bgra32);
 
             // assert
-            var expectedBgra32 = new Bgra32(9, 115, 202, 127);
             Assert.Equal(bgra32, expectedBgra32);
         }
 
@@ -1355,72 +1354,165 @@ namespace SixLabors.ImageSharp.Tests.Colors
         }
 
         [Fact]
-        public void Short2()
+        public void Short2_PackedValues()
         {
+            // Test ordering
+            Assert.Equal((uint)0x361d2db1, new Short2(0x2db1, 0x361d).PackedValue);
+            Assert.Equal(4294639744, new Short2(127.5f, -5.3f).PackedValue);
             // Test the limits.
             Assert.Equal((uint)0x0, new Short2(Vector2.Zero).PackedValue);
             Assert.Equal((uint)0x7FFF7FFF, new Short2(Vector2.One * 0x7FFF).PackedValue);
             Assert.Equal(0x80008000, new Short2(Vector2.One * -0x8000).PackedValue);
+        }
 
-            // Test ToVector2.
+        [Fact]
+        public void Short2_ToVector2()
+        {
             Assert.True(Equal(Vector2.One * 0x7FFF, new Short2(Vector2.One * 0x7FFF).ToVector2()));
             Assert.True(Equal(Vector2.Zero, new Short2(Vector2.Zero).ToVector2()));
             Assert.True(Equal(Vector2.One * -0x8000, new Short2(Vector2.One * -0x8000).ToVector2()));
             Assert.True(Equal(Vector2.UnitX * 0x7FFF, new Short2(Vector2.UnitX * 0x7FFF).ToVector2()));
             Assert.True(Equal(Vector2.UnitY * 0x7FFF, new Short2(Vector2.UnitY * 0x7FFF).ToVector2()));
+        }
 
-            // Test clamping.
-            Assert.True(Equal(Vector2.One * 0x7FFF, new Short2(Vector2.One * 1234567.0f).ToVector2()));
-            Assert.True(Equal(Vector2.One * -0x8000, new Short2(Vector2.One * -1234567.0f).ToVector2()));
-
-            // Test ToVector4.
+        [Fact]
+        public void Short2_ToVector4()
+        {
             Assert.True(Equal(new Vector4(0x7FFF, 0x7FFF, 0, 1), (new Short2(Vector2.One * 0x7FFF)).ToVector4()));
             Assert.True(Equal(new Vector4(0, 0, 0, 1), (new Short2(Vector2.Zero)).ToVector4()));
             Assert.True(Equal(new Vector4(-0x8000, -0x8000, 0, 1), (new Short2(Vector2.One * -0x8000)).ToVector4()));
+        }
 
-            // Test ToScaledVector4.
-            Vector4 scaled = new Short2(Vector2.One * 0x7FFF).ToScaledVector4();
+        [Fact]
+        public void Short2_Clamping()
+        {
+            Assert.True(Equal(Vector2.One * 0x7FFF, new Short2(Vector2.One * 1234567.0f).ToVector2()));
+            Assert.True(Equal(Vector2.One * -0x8000, new Short2(Vector2.One * -1234567.0f).ToVector2()));
+        }
+
+        [Fact]
+        public void Short2_ToScaledVector4()
+        {
+            // arrange
+            var short2 = new Short2(Vector2.One * 0x7FFF);
+
+            // act
+            Vector4 scaled = short2.ToScaledVector4();
+
+            // assert
             Assert.Equal(1, scaled.X);
             Assert.Equal(1, scaled.Y);
             Assert.Equal(0, scaled.Z);
             Assert.Equal(1, scaled.W);
-
-            // Test PackFromScaledVector4.
-            var pixel = default(Short2);
-            pixel.PackFromScaledVector4(scaled);
-            Assert.Equal((uint)0x7FFF7FFF, pixel.PackedValue);
-
-            // Test ordering
-            float x = 0x2db1;
-            float y = 0x361d;
-            Assert.Equal((uint)0x361d2db1, new Short2(x, y).PackedValue);
-            x = 127.5f;
-            y = -5.3f;
-            Assert.Equal(4294639744, new Short2(x, y).PackedValue);
-
-            var rgb = default(Rgb24);
-            var rgba = default(Rgba32);
-            var bgr = default(Bgr24);
-            var bgra = default(Bgra32);
-
-            new Short2(x, y).ToRgb24(ref rgb);
-            Assert.Equal(rgb, new Rgb24(128, 127, 0));
-
-            new Short2(x, y).ToRgba32(ref rgba);
-            Assert.Equal(rgba, new Rgba32(128, 127, 0, 255));
-
-            new Short2(x, y).ToBgr24(ref bgr);
-            Assert.Equal(bgr, new Bgr24(128, 127, 0));
-
-            new Short2(x, y).ToBgra32(ref bgra);
-            Assert.Equal(bgra, new Bgra32(128, 127, 0, 255));
-
-            var r = default(Short2);
-            r.PackFromRgba32(new Rgba32(20, 38, 0, 255));
-            r.ToRgba32(ref rgba);
-            Assert.Equal(rgba, new Rgba32(20, 38, 0, 255));
         }
 
+        [Fact]
+        public void Short2_PackFromScaledVector4()
+        {
+            // arrange
+            var pixel = default(Short2);
+            var short2 = new Short2(Vector2.One * 0x7FFF);
+            ulong expectedPackedValue = 0x7FFF7FFF;
+
+            // act 
+            Vector4 scaled = short2.ToScaledVector4();
+            pixel.PackFromScaledVector4(scaled);
+
+            // assert
+            Assert.Equal(expectedPackedValue, pixel.PackedValue);
+        }
+
+        [Fact]
+        public void Short2_ToRgb24()
+        {
+            // arrange
+            var short2 = new Short2(127.5f, -5.3f);
+            var rgb24 = default(Rgb24);
+            var expectedRgb24 = new Rgb24(128, 127, 0);
+
+            // act
+            short2.ToRgb24(ref rgb24);
+
+            // assert
+            Assert.Equal(expectedRgb24, rgb24);
+        }
+
+        [Fact]
+        public void Short2_ToRgba32()
+        {
+            // arrange
+            var short2 = new Short2(127.5f, -5.3f);
+            var rgba32 = default(Rgba32);
+            var expectedRgba32 = new Rgba32(128, 127, 0, 255);
+
+            // act
+            short2.ToRgba32(ref rgba32);
+
+            // assert
+            Assert.Equal(expectedRgba32, rgba32);
+        }
+
+        [Fact]
+        public void Short2_ToBgr24()
+        {
+            // arrange
+            var short2 = new Short2(127.5f, -5.3f);
+            var bgr24 = default(Bgr24);
+
+            // act
+            short2.ToBgr24(ref bgr24);
+
+            // assert
+            var expectedBgr24 = new Bgr24(128, 127, 0);
+            Assert.Equal(expectedBgr24, bgr24);
+        }
+
+        [Fact]
+        public void Short2_ToArgb32()
+        {
+            // arrange
+            var short2 = new Short2(127.5f, -5.3f);
+            var argb32 = default(Argb32);
+            var expectedArgb32 = new Argb32(128, 127, 0, 255);
+
+            // act
+            short2.ToArgb32(ref argb32);
+
+            // assert
+            Assert.Equal(expectedArgb32, argb32);
+        }
+
+        [Fact]
+        public void Short2_ToBgra32()
+        {
+            // arrange
+            var short2 = new Short2(127.5f, -5.3f);
+            var bgra32 = default(Bgra32);
+            var expectedBgra32 = new Bgra32(128, 127, 0, 255);
+
+            // act
+            short2.ToBgra32(ref bgra32);
+
+            // assert
+            Assert.Equal(expectedBgra32, bgra32);
+        }
+
+        [Fact]
+        public void Short2_PackFromRgba32_ToRgba32()
+        {
+            // arrange
+            var rgba32 = default(Rgba32);
+            var short2 = default(Short2);
+            var expectedRgba32 = new Rgba32(20, 38, 0, 255);
+
+            // act 
+            short2.PackFromRgba32(expectedRgba32);
+            short2.ToRgba32(ref rgba32);
+
+            // assert
+            Assert.Equal(rgba32, expectedRgba32);
+        }
+        
         [Fact]
         public void Short4_PackedValues()
         {

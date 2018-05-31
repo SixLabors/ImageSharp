@@ -4,8 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
@@ -64,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
             this.components = components;
-            this.marker = PdfJsJpegConstants.Markers.Prefix;
+            this.marker = JpegConstants.Markers.XFF;
             this.componentIndex = componentIndex;
             this.componentsLength = componentsLength;
             this.restartInterval = restartInterval;
@@ -532,7 +531,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.GrowBufferUnsafe();
             }
 
-            uint k = this.Lrot(this.codeBuffer, n);
+            uint k = this.LRot(this.codeBuffer, n);
             this.codeBuffer = k & ~Bmask[n];
             k &= Bmask[n];
             this.codeBits -= n;
@@ -554,17 +553,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return (int)(k & 0x80000000);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void GrowBufferUnsafe()
         {
             do
             {
                 // TODO: EOF
                 int b = this.nomore ? 0 : this.stream.ReadByte();
-                if (b == PdfJsJpegConstants.Markers.Prefix)
+                if (b == JpegConstants.Markers.XFF)
                 {
                     long position = this.stream.Position - 1;
                     int c = this.stream.ReadByte();
-                    while (c == PdfJsJpegConstants.Markers.Prefix)
+                    while (c == JpegConstants.Markers.XFF)
                     {
                         if (c != 0)
                         {
@@ -586,6 +586,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             while (this.codeBits <= 24);
         }
 
+        // TODO: Split into Fast/Slow and inline Fast
         private int DecodeHuffman(ref PdfJsHuffmanTable table)
         {
             this.CheckBits();
@@ -651,8 +652,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.GrowBufferUnsafe();
             }
 
-            int sgn = (int)((int)this.codeBuffer >> 31);
-            uint k = this.Lrot(this.codeBuffer, n);
+            int sgn = (int)this.codeBuffer >> 31;
+            uint k = this.LRot(this.codeBuffer, n);
             this.codeBuffer = k & ~Bmask[n];
             k &= Bmask[n];
             this.codeBits -= n;
@@ -675,7 +676,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint Lrot(uint x, int y)
+        private uint LRot(uint x, int y)
         {
             return (x << y) | (x >> (32 - y));
         }
@@ -683,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsRestartMarker(byte x)
         {
-            return x >= PdfJsJpegConstants.Markers.RST0 && x <= PdfJsJpegConstants.Markers.RST7;
+            return x >= JpegConstants.Markers.RST0 && x <= JpegConstants.Markers.RST7;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -699,7 +700,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 c.DcPredictor = 0;
             }
 
-            this.marker = PdfJsJpegConstants.Markers.Prefix;
+            this.marker = JpegConstants.Markers.XFF;
             this.eobrun = 0;
 
             // No more than 1<<31 MCUs if no restartInterval? that's plenty safe since we don't even allow 1<<30 pixels

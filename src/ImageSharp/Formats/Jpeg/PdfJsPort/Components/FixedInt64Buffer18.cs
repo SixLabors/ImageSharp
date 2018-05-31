@@ -9,14 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct FixedInt64Buffer18
     {
-        public fixed long Data[18];
+        public fixed uint Data[18];
 
-        public long this[int idx]
+        public uint this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                ref long self = ref Unsafe.As<FixedInt64Buffer18, long>(ref this);
+                ref uint self = ref Unsafe.As<FixedInt64Buffer18, uint>(ref this);
                 return Unsafe.Add(ref self, idx);
             }
         }

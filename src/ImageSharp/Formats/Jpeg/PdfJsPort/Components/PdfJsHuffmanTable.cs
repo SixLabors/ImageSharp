@@ -57,15 +57,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 int k = 0;
                 fixed (short* size = this.Sizes.Data)
-                fixed (short* delta = this.ValOffset.Data)
-                fixed (long* maxcode = this.MaxCode.Data)
+                fixed (int* delta = this.ValOffset.Data)
+                fixed (uint* maxcode = this.MaxCode.Data)
                 {
                     uint code = 0;
                     int j;
                     for (j = 1; j <= 16; j++)
                     {
                         // Compute delta to add to code to compute symbol id.
-                        delta[j] = (short)(k - code);
+                        delta[j] = (int)(k - code);
                         if (size[k] == j)
                         {
                             while (size[k] == j)
@@ -89,8 +89,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 fixed (byte* lookaheadRef = this.Lookahead.Data)
                 {
                     const int FastBits = ScanDecoder.FastBits;
-                    var fast = new Span<short>(lookaheadRef, 1 << FastBits);
-                    fast.Fill(255); // Flag for non-accelerated
+                    var fast = new Span<byte>(lookaheadRef, 1 << FastBits);
+                    fast.Fill(0xFF); // Flag for non-accelerated
 
                     fixed (short* sizesRef = this.Sizes.Data)
                     {
@@ -181,8 +181,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="huffcodeRef">The huffman code span ref</param>
         private void GenerateDecoderTables(ReadOnlySpan<byte> lengths, ref short huffcodeRef)
         {
-            fixed (short* valOffsetRef = this.ValOffset.Data)
-            fixed (long* maxcodeRef = this.MaxCode.Data)
+            fixed (int* valOffsetRef = this.ValOffset.Data)
+            fixed (uint* maxcodeRef = this.MaxCode.Data)
             {
                 short bitcount = 0;
                 for (int i = 1; i <= 16; i++)
@@ -190,18 +190,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     if (lengths[i] != 0)
                     {
                         // valOffsetRef[l] = huffcodeRef[] index of 1st symbol of code length i, minus the minimum code of length i
-                        valOffsetRef[i] = (short)(bitcount - Unsafe.Add(ref huffcodeRef, bitcount));
+                        valOffsetRef[i] = (int)(bitcount - Unsafe.Add(ref huffcodeRef, bitcount));
                         bitcount += lengths[i];
-                        maxcodeRef[i] = Unsafe.Add(ref huffcodeRef, bitcount - 1) << (16 - i); // maximum code of length i preshifted for faster reading later
+                        maxcodeRef[i] = (uint)Unsafe.Add(ref huffcodeRef, bitcount - 1) << (16 - i); // maximum code of length i preshifted for faster reading later
                     }
                     else
                     {
-                        maxcodeRef[i] = -1; // -1 if no codes of this length
+                       // maxcodeRef[i] = -1; // -1 if no codes of this length
                     }
                 }
 
                 valOffsetRef[17] = 0;
-                maxcodeRef[17] = 0xFFFFFFFFL;
+                maxcodeRef[17] = 0xFFFFFFFF;
             }
         }
 

@@ -148,31 +148,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         for (int i = 0; i < mcusPerLine; i++)
                         {
-                            // Scan an interleaved mcu... process components in order
-                            for (int k = 0; k < this.componentsLength; k++)
+                            try
                             {
-                                PdfJsFrameComponent component = this.components[k];
-                                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                                Span<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
-                                int h = component.HorizontalSamplingFactor;
-                                int v = component.VerticalSamplingFactor;
-
-                                // Scan out an mcu's worth of this component; that's just determined
-                                // by the basic H and V specified for the component
-                                for (int y = 0; y < v; y++)
+                                // Scan an interleaved mcu... process components in order
+                                for (int k = 0; k < this.componentsLength; k++)
                                 {
-                                    for (int x = 0; x < h; x++)
+                                    PdfJsFrameComponent component = this.components[k];
+                                    ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                                    ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                                    ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                                    Span<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                                    int h = component.HorizontalSamplingFactor;
+                                    int v = component.VerticalSamplingFactor;
+
+                                    // Scan out an mcu's worth of this component; that's just determined
+                                    // by the basic H and V specified for the component
+                                    for (int y = 0; y < v; y++)
                                     {
-                                        int mcuRow = mcu / mcusPerLine;
-                                        int mcuCol = mcu % mcusPerLine;
-                                        int blockRow = (mcuRow * v) + y;
-                                        int blockCol = (mcuCol * h) + x;
-                                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                                        for (int x = 0; x < h; x++)
+                                        {
+                                            int mcuRow = mcu / mcusPerLine;
+                                            int mcuCol = mcu % mcusPerLine;
+                                            int blockRow = (mcuRow * v) + y;
+                                            int blockCol = (mcuCol * h) + x;
+                                            int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                            this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                                        }
                                     }
                                 }
+                            }
+                            catch
+                            {
+                                break;
                             }
 
                             // After all interleaved components, that's an interleaved MCU,
@@ -207,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             ref short blockDataRef,
             ref PdfJsHuffmanTable dcTable,
             ref PdfJsHuffmanTable acTable,
-            Span<short> fac)
+            Span<short> fastAc)
         {
             this.CheckBits();
             int t = this.DecodeHuffman(ref dcTable);
@@ -217,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 throw new ImageFormatException("Bad Huffman code");
             }
 
-            int diff = t > 0 ? this.ExtendReceive(t) : 0;
+            int diff = t != 0 ? this.ExtendReceive(t) : 0;
             int dc = component.DcPredictor + diff;
             component.DcPredictor = dc;
             blockDataRef = (short)dc;
@@ -231,9 +238,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 this.CheckBits();
                 int c = this.PeekBits();
-                int r = fac[c];
+                int r = fastAc[c];
 
-                if (r > 0)
+                if (r != 0)
                 {
                     // Fast AC path
                     k += (r >> 4) & 15; // Run
@@ -587,7 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // if the code is <= FastBits.
             int c = this.PeekBits();
             int k = table.Lookahead[c];
-            if (k < byte.MaxValue)
+            if (k < 0xFF)
             {
                 int s = table.Sizes[k];
                 if (s > this.codeBits)
@@ -628,7 +635,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             // Convert the huffman code to the symbol id
-            c = (int)((this.codeBuffer >> (32 - k)) & Bmask[k]) + table.ValOffset[k];
+            c = (int)(((this.codeBuffer >> (32 - k)) & Bmask[k]) + table.ValOffset[k]);
 
             // Convert the id to a symbol
             this.codeBits -= k;
@@ -644,7 +651,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.GrowBufferUnsafe();
             }
 
-            int sgn = (int)(this.codeBuffer >> 31);
+            int sgn = (int)((int)this.codeBuffer >> 31);
             uint k = this.Lrot(this.codeBuffer, n);
             this.codeBuffer = k & ~Bmask[n];
             k &= Bmask[n];
@@ -655,7 +662,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CheckBits()
         {
-            if (this.codeBuffer < 16)
+            if (this.codeBits < 16)
             {
                 this.GrowBufferUnsafe();
             }
@@ -664,7 +671,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int PeekBits()
         {
-            return (int)(this.codeBuffer >> ((32 - FastBits) & ((1 << FastBits) - 1)));
+            return (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -693,11 +700,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             this.marker = PdfJsJpegConstants.Markers.Prefix;
-            this.todo = this.restartInterval > 0 ? this.restartInterval : 0x7FFFFFFF;
             this.eobrun = 0;
 
-            // No more than 1<<31 MCUs if no restartInterval? that's plenty safe,
-            // since we don't even allow 1<<30 pixels
+            // No more than 1<<31 MCUs if no restartInterval? that's plenty safe since we don't even allow 1<<30 pixels
+            this.todo = this.restartInterval > 0 ? this.restartInterval : 0x7FFFFFFF;
         }
     }
 }

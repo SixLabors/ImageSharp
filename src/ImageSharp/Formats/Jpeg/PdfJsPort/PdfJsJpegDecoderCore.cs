@@ -808,9 +808,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             sd.ParseEntropyCodedData(this.Frame, this.dcHuffmanTables, this.acHuffmanTables, this.fastACTables);
 
-            //var scanDecoder = default(PdfJsScanDecoder);
-
-            //scanDecoder.DecodeScan(
+            // var scanDecoder = default(PdfJsScanDecoder);
+            //
+            // scanDecoder.DecodeScan(
             //     this.Frame,
             //     this.InputStream,
             //     this.dcHuffmanTables,

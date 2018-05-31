@@ -1,13 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
@@ -104,14 +103,14 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
             }
         }
-        
+
         public struct Result
         {
             internal Block8x8F Y;
             internal Block8x8F Cb;
             internal Block8x8F Cr;
         }
-        
+
         // The operation is defined as "RGBA -> YCbCr Transform a stream of bytes into a stream of floats"
         // We need to benchmark the whole operation, to get true results, not missing any side effects!
         private byte[] inputSourceRGB = null;
@@ -200,11 +199,11 @@ namespace SixLabors.ImageSharp.Benchmarks
             float* cbPtr = (float*)&result.Cb;
             float* crPtr = (float*)&result.Cr;
             // end of code-bloat block :)
-            
+
             Vector<int> yCoeffs = new Vector<int>(ScaledCoeffs.Y);
             Vector<int> cbCoeffs = new Vector<int>(ScaledCoeffs.Cb);
             Vector<int> crCoeffs = new Vector<int>(ScaledCoeffs.Cr);
-            
+
             for (int i = 0; i < this.inputSourceRGB.Length; i++)
             {
                 this.inputSourceRGBAsInteger[i] = this.inputSourceRGB[i];
@@ -217,7 +216,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 Vector<int> y = yCoeffs * rgb;
                 Vector<int> cb = cbCoeffs * rgb;
                 Vector<int> cr = crCoeffs * rgb;
-                
+
                 *yPtr++ = (y[0] + y[1] + y[2]) >> 10;
                 *cbPtr++ = 128 + ((cb[0] - cb[1] + cb[2]) >> 10);
                 *crPtr++ = 128 + ((cr[0] - cr[1] - cr[2]) >> 10);
@@ -335,7 +334,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 *crPtr++ = 128 + ((cr0 - cr1 - cr2) >> 10);
             }
         }
-        
+
         [Benchmark(Description = "Scaled Integer LUT Conversion")]
         public unsafe void RgbaToYcbCrScaledIntegerLut()
         {

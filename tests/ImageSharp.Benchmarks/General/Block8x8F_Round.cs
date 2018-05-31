@@ -6,8 +6,7 @@ using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Benchmarks.General
 {

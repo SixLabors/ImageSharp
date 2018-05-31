@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata ?? new ImageMetaData();
-            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default);
         }
 
         /// <summary>

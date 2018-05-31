@@ -38,10 +38,9 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0005" />
-        <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0004" />
-        <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0004" />
         <AdditionalFiles Include="..\..\stylecop.json" />
-        <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
+        <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0005" />
+        <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta007">
             <PrivateAssets>All</PrivateAssets>
         </PackageReference>
     </ItemGroup>

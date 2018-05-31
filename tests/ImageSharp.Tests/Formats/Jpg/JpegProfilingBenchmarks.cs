@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         //[MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg_Original(string fileName)
         {
-            this.DecodeJpegBenchmarkImpl(fileName, new OrigJpegDecoder());
+            this.DecodeJpegBenchmarkImpl(fileName, new GolangJpegDecoder());
         }
 
         // [Theory] // Benchmark, enable manually

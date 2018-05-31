@@ -9,8 +9,9 @@ using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
+using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -94,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     double val = rnd.NextDouble();
                     val *= maxValue - minValue;
                     val += minValue;
-                    
+
                     result[i * 8 + j] = (float)val;
                 }
             }
@@ -111,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
         internal void Print8x8Data<T>(Span<T> data)
         {
-            StringBuilder bld = new StringBuilder();
+            var bld = new StringBuilder();
             for (int i = 0; i < 8; i++)
             {
                 for (int j = 0; j < 8; j++)
@@ -145,9 +146,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         }
 
         internal void CompareBlocks(Block8x8 a, Block8x8 b, int tolerance) =>
-            this.CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), (float)tolerance + 1e-5f);
+            this.CompareBlocks(a.AsFloatBlock(), b.AsFloatBlock(), tolerance + 1e-5f);
 
-        internal void CompareBlocks(Block8x8F a, Block8x8F b, float tolerance) 
+        internal void CompareBlocks(Block8x8F a, Block8x8F b, float tolerance)
             => this.CompareBlocks(a.ToArray(), b.ToArray(), tolerance);
 
         internal void CompareBlocks(Span<float> a, Span<float> b, float tolerance)
@@ -170,16 +171,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 }
             }
 
-            this.Output.WriteLine("TOTAL DIFF: "+totalDifference);
+            this.Output.WriteLine("TOTAL DIFF: " + totalDifference);
             Assert.False(failed);
         }
 
-        internal static OrigJpegDecoderCore ParseStream(string testFileName, bool metaDataOnly = false)
+        internal static GolangJpegDecoderCore ParseGolangStream(string testFileName, bool metaDataOnly = false)
         {
             byte[] bytes = TestFile.Create(testFileName).Bytes;
             using (var ms = new MemoryStream(bytes))
             {
-                var decoder = new OrigJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                var decoder = new GolangJpegDecoderCore(Configuration.Default, new JpegDecoder());
+                decoder.ParseStream(ms, metaDataOnly);
+                return decoder;
+            }
+        }
+
+        internal static PdfJsJpegDecoderCore ParsePdfJsStream(string testFileName, bool metaDataOnly = false)
+        {
+            byte[] bytes = TestFile.Create(testFileName).Bytes;
+            using (var ms = new MemoryStream(bytes))
+            {
+                var decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
                 decoder.ParseStream(ms, metaDataOnly);
                 return decoder;
             }

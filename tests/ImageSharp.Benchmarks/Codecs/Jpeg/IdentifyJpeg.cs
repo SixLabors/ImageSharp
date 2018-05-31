@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                var decoder = new OrigJpegDecoder();
+                var decoder = new GolangJpegDecoder();
 
                 return decoder.Identify(Configuration.Default, memoryStream);
             }

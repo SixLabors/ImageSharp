@@ -37,17 +37,17 @@
   <ItemGroup>
     <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0005" />
     <AdditionalFiles Include="..\..\stylecop.json" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta006">
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta007">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="System.Buffers" Version="4.4.0" />
-    <PackageReference Include="System.Memory" Version="4.5.0-rc1" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0-rc1" />
+    <PackageReference Include="System.Buffers" Version="4.5.0" />
+    <PackageReference Include="System.Memory" Version="4.5.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' OR '$(TargetFramework)' == 'netstandard1.3'">
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\ImageSharp.ruleset</CodeAnalysisRuleSet>
@@ -57,11 +57,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <None Update="Formats\Jpeg\Common\Block8x8F.Generated.tt">
+    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </None>
-    <None Update="Formats\Jpeg\Common\GenericBlock8x8.Generated.tt">
+    <None Update="Formats\Jpeg\Components\GenericBlock8x8.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>GenericBlock8x8.Generated.cs</LastGenOutput>
     </None>
@@ -87,12 +87,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Formats\Jpeg\Common\Block8x8F.Generated.cs">
+    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\Jpeg\Common\GenericBlock8x8.Generated.cs">
+    <Compile Update="Formats\Jpeg\Components\GenericBlock8x8.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>GenericBlock8x8.Generated.tt</DependentUpon>
@@ -122,5 +122,8 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 </Project>

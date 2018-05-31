@@ -79,6 +79,10 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                     {
                         amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                     }
+                    else
+                    {
+                        amountSpan[i] = scanline[i];
+                    }
 
                     overlaySpan[i] = this[x + i, y];
                 }

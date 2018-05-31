@@ -1,14 +1,14 @@
-﻿namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+﻿using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+
+namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     using System;
     using System.Numerics;
 
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder.ColorConverters;
     using SixLabors.ImageSharp.Memory;
-    
+
     [Config(typeof(Config.ShortClr))]
     public class YCbCrColorConversion
     {
@@ -57,7 +57,7 @@
 
             JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore(values, this.output);
         }
-        
+
         private static Buffer2D<float>[] CreateRandomValues(
             int componentCount,
             int inputBufferLength,
@@ -81,6 +81,6 @@
 
             return buffers;
         }
-        
+
     }
 }

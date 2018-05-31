@@ -15,22 +15,25 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit)]
     public struct Rgb24 : IPixel<Rgb24>
     {
         /// <summary>
         /// The red component.
         /// </summary>
+        [FieldOffset(0)]
         public byte R;
 
         /// <summary>
         /// The green component.
         /// </summary>
+        [FieldOffset(1)]
         public byte G;
 
         /// <summary>
         /// The blue component.
         /// </summary>
+        [FieldOffset(2)]
         public byte B;
 
         /// <summary>

@@ -11,6 +11,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    using System;
     using System.Runtime.CompilerServices;
 
     using SixLabors.ImageSharp.Formats.Jpeg;
@@ -50,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             TestMetaDataImpl(
                 useIdentify,
-                OrigJpegDecoder,
+                GolangJpegDecoder,
                 imagePath,
                 expectedPixelSize,
                 exifProfilePresent,
@@ -75,6 +76,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 iccProfilePresent);
         }
 
+        private static void TestImageInfo(string imagePath, IImageDecoder decoder, bool useIdentify, Action<IImageInfo> test)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = useIdentify
+                                           ? ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream)
+                                           : decoder.Decode<Rgba32>(Configuration.Default, stream);
+                test(imageInfo);
+            }
+        }
+
         private static void TestMetaDataImpl(
             bool useIdentify,
             IImageDecoder decoder,
@@ -83,51 +96,50 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             bool exifProfilePresent,
             bool iccProfilePresent)
         {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                IImageInfo imageInfo = useIdentify
-                                           ? ((IImageInfoDetector)decoder).Identify(Configuration.Default, stream)
-                                           : decoder.Decode<Rgba32>(Configuration.Default, stream);
+            TestImageInfo(
+                imagePath,
+                decoder,
+                useIdentify,
+                imageInfo =>
+                    {
+                        Assert.NotNull(imageInfo);
+                        Assert.NotNull(imageInfo.PixelType);
 
-                Assert.NotNull(imageInfo);
-                Assert.NotNull(imageInfo.PixelType);
-                
-                if (useIdentify)
-                {
-                    Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
-                }
-                else
-                {
-                    // When full Image<TPixel> decoding is performed, BitsPerPixel will match TPixel
-                    int bpp32 = Unsafe.SizeOf<Rgba32>() * 8;
-                    Assert.Equal(bpp32, imageInfo.PixelType.BitsPerPixel);
-                }
+                        if (useIdentify)
+                        {
+                            Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
+                        }
+                        else
+                        {
+                            // When full Image<TPixel> decoding is performed, BitsPerPixel will match TPixel
+                            int bpp32 = Unsafe.SizeOf<Rgba32>() * 8;
+                            Assert.Equal(bpp32, imageInfo.PixelType.BitsPerPixel);
+                        }
 
-                ExifProfile exifProfile = imageInfo.MetaData.ExifProfile;
+                        ExifProfile exifProfile = imageInfo.MetaData.ExifProfile;
 
-                if (exifProfilePresent)
-                {
-                    Assert.NotNull(exifProfile);
-                    Assert.NotEmpty(exifProfile.Values);
-                }
-                else
-                {
-                    Assert.Null(exifProfile);
-                }
+                        if (exifProfilePresent)
+                        {
+                            Assert.NotNull(exifProfile);
+                            Assert.NotEmpty(exifProfile.Values);
+                        }
+                        else
+                        {
+                            Assert.Null(exifProfile);
+                        }
 
-                IccProfile iccProfile = imageInfo.MetaData.IccProfile;
+                        IccProfile iccProfile = imageInfo.MetaData.IccProfile;
 
-                if (iccProfilePresent)
-                {
-                    Assert.NotNull(iccProfile);
-                    Assert.NotEmpty(iccProfile.Entries);
-                }
-                else
-                {
-                    Assert.Null(iccProfile);
-                }
-            }
+                        if (iccProfilePresent)
+                        {
+                            Assert.NotNull(iccProfile);
+                            Assert.NotEmpty(iccProfile.Entries);
+                        }
+                        else
+                        {
+                            Assert.Null(iccProfile);
+                        }
+                    });
         }
         
         [Theory]
@@ -153,6 +165,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     Assert.NotNull(image.MetaData.IccProfile);
                 }
             }
+        }
+        
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify)
+        {
+            TestImageInfo(TestImages.Jpeg.Baseline.Floorplan, DefaultJpegDecoder, useIdentify,
+                imageInfo =>
+                    {
+                        Assert.Equal(300, imageInfo.MetaData.HorizontalResolution);
+                        Assert.Equal(300, imageInfo.MetaData.VerticalResolution);
+                    });
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify)
+        {
+            TestImageInfo(TestImages.Jpeg.Baseline.Jpeg420Exif, DefaultJpegDecoder, useIdentify,
+                imageInfo =>
+                    {
+                        Assert.Equal(72, imageInfo.MetaData.HorizontalResolution);
+                        Assert.Equal(72, imageInfo.MetaData.VerticalResolution);
+                    });
         }
     }
 }

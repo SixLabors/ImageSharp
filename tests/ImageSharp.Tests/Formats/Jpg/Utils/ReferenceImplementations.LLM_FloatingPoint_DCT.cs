@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 using Xunit.Abstractions;
 
@@ -520,7 +520,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 y[1] = c0 + c3;
                 y[7] = c0 - c3;
             }
-            
+
             internal static void fDCT2D_llm(
                 Span<float> s,
                 Span<float> d,

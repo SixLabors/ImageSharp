@@ -1,8 +1,8 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 // ReSharper disable InconsistentNaming
-
-using System;
-
-using SixLabors.ImageSharp.Formats.Jpeg.Common;
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
@@ -36,13 +36,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 this.CompareBlocks(original, src, 0.1f);
             }
-            
+
             // [Fact]
             public void LLM_CalcConstants()
             {
                 ReferenceImplementations.LLM_FloatingPoint_DCT.PrintConstants(this.Output);
             }
-            
+
             [Theory]
             [InlineData(42, 1000)]
             [InlineData(1, 1000)]
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8F fExpected = iExpected.AsFloatBlock();
 
                 Block8x8F fActual = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformIDCT(ref fSource);
-                
+
                 this.CompareBlocks(fExpected, fActual, 2);
             }
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ReferenceImplementations.AccurateDCT.TransformIDCTInplace(intData);
 
                 float[] dest = new float[64];
-                
+
                 ReferenceImplementations.GT_FloatingPoint_DCT.iDCT8x8GT(floatSrc, dest);
 
                 this.CompareBlocks(intData.ConvertAllToFloat(), dest, 1f);

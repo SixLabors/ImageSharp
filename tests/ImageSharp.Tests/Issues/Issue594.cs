@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
             Assert.Equal(bgr, new Bgr24(141, 90, 192));
 
             new NormalizedByte4(x, y, z, w).ToBgra32(ref bgra);
-            Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));
+            Assert.Equal(bgra, new Bgra32(141, 90, 192, 39));  // this assert fails in Release build on linux (#594)
 
             new NormalizedByte4(x, y, z, w).ToArgb32(ref argb);
             Assert.Equal(argb, new Argb32(141, 90, 192, 39));
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
             Assert.Equal(rgb, new Rgb24(141, 90, 192));
 
             new NormalizedShort4(x, y, z, w).ToRgba32(ref rgba);
-            Assert.Equal(rgba, new Rgba32(141, 90, 192, 39));
+            Assert.Equal(rgba, new Rgba32(141, 90, 192, 39)); // this assert fails in Release build on linux (#594)
 
             new NormalizedShort4(x, y, z, w).ToBgr24(ref bgr);
             Assert.Equal(bgr, new Bgr24(141, 90, 192));
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Issues
             var argb = default(Argb32);
 
             new Short4(x, y, z, w).ToRgb24(ref rgb);
-            Assert.Equal(rgb, new Rgb24(172, 177, 243)); // this seems to be causing the problem #594
+            Assert.Equal(rgb, new Rgb24(172, 177, 243)); // this assert fails in Release build on linux (#594)
 
             new Short4(x, y, z, w).ToRgba32(ref rgba);
             Assert.Equal(rgba, new Rgba32(172, 177, 243, 128));

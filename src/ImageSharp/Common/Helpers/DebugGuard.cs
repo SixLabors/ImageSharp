@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp
         /// <param name="other">The 'other' span to compare 'target' to.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="target"/> has a different size than <paramref name="other"/>
         /// </exception>
         [Conditional("DEBUG")]
         public static void MustBeSameSized<T>(Span<T> target, Span<T> other, string parameterName)
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp
         /// <param name="minSpan">The 'minSpan' span to compare 'target' to.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="target"/> has less items than <paramref name="minSpan"/>
         /// </exception>
         [Conditional("DEBUG")]
         public static void MustBeSizedAtLeast<T>(Span<T> target, Span<T> minSpan, string parameterName)

@@ -6,7 +6,7 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     /// <summary>
     /// Tests the <see cref="Rgba32"/> struct.

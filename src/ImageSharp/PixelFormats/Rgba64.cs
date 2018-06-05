@@ -221,10 +221,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ulong Pack(float x, float y, float z, float w)
         {
-            return (ulong)Math.Round(x.Clamp(0, 1) * 65535F) |
-                   ((ulong)Math.Round(y.Clamp(0, 1) * 65535F) << 16) |
-                   ((ulong)Math.Round(z.Clamp(0, 1) * 65535F) << 32) |
-                   ((ulong)Math.Round(w.Clamp(0, 1) * 65535F) << 48);
+            return (ulong)MathF.Round(x.Clamp(0, 1) * 65535F) |
+                   ((ulong)MathF.Round(y.Clamp(0, 1) * 65535F) << 16) |
+                   ((ulong)MathF.Round(z.Clamp(0, 1) * 65535F) << 32) |
+                   ((ulong)MathF.Round(w.Clamp(0, 1) * 65535F) << 48);
         }
     }
 }

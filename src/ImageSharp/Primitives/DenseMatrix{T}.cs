@@ -90,6 +90,11 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <summary>
+        /// Gets a Span wrapping the Data.
+        /// </summary>
+        public Span<T> Span => new Span<T>(this.Data);
+
+        /// <summary>
         /// Gets or sets the item at the specified position.
         /// </summary>
         /// <param name="row">The row-coordinate of the item. Must be greater than or equal to zero and less than the height of the array.</param>
@@ -104,9 +109,6 @@ namespace SixLabors.ImageSharp.Primitives
                 return ref this.Data[(row * this.Columns) + column];
             }
         }
-
-
-        public Span<T> Span => new Span<T>(Data);
 
         /// <summary>
         /// Performs an implicit conversion from a <see cref="T:T[,]" /> to a <see cref=" DenseMatrix{T}" />.

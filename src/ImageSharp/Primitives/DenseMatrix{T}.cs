@@ -105,6 +105,9 @@ namespace SixLabors.ImageSharp.Primitives
             }
         }
 
+
+        public Span<T> Span => new Span<T>(Data);
+
         /// <summary>
         /// Performs an implicit conversion from a <see cref="T:T[,]" /> to a <see cref=" DenseMatrix{T}" />.
         /// </summary>
@@ -146,19 +149,13 @@ namespace SixLabors.ImageSharp.Primitives
         /// </summary>
         /// <param name="value">The value to fill each item with</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Fill(T value)
-        {
-            for (int i = 0; i < this.Data.Length; i++)
-            {
-                this.Data[i] = value;
-            }
-        }
+        public void Fill(T value) => this.Span.Fill(value);
 
         /// <summary>
         /// Clears the matrix setting each value to the default value for the element type
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear() => Array.Clear(this.Data, 0, this.Data.Length);
+        public void Clear() => this.Span.Clear();
 
         /// <summary>
         /// Checks the coordinates to ensure they are within bounds.
@@ -183,28 +180,10 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public bool Equals(DenseMatrix<T> other)
-        {
-            if (this.Columns != other.Columns)
-            {
-                return false;
-            }
-
-            if (this.Rows != other.Rows)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < this.Data.Length; i++)
-            {
-                if (!this.Data[i].Equals(other.Data[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
+        public bool Equals(DenseMatrix<T> other) => 
+            this.Columns == other.Columns && 
+            this.Rows == other.Rows && 
+            this.Span.SequenceEqual(other.Span);
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is DenseMatrix<T> other && this.Equals(other);

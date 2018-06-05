@@ -180,9 +180,9 @@ namespace SixLabors.ImageSharp.Primitives
         }
 
         /// <inheritdoc/>
-        public bool Equals(DenseMatrix<T> other) => 
-            this.Columns == other.Columns && 
-            this.Rows == other.Rows && 
+        public bool Equals(DenseMatrix<T> other) =>
+            this.Columns == other.Columns &&
+            this.Rows == other.Rows &&
             this.Span.SequenceEqual(other.Span);
 
         /// <inheritdoc/>

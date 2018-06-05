@@ -154,8 +154,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 #elif NETCOREAPP2_1
             return Encoding.UTF8.GetString(buffer);
 #else
-            string result;
-
             fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
             {
                 return Encoding.UTF8.GetString(pointer, buffer.Length);

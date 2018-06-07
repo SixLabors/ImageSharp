@@ -193,7 +193,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             rgba.ToRgb24(ref actual);
 
             // assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(expected.R, actual.R);
+            Assert.Equal(expected.G, actual.G);
+            Assert.Equal(expected.B, actual.B);
         }
 
         [Fact]

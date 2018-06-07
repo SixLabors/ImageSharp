@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Memory
             protected byte[] Data { get; private set; }
 
             /// <inheritdoc />
-            public Span<T> Span => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+            public Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
 
             /// <inheritdoc />
             public void Dispose()

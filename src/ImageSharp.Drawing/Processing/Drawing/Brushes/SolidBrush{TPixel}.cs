@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 : base(source, options)
             {
                 this.Colors = source.MemoryManager.Allocate<TPixel>(source.Width);
-                this.Colors.Span.Fill(color);
+                this.Colors.GetSpan().Fill(color);
             }
 
             /// <summary>
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             /// <returns>
             /// The color
             /// </returns>
-            internal override TPixel this[int x, int y] => this.Colors.Span[x];
+            internal override TPixel this[int x, int y] => this.Colors.GetSpan()[x];
 
             /// <inheritdoc />
             public override void Dispose()
@@ -92,20 +92,20 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
 
                 if (this.Options.BlendPercentage == 1f)
                 {
-                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, scanline);
+                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
                 }
                 else
                 {
                     using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
                     {
-                        Span<float> amountSpan = amountBuffer.Span;
+                        Span<float> amountSpan = amountBuffer.GetSpan();
 
                         for (int i = 0; i < scanline.Length; i++)
                         {
                             amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                         }
 
-                        this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.Span, amountSpan);
+                        this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.GetSpan(), amountSpan);
                     }
                 }
             }

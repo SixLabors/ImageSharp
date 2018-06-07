@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Memory
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Length<T>(this IBuffer<T> buffer)
-            where T : struct => buffer.Span.Length;
+            where T : struct => buffer.GetSpan().Length;
 
         /// <summary>
         /// Gets a <see cref="Span{T}"/> to an offseted position inside the buffer.
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory
         public static Span<T> Slice<T>(this IBuffer<T> buffer, int start)
             where T : struct
         {
-            return buffer.Span.Slice(start);
+            return buffer.GetSpan().Slice(start);
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Memory
         public static Span<T> Slice<T>(this IBuffer<T> buffer, int start, int length)
             where T : struct
         {
-            return buffer.Span.Slice(start, length);
+            return buffer.GetSpan().Slice(start, length);
         }
 
         /// <summary>
@@ -49,12 +49,12 @@ namespace SixLabors.ImageSharp.Memory
         public static void Clear<T>(this IBuffer<T> buffer)
             where T : struct
         {
-            buffer.Span.Clear();
+            buffer.GetSpan().Clear();
         }
 
         public static ref T DangerousGetPinnableReference<T>(this IBuffer<T> buffer)
             where T : struct =>
-            ref MemoryMarshal.GetReference(buffer.Span);
+            ref MemoryMarshal.GetReference(buffer.GetSpan());
 
         public static void Read(this Stream stream, IManagedByteBuffer buffer)
         {

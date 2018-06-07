@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                         {
                             ref Vector4 firstPassRow = ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+                            Span<Vector4> tempRowSpan = tempRowBuffer.GetSpan();
 
                             PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
 

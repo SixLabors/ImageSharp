@@ -102,9 +102,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int data = 0;
             int first = 0;
 
-            ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.Span);
-            ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.Span);
-            ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.Span);
+            ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
+            ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
+            ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
             ref byte pixelsRef = ref MemoryMarshal.GetReference(pixels);
 
             for (code = 0; code < clearCode; code++)

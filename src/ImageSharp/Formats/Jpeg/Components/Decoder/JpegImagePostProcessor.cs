@@ -155,11 +155,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int y = yy - this.PixelRowCounter;
 
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
-                this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.Span);
+                this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.GetSpan());
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
-                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer.Span, destRow, destination.Width);
+                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer.GetSpan(), destRow, destination.Width);
             }
         }
     }

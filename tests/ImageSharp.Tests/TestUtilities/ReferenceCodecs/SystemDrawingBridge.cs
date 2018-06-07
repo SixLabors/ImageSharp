@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                         byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
                         Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
-                        PixelOperations<TPixel>.Instance.PackFromBgra32(workBuffer.Span, row, row.Length);
+                        PixelOperations<TPixel>.Instance.PackFromBgra32(workBuffer.GetSpan(), row, row.Length);
                     }
                 }
             }
@@ -87,9 +87,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                         byte* sourcePtr = sourcePtrBase + data.Stride * y;
 
                         Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);
-                        PixelOperations<TPixel>.Instance.PackFromBgr24(workBuffer.Span, row, row.Length);
+                        PixelOperations<TPixel>.Instance.PackFromBgr24(workBuffer.GetSpan(), row, row.Length);
 
-                        // FromRgb24(workBuffer.Span, row);
+                        // FromRgb24(workBuffer.GetSpan(), row);
                     }
                 }
             }
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                     for (int y = 0; y < h; y++)
                     {
                         Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);
-                        PixelOperations<TPixel>.Instance.ToBgra32(row, workBuffer.Span, row.Length);
+                        PixelOperations<TPixel>.Instance.ToBgra32(row, workBuffer.GetSpan(), row.Length);
                         byte* destPtr = destPtrBase + data.Stride * y;
 
                         Buffer.MemoryCopy(sourcePtr, destPtr, destRowByteCount, sourceRowByteCount);

@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp
                 {
                     Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                     Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                    Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+                    Span<Vector4> tempRowSpan = tempRowBuffer.GetSpan();
 
                     PixelOperations<TPixel>.Instance.ToScaledVector4(sourceRow, tempRowSpan, sourceRow.Length);
                     PixelOperations<TPixel2>.Instance.PackFromScaledVector4(tempRowSpan, targetRow, targetRow.Length);

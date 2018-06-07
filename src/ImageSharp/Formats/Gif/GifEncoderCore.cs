@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
             {
                 ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
-                ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.Span));
+                ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.GetSpan()));
                 for (int i = 0; i < pixelCount; i++)
                 {
                     ref TPixel entry = ref Unsafe.Add(ref paletteRef, i);

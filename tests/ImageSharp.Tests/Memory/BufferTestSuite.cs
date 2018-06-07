@@ -10,7 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    
+    using System.Buffers;
 
     /// <summary>
     /// Inherit this class to test an <see cref="IBuffer{T}"/> implementation (provided by <see cref="MemoryManager"/>).
@@ -280,6 +280,41 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 Assert.True(Unsafe.AreSame(ref span0, ref array0));
                 Assert.True(buffer.Array.Length >= buffer.GetSpan().Length);
+            }
+        }
+
+        [Fact]
+        public void GetMemory_ReturnsValidMemory()
+        {
+            using (IBuffer<CustomStruct> buffer = this.MemoryManager.Allocate<CustomStruct>(42))
+            {
+                Span<CustomStruct> span0 = buffer.GetSpan();
+                span0[10].A = 30;
+                Memory<CustomStruct> memory = buffer.GetMemory();
+                
+                Assert.Equal(42, memory.Length);
+                Span<CustomStruct> span1 = memory.Span;
+
+                Assert.Equal(42, span1.Length);
+                Assert.Equal(30, span1[10].A);
+            }
+        }
+
+        [Fact]
+        public unsafe void GetMemory_ResultIsPinnable()
+        {
+            using (IBuffer<int> buffer = this.MemoryManager.Allocate<int>(42))
+            {
+                Span<int> span0 = buffer.GetSpan();
+                span0[10] = 30;
+
+                Memory<int> memory = buffer.GetMemory();
+
+                using (MemoryHandle h = memory.Pin())
+                {
+                    int* ptr = (int*) h.Pointer;
+                    Assert.Equal(30, ptr[10]);
+                }
             }
         }
     }

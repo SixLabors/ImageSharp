@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <inheritdoc />
     /// <summary>
     /// Represents a contigous memory buffer of value-type items "promising" a <see cref="Span{T}"/>
+    /// A proper im
     /// </summary>
     /// <typeparam name="T">The value type</typeparam>
     internal interface IBuffer<T> : IDisposable

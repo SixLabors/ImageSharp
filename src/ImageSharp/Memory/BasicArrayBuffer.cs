@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
@@ -6,7 +7,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Exposes an array through the <see cref="IBuffer{T}"/> interface.
     /// </summary>
-    internal class BasicArrayBuffer<T> : IBuffer<T>
+    internal class BasicArrayBuffer<T> : ManagedBufferBase<T>, IBuffer<T>
         where T : struct
     {
         public BasicArrayBuffer(T[] array, int length)
@@ -42,11 +43,15 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        /// <inheritdoc />
-        public Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
-
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
+        }
+
+        public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
+
+        protected override object GetPinnableObject()
+        {
+            return this.Array;
         }
     }
 }

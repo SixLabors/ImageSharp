@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// The buffer implementation of <see cref="ArrayPoolMemoryManager"/>
         /// </summary>
-        private class Buffer<T> : IBuffer<T>
+        private class Buffer<T> : ManagedBufferBase<T>, IBuffer<T>
             where T : struct
         {
             /// <summary>
@@ -45,12 +45,9 @@ namespace SixLabors.ImageSharp.Memory
             protected byte[] Data { get; private set; }
 
             /// <inheritdoc />
-            public Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
-
-            /// <inheritdoc />
-            public void Dispose()
+            protected override void Dispose(bool disposing)
             {
-                if (this.Data == null || this.sourcePoolReference == null)
+                if (!disposing || this.Data == null || this.sourcePoolReference == null)
                 {
                     return;
                 }
@@ -63,6 +60,10 @@ namespace SixLabors.ImageSharp.Memory
                 this.sourcePoolReference = null;
                 this.Data = null;
             }
+
+            public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+
+            protected override object GetPinnableObject() => this.Data;
         }
 
         /// <summary>

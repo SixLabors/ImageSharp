@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ResetCodeTable()
         {
-            this.hashTable.Span.Fill(-1);
+            this.hashTable.GetSpan().Fill(-1);
         }
 
         /// <summary>
@@ -293,8 +293,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.Output(this.clearCode, stream);
 
-            ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.Span);
-            ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.Span);
+            ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.GetSpan());
+            ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.GetSpan());
 
             while (this.position < this.pixelArray.Length)
             {

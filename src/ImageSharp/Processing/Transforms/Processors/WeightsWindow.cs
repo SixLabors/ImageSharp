@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref float GetStartReference()
         {
-            Span<float> span = this.buffer.Span;
+            Span<float> span = this.buffer.GetSpan();
             return ref span[this.flatStartIndex];
         }
 

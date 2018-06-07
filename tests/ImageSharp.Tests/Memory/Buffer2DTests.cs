@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.Buffer.Span;
+                Span<TestStructs.Foo> span = buffer.Buffer.GetSpan();
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 

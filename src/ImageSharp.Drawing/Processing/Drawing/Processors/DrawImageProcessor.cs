@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 
             using (IBuffer<float> amount = memoryManager.Allocate<float>(width))
             {
-                amount.Span.Fill(this.Opacity);
+                amount.GetSpan().Fill(this.Opacity);
 
                 Parallel.For(
                     minY,
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                         {
                             Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
                             Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend(memoryManager, background, background, foreground, amount.Span);
+                            blender.Blend(memoryManager, background, background, foreground, amount.GetSpan());
                         });
             }
         }

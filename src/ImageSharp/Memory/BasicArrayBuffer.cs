@@ -25,8 +25,6 @@ namespace SixLabors.ImageSharp.Memory
 
         public int Length { get; }
 
-        public Span<T> Span => this.Array.AsSpan(0, this.Length);
-
         /// <summary>
         /// Returns a reference to specified element of the buffer.
         /// </summary>
@@ -39,10 +37,13 @@ namespace SixLabors.ImageSharp.Memory
             {
                 DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
 
-                Span<T> span = this.Span;
+                Span<T> span = this.GetSpan();
                 return ref span[index];
             }
         }
+
+        /// <inheritdoc />
+        public Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
 
         public void Dispose()
         {

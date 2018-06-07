@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Gets the span to the memory "promised" by this buffer
         /// </summary>
-        Span<T> Span { get; }
+        /// <returns>The <see cref="Span{T}"/></returns>
+        Span<T> GetSpan();
     }
 }

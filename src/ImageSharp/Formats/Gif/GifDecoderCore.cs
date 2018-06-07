@@ -327,9 +327,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 indices = this.configuration.MemoryManager.AllocateManagedByteBuffer(imageDescriptor.Width * imageDescriptor.Height, true);
 
-                this.ReadFrameIndices(imageDescriptor, indices.Span);
-                ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>((localColorTable ?? this.globalColorTable).Span);
-                this.ReadFrameColors(ref image, ref previousFrame, indices.Span, colorTable, imageDescriptor);
+                this.ReadFrameIndices(imageDescriptor, indices.GetSpan());
+                ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>((localColorTable ?? this.globalColorTable).GetSpan());
+                this.ReadFrameColors(ref image, ref previousFrame, indices.GetSpan(), colorTable, imageDescriptor);
 
                 // Skip any remaining blocks
                 this.Skip(0);

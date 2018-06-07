@@ -705,7 +705,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
             {
-                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.Span);
+                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
@@ -713,7 +713,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
                     using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
                     {
-                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.Span);
+                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
                         int codeLengthSum = 0;
 
                         for (int j = 1; j < 17; j++)
@@ -730,8 +730,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.BuildHuffmanTable(
                                 huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 huffmanTableSpec & 15,
-                                codeLengths.Span,
-                                huffmanValues.Span);
+                                codeLengths.GetSpan(),
+                                huffmanValues.GetSpan());
                         }
                     }
                 }

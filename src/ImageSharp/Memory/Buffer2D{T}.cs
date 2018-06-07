@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Gets the span to the whole area.
         /// </summary>
-        public Span<T> Span => this.Buffer.Span;
+        public Span<T> Span => this.Buffer.GetSpan();
 
         /// <summary>
         /// Gets the backing <see cref="IBuffer{T}"/>
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Memory
             {
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-                Span<T> span = this.Buffer.Span;
+                Span<T> span = this.Buffer.GetSpan();
                 return ref span[(this.Width * y) + x];
             }
         }

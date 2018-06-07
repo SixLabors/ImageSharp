@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                     sourceRectangle,
                     this.options))
                 {
-                    amount.Span.Fill(1f);
+                    amount.GetSpan().Fill(1f);
 
                     Parallel.For(
                         minY,
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                                 int offsetY = y - startY;
                                 int offsetX = minX - startX;
 
-                                applicator.Apply(amount.Span, offsetX, offsetY);
+                                applicator.Apply(amount.GetSpan(), offsetX, offsetY);
                             });
                 }
             }

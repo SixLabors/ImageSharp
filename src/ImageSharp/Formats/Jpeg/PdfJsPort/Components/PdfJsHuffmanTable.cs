@@ -46,8 +46,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             using (IBuffer<short> huffsize = memoryManager.Allocate<short>(length))
             using (IBuffer<short> huffcode = memoryManager.Allocate<short>(length))
             {
-                ref short huffsizeRef = ref MemoryMarshal.GetReference(huffsize.Span);
-                ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.Span);
+                ref short huffsizeRef = ref MemoryMarshal.GetReference(huffsize.GetSpan());
+                ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
 
                 GenerateSizeTable(lengths, ref huffsizeRef);
                 GenerateCodeTable(ref huffsizeRef, ref huffcodeRef, length);

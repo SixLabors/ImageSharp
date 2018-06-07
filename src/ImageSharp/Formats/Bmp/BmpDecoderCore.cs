@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 TPixel color = default;
                 var rgba = new Rgba32(0, 0, 0, 255);
 
-                Span<byte> rowSpan = row.Span;
+                Span<byte> rowSpan = row.GetSpan();
 
                 for (int y = 0; y < height; y++)
                 {
@@ -434,7 +434,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.Span, pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.GetSpan(), pixelSpan, width);
                 }
             }
         }
@@ -459,7 +459,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.Span, pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.GetSpan(), pixelSpan, width);
                 }
             }
         }

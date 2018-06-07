@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (IBuffer<T> buffer = this.MemoryManager.Allocate<T>(desiredLength))
             {
-                Assert.Equal(desiredLength, buffer.Span.Length);
+                Assert.Equal(desiredLength, buffer.GetSpan().Length);
             }
         }
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, true, testManagedByteBuffer))
                 {
-                    Assert.True(buffer.Span.SequenceEqual(expected));
+                    Assert.True(buffer.GetSpan().SequenceEqual(expected));
                 }
             }
         }
@@ -166,9 +166,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, false, testManagedByteBuffer))
             {
-                ref T a = ref MemoryMarshal.GetReference(buffer.Span);
-                ref T b = ref MemoryMarshal.GetReference(buffer.Span);
-                ref T c = ref MemoryMarshal.GetReference(buffer.Span);
+                ref T a = ref MemoryMarshal.GetReference(buffer.GetSpan());
+                ref T b = ref MemoryMarshal.GetReference(buffer.GetSpan());
+                ref T c = ref MemoryMarshal.GetReference(buffer.GetSpan());
 
                 Assert.True(Unsafe.AreSame(ref a, ref b));
                 Assert.True(Unsafe.AreSame(ref b, ref c));
@@ -199,14 +199,14 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int i = 0; i < buffer.Length(); i++)
                 {
-                    Span<T> span = buffer.Span;
+                    Span<T> span = buffer.GetSpan();
                     expectedVals[i] = getExpectedValue(i);
                     span[i] = expectedVals[i];
                 }
 
                 for (int i = 0; i < buffer.Length(); i++)
                 {
-                    Span<T> span = buffer.Span;
+                    Span<T> span = buffer.GetSpan();
                     Assert.Equal(expectedVals[i], span[i]);
                 }
             }
@@ -244,21 +244,21 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.ThrowsAny<Exception>(
                     () =>
                         {
-                            Span<T> span = buffer.Span;
+                            Span<T> span = buffer.GetSpan();
                             dummy = span[desiredLength];
                         });
 
                 Assert.ThrowsAny<Exception>(
                     () =>
                         {
-                            Span<T> span = buffer.Span;
+                            Span<T> span = buffer.GetSpan();
                             dummy = span[desiredLength + 1];
                         });
 
                 Assert.ThrowsAny<Exception>(
                     () =>
                         {
-                            Span<T> span = buffer.Span;
+                            Span<T> span = buffer.GetSpan();
                             dummy = span[desiredLength + 42];
                         });
             }
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 ref byte span0 = ref buffer.DangerousGetPinnableReference();
 
                 Assert.True(Unsafe.AreSame(ref span0, ref array0));
-                Assert.True(buffer.Array.Length >= buffer.Span.Length);
+                Assert.True(buffer.Array.Length >= buffer.GetSpan().Length);
             }
         }
     }

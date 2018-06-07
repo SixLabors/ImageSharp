@@ -132,13 +132,13 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (IBuffer<int> firstAlloc = this.MemoryManager.Allocate<int>(42))
             {
-                firstAlloc.Span.Fill(666);
+                firstAlloc.GetSpan().Fill(666);
             }
 
             using (IBuffer<int> secondAlloc = this.MemoryManager.Allocate<int>(42, clean))
             {
                 int expected = clean ? 0 : 666;
-                Assert.Equal(expected, secondAlloc.Span[0]);
+                Assert.Equal(expected, secondAlloc.GetSpan()[0]);
             }
         }
 
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void ReleaseRetainedResources_ReplacesInnerArrayPool(bool keepBufferAlive)
         {
             IBuffer<int> buffer = this.MemoryManager.Allocate<int>(32);
-            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.Span);
+            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.GetSpan());
 
             if (!keepBufferAlive)
             {

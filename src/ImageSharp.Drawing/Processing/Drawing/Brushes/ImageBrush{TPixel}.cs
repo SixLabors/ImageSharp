@@ -121,8 +121,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                 using (IBuffer<float> amountBuffer = this.Target.MemoryManager.Allocate<float>(scanline.Length))
                 using (IBuffer<TPixel> overlay = this.Target.MemoryManager.Allocate<TPixel>(scanline.Length))
                 {
-                    Span<float> amountSpan = amountBuffer.Span;
-                    Span<TPixel> overlaySpan = overlay.Span;
+                    Span<float> amountSpan = amountBuffer.GetSpan();
+                    Span<TPixel> overlaySpan = overlay.GetSpan();
 
                     int sourceY = (y - this.offsetY) % this.yLength;
                     int offsetX = x - this.offsetX;

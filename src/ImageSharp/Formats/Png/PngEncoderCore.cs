@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -79,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Contains the raw pixel data from an indexed image.
         /// </summary>
-        private byte[] palettePixelData;
+        private IBuffer<byte> quantizedPixels;
 
         /// <summary>
         /// The image width.
@@ -175,13 +174,15 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
-            QuantizedFrame<TPixel> quantized = null;
+            TPixel[] quantizedPalette = null;
+
             if (this.pngColorType == PngColorType.Palette)
             {
-                // Create quantized frame returning the palette and set the bit depth.
-                quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
-                this.palettePixelData = quantized.Pixels;
-                byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                this.quantizedPixels = this.memoryManager.Allocate<byte>(image.Width * image.Height);
+
+                // Get the quantized frame pixels and palette and set the bit depth.
+                this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame, this.quantizedPixels.Span, out quantizedPalette);
+                byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantizedPalette.Length).Clamp(1, 8);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
                 if (bits == 3)
@@ -214,9 +215,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteHeaderChunk(stream, header);
 
             // Collect the indexed pixel data
-            if (quantized != null)
+            if (this.pngColorType == PngColorType.Palette)
             {
-                this.WritePaletteChunk(stream, header, quantized);
+                this.WritePaletteChunk<TPixel>(stream, header, this.quantizedPixels.Span, quantizedPalette);
             }
 
             this.WritePhysicalChunk(stream, image);
@@ -224,6 +225,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WriteDataChunks(image.Frames.RootFrame, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
+
+            this.quantizedPixels?.Dispose();
         }
 
         /// <inheritdoc />
@@ -236,6 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.up?.Dispose();
             this.average?.Dispose();
             this.paeth?.Dispose();
+            this.quantizedPixels?.Dispose();
         }
 
         /// <summary>
@@ -305,8 +309,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Palette:
-                    // TODO: Use Span copy!
-                    Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length(), this.rawScanline.Array, 0, this.rawScanline.Length());
+                    int stride = this.rawScanline.Length();
+
+                    this.quantizedPixels.Slice(row * stride, stride).CopyTo(this.rawScanline.Span);
+
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:
@@ -447,12 +453,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="header">The <see cref="PngHeader"/>.</param>
-        /// <param name="quantized">The quantized frame.</param>
-        private void WritePaletteChunk<TPixel>(Stream stream, in PngHeader header, QuantizedFrame<TPixel> quantized)
+        /// <param name="quantizedPixels">The quantized image pixels.</param>
+        /// <param name="palette">The quantized image palette.</param>
+        private void WritePaletteChunk<TPixel>(Stream stream, in PngHeader header, ReadOnlySpan<byte> quantizedPixels, ReadOnlySpan<TPixel> palette)
             where TPixel : struct, IPixel<TPixel>
         {
-            // Grab the palette and write it to the stream.
-            TPixel[] palette = quantized.Palette;
             byte pixelCount = palette.Length.ToByte();
 
             // Get max colors for bit depth.
@@ -468,7 +473,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 for (byte i = 0; i < pixelCount; i++)
                 {
-                    if (quantized.Pixels.Contains(i))
+                    if (quantizedPixels.IndexOf(i) > -1)
                     {
                         int offset = i * 3;
                         palette[i].ToRgba32(ref rgba);

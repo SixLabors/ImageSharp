@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public override void QuantizeFrame(ImageFrame<TPixel> image, Span<byte> quantizedPixels, out TPixel[] quantizedPalette)
         {
             Guard.NotNull(image, nameof(image));
             MemoryManager memoryManager = image.MemoryManager;
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 this.m2 = memoryManager.AllocateClean<float>(TableLength);
                 this.tag = memoryManager.AllocateClean<byte>(TableLength);
 
-                return base.QuantizeFrame(image);
+                base.QuantizeFrame(image, quantizedPixels, out quantizedPalette);
             }
             finally
             {
@@ -251,7 +251,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.

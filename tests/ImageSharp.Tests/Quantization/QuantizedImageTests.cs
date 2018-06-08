@@ -34,16 +34,18 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
+                var quantizedPixels = new byte[image.Width * image.Height];
+
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
                 var quantizer = new PaletteQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels, out TPixel[] quantizedPalette);
 
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    int index = this.GetTransparentIndex<TPixel>(quantizedPalette);
+                    Assert.Equal(index, quantizedPixels[0]);
                 }
             }
         }
@@ -56,16 +58,18 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
+                var quantizedPixels = new byte[image.Width * image.Height];
+
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
                 var quantizer = new OctreeQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels, out TPixel[] quantizedPalette);
 
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    int index = this.GetTransparentIndex(quantizedPalette);
+                    Assert.Equal(index, quantizedPixels[0]);
                 }
             }
         }
@@ -78,29 +82,32 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
+                var quantizedPixels = new byte[image.Width * image.Height];
+
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
                 var quantizer = new WuQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
+                    quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame, quantizedPixels, out TPixel[] quantizedPalette);
 
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    int index = this.GetTransparentIndex<TPixel>(quantizedPalette);
+                    Assert.Equal(index, quantizedPixels[0]);
                 }
             }
         }
 
-        private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
+        private int GetTransparentIndex<TPixel>(TPixel[] quantizedPalette)
             where TPixel : struct, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
-            var trans = default(Rgba32);
-            for (int i = quantized.Palette.Length - 1; i >= 0; i--)
+
+            Rgba32 trans = default;
+            for (int i = quantizedPalette.Length - 1; i >= 0; i--)
             {
-                quantized.Palette[i].ToRgba32(ref trans);
+                quantizedPalette[i].ToRgba32(ref trans);
 
                 if (trans.Equals(default(Rgba32)))
                 {

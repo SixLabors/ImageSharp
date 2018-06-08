@@ -112,7 +112,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 Unsafe.Add(ref suffixRef, code) = (byte)code;
             }
 
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[255];
+#else
             byte[] buffer = new byte[255];
+#endif
+
             while (xyz < length)
             {
                 if (top == 0)
@@ -221,15 +226,24 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NETCOREAPP2_1
+        private int ReadBlock(Span<byte> buffer)
+#else
         private int ReadBlock(byte[] buffer)
+#endif
         {
             int bufferSize = this.stream.ReadByte();
+
             if (bufferSize < 1)
             {
                 return 0;
             }
 
+#if NETCOREAPP2_1
+            int count = this.stream.Read(buffer.Slice(0, bufferSize));
+#else
             int count = this.stream.Read(buffer, 0, bufferSize);
+#endif
             return count != bufferSize ? 0 : bufferSize;
         }
 

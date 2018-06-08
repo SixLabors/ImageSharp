@@ -207,14 +207,14 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Verifies, that the `source` span has the length of 'minSpan', or longer.
+        /// Verifies, that the `source` span has the length of 'minLength', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
         /// <param name="source">The source span.</param>
         /// <param name="minLength">The minimum length.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="source"/> is true
+        /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
         public static void MustBeSizedAtLeast<T>(ReadOnlySpan<T> source, int minLength, string parameterName)
         {
@@ -225,14 +225,14 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Verifies, that the `source` span has the length of 'minSpan', or longer.
+        /// Verifies, that the `source` span has the length of 'minLength', or longer.
         /// </summary>
         /// <typeparam name="T">The element type of the spans</typeparam>
         /// <param name="source">The target span.</param>
         /// <param name="minLength">The minimum length.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="source"/> is true
+        /// <paramref name="source"/> has less than <paramref name="minLength"/> items
         /// </exception>
         public static void MustBeSizedAtLeast<T>(Span<T> source, int minLength, string parameterName)
         {

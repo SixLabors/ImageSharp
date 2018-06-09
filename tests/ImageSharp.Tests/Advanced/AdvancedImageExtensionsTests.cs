@@ -21,20 +21,77 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             public void WhenMemoryIsOwned<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                using (Image<TPixel> image = provider.GetImage())
+                using (Image<TPixel> image0 = provider.GetImage())
                 {
-                    Memory<TPixel> memory = image.GetPixelMemory();
-                    Assert.Equal(image.Width * image.Height, memory.Length);
+                    var targetBuffer = new TPixel[image0.Width * image0.Height];
 
-                    var targetBuffer = new TPixel[image.Width * image.Height];
+                    // Act:
+                    Memory<TPixel> memory = image0.GetPixelMemory();
+
+                    // Assert:
+                    Assert.Equal(image0.Width * image0.Height, memory.Length);
                     memory.Span.CopyTo(targetBuffer);
 
-                    image.ComparePixelBufferTo(targetBuffer);
+                    using (Image<TPixel> image1 = provider.GetImage())
+                    {
+                        // We are using a copy of the original image for assertion
+                        image1.ComparePixelBufferTo(targetBuffer);
+                    }
                 }
             }
         }
 
-        
+        [Theory]
+        [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
+        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        public void GetPixelRowMemory<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var targetBuffer = new TPixel[image.Width * image.Height];
+
+                // Act:
+                for (int y = 0; y < image.Height; y++)
+                {
+                    Memory<TPixel> rowMemory = image.GetPixelRowMemory(y);
+                    rowMemory.Span.CopyTo(targetBuffer.AsSpan(image.Width * y));
+                }
+
+                // Assert:
+                using (Image<TPixel> image1 = provider.GetImage())
+                {
+                    // We are using a copy of the original image for assertion
+                    image1.ComparePixelBufferTo(targetBuffer);
+                }
+            }
+        }
+
+        [Theory]
+        [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
+        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+        public void GetPixelRowSpan<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var targetBuffer = new TPixel[image.Width * image.Height];
+
+                // Act:
+                for (int y = 0; y < image.Height; y++)
+                {
+                    Span<TPixel> rowMemory = image.GetPixelRowSpan(y);
+                    rowMemory.CopyTo(targetBuffer.AsSpan(image.Width * y));
+                }
+
+                // Assert:
+                using (Image<TPixel> image1 = provider.GetImage())
+                {
+                    // We are using a copy of the original image for assertion
+                    image1.ComparePixelBufferTo(targetBuffer);
+                }
+            }
+        }
 
         [Theory]
         [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]

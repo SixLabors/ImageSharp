@@ -2,39 +2,64 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Primitives;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using Moq;
+using SixLabors.Primitives;
+using SixLabors.Shapes;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Paths
 {
-    using System;
-
-    using Moq;
-    using SixLabors.Primitives;
-    using SixLabors.Shapes;
-
-    using Xunit;
-
     public class ShapeRegionTests
     {
-        private readonly Mock<IPath> pathMock;
+        public abstract class MockPath : IPath
+        {
+            public abstract RectangleF Bounds { get; }
+            public IPath AsClosedPath() => this;
+
+            public abstract SegmentInfo PointAlongPath(float distanceAlongPath);
+            public abstract PointInfo Distance(PointF point);
+            public abstract IEnumerable<ISimplePath> Flatten();
+            public abstract bool Contains(PointF point);
+            public abstract IPath Transform(Matrix3x2 matrix);
+            public abstract PathTypes PathType { get; }
+            public abstract int MaxIntersections { get; }
+            public abstract float Length { get; }
+
+            public int FindIntersections(PointF start, PointF end, PointF[] buffer, int offset)
+            {
+                return this.FindIntersections(start, end, buffer, 0);
+            }
+
+            public int FindIntersections(PointF s, PointF e, Span<PointF> buffer)
+            {
+                Assert.Equal(this.TestYToScan, s.Y);
+                Assert.Equal(this.TestYToScan, e.Y);
+                Assert.True(s.X < this.Bounds.Left);
+                Assert.True(e.X > this.Bounds.Right);
+
+                this.TestFindIntersectionsInvocationCounter++;
+
+                return this.TestFindIntersectionsResult;
+            }
+
+            public int TestFindIntersectionsInvocationCounter { get; private set; }
+            public virtual int TestYToScan => 10;
+            public virtual int TestFindIntersectionsResult => 3;
+        }
+
+        private readonly Mock<MockPath> pathMock;
 
         private readonly RectangleF bounds;
 
         public ShapeRegionTests()
         {
-            this.pathMock = new Mock<IPath>();
+            this.pathMock = new Mock<MockPath>() { CallBase = true };
 
             this.bounds = new RectangleF(10.5f, 10, 10, 10);
             this.pathMock.Setup(x => x.Bounds).Returns(this.bounds);
-            // wire up the 2 mocks to reference eachother
-            this.pathMock.Setup(x => x.AsClosedPath()).Returns(() => this.pathMock.Object);
-        }
-
-        [Fact]
-        public void ShapeRegionWithPathCallsAsShape()
-        {
-            new ShapeRegion(this.pathMock.Object);
-
-            this.pathMock.Verify(x => x.AsClosedPath());
         }
 
         [Fact]
@@ -68,58 +93,16 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void ShapeRegionFromPathScanYProxyToShape()
         {
-            int yToScan = 10;
-            var region = new ShapeRegion(this.pathMock.Object);
+            MockPath path = this.pathMock.Object;
+            int yToScan = path.TestYToScan;
+            var region = new ShapeRegion(path);
 
-            this.pathMock
-                .Setup(
-                    x => x.FindIntersections(
-                        It.IsAny<PointF>(),
-                        It.IsAny<PointF>(),
-                        It.IsAny<PointF[]>(),
-                        It.IsAny<int>())).Callback<PointF, PointF, PointF[], int>(
-                    (s, e, b, o) =>
-                        {
-                            Assert.Equal(yToScan, s.Y);
-                            Assert.Equal(yToScan, e.Y);
-                            Assert.True(s.X < this.bounds.Left);
-                            Assert.True(e.X > this.bounds.Right);
-                        }).Returns(0);
+            int i = region.Scan(yToScan, new float[path.TestFindIntersectionsResult], Configuration.Default);
 
-            int i = region.Scan(yToScan, new float[0], Configuration.Default);
-
-            this.pathMock.Verify(
-                x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()),
-                Times.Once);
+            Assert.Equal(path.TestFindIntersectionsResult, i);
+            Assert.Equal(1, path.TestFindIntersectionsInvocationCounter);
         }
 
-        [Fact]
-        public void ShapeRegionFromShapeScanYProxyToShape()
-        {
-            int yToScan = 10;
-            var region = new ShapeRegion(this.pathMock.Object);
-
-            this.pathMock
-                .Setup(
-                    x => x.FindIntersections(
-                        It.IsAny<PointF>(),
-                        It.IsAny<PointF>(),
-                        It.IsAny<PointF[]>(),
-                        It.IsAny<int>())).Callback<PointF, PointF, PointF[], int>(
-                    (s, e, b, o) =>
-                        {
-                            Assert.Equal(yToScan, s.Y);
-                            Assert.Equal(yToScan, e.Y);
-                            Assert.True(s.X < this.bounds.Left);
-                            Assert.True(e.X > this.bounds.Right);
-                        }).Returns(0);
-
-            int i = region.Scan(yToScan, new float[0], Configuration.Default);
-
-            this.pathMock.Verify(
-                x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()),
-                Times.Once);
-        }
 
         [Fact]
         public void ShapeRegionFromShapeConvertsBoundsProxyToShape()

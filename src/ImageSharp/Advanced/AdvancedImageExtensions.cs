@@ -36,6 +36,18 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
+        /// Gets the <see cref="Memory{T}"/> storing the whole pixel buffer in row major order.
+        /// </summary>
+        /// <typeparam name="TPixel">The Pixel format.</typeparam>
+        /// <param name="source">The source <see cref="Image{TPixel}"/></param>
+        /// <returns>The <see cref="Memory{T}"/></returns>
+        public static Memory<TPixel> GetPixelMemory<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            return source.Frames.RootFrame.GetPixelMemory();
+        }
+
+        /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer,
         /// allowing direct manipulation of pixel data through unsafe operations.
         /// The pixel buffer is a contiguous memory area containing Width*Height TPixel elements laid out in row-major order.

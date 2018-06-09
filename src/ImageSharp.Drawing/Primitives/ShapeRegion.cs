@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
@@ -39,21 +40,23 @@ namespace SixLabors.ImageSharp.Primitives
         public override Rectangle Bounds { get; }
 
         /// <inheritdoc/>
-        public override int Scan(float y, float[] buffer, int offset)
+        public override int Scan(float y, Span<float> buffer, Configuration configuration)
         {
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
 
-            // TODO: This is a temporary workaround because of the lack of Span<T> API-s on IPath. We should use MemoryManager.Allocate() here!
-            var innerBuffer = new PointF[buffer.Length];
-            int count = this.Shape.FindIntersections(start, end, innerBuffer, 0);
-
-            for (int i = 0; i < count; i++)
+            using (IBuffer<PointF> tempBuffer = configuration.MemoryManager.Allocate<PointF>(buffer.Length))
             {
-                buffer[i + offset] = innerBuffer[i].X;
-            }
+                Span<PointF> innerBuffer = tempBuffer.GetSpan();
+                int count = this.Shape.FindIntersections(start, end, innerBuffer);
 
-            return count;
+                for (int i = 0; i < count; i++)
+                {
+                    buffer[i] = innerBuffer[i].X;
+                }
+
+                return count;
+            }
         }
     }
 }

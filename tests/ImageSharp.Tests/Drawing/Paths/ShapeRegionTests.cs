@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                             Assert.True(e.X > this.bounds.Right);
                         }).Returns(0);
 
-            int i = region.Scan(yToScan, new float[0], 0);
+            int i = region.Scan(yToScan, new float[0], Configuration.Default);
 
             this.pathMock.Verify(
                 x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()),
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
                             Assert.True(e.X > this.bounds.Right);
                         }).Returns(0);
 
-            int i = region.Scan(yToScan, new float[0], 0);
+            int i = region.Scan(yToScan, new float[0], Configuration.Default);
 
             this.pathMock.Verify(
                 x => x.FindIntersections(It.IsAny<PointF>(), It.IsAny<PointF>(), It.IsAny<PointF[]>(), It.IsAny<int>()),

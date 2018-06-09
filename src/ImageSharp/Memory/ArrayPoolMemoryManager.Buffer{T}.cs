@@ -13,7 +13,8 @@ namespace SixLabors.ImageSharp.Memory
     public partial class ArrayPoolMemoryManager
     {
         /// <summary>
-        /// The buffer implementation of <see cref="ArrayPoolMemoryManager"/>
+        /// The buffer implementation of <see cref="ArrayPoolMemoryManager"/>.
+        /// In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
         /// </summary>
         private class Buffer<T> : ManagedBufferBase<T>, IBuffer<T>
             where T : struct

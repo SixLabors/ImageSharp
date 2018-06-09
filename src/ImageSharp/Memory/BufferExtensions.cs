@@ -10,22 +10,6 @@ namespace SixLabors.ImageSharp.Memory
 {
     internal static class BufferExtensions
     {
-        public static Memory<T> GetMemory<T>(this IBuffer<T> buffer)
-            where T : struct
-        {
-            System.Buffers.MemoryManager<T> bufferManager = buffer as System.Buffers.MemoryManager<T>;
-
-            if (bufferManager == null)
-            {
-                // TODO: We need a better way to integrate IBuffer<T> with MemoryManager<T>. The prior should probably entirely replace the latter!
-                throw new ArgumentException(
-                    "BufferExtensions.GetMemory<T>(buffer): buffer should be convertable to System.Buffers.MemoryManager<T>!",
-                    nameof(buffer));
-            }
-
-            return bufferManager.Memory;
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Length<T>(this IBuffer<T> buffer)
             where T : struct => buffer.GetSpan().Length;

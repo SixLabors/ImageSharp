@@ -51,8 +51,7 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         public int Height { get; private set; }
 
-        /// <inheritdoc />
-        public Span<TPixel> Span => this.PixelBuffer.Span;
+        public IBuffer<TPixel> Buffer => this.PixelBuffer.Buffer;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -66,14 +65,14 @@ namespace SixLabors.ImageSharp
             get
             {
                 this.CheckCoordinates(x, y);
-                return this.Span[(y * this.Width) + x];
+                return this.GetSpan()[(y * this.Width) + x];
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 this.CheckCoordinates(x, y);
-                Span<TPixel> span = this.Span;
+                Span<TPixel> span = this.GetSpan();
                 span[(y * this.Width) + x] = value;
             }
         }
@@ -110,7 +109,7 @@ namespace SixLabors.ImageSharp
         /// <param name="target">The target pixel buffer accessor.</param>
         internal void CopyTo(PixelAccessor<TPixel> target)
         {
-            this.PixelBuffer.Span.CopyTo(target.PixelBuffer.Span);
+            this.PixelBuffer.GetSpan().CopyTo(target.PixelBuffer.GetSpan());
         }
 
         /// <summary>

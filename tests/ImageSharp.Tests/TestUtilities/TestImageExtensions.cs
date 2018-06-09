@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Buffer2D<Vector4> temp = memoryManager.Allocate2D<Vector4>(img.Width, img.Height))
                 {
-                    Span<Vector4> tempSpan = temp.Span;
+                    Span<Vector4> tempSpan = temp.GetSpan();
                     foreach (ImageFrame<TPixel> frame in img.Frames)
                     {
                         Span<TPixel> pixelSpan = frame.GetPixelSpan();
@@ -665,7 +665,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
-            Span<float> bufferSpan = buffer.Span;
+            Span<float> bufferSpan = buffer.GetSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)
             {

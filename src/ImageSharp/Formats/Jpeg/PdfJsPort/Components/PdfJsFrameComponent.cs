@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public ref Block8x8 GetBlockReference(int column, int row)
         {
             int offset = ((this.WidthInBlocks + 1) * row) + column;
-            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.Span), offset);
+            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.GetSpan()), offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="x">The position inside a row</param>
         /// <param name="y">The row index</param>
         /// <returns>The reference to the value</returns>
-        public ref T this[int x, int y] => ref this.DestinationBuffer.Span[this.GetIndexOf(x, y)];
+        public ref T this[int x, int y] => ref this.DestinationBuffer.GetSpan()[this.GetIndexOf(x, y)];
 
         /// <summary>
         /// Gets a reference to the [0,0] element.
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The reference to the [0,0] element</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T GetReferenceToOrigin() =>
-            ref this.DestinationBuffer.Span[(this.Rectangle.Y * this.DestinationBuffer.Width) + this.Rectangle.X];
+            ref this.DestinationBuffer.GetSpan()[(this.Rectangle.Y * this.DestinationBuffer.Width) + this.Rectangle.X];
 
         /// <summary>
         /// Gets a span to row 'y' inside this area.
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Memory
             int xx = this.Rectangle.X;
             int width = this.Rectangle.Width;
 
-            return this.DestinationBuffer.Span.Slice(yy + xx, width);
+            return this.DestinationBuffer.GetSpan().Slice(yy + xx, width);
         }
 
         /// <summary>
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Memory
             // Optimization for when the size of the area is the same as the buffer size.
             if (this.IsFullBufferArea)
             {
-                this.DestinationBuffer.Span.Clear();
+                this.DestinationBuffer.GetSpan().Clear();
                 return;
             }
 

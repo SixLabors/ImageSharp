@@ -51,6 +51,20 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
+        /// </summary>
+        /// <param name="buffer">The buffer</param>
+        /// <param name="y">The y (row) coordinate</param>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <returns>The <see cref="Span{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Memory<T> GetRowMemory<T>(this IBuffer2D<T> buffer, int y)
+            where T : struct
+        {
+            return buffer.Buffer.Memory.Slice(y * buffer.Width, buffer.Width);
+        }
+
+        /// <summary>
         /// Returns the size of the buffer.
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>

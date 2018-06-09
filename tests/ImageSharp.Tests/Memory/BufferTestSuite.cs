@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Span<CustomStruct> span0 = buffer.GetSpan();
                 span0[10].A = 30;
-                Memory<CustomStruct> memory = buffer.GetMemory();
+                Memory<CustomStruct> memory = buffer.Memory;
                 
                 Assert.Equal(42, memory.Length);
                 Span<CustomStruct> span1 = memory.Span;
@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Span<int> span0 = buffer.GetSpan();
                 span0[10] = 30;
 
-                Memory<int> memory = buffer.GetMemory();
+                Memory<int> memory = buffer.Memory;
 
                 using (MemoryHandle h = memory.Pin())
                 {

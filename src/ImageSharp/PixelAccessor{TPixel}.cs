@@ -54,8 +54,6 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc />
         public Span<TPixel> Span => this.PixelBuffer.Span;
 
-        private static PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
-
         /// <summary>
         /// Gets or sets the pixel at the specified position.
         /// </summary>

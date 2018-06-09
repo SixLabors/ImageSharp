@@ -15,9 +15,14 @@ namespace SixLabors.ImageSharp.Memory
         where T : struct
     {
         /// <summary>
-        /// Gets the span to the memory "promised" by this buffer
+        /// Gets the span to the memory "promised" by this buffer.
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         Span<T> GetSpan();
+
+        /// <summary>
+        /// Gets the <see cref="Memory{T}"/> ownerd by this buffer.
+        /// </summary>
+        Memory<T> Memory { get; }
     }
 }

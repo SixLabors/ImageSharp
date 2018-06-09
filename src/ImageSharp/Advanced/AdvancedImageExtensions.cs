@@ -24,7 +24,8 @@ namespace SixLabors.ImageSharp.Advanced
             => GetConfiguration((IConfigurable)source);
 
         /// <summary>
-        /// Gets the <see cref="Memory{T}"/> storing the whole pixel buffer in row major order.
+        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> of contiguous memory in the source image's pixel format
+        /// stored in row major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source <see cref="ImageFrame{TPixel}"/></param>
@@ -36,7 +37,8 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
-        /// Gets the <see cref="Memory{T}"/> storing the whole pixel buffer in row major order.
+        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> of contiguous memory in the source image's pixel format
+        /// stored in row major order.
         /// </summary>
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source <see cref="Image{TPixel}"/></param>
@@ -48,6 +50,76 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
+        /// stored in row major order.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => source.GetPixelMemory().Span;
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
+        /// stored in row major order.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Frames.RootFrame.GetPixelSpan();
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Memory<TPixel> GetPixelRowMemory<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
+            where TPixel : struct, IPixel<TPixel>
+            => source.PixelBuffer.GetRowMemory(rowIndex);
+
+        /// <summary>
+        /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Memory<TPixel> GetPixelRowMemory<TPixel>(this Image<TPixel> source, int rowIndex)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Frames.RootFrame.GetPixelRowMemory(rowIndex);
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
+            where TPixel : struct, IPixel<TPixel>
+            => source.PixelBuffer.GetRowSpan(rowIndex);
+
+        /// <summary>
+        /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int rowIndex)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Frames.RootFrame.GetPixelRowSpan(rowIndex);
+
+        /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer,
         /// allowing direct manipulation of pixel data through unsafe operations.
         /// The pixel buffer is a contiguous memory area containing Width*Height TPixel elements laid out in row-major order.
@@ -57,7 +129,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
         public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => ref DangerousGetPinnableReferenceToPixelBuffer((IPixelSource<TPixel>)source);
+            => ref DangerousGetPinnableReferenceToPixelBuffer((IPixelSource<TPixel>)source);
 
         /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer,
@@ -69,49 +141,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
         public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-         => ref source.Frames.RootFrame.DangerousGetPinnableReferenceToPixelBuffer();
-
-        /// <summary>
-        /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        internal static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => GetSpan(source);
-
-        /// <summary>
-        /// Gets the representation of the pixels as an area of contiguous memory at row 'y' beginning from the the first pixel on that row.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="row">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        internal static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int row)
-            where TPixel : struct, IPixel<TPixel>
-            => GetSpan(source, row);
-
-        /// <summary>
-        /// Gets the representation of the pixels as an area of contiguous memory in the given pixel format.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        internal static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.GetPixelSpan();
-
-        /// <summary>
-        /// Gets the representation of the pixels as an area of contiguous memory at row 'y' beginning from the the first pixel on that row.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="row">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        internal static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int row)
-            where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.GetPixelRowSpan(row);
+            => ref source.Frames.RootFrame.DangerousGetPinnableReferenceToPixelBuffer();
 
         /// <summary>
         /// Gets the <see cref="MemoryManager"/> assigned to 'source'.

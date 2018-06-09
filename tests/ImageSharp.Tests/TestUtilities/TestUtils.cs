@@ -113,8 +113,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
-
-
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
         {
             if (pixelTypes == PixelTypes.Undefined)

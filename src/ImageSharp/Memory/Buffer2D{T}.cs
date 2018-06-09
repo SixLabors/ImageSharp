@@ -35,11 +35,6 @@ namespace SixLabors.ImageSharp.Memory
         public int Height { get; private set; }
 
         /// <summary>
-        /// Gets the span to the whole area.
-        /// </summary>
-        public Span<T> Span => this.Buffer.GetSpan();
-
-        /// <summary>
         /// Gets the backing <see cref="IBuffer{T}"/>
         /// </summary>
         public IBuffer<T> Buffer { get; private set; }

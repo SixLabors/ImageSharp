@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The span retuned from Pixel source</returns>
         private static Span<TPixel> GetSpan<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.PixelBuffer.Span;
+            => source.PixelBuffer.GetSpan();
 
         /// <summary>
         /// Gets the span to the backing buffer at the given row.
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </returns>
         private static Span<TPixel> GetSpan<TPixel>(Buffer2D<TPixel> source, int row)
             where TPixel : struct, IPixel<TPixel>
-            => source.Span.Slice(row * source.Width, source.Width);
+            => source.GetSpan().Slice(row * source.Width, source.Width);
 
         /// <summary>
         /// Gets the configuration.
@@ -161,6 +161,6 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>A reference to the element.</returns>
         private static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => ref MemoryMarshal.GetReference(source.PixelBuffer.Span);
+            => ref MemoryMarshal.GetReference(source.PixelBuffer.GetSpan());
     }
 }

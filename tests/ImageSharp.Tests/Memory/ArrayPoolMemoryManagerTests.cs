@@ -31,11 +31,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
             where T : struct
         {
             IBuffer<T> buffer = this.MemoryManager.Allocate<T>(length);
-            ref T ptrToPrevPosition0 = ref buffer.DangerousGetPinnableReference();
+            ref T ptrToPrevPosition0 = ref buffer.GetReference();
             buffer.Dispose();
             
             buffer = this.MemoryManager.Allocate<T>(length);
-            bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref buffer.DangerousGetPinnableReference());
+            bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref buffer.GetReference());
             buffer.Dispose();
 
             return sameBuffers;
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             
             buffer = this.MemoryManager.Allocate<int>(32);
 
-            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.DangerousGetPinnableReference()));
+            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.GetReference()));
         }
 
         [Fact]
@@ -182,12 +182,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
             int arrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
 
             IBuffer<int> small = this.MemoryManager.Allocate<int>(arrayLengthThreshold - 1);
-            ref int ptr2Small = ref small.DangerousGetPinnableReference();
+            ref int ptr2Small = ref small.GetReference();
             small.Dispose();
 
             IBuffer<int> large = this.MemoryManager.Allocate<int>(arrayLengthThreshold + 1);
             
-            Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.DangerousGetPinnableReference()));
+            Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
         }
 
         [Fact]

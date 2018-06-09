@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using (IManagedByteBuffer buffer = this.MemoryManager.AllocateManagedByteBuffer(desiredLength))
             {
                 ref byte array0 = ref buffer.Array[0];
-                ref byte span0 = ref buffer.DangerousGetPinnableReference();
+                ref byte span0 = ref buffer.GetReference();
 
                 Assert.True(Unsafe.AreSame(ref span0, ref array0));
                 Assert.True(buffer.Array.Length >= buffer.GetSpan().Length);

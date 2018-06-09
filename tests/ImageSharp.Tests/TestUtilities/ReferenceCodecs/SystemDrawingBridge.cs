@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             using (IBuffer<Bgra32> workBuffer = Configuration.Default.MemoryManager.Allocate<Bgra32>(w))
             {
-                fixed (Bgra32* destPtr = &workBuffer.DangerousGetPinnableReference())
+                fixed (Bgra32* destPtr = &workBuffer.GetReference())
                 {
                     for (int y = 0; y < h; y++)
                     {
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             using (IBuffer<Bgr24> workBuffer = Configuration.Default.MemoryManager.Allocate<Bgr24>(w))
             {
-                fixed (Bgr24* destPtr = &workBuffer.DangerousGetPinnableReference())
+                fixed (Bgr24* destPtr = &workBuffer.GetReference())
                 {
                     for (int y = 0; y < h; y++)
                     {
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             using (IBuffer<Bgra32> workBuffer = image.GetConfiguration().MemoryManager.Allocate<Bgra32>(w))
             {
-                fixed (Bgra32* sourcePtr = &workBuffer.DangerousGetPinnableReference())
+                fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                 {
 
                     for (int y = 0; y < h; y++)

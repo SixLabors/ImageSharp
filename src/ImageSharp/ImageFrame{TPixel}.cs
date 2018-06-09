@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration;
             this.MemoryManager = configuration.MemoryManager;
             this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
-            source.PixelBuffer.Span.CopyTo(this.PixelBuffer.Span);
+            source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
             this.MetaData = source.MetaData.Clone();
         }
 
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp
                 throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
             }
 
-            this.GetPixelSpan().CopyTo(target.Span);
+            this.GetPixelSpan().CopyTo(target.GetSpan());
         }
 
         /// <summary>

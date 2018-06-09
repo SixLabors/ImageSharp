@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Memory
             buffer.GetSpan().Clear();
         }
 
-        public static ref T DangerousGetPinnableReference<T>(this IBuffer<T> buffer)
+        public static ref T GetReference<T>(this IBuffer<T> buffer)
             where T : struct =>
             ref MemoryMarshal.GetReference(buffer.GetSpan());
 

@@ -215,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             using (Buffer2D<byte> buffer = this.memoryManager.AllocateClean2D<byte>(width, height))
             {
-                this.UncompressRle8(width, buffer.Span);
+                this.UncompressRle8(width, buffer.GetSpan());
 
                 for (int y = 0; y < height; y++)
                 {

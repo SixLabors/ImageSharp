@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 where T : struct
             {
                 ref T actual = ref MemoryMarshal.GetReference(span);
-                ref T expected = ref Unsafe.Add(ref buffer.DangerousGetPinnableReference(), bufferOffset);
+                ref T expected = ref Unsafe.Add(ref buffer.GetReference(), bufferOffset);
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
             }
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<int> buffer = this.MemoryManager.Allocate2D<int>(42, 42, true))
             {
-                Span<int> span = buffer.Span;
+                Span<int> span = buffer.GetSpan();
                 for (int j = 0; j < span.Length; j++)
                 {
                     Assert.Equal(0, span[j]);

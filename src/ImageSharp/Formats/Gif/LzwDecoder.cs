@@ -48,18 +48,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="stream">The stream to read from.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
-        public LzwDecoder(MemoryManager memoryManager, Stream stream)
+        public LzwDecoder(MemoryAllocator memoryAllocator, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
 
-            this.prefix = memoryManager.Allocate<int>(MaxStackSize, true);
-            this.suffix = memoryManager.Allocate<int>(MaxStackSize, true);
-            this.pixelStack = memoryManager.Allocate<int>(MaxStackSize + 1, true);
+            this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, true);
+            this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, true);
+            this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, true);
         }
 
         /// <summary>

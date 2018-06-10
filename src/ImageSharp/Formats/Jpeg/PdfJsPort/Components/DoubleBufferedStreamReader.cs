@@ -38,13 +38,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="DoubleBufferedStreamReader"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="stream">The input stream.</param>
-        public DoubleBufferedStreamReader(MemoryManager memoryManager, Stream stream)
+        public DoubleBufferedStreamReader(MemoryAllocator memoryAllocator, Stream stream)
         {
             this.stream = stream;
             this.length = (int)stream.Length;
-            this.managedBuffer = memoryManager.AllocateCleanManagedByteBuffer(ChunkLength);
+            this.managedBuffer = memoryAllocator.AllocateCleanManagedByteBuffer(ChunkLength);
             this.bufferChunk = this.managedBuffer.Array;
         }
 

@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 
                 int width = maxX - minX;
-                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryManager.Allocate<TPixel>(width))
+                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryAllocator.Allocate<TPixel>(width))
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
                     rowColors.Span.Fill(glowColor);

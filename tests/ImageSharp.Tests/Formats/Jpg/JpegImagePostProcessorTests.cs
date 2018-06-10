@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             string imageFile = provider.SourceFileOrDescription;
             using (PdfJsJpegDecoderCore decoder = JpegFixture.ParsePdfJsStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
+            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryAllocator, decoder))
             using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.DoPostProcessorStep(imageFrame);
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             string imageFile = provider.SourceFileOrDescription;
             using (PdfJsJpegDecoderCore decoder = JpegFixture.ParsePdfJsStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
+            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryAllocator, decoder))
             using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.PostProcess(image.Frames.RootFrame);

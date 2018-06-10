@@ -85,8 +85,8 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metaData, nameof(metaData));
 
             this.configuration = configuration;
-            this.MemoryManager = configuration.MemoryManager;
-            this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(width, height, false);
+            this.MemoryAllocator = configuration.MemoryAllocator;
+            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height, false);
             this.MetaData = metaData;
             this.Clear(configuration.ParallelOptions, backgroundColor);
         }
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metaData, nameof(metaData));
 
             this.configuration = configuration;
-            this.MemoryManager = configuration.MemoryManager;
+            this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = new Buffer2D<TPixel>(consumedBuffer, width, height);
             this.MetaData = metaData;
         }
@@ -131,16 +131,16 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(source, nameof(source));
 
             this.configuration = configuration;
-            this.MemoryManager = configuration.MemoryManager;
-            this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            this.MemoryAllocator = configuration.MemoryAllocator;
+            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
             this.MetaData = source.MetaData.Clone();
         }
 
         /// <summary>
-        /// Gets the <see cref="MemoryManager" /> to use for buffer allocations.
+        /// Gets the <see cref="MemoryAllocator" /> to use for buffer allocations.
         /// </summary>
-        public MemoryManager MemoryManager { get; }
+        public MemoryAllocator MemoryAllocator { get; }
 
         /// <summary>
         /// Gets the image pixels. Not private as Buffer2D requires an array in its constructor.

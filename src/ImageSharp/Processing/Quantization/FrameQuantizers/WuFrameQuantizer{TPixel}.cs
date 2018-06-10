@@ -141,17 +141,17 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
-            MemoryManager memoryManager = image.MemoryManager;
+            MemoryAllocator memoryAllocator = image.MemoryAllocator;
 
             try
             {
-                this.vwt = memoryManager.AllocateClean<long>(TableLength);
-                this.vmr = memoryManager.AllocateClean<long>(TableLength);
-                this.vmg = memoryManager.AllocateClean<long>(TableLength);
-                this.vmb = memoryManager.AllocateClean<long>(TableLength);
-                this.vma = memoryManager.AllocateClean<long>(TableLength);
-                this.m2 = memoryManager.AllocateClean<float>(TableLength);
-                this.tag = memoryManager.AllocateClean<byte>(TableLength);
+                this.vwt = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vmr = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vmg = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vmb = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vma = memoryAllocator.AllocateClean<long>(TableLength);
+                this.m2 = memoryAllocator.AllocateClean<float>(TableLength);
+                this.tag = memoryAllocator.AllocateClean<byte>(TableLength);
 
                 return base.QuantizeFrame(image);
             }
@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 }
             }
 
-            this.Get3DMoments(source.MemoryManager);
+            this.Get3DMoments(source.MemoryAllocator);
             this.BuildCube();
         }
 
@@ -464,7 +464,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <summary>
         /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
         /// </summary>
-        private void Get3DMoments(MemoryManager memoryManager)
+        private void Get3DMoments(MemoryAllocator memoryAllocator)
         {
             Span<long> vwtSpan = this.vwt.GetSpan();
             Span<long> vmrSpan = this.vmr.GetSpan();
@@ -473,19 +473,19 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             Span<long> vmaSpan = this.vma.GetSpan();
             Span<float> m2Span = this.m2.GetSpan();
 
-            using (IBuffer<long> volume = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeR = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeG = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeB = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeA = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<float> volume2 = memoryManager.Allocate<float>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volume = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeR = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeG = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeB = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeA = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<float> volume2 = memoryAllocator.Allocate<float>(IndexCount * IndexAlphaCount))
 
-            using (IBuffer<long> area = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaR = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaG = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaB = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaA = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<float> area2 = memoryManager.Allocate<float>(IndexAlphaCount))
+            using (IBuffer<long> area = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaR = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaG = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaB = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaA = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<float> area2 = memoryAllocator.Allocate<float>(IndexAlphaCount))
             {
                 Span<long> volumeSpan = volume.GetSpan();
                 Span<long> volumeRSpan = volumeR.GetSpan();

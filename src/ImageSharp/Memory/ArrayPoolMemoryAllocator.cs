@@ -7,9 +7,9 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Implements <see cref="MemoryManager"/> by allocating memory from <see cref="ArrayPool{T}"/>.
+    /// Implements <see cref="MemoryAllocator"/> by allocating memory from <see cref="ArrayPool{T}"/>.
     /// </summary>
-    public partial class ArrayPoolMemoryManager : MemoryManager
+    public partial class ArrayPoolMemoryAllocator : MemoryAllocator
     {
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
@@ -26,40 +26,40 @@ namespace SixLabors.ImageSharp.Memory
         private readonly int maxArraysPerBucketLargePool;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
-        public ArrayPoolMemoryManager()
+        public ArrayPoolMemoryAllocator()
             : this(DefaultMaxPooledBufferSizeInBytes, DefaultBufferSelectorThresholdInBytes)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
         /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
-        public ArrayPoolMemoryManager(int maxPoolSizeInBytes)
+        public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes)
             : this(maxPoolSizeInBytes, GetLargeBufferThresholdInBytes(maxPoolSizeInBytes))
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
         /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
         /// <param name="poolSelectorThresholdInBytes">Arrays over this threshold will be pooled in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
-        public ArrayPoolMemoryManager(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes)
+        public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes)
             : this(maxPoolSizeInBytes, poolSelectorThresholdInBytes, DefaultLargePoolBucketCount, DefaultNormalPoolBucketCount)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ArrayPoolMemoryManager"/> class.
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
         /// </summary>
         /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
         /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
         /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool</param>
         /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool</param>
-        public ArrayPoolMemoryManager(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes, int maxArraysPerBucketLargePool, int maxArraysPerBucketNormalPool)
+        public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes, int maxArraysPerBucketLargePool, int maxArraysPerBucketNormalPool)
         {
             Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));
             Guard.MustBeLessThanOrEqualTo(poolSelectorThresholdInBytes, maxPoolSizeInBytes, nameof(poolSelectorThresholdInBytes));

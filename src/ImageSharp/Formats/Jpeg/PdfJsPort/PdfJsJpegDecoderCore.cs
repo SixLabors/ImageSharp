@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
-            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryManager, stream);
+            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -675,7 +675,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         maxV = v;
                     }
 
-                    var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                    var component = new PdfJsFrameComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
@@ -703,7 +703,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException($"DHT has wrong length: {remaining}");
             }
 
-            using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
+            using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
@@ -711,7 +711,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
+                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(17))
                     {
                         ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
                         int codeLengthSum = 0;
@@ -721,7 +721,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
-                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
+                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -817,7 +817,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
+            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
         }
 
         /// <summary>
@@ -834,7 +834,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryAllocator, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);

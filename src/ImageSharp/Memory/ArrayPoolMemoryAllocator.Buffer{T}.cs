@@ -10,10 +10,10 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Contains <see cref="Buffer{T}"/> and <see cref="ManagedByteBuffer"/>
     /// </summary>
-    public partial class ArrayPoolMemoryManager
+    public partial class ArrayPoolMemoryAllocator
     {
         /// <summary>
-        /// The buffer implementation of <see cref="ArrayPoolMemoryManager"/>.
+        /// The buffer implementation of <see cref="ArrayPoolMemoryAllocator"/>.
         /// In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
         /// </summary>
         private class Buffer<T> : ManagedBufferBase<T>, IBuffer<T>
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
             /// </summary>
             /// <remarks>
             /// By using a weak reference here, we are making sure that array pools and their retained arrays are always GC-ed
-            /// after a call to <see cref="ArrayPoolMemoryManager.ReleaseRetainedResources"/>, regardless of having buffer instances still being in use.
+            /// after a call to <see cref="ArrayPoolMemoryAllocator.ReleaseRetainedResources"/>, regardless of having buffer instances still being in use.
             /// </remarks>
             private WeakReference<ArrayPool<byte>> sourcePoolReference;
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryManager"/>.
+        /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryAllocator"/>.
         /// </summary>
         private class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
         {

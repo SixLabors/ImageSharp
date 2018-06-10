@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
-            public MemoryManager MemoryManager => this.Source.GetConfiguration().MemoryManager;
+            public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
 
             public Image<TPixel> Apply()
             {

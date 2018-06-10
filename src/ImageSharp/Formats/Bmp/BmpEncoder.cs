@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            var encoder = new BmpEncoderCore(this, image.GetMemoryManager());
+            var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
             encoder.Encode(image, stream);
         }
     }

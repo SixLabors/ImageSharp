@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
-    
+    using System.Buffers;
 
     public class AdvancedImageExtensionsTests
     {
@@ -37,6 +37,64 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                         // We are using a copy of the original image for assertion
                         image1.ComparePixelBufferTo(targetBuffer);
                     }
+                }
+            }
+
+            class TestMemoryManager<TPixel> : System.Buffers.MemoryManager<TPixel>
+            {
+                public TestMemoryManager(TPixel[] pixelArray)
+                {
+                    this.PixelArray = pixelArray;
+                }
+
+                public TPixel[] PixelArray { get; }
+
+                protected override void Dispose(bool disposing)
+                {
+                }
+
+                public override Span<TPixel> GetSpan()
+                {
+                    return this.PixelArray;
+                }
+
+                public override MemoryHandle Pin(int elementIndex = 0)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public override void Unpin()
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
+            [Theory]
+            [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+            [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
+            public void WhenMemoryIsConsumed<TPixel>(TestImageProvider<TPixel> provider)
+                where TPixel : struct, IPixel<TPixel>
+            {
+                using (Image<TPixel> image0 = provider.GetImage())
+                {
+                    var targetBuffer = new TPixel[image0.Width * image0.Height];
+                    image0.GetPixelSpan().CopyTo(targetBuffer);
+
+                    var managerOfExeternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
+
+                    Memory<TPixel> externalMemory = managerOfExeternalMemory.Memory;
+
+                    using (Image<TPixel> image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
+                    {
+                        Memory<TPixel> internalMemory = image1.GetPixelMemory();
+                        Assert.Equal(targetBuffer.Length, internalMemory.Length);
+                        Assert.True(Unsafe.AreSame(ref targetBuffer[0], ref internalMemory.Span[0]));
+
+                        image0.ComparePixelBufferTo(internalMemory.Span);
+                    }
+
+                    // Make sure externalMemory works after destruction:
+                    image0.ComparePixelBufferTo(externalMemory.Span);
                 }
             }
         }

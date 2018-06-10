@@ -9,9 +9,12 @@ namespace SixLabors.Memory
     /// <summary>
     /// Provides a base class for <see cref="IBuffer{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.
     /// </summary>
-    internal abstract class ManagedBufferBase<T> : System.Buffers.MemoryManager<T>
+    internal abstract class ManagedBufferBase<T> : System.Buffers.MemoryManager<T>, IBuffer<T>
+        where T : struct
     {
         private GCHandle pinHandle;
+
+        public bool IsMemoryOwner => true;
 
         /// <summary>
         /// Gets the object that should be pinned.

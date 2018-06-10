@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
@@ -23,15 +24,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         };
 
         [Theory]
-        [WithFileCollection(nameof(FlipFiles), nameof(FlipValues), DefaultPixelType)]
-        public void ImageShouldFlip<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipType)
+        [WithTestPatternImages(nameof(FlipValues), 53, 37, DefaultPixelType)]
+        [WithTestPatternImages(nameof(FlipValues), 17, 32, DefaultPixelType)]
+        public void Flip<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.Mutate(x => x.Flip(flipType));
-                image.DebugSave(provider, flipType);
-            }
+            provider.RunValidatingProcessorTest(ctx => ctx.Flip(flipMode), testOutputDetails: flipMode);
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(FlipValues), 53, 37, DefaultPixelType)]
+        [WithTestPatternImages(nameof(FlipValues), 17, 32, DefaultPixelType)]
+        public void Flip_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunValidatingProcessorTestOnWrappedMemoryImage(ctx => ctx.Flip(flipMode), testOutputDetails: flipMode);
         }
     }
 }

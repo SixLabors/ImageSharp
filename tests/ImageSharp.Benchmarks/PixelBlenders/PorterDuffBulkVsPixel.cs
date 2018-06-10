@@ -61,14 +61,14 @@ namespace SixLabors.ImageSharp.Benchmarks
             {
                 using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
-                    amounts.Span.Fill(1);
+                    amounts.GetSpan().Fill(1);
                     
                     using (PixelAccessor<Rgba32> pixels = image.Lock())
                     {
                         for (int y = 0; y < image.Height; y++)
                         {
                             Span<Rgba32> span = pixels.GetRowSpan(y);
-                            this.BulkVectorConvert(span, span, span, amounts.Span);
+                            this.BulkVectorConvert(span, span, span, amounts.GetSpan());
                         }
                     }
                     return new CoreSize(image.Width, image.Height);
@@ -83,13 +83,13 @@ namespace SixLabors.ImageSharp.Benchmarks
             {
                 using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
-                    amounts.Span.Fill(1);
+                    amounts.GetSpan().Fill(1);
                     using (PixelAccessor<Rgba32> pixels = image.Lock())
                     {
                         for (int y = 0; y < image.Height; y++)
                         {
                             Span<Rgba32> span = pixels.GetRowSpan(y);
-                            this.BulkPixelConvert(span, span, span, amounts.Span);
+                            this.BulkPixelConvert(span, span, span, amounts.GetSpan());
                         }
                     }
 

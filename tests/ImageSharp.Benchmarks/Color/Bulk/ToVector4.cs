@@ -36,8 +36,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Span<TPixel> s = this.source.Span;
-            Span<Vector4> d = this.destination.Span;
+            Span<TPixel> s = this.source.GetSpan();
+            Span<Vector4> d = this.destination.GetSpan();
 
             for (int i = 0; i < this.Count; i++)
             {
@@ -49,13 +49,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToVector4(this.source.Span, this.destination.Span, this.Count);
+            new PixelOperations<TPixel>().ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToVector4(this.source.Span, this.destination.Span, this.Count);
+            PixelOperations<TPixel>.Instance.ToVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

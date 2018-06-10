@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                         var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
                         ctx.DetectEdges(bounds);
                     },
-                testName: nameof(this.DetectEdges_InBox));
+                useReferenceOutputFrom: nameof(this.DetectEdges_InBox));
         }
 
         [Theory]

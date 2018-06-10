@@ -233,13 +233,13 @@ namespace SixLabors.ImageSharp
         /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
         /// </summary>
         /// <param name="pixelSource">The pixel source.</param>
-        internal void SwapPixelsBuffers(Image<TPixel> pixelSource)
+        internal void SwapOrCopyPixelsBuffersFrom(Image<TPixel> pixelSource)
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
             for (int i = 0; i < this.frames.Count; i++)
             {
-                this.frames[i].SwapPixelsBuffers(pixelSource.frames[i]);
+                this.frames[i].SwapOrCopyPixelsBufferFrom(pixelSource.frames[i]);
             }
         }
     }

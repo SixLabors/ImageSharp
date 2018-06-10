@@ -20,16 +20,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private readonly BmpBitsPerPixel bitsPerPixel;
 
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options</param>
-        /// <param name="memoryManager">The memory manager</param>
-        public BmpEncoderCore(IBmpEncoderOptions options, MemoryManager memoryManager)
+        /// <param name="memoryAllocator">The memory manager</param>
+        public BmpEncoderCore(IBmpEncoderOptions options, MemoryAllocator memoryAllocator)
         {
-            this.memoryManager = memoryManager;
+            this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
         }
 
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
         {
-            return this.memoryManager.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+            return this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
         }
 
         /// <summary>

@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public class BufferTests : BufferTestSuite
         {
             public BufferTests()
-                : base(new SimpleGcMemoryManager())
+                : base(new SimpleGcMemoryAllocator())
             {
             }
         }

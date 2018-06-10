@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Memory
     /// <summary>
     /// Memory managers are used to allocate memory for image processing operations.
     /// </summary>
-    public abstract class MemoryManager
+    public abstract class MemoryAllocator
     {
         /// <summary>
         /// Allocates an <see cref="IBuffer{T}"/> of size <paramref name="length"/>, optionally

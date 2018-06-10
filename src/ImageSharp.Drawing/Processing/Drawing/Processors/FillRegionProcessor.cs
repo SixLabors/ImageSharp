@@ -96,8 +96,8 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
             using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
             {
                 int scanlineWidth = maxX - minX;
-                using (IBuffer<float> bBuffer = source.MemoryManager.Allocate<float>(maxIntersections))
-                using (IBuffer<float> bScanline = source.MemoryManager.Allocate<float>(scanlineWidth))
+                using (IBuffer<float> bBuffer = source.MemoryAllocator.Allocate<float>(maxIntersections))
+                using (IBuffer<float> bScanline = source.MemoryAllocator.Allocate<float>(scanlineWidth))
                 {
                     bool scanlineDirty = true;
                     float subpixelFraction = 1f / subpixelCount;

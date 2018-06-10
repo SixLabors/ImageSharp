@@ -133,9 +133,9 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 
             int width = maxX - minX;
 
-            MemoryManager memoryManager = this.Image.GetConfiguration().MemoryManager;
+            MemoryAllocator memoryAllocator = this.Image.GetConfiguration().MemoryAllocator;
 
-            using (IBuffer<float> amount = memoryManager.Allocate<float>(width))
+            using (IBuffer<float> amount = memoryAllocator.Allocate<float>(width))
             {
                 amount.GetSpan().Fill(this.Opacity);
 
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                         {
                             Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
                             Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend(memoryManager, background, background, foreground, amount.GetSpan());
+                            blender.Blend(memoryAllocator, background, background, foreground, amount.GetSpan());
                         });
             }
         }

@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Effects.Processors
             int radius = this.BrushSize >> 1;
             int levels = this.Levels;
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 source.CopyTo(targetPixels);
 

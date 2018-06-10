@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (IBuffer<Bgra32> workBuffer = Configuration.Default.MemoryManager.Allocate<Bgra32>(w))
+            using (IBuffer<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w))
             {
                 fixed (Bgra32* destPtr = &workBuffer.GetReference())
                 {
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (IBuffer<Bgr24> workBuffer = Configuration.Default.MemoryManager.Allocate<Bgr24>(w))
+            using (IBuffer<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
             {
                 fixed (Bgr24* destPtr = &workBuffer.GetReference())
                 {
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             long destRowByteCount = data.Stride;
             long sourceRowByteCount = w * sizeof(Bgra32);
 
-            using (IBuffer<Bgra32> workBuffer = image.GetConfiguration().MemoryManager.Allocate<Bgra32>(w))
+            using (IBuffer<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w))
             {
                 fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                 {

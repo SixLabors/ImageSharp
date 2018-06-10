@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
             }
 
             int width = maxX - minX;
-            using (IBuffer<TPixel> rowColors = source.MemoryManager.Allocate<TPixel>(width))
+            using (IBuffer<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
             {
                 // Be careful! Do not capture rowColorsSpan in the lambda below!
                 Span<TPixel> rowColorsSpan = rowColors.GetSpan();
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
                     configuration.ParallelOptions,
                     y =>
                         {
-                            using (IBuffer<float> amounts = source.MemoryManager.Allocate<float>(width))
+                            using (IBuffer<float> amounts = source.MemoryAllocator.Allocate<float>(width))
                             {
                                 Span<float> amountsSpan = amounts.GetSpan();
                                 int offsetY = y - startY;
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
 
                                 Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
 
-                                this.blender.Blend(source.MemoryManager, destination, destination, rowColors.GetSpan(), amountsSpan);
+                                this.blender.Blend(source.MemoryAllocator, destination, destination, rowColors.GetSpan(), amountsSpan);
                             }
                         });
             }

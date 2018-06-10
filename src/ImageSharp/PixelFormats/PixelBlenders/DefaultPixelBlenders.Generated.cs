@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -272,7 +272,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -311,7 +311,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -428,7 +428,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -467,7 +467,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -506,7 +506,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -545,7 +545,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -584,7 +584,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -623,7 +623,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -662,7 +662,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -701,7 +701,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -740,7 +740,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -779,7 +779,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -818,7 +818,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
 
                 /// <inheritdoc />
-                public override void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+                public override void Blend(MemoryAllocator memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
                 {
                     Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));

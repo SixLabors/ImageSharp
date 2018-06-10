@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Blend 2 pixels together.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/></param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/></param>
         /// <param name="destination">The destination span.</param>
         /// <param name="background">The background span.</param>
         /// <param name="source">The source span.</param>
@@ -36,6 +36,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// A value between 0 and 1 indicating the weight of the second source vector.
         /// At amount = 0, "from" is returned, at amount = 1, "to" is returned.
         /// </param>
-        public abstract void Blend(MemoryManager memoryManager, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount);
+        public abstract void Blend(MemoryAllocator memoryAllocator, Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount);
     }
 }

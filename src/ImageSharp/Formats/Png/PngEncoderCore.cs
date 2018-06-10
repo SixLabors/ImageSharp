@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal sealed class PngEncoderCore : IDisposable
     {
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// The maximum block size, defaults at 64k for uncompressed blocks.
@@ -144,11 +144,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Initializes a new instance of the <see cref="PngEncoderCore"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="options">The options for influencing the encoder</param>
-        public PngEncoderCore(MemoryManager memoryManager, IPngEncoderOptions options)
+        public PngEncoderCore(MemoryAllocator memoryAllocator, IPngEncoderOptions options)
         {
-            this.memoryManager = memoryManager;
+            this.memoryAllocator = memoryAllocator;
             this.pngColorType = options.PngColorType;
             this.pngFilterMethod = options.PngFilterMethod;
             this.compressionLevel = options.CompressionLevel;
@@ -460,8 +460,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             Rgba32 rgba = default;
             bool anyAlpha = false;
 
-            using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
-            using (IManagedByteBuffer alphaTable = this.memoryManager.AllocateManagedByteBuffer(pixelCount))
+            using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
+            using (IManagedByteBuffer alphaTable = this.memoryAllocator.AllocateManagedByteBuffer(pixelCount))
             {
                 Span<byte> colorTableSpan = colorTable.GetSpan();
                 Span<byte> alphaTableSpan = alphaTable.GetSpan();
@@ -552,16 +552,16 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = this.memoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.rawScanline = this.memoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.result = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
+            this.previousScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.rawScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.result = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
 
             if (this.pngColorType != PngColorType.Palette)
             {
-                this.sub = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
-                this.up = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
-                this.average = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
-                this.paeth = this.memoryManager.AllocateCleanManagedByteBuffer(resultLength);
+                this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
             }
 
             byte[] buffer;

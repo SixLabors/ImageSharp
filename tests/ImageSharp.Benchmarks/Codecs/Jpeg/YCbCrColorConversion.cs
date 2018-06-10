@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
 
     [Config(typeof(Config.ShortClr))]
     public class YCbCrColorConversion

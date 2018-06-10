@@ -12,7 +12,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
 {
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
 
     public class PorterDuffFunctionsTests_TPixel
     {

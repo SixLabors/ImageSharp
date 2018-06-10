@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
     using System;
     using System.Numerics;
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
 
 
     /// <summary>

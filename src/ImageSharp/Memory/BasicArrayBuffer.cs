@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Wraps an array as an <see cref="IBuffer{T}"/> instance. In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Memory
     {
         public BasicArrayBuffer(T[] array, int length)
         {
-            DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
+            ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
             this.Array = array;
             this.Length = length;
         }

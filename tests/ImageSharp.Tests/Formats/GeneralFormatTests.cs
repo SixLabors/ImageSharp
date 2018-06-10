@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     using System;
     using System.Reflection;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Quantization;
 

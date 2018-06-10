@@ -151,6 +151,8 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             }
         }
 
+        #pragma warning disable 0618
+
         [Theory]
         [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
         public unsafe void DangerousGetPinnableReference_CopyToBuffer<TPixel>(TestImageProvider<TPixel> provider)

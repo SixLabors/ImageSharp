@@ -127,6 +127,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image frame</param>
         /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
+        [Obsolete("This method will be removed in our next release! Please use MemoryMarshal.GetReference(source.GetPixelSpan())!")]
         public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => ref DangerousGetPinnableReferenceToPixelBuffer((IPixelSource<TPixel>)source);
@@ -139,6 +140,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The Pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
+        [Obsolete("This method will be removed in our next release! Please use MemoryMarshal.GetReference(source.GetPixelSpan())!")]
         public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => ref source.Frames.RootFrame.DangerousGetPinnableReferenceToPixelBuffer();

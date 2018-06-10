@@ -64,6 +64,15 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         public static readonly TheoryData<int> LenthValues = new TheoryData<int> { 0, 1, 7, 1023, 1024 };
 
+        [Fact]
+        public void IsMemoryOwner()
+        {
+            using (IBuffer<float> buffer = this.MemoryAllocator.Allocate<float>(42))
+            {
+                Assert.True(buffer.IsMemoryOwner);
+            }
+        }
+
         [Theory]
         [MemberData(nameof(LenthValues))]
         public void HasCorrectLength_byte(int desiredLength)

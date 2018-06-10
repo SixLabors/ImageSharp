@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                             altSourceRow.CopyTo(targetRow);
                         });
 
-                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
+                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
         }
 
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                             }
                         });
 
-                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
+                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
         }
     }

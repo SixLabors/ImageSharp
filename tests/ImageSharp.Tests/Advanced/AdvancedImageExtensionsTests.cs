@@ -6,10 +6,13 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
     using System.Buffers;
+
+    using SixLabors.Memory;
 
     public class AdvancedImageExtensionsTests
     {
@@ -40,34 +43,6 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                 }
             }
 
-            class TestMemoryManager<TPixel> : MemoryManager<TPixel>
-            {
-                public TestMemoryManager(TPixel[] pixelArray)
-                {
-                    this.PixelArray = pixelArray;
-                }
-
-                public TPixel[] PixelArray { get; }
-
-                protected override void Dispose(bool disposing)
-                {
-                }
-
-                public override Span<TPixel> GetSpan()
-                {
-                    return this.PixelArray;
-                }
-
-                public override MemoryHandle Pin(int elementIndex = 0)
-                {
-                    throw new NotImplementedException();
-                }
-
-                public override void Unpin()
-                {
-                    throw new NotImplementedException();
-                }
-            }
 
             [Theory]
             [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32 | PixelTypes.Bgr24)]
@@ -97,6 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                     image0.ComparePixelBufferTo(externalMemory.Span);
                 }
             }
+
         }
 
         [Theory]

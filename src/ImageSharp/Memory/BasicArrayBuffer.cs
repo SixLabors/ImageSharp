@@ -9,7 +9,7 @@ namespace SixLabors.Memory
     /// <summary>
     /// Wraps an array as an <see cref="IBuffer{T}"/> instance. In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
     /// </summary>
-    internal class BasicArrayBuffer<T> : ManagedBufferBase<T>, IBuffer<T>
+    internal class BasicArrayBuffer<T> : ManagedBufferBase<T>
         where T : struct
     {
         public BasicArrayBuffer(T[] array, int length)

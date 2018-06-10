@@ -20,6 +20,8 @@ namespace SixLabors.Memory
 
         public Memory<T> Memory { get; }
 
+        public bool IsMemoryOwner => false;
+
         public Span<T> GetSpan()
         {
             return this.Memory.Span;

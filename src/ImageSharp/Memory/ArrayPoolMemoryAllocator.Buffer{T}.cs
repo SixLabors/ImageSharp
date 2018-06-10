@@ -16,7 +16,7 @@ namespace SixLabors.Memory
         /// The buffer implementation of <see cref="ArrayPoolMemoryAllocator"/>.
         /// In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
         /// </summary>
-        private class Buffer<T> : ManagedBufferBase<T>, IBuffer<T>
+        private class Buffer<T> : ManagedBufferBase<T>
             where T : struct
         {
             /// <summary>

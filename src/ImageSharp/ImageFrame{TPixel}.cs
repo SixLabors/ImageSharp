@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metaData">The meta data.</param>
         internal ImageFrame(Configuration configuration, int width, int height, ImageFrameMetaData metaData)
-            : this(configuration, width, height, default, metaData)
+            : this(configuration, width, height, default(TPixel), metaData)
         {
         }
 
@@ -89,6 +89,35 @@ namespace SixLabors.ImageSharp
             this.PixelBuffer = this.MemoryManager.Allocate2D<TPixel>(width, height, false);
             this.MetaData = metaData;
             this.Clear(configuration.ParallelOptions, backgroundColor);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class wrapping an existing buffer.
+        /// </summary>
+        internal ImageFrame(Configuration configuration, int width, int height, IBuffer<TPixel> consumedBuffer)
+            : this(configuration, width, height, consumedBuffer, new ImageFrameMetaData())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class wrapping an existing buffer.
+        /// </summary>
+        internal ImageFrame(
+            Configuration configuration,
+            int width,
+            int height,
+            IBuffer<TPixel> consumedBuffer,
+            ImageFrameMetaData metaData)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.MustBeGreaterThan(width, 0, nameof(width));
+            Guard.MustBeGreaterThan(height, 0, nameof(height));
+            Guard.NotNull(metaData, nameof(metaData));
+
+            this.configuration = configuration;
+            this.MemoryManager = configuration.MemoryManager;
+            this.PixelBuffer = new Buffer2D<TPixel>(consumedBuffer, width, height);
+            this.MetaData = metaData;
         }
 
         /// <summary>

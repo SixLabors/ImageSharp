@@ -1,6 +1,6 @@
 ﻿using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Extension methods for <see cref="MemoryAllocator"/>.

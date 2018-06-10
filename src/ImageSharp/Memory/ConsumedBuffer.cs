@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// A buffer implementation that consumes an existing <see cref="Memory{T}"/> instance.

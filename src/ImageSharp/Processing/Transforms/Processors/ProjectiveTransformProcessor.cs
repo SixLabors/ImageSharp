@@ -9,9 +9,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 // TODO: Doesn't work yet! Implement tests + Finish implementation + Document Matrix4x4 behavior

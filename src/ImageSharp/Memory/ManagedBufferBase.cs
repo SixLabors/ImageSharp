@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Provides a base class for <see cref="IBuffer{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.

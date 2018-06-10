@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;

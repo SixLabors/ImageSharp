@@ -8,9 +8,9 @@ using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {

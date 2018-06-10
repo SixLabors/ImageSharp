@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats;
 
     [Config(typeof(Config.ShortClr))]

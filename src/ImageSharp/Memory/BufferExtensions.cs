@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     internal static class BufferExtensions
     {

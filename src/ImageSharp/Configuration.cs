@@ -12,8 +12,8 @@ using SixLabors.ImageSharp.Formats.Png;
 #if !NETSTANDARD1_1
 using SixLabors.ImageSharp.IO;
 #endif
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {

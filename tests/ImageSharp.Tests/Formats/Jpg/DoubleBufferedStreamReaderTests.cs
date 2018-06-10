@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg

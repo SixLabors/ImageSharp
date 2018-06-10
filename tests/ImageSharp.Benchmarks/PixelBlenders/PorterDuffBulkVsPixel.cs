@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using CoreSize = SixLabors.Primitives.Size;
     using System.Numerics;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
     public class PorterDuffBulkVsPixel : BenchmarkBase

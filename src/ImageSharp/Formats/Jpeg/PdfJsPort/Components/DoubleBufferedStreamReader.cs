@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 // TODO: This could be useful elsewhere.
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components

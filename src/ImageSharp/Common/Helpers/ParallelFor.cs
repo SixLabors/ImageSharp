@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {

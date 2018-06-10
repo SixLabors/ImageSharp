@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 

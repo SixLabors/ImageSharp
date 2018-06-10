@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.Tests.Common;
     using SixLabors.Primitives;
 

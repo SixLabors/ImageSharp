@@ -1,4 +1,4 @@
-﻿namespace SixLabors.ImageSharp.Memory
+﻿namespace SixLabors.Memory
 {
     /// <summary>
     /// Implements <see cref="MemoryAllocator"/> by newing up arrays by the GC on every allocation requests.

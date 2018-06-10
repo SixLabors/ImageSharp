@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using System;
     using System.Threading.Tasks;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.Primitives;
     using SixLabors.ImageSharp.Processing.Overlays.Processors;
     using SixLabors.ImageSharp.Processing.Processors;

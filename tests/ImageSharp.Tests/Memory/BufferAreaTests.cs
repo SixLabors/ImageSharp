@@ -3,7 +3,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 {
     using System;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.Primitives;
 
     using Xunit;

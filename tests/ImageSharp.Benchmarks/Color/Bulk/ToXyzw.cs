@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class ToXyzw<TPixel>

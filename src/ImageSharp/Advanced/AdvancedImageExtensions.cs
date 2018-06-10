@@ -3,8 +3,8 @@
 
 using System;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Advanced
 {

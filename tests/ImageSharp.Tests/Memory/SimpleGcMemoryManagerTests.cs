@@ -1,6 +1,6 @@
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
 
     public class SimpleGcMemoryManagerTests
     {

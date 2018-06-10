@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Represents a buffer of value type objects
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Memory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
+                ImageSharp.DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
                 Span<T> span = this.Buffer.GetSpan();
                 return ref span[(this.Width * y) + x];
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Memory
 
         /// <summary>
         /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
-        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
+        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="SixLabors.ImageSharp.ImageFrame{T}.PixelBuffer"/>
         /// </summary>
         /// <param name="a">The first buffer</param>
         /// <param name="b">The second buffer</param>

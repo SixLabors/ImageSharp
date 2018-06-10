@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
                         }
                     });
 
-                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
+                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
         }
     }

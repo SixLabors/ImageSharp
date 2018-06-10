@@ -14,6 +14,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Advanced;
+
     /// <summary>
     /// Various utility and extension methods.
     /// </summary>
@@ -182,6 +184,42 @@ namespace SixLabors.ImageSharp.Tests
                 if (TestEnvironment.IsWindows)
                 {
                     image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
+                }
+            }
+        }
+
+        public static void RunValidatingProcessorTestOnWrappedMemoryImage<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<IImageProcessingContext<TPixel>> process,
+            object testOutputDetails = null,
+            ImageComparer comparer = null,
+            string testName = null)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.TolerantPercentage(0.001f);
+            }
+
+            if (testName != null)
+            {
+                provider.Utility.TestName = testName;
+            }
+
+            using (Image<TPixel> image0 = provider.GetImage())
+            {
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOfPixelData(image0.GetPixelSpan());
+
+                using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
+                {
+                    image1.Mutate(process);
+                    image1.DebugSave(provider, testOutputDetails);
+
+                    // TODO: Investigate the cause of pixel inaccuracies under Linux
+                    if (TestEnvironment.IsWindows)
+                    {
+                        image1.CompareToReferenceOutput(comparer, provider, testOutputDetails);
+                    }
                 }
             }
         }

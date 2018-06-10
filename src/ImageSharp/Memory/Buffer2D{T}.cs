@@ -39,6 +39,10 @@ namespace SixLabors.Memory
         /// </summary>
         public IBuffer<T> Buffer { get; private set; }
 
+        public Memory<T> Memory => this.Buffer.Memory;
+
+        public Span<T> Span => this.Buffer.GetSpan();
+
         /// <summary>
         /// Gets a reference to the element at the specified position.
         /// </summary>
@@ -66,12 +70,33 @@ namespace SixLabors.Memory
         }
 
         /// <summary>
+        /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
+        /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
+        /// </summary>
+        public static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
+        {
+            if (source.Buffer.IsMemoryOwner && destination.Buffer.IsMemoryOwner)
+            {
+                SwapContents(destination, source);
+            }
+            else
+            {
+                if (destination.Size() != source.Size())
+                {
+                    throw new InvalidOperationException("SwapOrCopyContents(): buffers should both owned or the same size!");
+                }
+
+                source.Span.CopyTo(destination.Span);
+            }
+        }
+
+        /// <summary>
         /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
         /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="SixLabors.ImageSharp.ImageFrame{T}.PixelBuffer"/>
         /// </summary>
         /// <param name="a">The first buffer</param>
         /// <param name="b">The second buffer</param>
-        public static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
+        private static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();

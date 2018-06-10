@@ -36,8 +36,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Span<TPixel> s = this.source.Span;
-            Span<byte> d = this.destination.Span;
+            Span<TPixel> s = this.source.GetSpan();
+            Span<byte> d = this.destination.GetSpan();
 
             var rgb = default(Rgb24);
 
@@ -55,13 +55,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToRgb24Bytes(this.source.Span, this.destination.Span, this.Count);
+            new PixelOperations<TPixel>().ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.Span, this.destination.Span, this.Count);
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

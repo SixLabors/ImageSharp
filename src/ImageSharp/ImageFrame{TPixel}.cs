@@ -246,29 +246,14 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Switches the buffers used by the image and the PixelAccessor meaning that the Image will "own" the buffer from the PixelAccessor and the PixelAccessor will now own the Images buffer.
-        /// </summary>
-        /// <param name="pixelSource">The pixel source.</param>
-        internal void SwapPixelsBuffers(PixelAccessor<TPixel> pixelSource)
-        {
-            Guard.NotNull(pixelSource, nameof(pixelSource));
-
-            // Push my memory into the accessor (which in turn unpins the old buffer ready for the images use)
-            Buffer2D<TPixel> newPixels = pixelSource.SwapBufferOwnership(this.PixelBuffer);
-            this.PixelBuffer = newPixels;
-        }
-
-        /// <summary>
         /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
         /// </summary>
         /// <param name="pixelSource">The pixel source.</param>
-        internal void SwapPixelsBuffers(ImageFrame<TPixel> pixelSource)
+        internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> pixelSource)
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            Buffer2D<TPixel> temp = this.PixelBuffer;
-            this.PixelBuffer = pixelSource.PixelBuffer;
-            pixelSource.PixelBuffer = temp;
+            Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, pixelSource.PixelBuffer);
         }
 
         /// <summary>

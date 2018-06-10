@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public FrameDecodingMode DecodingMode { get; }
 
-        private MemoryManager MemoryManager => this.configuration.MemoryManager;
+        private MemoryAllocator MemoryAllocator => this.configuration.MemoryAllocator;
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -293,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     continue;
                 }
 
-                using (IManagedByteBuffer commentsBuffer = this.MemoryManager.AllocateManagedByteBuffer(length))
+                using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
                     string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
@@ -321,11 +321,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 if (imageDescriptor.LocalColorTableFlag)
                 {
                     int length = imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = this.configuration.MemoryManager.AllocateManagedByteBuffer(length, true);
+                    localColorTable = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(length, true);
                     this.stream.Read(localColorTable.Array, 0, length);
                 }
 
-                indices = this.configuration.MemoryManager.AllocateManagedByteBuffer(imageDescriptor.Width * imageDescriptor.Height, true);
+                indices = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(imageDescriptor.Width * imageDescriptor.Height, true);
 
                 this.ReadFrameIndices(imageDescriptor, indices.GetSpan());
                 ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>((localColorTable ?? this.globalColorTable).GetSpan());
@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void ReadFrameIndices(in GifImageDescriptor imageDescriptor, Span<byte> indices)
         {
             int dataSize = this.stream.ReadByte();
-            using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryManager, this.stream))
+            using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryAllocator, this.stream))
             {
                 lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
             }
@@ -528,7 +528,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
 
-                this.globalColorTable = this.MemoryManager.AllocateManagedByteBuffer(globalColorTableLength, true);
+                this.globalColorTable = this.MemoryAllocator.AllocateManagedByteBuffer(globalColorTableLength, true);
 
                 // Read the global color table data from the stream
                 stream.Read(this.globalColorTable.Array, 0, globalColorTableLength);

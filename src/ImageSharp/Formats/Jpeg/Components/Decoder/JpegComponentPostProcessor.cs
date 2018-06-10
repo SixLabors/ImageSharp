@@ -26,11 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegComponentPostProcessor"/> class.
         /// </summary>
-        public JpegComponentPostProcessor(MemoryManager memoryManager, JpegImagePostProcessor imagePostProcessor, IJpegComponent component)
+        public JpegComponentPostProcessor(MemoryAllocator memoryAllocator, JpegImagePostProcessor imagePostProcessor, IJpegComponent component)
         {
             this.Component = component;
             this.ImagePostProcessor = imagePostProcessor;
-            this.ColorBuffer = memoryManager.Allocate2D<float>(
+            this.ColorBuffer = memoryAllocator.Allocate2D<float>(
                 imagePostProcessor.PostProcessorBufferSize.Width,
                 imagePostProcessor.PostProcessorBufferSize.Height);
 

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private readonly Configuration configuration;
 
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
             this.configuration = configuration;
-            this.memoryManager = configuration.MemoryManager;
+            this.memoryAllocator = configuration.MemoryAllocator;
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (Buffer2D<byte> buffer = this.memoryManager.AllocateClean2D<byte>(width, height))
+            using (Buffer2D<byte> buffer = this.memoryAllocator.AllocateClean2D<byte>(width, height))
             {
                 this.UncompressRle8(width, buffer.GetSpan());
 
@@ -337,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
-            using (IManagedByteBuffer row = this.memoryManager.AllocateCleanManagedByteBuffer(arrayWidth + padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocateCleanManagedByteBuffer(arrayWidth + padding))
             {
                 TPixel color = default;
                 var rgba = new Rgba32(0, 0, 0, 255);
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (IManagedByteBuffer buffer = this.memoryManager.AllocateManagedByteBuffer(stride))
+            using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -427,7 +427,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 3);
 
-            using (IManagedByteBuffer row = this.memoryManager.AllocatePaddedPixelRowBuffer(width, 3, padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -452,7 +452,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 4);
 
-            using (IManagedByteBuffer row = this.memoryManager.AllocatePaddedPixelRowBuffer(width, 4, padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
             {
                 for (int y = 0; y < height; y++)
                 {

@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc/>
-        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
+        public MemoryAllocator MemoryAllocator => this.source.GetConfiguration().MemoryAllocator;
 
         /// <inheritdoc/>
         public Image<TPixel> Apply()

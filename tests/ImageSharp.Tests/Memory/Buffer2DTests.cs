@@ -27,9 +27,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        private MemoryManager MemoryManager { get; } = new MockMemoryManager();
+        private MemoryAllocator MemoryAllocator { get; } = new MockMemoryAllocator();
 
-        private class MockMemoryManager : MemoryManager
+        private class MockMemoryAllocator : MemoryAllocator
         {
             internal override IBuffer<T> Allocate<T>(int length, bool clear)
             {
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateClean()
         {
-            using (Buffer2D<int> buffer = this.MemoryManager.Allocate2D<int>(42, 42, true))
+            using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, true))
             {
                 Span<int> span = buffer.GetSpan();
                 for (int j = 0; j < span.Length; j++)
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(x, y);
 
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.Buffer.GetSpan();
 
@@ -132,8 +132,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void SwapContents()
         {
-            using (Buffer2D<int> a = this.MemoryManager.Allocate2D<int>(10, 5))
-            using (Buffer2D<int> b = this.MemoryManager.Allocate2D<int>(3, 7))
+            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
+            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
             {
                 IBuffer<int> aa = a.Buffer;
                 IBuffer<int> bb = b.Buffer;

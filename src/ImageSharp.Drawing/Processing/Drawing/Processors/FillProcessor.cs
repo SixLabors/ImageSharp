@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                     startY = 0;
                 }
 
-                using (IBuffer<float> amount = source.MemoryManager.Allocate<float>(width))
+                using (IBuffer<float> amount = source.MemoryAllocator.Allocate<float>(width))
                 using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
                     source,
                     sourceRectangle,

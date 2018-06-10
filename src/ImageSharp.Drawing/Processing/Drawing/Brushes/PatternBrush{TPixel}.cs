@@ -151,10 +151,10 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             internal override void Apply(Span<float> scanline, int x, int y)
             {
                 int patternY = y % this.pattern.Rows;
-                MemoryManager memoryManager = this.Target.MemoryManager;
+                MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
 
-                using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
-                using (IBuffer<TPixel> overlay = memoryManager.Allocate<TPixel>(scanline.Length))
+                using (IBuffer<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
+                using (IBuffer<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
                 {
                     Span<float> amountSpan = amountBuffer.GetSpan();
                     Span<TPixel> overlaySpan = overlay.GetSpan();
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                     }
 
                     Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
-                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, overlaySpan, amountSpan);
+                    this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, overlaySpan, amountSpan);
                 }
             }
         }

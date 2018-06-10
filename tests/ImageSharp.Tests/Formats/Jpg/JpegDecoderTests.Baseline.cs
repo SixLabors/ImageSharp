@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             using (Image<TPixel> image = provider.GetImage(GolangJpegDecoder))
             {
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     appendPixelTypeToFileName: false);
             }
 
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
+            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
         }
 
         [Theory]

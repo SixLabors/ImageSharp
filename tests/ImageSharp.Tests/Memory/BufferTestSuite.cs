@@ -13,16 +13,16 @@ namespace SixLabors.ImageSharp.Tests.Memory
     using System.Buffers;
 
     /// <summary>
-    /// Inherit this class to test an <see cref="IBuffer{T}"/> implementation (provided by <see cref="MemoryManager"/>).
+    /// Inherit this class to test an <see cref="IBuffer{T}"/> implementation (provided by <see cref="MemoryAllocator"/>).
     /// </summary>
     public abstract class BufferTestSuite
     {
-        protected BufferTestSuite(MemoryManager memoryManager)
+        protected BufferTestSuite(MemoryAllocator memoryAllocator)
         {
-            this.MemoryManager = memoryManager;
+            this.MemoryAllocator = memoryAllocator;
         }
 
-        protected MemoryManager MemoryManager { get; }
+        protected MemoryAllocator MemoryAllocator { get; }
 
         public struct CustomStruct : IEquatable<CustomStruct>
         {
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         private void TestHasCorrectLength<T>(int desiredLength)
             where T : struct
         {
-            using (IBuffer<T> buffer = this.MemoryManager.Allocate<T>(desiredLength))
+            using (IBuffer<T> buffer = this.MemoryAllocator.Allocate<T>(desiredLength))
             {
                 Assert.Equal(desiredLength, buffer.GetSpan().Length);
             }
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             if (managedByteBuffer)
             {
-                if (!(this.MemoryManager.AllocateManagedByteBuffer(desiredLength, clean) is IBuffer<T> buffer))
+                if (!(this.MemoryAllocator.AllocateManagedByteBuffer(desiredLength, clean) is IBuffer<T> buffer))
                 {
                     throw new InvalidOperationException("typeof(T) != typeof(byte)");
                 }
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 return buffer;
             }
 
-            return this.MemoryManager.Allocate<T>(desiredLength, clean);
+            return this.MemoryAllocator.Allocate<T>(desiredLength, clean);
         }
 
         private void TestCanAllocateCleanBuffer<T>(int desiredLength, bool testManagedByteBuffer = false)
@@ -273,7 +273,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(6666)]
         public void ManagedByteBuffer_ArrayIsCorrect(int desiredLength)
         {
-            using (IManagedByteBuffer buffer = this.MemoryManager.AllocateManagedByteBuffer(desiredLength))
+            using (IManagedByteBuffer buffer = this.MemoryAllocator.AllocateManagedByteBuffer(desiredLength))
             {
                 ref byte array0 = ref buffer.Array[0];
                 ref byte span0 = ref buffer.GetReference();
@@ -286,7 +286,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void GetMemory_ReturnsValidMemory()
         {
-            using (IBuffer<CustomStruct> buffer = this.MemoryManager.Allocate<CustomStruct>(42))
+            using (IBuffer<CustomStruct> buffer = this.MemoryAllocator.Allocate<CustomStruct>(42))
             {
                 Span<CustomStruct> span0 = buffer.GetSpan();
                 span0[10].A = 30;
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public unsafe void GetMemory_ResultIsPinnable()
         {
-            using (IBuffer<int> buffer = this.MemoryManager.Allocate<int>(42))
+            using (IBuffer<int> buffer = this.MemoryAllocator.Allocate<int>(42))
             {
                 Span<int> span0 = buffer.GetSpan();
                 span0[10] = 30;

@@ -144,12 +144,12 @@ namespace SixLabors.ImageSharp.Advanced
             => ref source.Frames.RootFrame.DangerousGetPinnableReferenceToPixelBuffer();
 
         /// <summary>
-        /// Gets the <see cref="MemoryManager"/> assigned to 'source'.
+        /// Gets the <see cref="MemoryAllocator"/> assigned to 'source'.
         /// </summary>
         /// <param name="source">The source image</param>
         /// <returns>Returns the configuration.</returns>
-        internal static MemoryManager GetMemoryManager(this IConfigurable source)
-            => GetConfiguration(source).MemoryManager;
+        internal static MemoryAllocator GetMemoryAllocator(this IConfigurable source)
+            => GetConfiguration(source).MemoryAllocator;
 
         /// <summary>
         /// Gets the span to the backing buffer.

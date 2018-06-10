@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// </summary>
     internal sealed class GifEncoderCore
     {
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// A reusable buffer used to reduce allocations.
@@ -49,11 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="options">The options for the encoder.</param>
-        public GifEncoderCore(MemoryManager memoryManager, IGifEncoderOptions options)
+        public GifEncoderCore(MemoryAllocator memoryAllocator, IGifEncoderOptions options)
         {
-            this.memoryManager = memoryManager;
+            this.memoryAllocator = memoryAllocator;
             this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.quantizer = options.Quantizer;
             this.ignoreMetadata = options.IgnoreMetadata;
@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int colorTableLength = (int)Math.Pow(2, this.bitDepth) * 3; // The maximium number of colors for the bit depth
             Rgb24 rgb = default;
 
-            using (IManagedByteBuffer colorTable = this.memoryManager.AllocateManagedByteBuffer(colorTableLength))
+            using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
             {
                 ref TPixel paletteRef = ref MemoryMarshal.GetReference(image.Palette.AsSpan());
                 ref Rgb24 rgb24Ref = ref Unsafe.As<byte, Rgb24>(ref MemoryMarshal.GetReference(colorTable.GetSpan()));
@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new LzwEncoder(this.memoryManager, image.Pixels, (byte)this.bitDepth))
+            using (var encoder = new LzwEncoder(this.memoryAllocator, image.Pixels, (byte)this.bitDepth))
             {
                 encoder.Encode(stream);
             }

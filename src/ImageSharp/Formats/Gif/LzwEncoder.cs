@@ -168,16 +168,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwEncoder"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="indexedPixels">The array of indexed pixels.</param>
         /// <param name="colorDepth">The color depth in bits.</param>
-        public LzwEncoder(MemoryManager memoryManager, byte[] indexedPixels, int colorDepth)
+        public LzwEncoder(MemoryAllocator memoryAllocator, byte[] indexedPixels, int colorDepth)
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
 
-            this.hashTable = memoryManager.Allocate<int>(HashSize, true);
-            this.codeTable = memoryManager.Allocate<int>(HashSize, true);
+            this.hashTable = memoryAllocator.Allocate<int>(HashSize, true);
+            this.codeTable = memoryAllocator.Allocate<int>(HashSize, true);
         }
 
         /// <summary>

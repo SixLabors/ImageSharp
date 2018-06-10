@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
-        private MemoryManager MemoryManager => this.configuration.MemoryManager;
+        private MemoryAllocator MemoryAllocator => this.configuration.MemoryAllocator;
 
         /// <summary>
         /// Decodes the stream to the image.
@@ -410,8 +410,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = this.MemoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.scanline = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.previousScanline = this.MemoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.scanline = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
         }
 
         /// <summary>
@@ -727,7 +727,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         if (this.header.BitDepth == 16)
                         {
                             int length = this.header.Width * 3;
-                            using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                            using (IBuffer<byte> compressed = this.configuration.MemoryAllocator.Allocate<byte>(length))
                             {
                                 // TODO: Should we use pack from vector here instead?
                                 this.From16BitTo8Bit(scanlineBuffer, compressed.GetSpan(), length);
@@ -744,7 +744,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         if (this.header.BitDepth == 16)
                         {
                             int length = this.header.Width * 3;
-                            using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                            using (IBuffer<byte> compressed = this.configuration.MemoryAllocator.Allocate<byte>(length))
                             {
                                 // TODO: Should we use pack from vector here instead?
                                 this.From16BitTo8Bit(scanlineBuffer, compressed.GetSpan(), length);
@@ -785,7 +785,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 4;
-                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                        using (IBuffer<byte> compressed = this.configuration.MemoryAllocator.Allocate<byte>(length))
                         {
                             // TODO: Should we use pack from vector here instead?
                             this.From16BitTo8Bit(scanlineBuffer, compressed.GetSpan(), length);
@@ -984,7 +984,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 3;
-                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                        using (IBuffer<byte> compressed = this.configuration.MemoryAllocator.Allocate<byte>(length))
                         {
                             Span<byte> compressedSpan = compressed.GetSpan();
 
@@ -1054,7 +1054,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (this.header.BitDepth == 16)
                     {
                         int length = this.header.Width * 4;
-                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                        using (IBuffer<byte> compressed = this.configuration.MemoryAllocator.Allocate<byte>(length))
                         {
                             Span<byte> compressedSpan = compressed.GetSpan();
 
@@ -1273,7 +1273,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IManagedByteBuffer ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            IManagedByteBuffer buffer = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(length);
+            IManagedByteBuffer buffer = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(length);
 
             this.currentStream.Read(buffer.Array, 0, length);
 

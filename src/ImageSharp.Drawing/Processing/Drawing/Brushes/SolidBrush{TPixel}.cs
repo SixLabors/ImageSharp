@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             public SolidBrushApplicator(ImageFrame<TPixel> source, TPixel color, GraphicsOptions options)
                 : base(source, options)
             {
-                this.Colors = source.MemoryManager.Allocate<TPixel>(source.Width);
+                this.Colors = source.MemoryAllocator.Allocate<TPixel>(source.Width);
                 this.Colors.GetSpan().Fill(color);
             }
 
@@ -88,15 +88,15 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
             {
                 Span<TPixel> destinationRow = this.Target.GetPixelRowSpan(y).Slice(x, scanline.Length);
 
-                MemoryManager memoryManager = this.Target.MemoryManager;
+                MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
 
                 if (this.Options.BlendPercentage == 1f)
                 {
-                    this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
+                    this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, this.Colors.GetSpan(), scanline);
                 }
                 else
                 {
-                    using (IBuffer<float> amountBuffer = memoryManager.Allocate<float>(scanline.Length))
+                    using (IBuffer<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
                     {
                         Span<float> amountSpan = amountBuffer.GetSpan();
 
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes
                             amountSpan[i] = scanline[i] * this.Options.BlendPercentage;
                         }
 
-                        this.Blender.Blend(memoryManager, destinationRow, destinationRow, this.Colors.GetSpan(), amountSpan);
+                        this.Blender.Blend(memoryAllocator, destinationRow, destinationRow, this.Colors.GetSpan(), amountSpan);
                     }
                 }
             }

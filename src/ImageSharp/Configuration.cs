@@ -75,9 +75,9 @@ namespace SixLabors.ImageSharp
         public ImageFormatManager ImageFormatsManager { get; set; } = new ImageFormatManager();
 
         /// <summary>
-        /// Gets or sets the <see cref="MemoryManager"/> that is currently in use.
+        /// Gets or sets the <see cref="MemoryAllocator"/> that is currently in use.
         /// </summary>
-        public MemoryManager MemoryManager { get; set; } = ArrayPoolMemoryManager.CreateDefault();
+        public MemoryAllocator MemoryAllocator { get; set; } = ArrayPoolMemoryAllocator.CreateDefault();
 
         /// <summary>
         /// Gets the maximum header size of all the formats.
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp
             {
                 ParallelOptions = this.ParallelOptions,
                 ImageFormatsManager = this.ImageFormatsManager,
-                MemoryManager = this.MemoryManager,
+                MemoryAllocator = this.MemoryAllocator,
                 ImageOperationsProvider = this.ImageOperationsProvider,
                 ReadOrigin = this.ReadOrigin,
 

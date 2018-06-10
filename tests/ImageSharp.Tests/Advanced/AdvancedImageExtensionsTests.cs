@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                 }
             }
 
-            class TestMemoryManager<TPixel> : System.Buffers.MemoryManager<TPixel>
+            class TestMemoryManager<TPixel> : MemoryManager<TPixel>
             {
                 public TestMemoryManager(TPixel[] pixelArray)
                 {

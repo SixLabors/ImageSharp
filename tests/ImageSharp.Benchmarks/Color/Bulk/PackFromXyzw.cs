@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
-            this.source = Configuration.Default.MemoryManager.Allocate<byte>(this.Count * 4);
+            this.destination = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.source = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]

@@ -239,11 +239,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return 0;
             }
 
-#if NETCOREAPP2_1
-            int count = this.stream.Read(buffer.Slice(0, bufferSize));
-#else
             int count = this.stream.Read(buffer, 0, bufferSize);
-#endif
+
             return count != bufferSize ? 0 : bufferSize;
         }
 

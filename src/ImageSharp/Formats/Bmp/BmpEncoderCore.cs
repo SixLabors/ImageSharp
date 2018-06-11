@@ -73,18 +73,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 #endif
             fileHeader.WriteTo(buffer);
 
-#if NETCOREAPP2_1
-            stream.Write(buffer.Slice(0, BmpFileHeader.Size));
-#else
             stream.Write(buffer, 0, BmpFileHeader.Size);
-#endif
+
             infoHeader.WriteTo(buffer);
 
-#if NETCOREAPP2_1
-            stream.Write(buffer.Slice(0, 40));
-#else
             stream.Write(buffer, 0, 40);
-#endif
+
             this.WriteImage(stream, image.Frames.RootFrame);
 
             stream.Flush();

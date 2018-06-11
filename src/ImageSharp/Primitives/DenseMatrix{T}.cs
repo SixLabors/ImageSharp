@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <summary>
         /// Gets a Span wrapping the Data.
         /// </summary>
-        public Span<T> Span => new Span<T>(this.Data);
+        internal Span<T> Span => new Span<T>(this.Data);
 
         /// <summary>
         /// Gets or sets the item at the specified position.

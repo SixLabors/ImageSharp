@@ -245,7 +245,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="buffer">Buffer for uncompressed data.</param>
         private void UncompressRle8(int w, Span<byte> buffer)
         {
+#if NETCOREAPP2_1
+            Span<byte> cmd = stackalloc byte[2];
+#else
             byte[] cmd = new byte[2];
+#endif
             int count = 0;
 
             while (count < buffer.Length)

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -473,12 +474,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
+#else
             byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize];
+#endif
+            this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize); // read the header size
 
-            // read header size
-            this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
-
-            int headerSize = BitConverter.ToInt32(buffer, 0);
+            int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             if (headerSize < BmpInfoHeader.CoreSize)
             {
                 throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
@@ -502,7 +505,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             else if (headerSize >= BmpInfoHeader.Size)
             {
                 // >= 40 bytes
-                this.infoHeader = BmpInfoHeader.Parse(buffer.AsSpan(0, 40));
+                this.infoHeader = BmpInfoHeader.Parse(buffer);
             }
             else
             {

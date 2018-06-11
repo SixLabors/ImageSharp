@@ -482,16 +482,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private void ProcessApp2Marker(int remaining)
         {
             // Length is 14 though we only need to check 12.
-            const int Icclength = 14;
-            if (remaining < Icclength || this.IgnoreMetadata)
+            const int IccLength = 14;
+            if (remaining < IccLength || this.IgnoreMetadata)
             {
                 this.InputStream.Skip(remaining);
                 return;
             }
 
-            byte[] identifier = new byte[Icclength];
-            this.InputStream.Read(identifier, 0, Icclength);
-            remaining -= Icclength; // We have read it by this point
+#if NETCOREAPP2_1
+            byte[] identifier = new byte[IccLength]; // 14 bytes
+#else
+            Span<byte> identifer = stackalloc byte[IccLength];
+#endif
+            this.InputStream.Read(identifier, 0, IccLength);
+            remaining -= IccLength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {

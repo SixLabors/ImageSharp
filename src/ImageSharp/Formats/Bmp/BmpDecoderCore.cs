@@ -521,8 +521,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadFileHeader()
         {
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
+#else
             byte[] buffer = new byte[BmpFileHeader.Size];
-
+#endif
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
             this.fileHeader = BmpFileHeader.Parse(buffer);

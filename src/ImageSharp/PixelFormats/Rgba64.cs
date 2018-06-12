@@ -202,6 +202,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackFromVector4(source.ToVector4());
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source)
+        {
+            this = source;
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
@@ -221,6 +228,13 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = (byte)MathF.Round(vector.Z);
             dest.A = (byte)MathF.Round(vector.W);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest)
+        {
+            dest = this;
         }
 
         /// <inheritdoc />

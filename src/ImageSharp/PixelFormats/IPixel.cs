@@ -62,6 +62,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         void PackFromRgba32(Rgba32 source);
 
         /// <summary>
+        /// Packs the pixel from an <see cref="Rgba64"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Rgba64"/> value.</param>
+        void PackFromRgba64(Rgba64 source);
+
+        /// <summary>
         /// Packs the pixel from an <see cref="Argb32"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Argb32"/> value.</param>
@@ -84,6 +90,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="dest">The destination pixel to write to</param>
         void ToRgba32(ref Rgba32 dest);
+
+        /// <summary>
+        /// Converts the pixel to <see cref="Rgba64"/> format.
+        /// </summary>
+        /// <param name="dest">The destination pixel to write to</param>
+        void ToRgba64(ref Rgba64 dest);
 
         /// <summary>
         /// Converts the pixel to <see cref="Argb32"/> format.

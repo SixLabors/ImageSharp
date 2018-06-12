@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -94,6 +93,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// Gets or sets which parts will be written when the profile is added to an image.
         /// </summary>
         public ExifParts Parts { get; set; }
+
+        /// <summary>
+        /// Gets the byte data array containing the exif data.
+        /// </summary>
+        public byte[] RawData => this.data;
 
         /// <summary>
         /// Gets the tags that where found but contained an invalid value.

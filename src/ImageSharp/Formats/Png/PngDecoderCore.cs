@@ -15,6 +15,7 @@ using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -249,6 +250,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 case PngChunkType.Text:
                                     this.ReadTextChunk(metadata, chunk.Data.Array, chunk.Length);
+                                    break;
+                                case PngChunkType.Exif:
+                                    byte[] exifData = new byte[chunk.Length];
+                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                    metadata.ExifProfile = new ExifProfile(exifData);
                                     break;
                                 case PngChunkType.End:
                                     this.isEndChunkReached = true;

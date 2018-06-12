@@ -221,6 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
+            this.WriteExifChunk(stream, image);
             this.WriteDataChunks(image.Frames.RootFrame, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
@@ -520,6 +521,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.chunkDataBuffer[8] = 1;
 
                 this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
+            }
+        }
+
+        /// <summary>
+        /// Writes the eXIf chunk to the stream, if any EXIF Profile values are present in the meta data.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="image">The image.</param>
+        private void WriteExifChunk<TPixel>(Stream stream, Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (image.MetaData.ExifProfile.Values.Count > 0)
+            {
+                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.RawData);
             }
         }
 

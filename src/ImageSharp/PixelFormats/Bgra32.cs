@@ -252,12 +252,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Bgra32 ToBgra32() => this;
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromVector4(this.ToScaledVector4());
+
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Pack(ref Vector4 vector) {
+        private void Pack(ref Vector4 vector)
+        {
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);

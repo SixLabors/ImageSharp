@@ -12,7 +12,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void Rgba64_PackedValues()
         {
+            Assert.Equal((ulong)0x73334CCC2666147B, new Rgba64(5243, 9830, 19660, 29491).PackedValue);
             Assert.Equal((ulong)0x73334CCC2666147B, new Rgba64(0.08f, 0.15f, 0.30f, 0.45f).PackedValue);
+            var rgba = new Rgba64(0x73334CCC2666147B);
+            Assert.Equal(5243, rgba.R);
+            Assert.Equal(9830, rgba.G);
+            Assert.Equal(19660, rgba.B);
+            Assert.Equal(29491, rgba.A);
+
             // Test the limits.
             Assert.Equal((ulong)0x0, new Rgba64(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFFFFFFFFFF, new Rgba64(Vector4.One).PackedValue);

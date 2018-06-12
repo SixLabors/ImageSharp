@@ -533,7 +533,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WriteExifChunk<TPixel>(Stream stream, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (image.MetaData.ExifProfile.Values.Count > 0)
+            if (image.MetaData.ExifProfile?.Values.Count > 0)
             {
                 this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.RawData);
             }

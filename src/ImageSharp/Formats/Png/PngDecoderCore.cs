@@ -252,9 +252,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.ReadTextChunk(metadata, chunk.Data.Array, chunk.Length);
                                     break;
                                 case PngChunkType.Exif:
-                                    byte[] exifData = new byte[chunk.Length];
-                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
-                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                    if (!this.ignoreMetadata)
+                                    {
+                                        byte[] exifData = new byte[chunk.Length];
+                                        Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                        metadata.ExifProfile = new ExifProfile(exifData);
+                                    }
+
                                     break;
                                 case PngChunkType.End:
                                     this.isEndChunkReached = true;

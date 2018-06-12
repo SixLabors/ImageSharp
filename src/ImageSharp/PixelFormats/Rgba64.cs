@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -13,18 +14,61 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     public struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     {
+        private const float Max = 65535F;
+
+        /// <summary>
+        /// Gets or sets the red component.
+        /// </summary>
+        public ushort R;
+
+        /// <summary>
+        /// Gets or sets the green component.
+        /// </summary>
+        public ushort G;
+
+        /// <summary>
+        /// Gets or sets the blue component.
+        /// </summary>
+        public ushort B;
+
+        /// <summary>
+        /// Gets or sets the alpha component.
+        /// </summary>
+        public ushort A;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgba64"/> struct.
         /// </summary>
-        /// <param name="x">The x-component</param>
-        /// <param name="y">The y-component</param>
-        /// <param name="z">The z-component</param>
-        /// <param name="w">The w-component</param>
-        public Rgba64(float x, float y, float z, float w)
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        public Rgba64(ushort r, ushort g, ushort b, ushort a)
+            : this()
         {
-            this.PackedValue = Pack(x, y, z, w);
+            this.R = r;
+            this.G = g;
+            this.B = b;
+            this.A = a;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <param name="a">The alpha component.</param>
+        public Rgba64(float r, float g, float b, float a)
+          : this()
+        {
+            this.R = (ushort)MathF.Round(r.Clamp(0, 1) * Max);
+            this.G = (ushort)MathF.Round(g.Clamp(0, 1) * Max);
+            this.B = (ushort)MathF.Round(b.Clamp(0, 1) * Max);
+            this.A = (ushort)MathF.Round(a.Clamp(0, 1) * Max);
         }
 
         /// <summary>
@@ -32,12 +76,39 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="vector">The vector containing the components values.</param>
         public Rgba64(Vector4 vector)
+            : this(vector.X, vector.Y, vector.Z, vector.W)
         {
-            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        /// <param name="packed">The packed value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Rgba64(ulong packed)
+            : this()
+        {
+            this.Rgba = packed;
+        }
+
+        /// <summary>
+        /// Gets or sets the packed representation of the <see cref="Rgba64"/> struct.
+        /// </summary>
+        public ulong Rgba
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Unsafe.As<Rgba64, ulong>(ref this);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => Unsafe.As<Rgba64, ulong>(ref this) = value;
         }
 
         /// <inheritdoc/>
-        public ulong PackedValue { get; set; }
+        public ulong PackedValue
+        {
+            get => this.Rgba;
+            set => this.Rgba = value;
+        }
 
         /// <summary>
         /// Compares two <see cref="Rgba64"/> objects for equality.
@@ -54,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Rgba64 left, Rgba64 right)
         {
-            return left.PackedValue == right.PackedValue;
+            return left.Rgba == right.Rgba;
         }
 
         /// <summary>
@@ -72,7 +143,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Rgba64 left, Rgba64 right)
         {
-            return left.PackedValue != right.PackedValue;
+            return left.Rgba != right.Rgba;
         }
 
         /// <inheritdoc />
@@ -96,18 +167,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return new Vector4(
-                (this.PackedValue & 0xFFFF) / 65535F,
-                ((this.PackedValue >> 16) & 0xFFFF) / 65535F,
-                ((this.PackedValue >> 32) & 0xFFFF) / 65535F,
-                ((this.PackedValue >> 48) & 0xFFFF) / 65535F);
+            return new Vector4(this.R / Max, this.G / Max, this.B / Max, this.A / Max);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
-            this.PackedValue = Pack(vector.X, vector.Y, vector.Z, vector.W);
+            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            this.R = (ushort)MathF.Round(vector.X);
+            this.G = (ushort)MathF.Round(vector.Y);
+            this.B = (ushort)MathF.Round(vector.Z);
+            this.A = (ushort)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -194,7 +265,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Rgba64 other)
         {
-            return this.PackedValue == other.PackedValue;
+            return this.Rgba == other.Rgba;
         }
 
         /// <inheritdoc />
@@ -208,23 +279,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         public override int GetHashCode()
         {
             return this.PackedValue.GetHashCode();
-        }
-
-        /// <summary>
-        /// Packs the <see cref="float"/> components into a <see cref="ulong"/>.
-        /// </summary>
-        /// <param name="x">The x-component</param>
-        /// <param name="y">The y-component</param>
-        /// <param name="z">The z-component</param>
-        /// <param name="w">The w-component</param>
-        /// <returns>The <see cref="ulong"/> containing the packed values.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ulong Pack(float x, float y, float z, float w)
-        {
-            return (ulong)MathF.Round(x.Clamp(0, 1) * 65535F) |
-                   ((ulong)MathF.Round(y.Clamp(0, 1) * 65535F) << 16) |
-                   ((ulong)MathF.Round(z.Clamp(0, 1) * 65535F) << 32) |
-                   ((ulong)MathF.Round(w.Clamp(0, 1) * 65535F) << 48);
         }
     }
 }

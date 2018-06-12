@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.ImageSharp.Processing.Text;
+using SixLabors.ImageSharp.Processing.Text.Processors;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -44,9 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 null,
                 this.path);
 
-            this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -54,9 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), null, this.path);
 
-            this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -64,9 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Brushes.Solid(Rgba32.Red), this.path);
 
-            this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -74,9 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), this.path);
 
-            this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -84,9 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Rgba32.Red, this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
 
             SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
             Assert.Equal(Rgba32.Red, brush.Color);
@@ -97,9 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, Rgba32.Red, this.path);
 
-            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            DrawTextOnPathProcessor<Rgba32> processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
 
             SolidBrush<Rgba32> brush = Assert.IsType<SolidBrush<Rgba32>>(processor.Brush);
             Assert.Equal(Rgba32.Red, brush.Color);
@@ -116,9 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 Pens.Dash(Rgba32.Red, 1),
                 this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -126,9 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, null, Pens.Dash(Rgba32.Red, 1), this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -136,9 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText(new TextGraphicsOptions(true), "123", this.Font, Pens.Dash(Rgba32.Red, 1), this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -146,9 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, Pens.Dash(Rgba32.Red, 1), this.path);
 
-            FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
+            DrawTextOnPathProcessor<Rgba32> processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -162,12 +143,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 Pens.Dash(Rgba32.Red, 1),
                 this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
-            this.Verify<FillRegionProcessor<Rgba32>>(3);
-            this.Verify<FillRegionProcessor<Rgba32>>(4);
-            this.Verify<FillRegionProcessor<Rgba32>>(5);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -175,12 +151,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("123", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
-            this.Verify<FillRegionProcessor<Rgba32>>(2);
-            this.Verify<FillRegionProcessor<Rgba32>>(3);
-            this.Verify<FillRegionProcessor<Rgba32>>(4);
-            this.Verify<FillRegionProcessor<Rgba32>>(5);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -194,8 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 Pens.Dash(Rgba32.Red, 1),
                 this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
 
         [Fact]
@@ -203,8 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
             this.operations.DrawText("1", this.Font, Brushes.Solid(Rgba32.Red), Pens.Dash(Rgba32.Red, 1), this.path);
 
-            var processor = this.Verify<FillRegionProcessor<Rgba32>>(0);
-            this.Verify<FillRegionProcessor<Rgba32>>(1);
+            var processor = this.Verify<DrawTextOnPathProcessor<Rgba32>>(0);
         }
     }
 }

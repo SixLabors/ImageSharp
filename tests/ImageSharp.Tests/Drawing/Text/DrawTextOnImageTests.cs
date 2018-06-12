@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
     using System;
     using System.Linq;
     using System.Text;
-
+    using SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes;
     using SixLabors.Primitives;
 
     [GroupOutput("Drawing/Text")]
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
         private const string TestText2 =
             "THISISTESTWORDS ";
-        
+
         [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
         [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "OpenSans-Regular.ttf", TestText)]
@@ -51,9 +51,9 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
             provider.VerifyOperation(
                 img =>
-                    {
-                        img.Mutate(c => c.DrawText(text, new Font(font, fontSize), color, new PointF(x, y)));
-                    },
+                {
+                    img.Mutate(c => c.DrawText(text, new Font(font, fontSize), color, new PointF(x, y)));
+                },
                 $"{fontName}-{fontSize}-{fnDisplayText}-({x},{y})",
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: true);
@@ -84,12 +84,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             }
 
             var textOptions = new TextGraphicsOptions
-                                  {
-                                      Antialias = true,
-                                      ApplyKerning = true,
-                                      VerticalAlignment = VerticalAlignment.Top,
-                                      HorizontalAlignment = HorizontalAlignment.Left,
-                                  };
+            {
+                Antialias = true,
+                ApplyKerning = true,
+                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(

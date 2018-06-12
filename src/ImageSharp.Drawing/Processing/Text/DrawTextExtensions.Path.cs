@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
+using SixLabors.ImageSharp.Processing.Text.Processors;
 using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Processing.Text
@@ -147,33 +148,6 @@ namespace SixLabors.ImageSharp.Processing.Text
         /// </returns>
         public static IImageProcessingContext<TPixel> DrawText<TPixel>(this IImageProcessingContext<TPixel> source, TextGraphicsOptions options, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, IPath path)
            where TPixel : struct, IPixel<TPixel>
-        {
-            float dpiX = DefaultTextDpi;
-            float dpiY = DefaultTextDpi;
-
-            var style = new RendererOptions(font, dpiX, dpiY)
-            {
-                ApplyKerning = options.ApplyKerning,
-                TabWidth = options.TabWidth,
-                WrappingWidth = options.WrapTextWidth,
-                HorizontalAlignment = options.HorizontalAlignment,
-                VerticalAlignment = options.VerticalAlignment
-            };
-
-            IPathCollection glyphs = TextBuilder.GenerateGlyphs(text, path, style);
-
-            var pathOptions = (GraphicsOptions)options;
-            if (brush != null)
-            {
-                source.Fill(pathOptions, brush, glyphs);
-            }
-
-            if (pen != null)
-            {
-                source.Draw(pathOptions, pen, glyphs);
-            }
-
-            return source;
-        }
+            => source.ApplyProcessor(new DrawTextOnPathProcessor<TPixel>(options, text, font, brush, pen, path));
     }
 }

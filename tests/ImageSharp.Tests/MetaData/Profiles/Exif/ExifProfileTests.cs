@@ -308,6 +308,23 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(495, bytes.Length);
         }
 
+        [Fact]
+        public void TestWritingPngPreservesExifProfile()
+        {
+            // arrange
+            Image<Rgba32> image = TestFile.Create(TestImages.Png.Bike).CreateImage();
+            ExifProfile expected = GetExifProfile();
+            image.MetaData.ExifProfile = expected;
+
+            // act
+            Image<Rgba32> reloadedImage = WritePngAndRead(image);
+
+            // assert
+            ExifProfile actual = reloadedImage.MetaData.ExifProfile;
+            Assert.NotNull(actual);
+            TestProfile(actual);
+        }
+
         private static ExifProfile GetExifProfile()
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage();
@@ -320,9 +337,21 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Image<Rgba32> WriteAndRead(Image<Rgba32> image)
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (var memStream = new MemoryStream())
             {
                 image.SaveAsJpeg(memStream);
+                image.Dispose();
+
+                memStream.Position = 0;
+                return Image.Load<Rgba32>(memStream);
+            }
+        }
+
+        private static Image<Rgba32> WritePngAndRead(Image<Rgba32> image)
+        {
+            using (var memStream = new MemoryStream())
+            {
+                image.SaveAsPng(memStream);
                 image.Dispose();
 
                 memStream.Position = 0;

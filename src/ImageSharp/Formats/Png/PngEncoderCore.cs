@@ -197,6 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
+                // TODO: How do we set this in the options while keeping the value inline with the PngColorType?
                 this.bitDepth = 8;
             }
 
@@ -209,7 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 bitDepth: this.bitDepth,
                 filterMethod: 0, // None
                 compressionMethod: 0,
-                interlaceMethod: 0);
+                interlaceMethod: 0); // TODO: Can't write interlaced yet.
 
             this.WriteHeaderChunk(stream, header);
 
@@ -281,6 +282,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void CollectTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: We need to cater for 64bit mode here.
             if (this.bytesPerPixel == 4)
             {
                 PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, this.rawScanline.Span, this.width);
@@ -400,6 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
+            // TODO: Cater for 64 bit here and below
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:

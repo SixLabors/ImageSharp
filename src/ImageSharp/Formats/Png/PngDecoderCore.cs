@@ -784,12 +784,15 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (this.header.BitDepth == 16)
                     {
-                        int length = this.header.Width * 4;
-                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                        Rgba64 rgba64 = default;
+                        for (int x = 0, o = 0; x < this.header.Width; x++, o += 8)
                         {
-                            // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(scanlineBuffer, compressed.Span, length);
-                            PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(compressed.Span, rowSpan, this.header.Width);
+                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
+                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
+                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
+                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 6, 2));
+                            color.PackFromRgba64(rgba64);
+                            rowSpan[x] = color;
                         }
                     }
                     else
@@ -1053,23 +1056,15 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (this.header.BitDepth == 16)
                     {
-                        int length = this.header.Width * 4;
-                        using (IBuffer<byte> compressed = this.configuration.MemoryManager.Allocate<byte>(length))
+                        Rgba64 rgba64 = default;
+                        for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 8)
                         {
-                            Span<byte> compressedSpan = compressed.Span;
-
-                            // TODO: Should we use pack from vector here instead?
-                            this.From16BitTo8Bit(scanlineBuffer, compressedSpan, length);
-                            for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
-                            {
-                                rgba.R = compressedSpan[o];
-                                rgba.G = compressedSpan[o + 1];
-                                rgba.B = compressedSpan[o + 2];
-                                rgba.A = compressedSpan[o + 3];
-
-                                color.PackFromRgba32(rgba);
-                                rowSpan[x] = color;
-                            }
+                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
+                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
+                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
+                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 6, 2));
+                            color.PackFromRgba64(rgba64);
+                            rowSpan[x] = color;
                         }
                     }
                     else

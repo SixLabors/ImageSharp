@@ -12,6 +12,77 @@ namespace SixLabors.ImageSharp.PixelFormats
     {
 		
 		/// <summary>
+        /// Converts 'count' elements in 'source` span of <see cref="Rgba64"/> data to a span of <typeparamref name="TPixel"/>-s.
+        /// </summary>
+        /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba64"/> data.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void PackFromRgba64(ReadOnlySpan<Rgba64> source, Span<TPixel> destPixels, int count)
+        {
+			GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+            
+            ref Rgba64 sourceRef = ref MemoryMarshal.GetReference(source);
+            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
+
+            var rgba = new Rgba64(0, 0, 0, 65535);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel dp = ref Unsafe.Add(ref destRef, i);
+                rgba = Unsafe.Add(ref sourceRef, i);
+                dp.PackFromRgba64(rgba);
+            }
+        }
+		
+		/// <summary>
+        /// A helper for <see cref="PackFromRgba64(ReadOnlySpan{Rgba64}, Span{TPixel}, int)"/> that expects a byte span.
+        /// The layout of the data in 'sourceBytes' must be compatible with <see cref="Rgba64"/> layout.
+        /// </summary>
+        /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
+        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PackFromRgba64Bytes(ReadOnlySpan<byte> sourceBytes, Span<TPixel> destPixels, int count)
+        {
+            this.PackFromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceBytes), destPixels, count);
+        }
+		
+		/// <summary>
+        /// Converts 'count' pixels in 'sourcePixels` span to a span of <see cref="Rgba64"/>-s.
+        /// Bulk version of <see cref="IPixel.ToRgba64(ref Rgba64)"/>.
+        /// </summary>
+        /// <param name="sourcePixels">The span of source pixels</param>
+        /// <param name="dest">The destination span of <see cref="Rgba64"/> data.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+        internal virtual void ToRgba64(ReadOnlySpan<TPixel> sourcePixels, Span<Rgba64> dest, int count)
+        {
+            GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
+
+            ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
+            ref Rgba64 destBaseRef = ref MemoryMarshal.GetReference(dest);
+
+            for (int i = 0; i < count; i++)
+            {
+                ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
+                ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
+                sp.ToRgba64(ref dp);
+            }
+        }
+
+		/// <summary>
+        /// A helper for <see cref="ToRgba64(ReadOnlySpan{TPixel}, Span{Rgba64}, int)"/> that expects a byte span as destination.
+        /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba64"/> layout.
+        /// </summary>
+        /// <param name="sourceColors">The <see cref="Span{T}"/> to the source colors.</param>
+        /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+        /// <param name="count">The number of pixels to convert.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ToRgba64Bytes(ReadOnlySpan<TPixel> sourceColors, Span<byte> destBytes, int count)
+        {
+            this.ToRgba64(sourceColors, MemoryMarshal.Cast<byte, Rgba64>(destBytes), count);
+        }
+		
+		/// <summary>
         /// Converts 'count' elements in 'source` span of <see cref="Rgba32"/> data to a span of <typeparamref name="TPixel"/>-s.
         /// </summary>
         /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba32"/> data.</param>

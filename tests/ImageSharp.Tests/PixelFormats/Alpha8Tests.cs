@@ -157,5 +157,38 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Alpha8_PackFromScaledVector4_ToRgba64()
+        {
+            // arrange
+            Alpha8 alpha = default;
+            Rgba64 actual = default;
+            var expected = new Rgba64(0, 0, 0, 65535);
+            Vector4 scaled = new Alpha8(1F).ToScaledVector4();
+
+            // act
+            alpha.PackFromScaledVector4(scaled);
+            alpha.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Alpha8_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var alpha = default(Alpha8);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(0, 0, 0, 65535);
+
+            // act
+            alpha.PackFromRgba64(expected);
+            alpha.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
     }
 }

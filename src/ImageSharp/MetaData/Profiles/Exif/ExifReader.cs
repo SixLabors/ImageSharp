@@ -78,6 +78,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             if (this.ReadString(4) == "Exif")
             {
+                // two zeros are expected to follow the Exif Id code
                 if (this.ReadUInt16() != 0)
                 {
                     return values;

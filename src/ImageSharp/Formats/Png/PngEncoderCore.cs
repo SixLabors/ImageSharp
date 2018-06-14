@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Calculates the correct number of bytes per pixel for the given color type.
         /// </summary>
-        /// <returns>The <see cref="int"/></returns>
+        /// <returns>Bytes per pixel</returns>
         private int CalculateBytesPerPixel()
         {
             switch (this.pngColorType)
@@ -535,7 +535,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (image.MetaData.ExifProfile?.Values.Count > 0)
             {
-                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.RawData);
+                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.ToByteArray(includeExifIdCode: false));
             }
         }
 

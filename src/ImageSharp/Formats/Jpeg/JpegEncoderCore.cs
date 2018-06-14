@@ -738,7 +738,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             // "default" to 4:2:0
             Span<byte> subsamples = stackalloc byte[] { 0x22, 0x11, 0x11 };
-            byte[] chroma = { 0x00, 0x01, 0x01 };
+            Span<byte> chroma = stackalloc byte[] { 0x00, 0x01, 0x01 };
 
             switch (this.subsample)
             {

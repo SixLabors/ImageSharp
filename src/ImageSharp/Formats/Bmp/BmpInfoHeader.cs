@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             if (data.Length != Size)
             {
-                throw new ArgumentException(nameof(data), $"Must be 40 bytes. Was {data.Length} bytes.");
+                throw new ArgumentException(nameof(data), $"Must be {Size} bytes. Was {data.Length} bytes.");
             }
 
             return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];

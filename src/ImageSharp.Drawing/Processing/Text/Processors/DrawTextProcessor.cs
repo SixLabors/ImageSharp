@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 {
                     this.fillRegionProcessor = new FillRegionProcessor<TPixel>()
                     {
-                        Brush = this.Brush,
+                        Brush = this.Pen.StrokeFill,
                         Options = pathOptions
                     };
                 }

@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
     using System.Linq;
     using System.Text;
     using SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes;
+    using SixLabors.ImageSharp.Processing.Drawing.Pens;
     using SixLabors.Primitives;
 
     [GroupOutput("Drawing/Text")]
@@ -99,6 +100,35 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                     },
                 false,
                 false);
+        }
+
+        [Theory]
+        [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
+        [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "OpenSans-Regular.ttf", TestText)]
+        [WithSolidFilledImages(400, 40, "White", PixelTypes.Rgba32, 20, 0, 0, "OpenSans-Regular.ttf", TestText)]
+        [WithSolidFilledImages(1100, 200, "White", PixelTypes.Rgba32, 50, 150, 100, "OpenSans-Regular.ttf", TestText)]
+        public void FontShapesAreRenderedCorrectlyWithAPen<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int fontSize,
+            int x,
+            int y,
+            string fontName,
+            string text)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Font font = CreateFont(fontName, fontSize);
+            string fnDisplayText = text.Replace("\n", "");
+            fnDisplayText = fnDisplayText.Substring(0, Math.Min(fnDisplayText.Length, 4));
+            TPixel color = NamedColors<TPixel>.Black;
+
+            provider.VerifyOperation(
+                img =>
+                {
+                    img.Mutate(c => c.DrawText(text, new Font(font, fontSize),null, Pens.Solid(color, 1), new PointF(x, y)));
+                },
+                $"pen_{fontName}-{fontSize}-{fnDisplayText}-({x},{y})",
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: true);
         }
 
         private static string Repeat(string str, int times) => string.Concat(Enumerable.Repeat(str, times));

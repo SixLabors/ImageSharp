@@ -95,11 +95,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public ExifParts Parts { get; set; }
 
         /// <summary>
-        /// Gets the byte data array containing the exif data.
-        /// </summary>
-        public byte[] RawData => this.data;
-
-        /// <summary>
         /// Gets the tags that where found but contained an invalid value.
         /// </summary>
         public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
@@ -237,8 +232,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
+        /// <param name="includeExifIdCode">Indicates, if the Exif ID code should be included.
+        /// This Exif ID code should not be included in case of PNG's. Defaults to true.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public byte[] ToByteArray()
+        public byte[] ToByteArray(bool includeExifIdCode = true)
         {
             if (this.values == null)
             {
@@ -251,7 +248,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             var writer = new ExifWriter(this.values, this.Parts);
-            return writer.GetData();
+            return writer.GetData(includeExifIdCode);
         }
 
         /// <summary>

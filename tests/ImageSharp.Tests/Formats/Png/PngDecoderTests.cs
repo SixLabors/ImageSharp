@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 TestImages.Png.Bad.ChunkLength2,
                 TestImages.Png.VimImage2,
-                TestImages.Png.Splash,  
+                TestImages.Png.Splash,
                 TestImages.Png.Indexed,
                 TestImages.Png.Bad.ChunkLength1,
                 TestImages.Png.VersioningImage1,
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-        
+
         [Theory]
         [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
         public void Decode_Interlaced_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         // TODO: We need to decode these into Rgba64 properly, and do 'CompareToOriginal' in a Rgba64 mode! (See #285)
-        [Theory]
+        [Theory(Skip = "Skipped for now until we can update the reference images from libpng samples.")]
         [WithFileCollection(nameof(TestImages48Bpp), PixelTypes.Rgba32)]
         public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

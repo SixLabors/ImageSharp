@@ -91,6 +91,18 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackedValue = packed;
         }
 
+        /// <summary>
+        /// Gets or sets the RGB components of this struct as <see cref="Rgb48"/>
+        /// </summary>
+        public Rgb48 Rgb
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Unsafe.As<Rgba64, Rgb48>(ref this);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            set => Unsafe.As<Rgba64, Rgb48>(ref this) = value;
+        }
+
         /// <inheritdoc/>
         public ulong PackedValue
         {

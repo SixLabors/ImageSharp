@@ -861,7 +861,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             var rgba = default(Rgba32);
 
-            if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
+            if (this.paletteAlpha?.Length > 0)
             {
                 // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                 // channel and we should try to read it.
@@ -949,7 +949,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     var rgba = default(Rgba32);
                     Span<Rgb24> pal = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
 
-                    if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
+                    if (this.paletteAlpha?.Length > 0)
                     {
                         // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
                         // channel and we should try to read it.
@@ -1165,6 +1165,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Reads a chunk from the stream.
         /// </summary>
+        /// <param name="chunk">The image format chunk.</param>
         /// <returns>
         /// The <see cref="PngChunk"/>.
         /// </returns>
@@ -1255,6 +1256,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Skips the chunk data and the cycle redundancy chunk read from the data.
         /// </summary>
+        /// <param name="chunk">The image format chunk.</param>
         private void SkipChunkDataAndCrc(in PngChunk chunk)
         {
             this.currentStream.Skip(chunk.Length);

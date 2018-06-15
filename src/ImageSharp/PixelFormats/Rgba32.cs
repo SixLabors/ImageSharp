@@ -199,7 +199,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.Rgba;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => this.Rgba = value;
         }
 
@@ -395,7 +398,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is Rgba32) && this.Equals((Rgba32)obj);
+            return obj is Rgba32 rgba32 && this.Equals(rgba32);
         }
 
         /// <inheritdoc/>

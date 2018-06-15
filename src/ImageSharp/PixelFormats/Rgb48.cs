@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Rgba48 : IPixel<Rgba48>
+    public struct Rgb48 : IPixel<Rgb48>
     {
         private const float Max = 65535F;
 
@@ -35,12 +35,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         public ushort B;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba48"/> struct.
+        /// Initializes a new instance of the <see cref="Rgb48"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
-        public Rgba48(ushort r, ushort g, ushort b)
+        public Rgb48(ushort r, ushort g, ushort b)
             : this()
         {
             this.R = r;
@@ -49,12 +49,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba48"/> struct.
+        /// Initializes a new instance of the <see cref="Rgb48"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
-        public Rgba48(float r, float g, float b)
+        public Rgb48(float r, float g, float b)
           : this()
         {
             this.R = (ushort)MathF.Round(r.Clamp(0, 1) * Max);
@@ -63,24 +63,24 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba48"/> struct.
+        /// Initializes a new instance of the <see cref="Rgb48"/> struct.
         /// </summary>
         /// <param name="vector">The vector containing the components values.</param>
-        public Rgba48(Vector3 vector)
+        public Rgb48(Vector3 vector)
             : this(vector.X, vector.Y, vector.Z)
         {
         }
 
         /// <summary>
-        /// Compares two <see cref="Rgba48"/> objects for equality.
+        /// Compares two <see cref="Rgb48"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Rgba48"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Rgba48"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Rgb48"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgb48"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Rgba48 left, Rgba48 right)
+        public static bool operator ==(Rgb48 left, Rgb48 right)
         {
             return left.R == right.R
                 && left.G == right.G
@@ -88,15 +88,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Compares two <see cref="Rgba48"/> objects for equality.
+        /// Compares two <see cref="Rgb48"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Rgba48"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Rgba48"/> on the right side of the operand.</param>
+        /// <param name="left">The <see cref="Rgb48"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgb48"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Rgba48 left, Rgba48 right)
+        public static bool operator !=(Rgb48 left, Rgb48 right)
         {
             return left.R != right.R
                 || left.G != right.G
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Rgba48> CreatePixelOperations() => new PixelOperations<Rgba48>();
+        public PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations<Rgb48>();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -222,12 +222,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return obj is Rgba48 rgba48 && this.Equals(rgba48);
+            return obj is Rgb48 Rgb48 && this.Equals(Rgb48);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rgba48 other)
+        public bool Equals(Rgb48 other)
         {
             return this.R == other.R
                 && this.G == other.G

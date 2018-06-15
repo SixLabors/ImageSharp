@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var pixel = default(Rgba64);
             var short4 = new Rgba64(Vector4.One);
-            ulong expected = 0xFFFFFFFFFFFFFFFF;
+            const ulong expected = 0xFFFFFFFFFFFFFFFF;
 
             // act 
             Vector4 scaled = short4.ToScaledVector4();

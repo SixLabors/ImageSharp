@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return obj is Rgb48 Rgb48 && this.Equals(Rgb48);
+            return obj is Rgb48 rgb48 && this.Equals(rgb48);
         }
 
         /// <inheritdoc />

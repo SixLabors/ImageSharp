@@ -219,17 +219,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgr24(ref Bgr24 dest)
-        {
-            dest = Unsafe.As<Bgra32, Bgr24>(ref this);
-        }
+        public void ToBgr24(ref Bgr24 dest) => dest = Unsafe.As<Bgra32, Bgr24>(ref this);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgra32(ref Bgra32 dest)
-        {
-            dest = this;
-        }
+        public void ToBgra32(ref Bgra32 dest) => dest = this;
 
         /// <summary>
         /// Converts the pixel to <see cref="Rgba32"/> format.
@@ -251,6 +245,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>The RGBA value</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Bgra32 ToBgra32() => this;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

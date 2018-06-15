@@ -136,10 +136,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb24(ref Rgb24 dest)
-        {
-            dest = this;
-        }
+        public void ToRgb24(ref Rgb24 dest) => dest = this;
 
         /// <inheritdoc/>
         public void ToRgba32(ref Rgba32 dest)
@@ -173,6 +170,14 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.B = this.B;
             dest.A = 255;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -189,6 +189,14 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
@@ -231,9 +239,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ushort Pack(float x, float y, float z)
         {
-            return (ushort)((((int)Math.Round(x.Clamp(0, 1) * 31F) & 0x1F) << 11) |
-                   (((int)Math.Round(y.Clamp(0, 1) * 63F) & 0x3F) << 5) |
-                   ((int)Math.Round(z.Clamp(0, 1) * 31F) & 0x1F));
+            return (ushort)((((int)Math.Round(x.Clamp(0, 1) * 31F) & 0x1F) << 11)
+                   | (((int)Math.Round(y.Clamp(0, 1) * 63F) & 0x3F) << 5)
+                   | ((int)Math.Round(z.Clamp(0, 1) * 31F) & 0x1F));
         }
     }
 }

@@ -179,6 +179,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.R = 0;
             dest.G = 0;
             dest.B = 0;
+            dest.A = this.PackedValue;
         }
 
         /// <summary>

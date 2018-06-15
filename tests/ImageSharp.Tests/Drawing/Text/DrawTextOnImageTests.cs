@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
     using System.Text;
     using SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes;
     using SixLabors.ImageSharp.Processing.Drawing.Pens;
+    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.Primitives;
 
     [GroupOutput("Drawing/Text")]
@@ -122,6 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
+                ImageComparer.Tolerant(perPixelManhattanThreshold: 16),
                 img =>
                 {
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize),null, Pens.Solid(color, 1), new PointF(x, y)));

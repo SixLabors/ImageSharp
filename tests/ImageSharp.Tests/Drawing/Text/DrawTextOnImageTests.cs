@@ -1,25 +1,20 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-
+using System;
+using System.Linq;
+using System.Text;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Text;
+using SixLabors.Primitives;
 
 using Xunit;
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Drawing.Text
 {
-    using System;
-    using System.Linq;
-    using System.Text;
-
-    using SixLabors.Primitives;
-
     [GroupOutput("Drawing/Text")]
     public class DrawTextOnImageTests
     {

@@ -106,7 +106,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
         [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "OpenSans-Regular.ttf", TestText)]
-        [WithSolidFilledImages(400, 40, "White", PixelTypes.Rgba32, 20, 0, 0, "OpenSans-Regular.ttf", TestText)]
         [WithSolidFilledImages(1100, 200, "White", PixelTypes.Rgba32, 50, 150, 100, "OpenSans-Regular.ttf", TestText)]
         public void FontShapesAreRenderedCorrectlyWithAPen<TPixel>(
             TestImageProvider<TPixel> provider,
@@ -123,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
-                ImageComparer.Tolerant(perPixelManhattanThreshold: 16),
+                ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
                 img =>
                 {
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize),null, Pens.Solid(color, 1), new PointF(x, y)));

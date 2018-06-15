@@ -26,8 +26,6 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
     internal class DrawTextProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private FillRegionProcessor<TPixel> fillRegionProcessor = null;
-
         private CachingGlyphRenderer textRenderer;
 
         /// <summary>
@@ -83,8 +81,6 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
         {
             base.BeforeImageApply(source, sourceRectangle);
 
-            // user slow path if pen is set and fast render for brush only rendering
-
             // do everythign at the image level as we are deligating the processing down to other processors
             var style = new RendererOptions(this.Font, this.Options.DpiX, this.Options.DpiY, this.Location)
             {
@@ -95,52 +91,9 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 VerticalAlignment = this.Options.VerticalAlignment
             };
 
-            if (this.Pen != null)
-            {
-                IPathCollection glyphs = TextBuilder.GenerateGlyphs(this.Text, style);
-
-                var pathOptions = (GraphicsOptions)this.Options;
-                if (this.Brush != null)
-                {
-                    // we will reuse the processor for all fill operations to reduce allocations
-                    if (this.fillRegionProcessor == null)
-                    {
-                        this.fillRegionProcessor = new FillRegionProcessor<TPixel>()
-                        {
-                            Brush = this.Brush,
-                            Options = pathOptions
-                        };
-                    }
-
-                    foreach (IPath p in glyphs)
-                    {
-                        this.fillRegionProcessor.Region = new ShapeRegion(p);
-                        this.fillRegionProcessor.Apply(source, sourceRectangle);
-                    }
-                }
-
-                // we will reuse the processor for all fill operations to reduce allocations
-                if (this.fillRegionProcessor == null)
-                {
-                    this.fillRegionProcessor = new FillRegionProcessor<TPixel>()
-                    {
-                        Brush = this.Pen.StrokeFill,
-                        Options = pathOptions
-                    };
-                }
-
-                foreach (IPath p in glyphs)
-                {
-                    this.fillRegionProcessor.Region = new ShapePath(p, this.Pen);
-                    this.fillRegionProcessor.Apply(source, sourceRectangle);
-                }
-            }
-            else
-            {
-                this.textRenderer = new CachingGlyphRenderer(source.GetMemoryManager());
-                this.textRenderer.Options = (GraphicsOptions)this.Options;
-                TextRenderer.RenderTextTo(this.textRenderer, this.Text, style);
-            }
+            this.textRenderer = new CachingGlyphRenderer(source.GetMemoryManager(), this.Text.Length, this.Pen, this.Brush != null);
+            this.textRenderer.Options = (GraphicsOptions)this.Options;
+            TextRenderer.RenderTextTo(this.textRenderer, this.Text, style);
         }
 
         protected override void AfterImageApply(Image<TPixel> source, Rectangle sourceRectangle)
@@ -154,23 +107,26 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             // this is a no-op as we have processes all as an image, we should be able to pass out of before email apply a skip frames outcome
-            if (this.Pen == null && this.Brush != null && this.textRenderer != null && this.textRenderer.Operations.Count > 0)
-            {
-                // we have rendered at the image level now we can draw
-                List<DrawingOperation> operations = this.textRenderer.Operations;
+            Draw(this.textRenderer.FillOperations, this.Brush);
+            Draw(this.textRenderer.OutlineOperations, this.Pen?.StrokeFill);
 
-                using (BrushApplicator<TPixel> app = this.Brush.CreateApplicator(source, sourceRectangle, this.textRenderer.Options))
+            void Draw(List<DrawingOperation> operations, IBrush<TPixel> brush)
+            {
+                if (operations?.Count > 0)
                 {
-                    foreach (DrawingOperation operation in operations)
+                    using (BrushApplicator<TPixel> app = brush.CreateApplicator(source, sourceRectangle, this.textRenderer.Options))
                     {
-                        IBuffer2D<float> buffer = operation.Map;
-                        int startY = operation.Location.Y;
-                        int startX = operation.Location.X;
-                        int end = operation.Map.Height;
-                        for (int row = 0; row < end; row++)
+                        foreach (DrawingOperation operation in operations)
                         {
-                            int y = startY + row;
-                            app.Apply(buffer.GetRowSpan(row), startX, y);
+                            IBuffer2D<float> buffer = operation.Map;
+                            int startY = operation.Location.Y;
+                            int startX = operation.Location.X;
+                            int end = operation.Map.Height;
+                            for (int row = 0; row < end; row++)
+                            {
+                                int y = startY + row;
+                                app.Apply(buffer.GetRowSpan(row), startX, y);
+                            }
                         }
                     }
                 }
@@ -192,17 +148,41 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             private int currentRenderingGlyph = 0;
 
             private PointF currentPoint = default(PointF);
-            private Dictionary<int, Buffer2D<float>> glyphMap = new Dictionary<int, Buffer2D<float>>();
+            private HashSet<int> renderedGlyphs = new HashSet<int>();
+            private Dictionary<int, Buffer2D<float>> glyphMap;
+            private Dictionary<int, Buffer2D<float>> glyphMapPen;
+            private bool renderOutline = false;
+            private bool renderFill = false;
+            private bool raterizationRequired = false;
 
-            public CachingGlyphRenderer(MemoryManager memoryManager)
+            public CachingGlyphRenderer(MemoryManager memoryManager, int size, IPen pen, bool renderFill)
             {
                 this.MemoryManager = memoryManager;
+                this.Pen = pen;
+                this.renderFill = renderFill;
+                this.renderOutline = pen != null;
+                if (this.renderFill)
+                {
+                    this.FillOperations = new List<DrawingOperation>(size);
+                    this.glyphMap = new Dictionary<int, Buffer2D<float>>();
+                }
+
+                if (this.renderOutline)
+                {
+                    this.OutlineOperations = new List<DrawingOperation>(size);
+                    this.glyphMapPen = new Dictionary<int, Buffer2D<float>>();
+                }
+
                 this.builder = new PathBuilder();
             }
 
-            public List<DrawingOperation> Operations { get; } = new List<DrawingOperation>();
+            public List<DrawingOperation> FillOperations { get; }
+
+            public List<DrawingOperation> OutlineOperations { get; }
 
             public MemoryManager MemoryManager { get; internal set; }
+
+            public IPen Pen { get; internal set; }
 
             public GraphicsOptions Options { get; internal set; }
 
@@ -215,10 +195,10 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             {
                 this.currentRenderPosition = Point.Truncate(bounds.Location);
                 this.currentRenderingGlyph = cacheKey;
-
-                if (this.glyphMap.ContainsKey(this.currentRenderingGlyph))
+                if (this.renderedGlyphs.Contains(cacheKey))
                 {
                     // we have already drawn the glyph vectors skip trying again
+                    this.raterizationRequired = false;
                     return false;
                 }
 
@@ -228,13 +208,15 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 // ensure all glyphs render around [zero, zero]  so offset negative root positions so when we draw the glyph we can offet it back
                 this.builder.SetOrigin(new PointF(-(int)bounds.X, -(int)bounds.Y));
 
+                this.raterizationRequired = true;
                 return true;
             }
 
             public void BeginText(RectangleF bounds)
             {
                 // not concerned about this one
-                this.Operations.Clear();
+                this.OutlineOperations?.Clear();
+                this.FillOperations?.Clear();
             }
 
             public void CubicBezierTo(PointF secondControlPoint, PointF thirdControlPoint, PointF point)
@@ -245,9 +227,20 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public void Dispose()
             {
-                foreach (KeyValuePair<int, Buffer2D<float>> m in this.glyphMap)
+                if (this.renderFill)
                 {
-                    m.Value.Dispose();
+                    foreach (KeyValuePair<int, Buffer2D<float>> m in this.glyphMap)
+                    {
+                        m.Value.Dispose();
+                    }
+                }
+
+                if (this.renderOutline)
+                {
+                    foreach (KeyValuePair<int, Buffer2D<float>> m in this.glyphMapPen)
+                    {
+                        m.Value.Dispose();
+                    }
                 }
             }
 
@@ -258,22 +251,53 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public void EndGlyph()
             {
-                if (!this.glyphMap.ContainsKey(this.currentRenderingGlyph))
+                // has the glyoh been rendedered already????
+                if (this.raterizationRequired)
                 {
-                    this.RenderToCache();
+                    IPath path = this.builder.Build();
+                    if (this.renderFill)
+                    {
+                        this.glyphMap[this.currentRenderingGlyph] = this.Render(path);
+                    }
+
+                    if (this.renderOutline)
+                    {
+                        if (this.Pen.StrokePattern.Length == 0)
+                        {
+                            path = path.GenerateOutline(this.Pen.StrokeWidth);
+                        }
+                        else
+                        {
+                            path = path.GenerateOutline(this.Pen.StrokeWidth, this.Pen.StrokePattern);
+                        }
+
+                        this.glyphMapPen[this.currentRenderingGlyph] = this.Render(path);
+                    }
+
+                    this.renderedGlyphs.Add(this.currentRenderingGlyph);
                 }
 
-                this.Operations.Add(new DrawingOperation
+                if (this.renderFill)
                 {
-                    Location = this.currentRenderPosition,
-                    Map = this.glyphMap[this.currentRenderingGlyph]
-                });
+                    this.FillOperations.Add(new DrawingOperation
+                    {
+                        Location = this.currentRenderPosition,
+                        Map = this.glyphMap[this.currentRenderingGlyph]
+                    });
+                }
+
+                if (this.renderOutline)
+                {
+                    this.OutlineOperations.Add(new DrawingOperation
+                    {
+                        Location = this.currentRenderPosition,
+                        Map = this.glyphMapPen[this.currentRenderingGlyph]
+                    });
+                }
             }
 
-            private void RenderToCache()
+            private Buffer2D<float> Render(IPath path)
             {
-                IPath path = this.builder.Build();
-
                 var size = Rectangle.Ceiling(path.Bounds);
                 float subpixelCount = 4;
                 float offset = 0.5f;
@@ -289,7 +313,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
                 // take the path inside the path builder, scan thing and generate a Buffer2d representing the glyph and cache it.
                 Buffer2D<float> fullBuffer = this.MemoryManager.Allocate2D<float>(size.Width + 1, size.Height + 1, true);
-                this.glyphMap.Add(this.currentRenderingGlyph, fullBuffer);
+
                 using (IBuffer<float> bufferBacking = this.MemoryManager.Allocate<float>(path.MaxIntersections))
                 using (IBuffer<PointF> rowIntersectionBuffer = this.MemoryManager.Allocate<PointF>(size.Width))
                 {
@@ -379,6 +403,8 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                         }
                     }
                 }
+
+                return fullBuffer;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

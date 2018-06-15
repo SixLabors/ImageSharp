@@ -88,26 +88,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Rgba64(ulong packed)
             : this()
         {
-            this.Rgba = packed;
+            this.PackedValue = packed;
         }
 
-        /// <summary>
-        /// Gets or sets the packed representation of the <see cref="Rgba64"/> struct.
-        /// </summary>
-        public ulong Rgba
+        /// <inheritdoc/>
+        public ulong PackedValue
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Unsafe.As<Rgba64, ulong>(ref this);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => Unsafe.As<Rgba64, ulong>(ref this) = value;
-        }
-
-        /// <inheritdoc/>
-        public ulong PackedValue
-        {
-            get => this.Rgba;
-            set => this.Rgba = value;
         }
 
         /// <summary>
@@ -125,7 +116,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Rgba64 left, Rgba64 right)
         {
-            return left.Rgba == right.Rgba;
+            return left.PackedValue == right.PackedValue;
         }
 
         /// <summary>
@@ -143,7 +134,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Rgba64 left, Rgba64 right)
         {
-            return left.Rgba != right.Rgba;
+            return left.PackedValue != right.PackedValue;
         }
 
         /// <inheritdoc />
@@ -272,14 +263,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Rgba64) && this.Equals((Rgba64)obj);
+            return obj is Rgba64 rgba64 && this.Equals(rgba64);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Rgba64 other)
         {
-            return this.Rgba == other.Rgba;
+            return this.PackedValue == other.PackedValue;
         }
 
         /// <inheritdoc />

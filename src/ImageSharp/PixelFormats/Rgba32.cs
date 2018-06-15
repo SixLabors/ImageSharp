@@ -408,10 +408,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             return this.Rgba == other.Rgba;
         }
 
-        /// <summary>
-        /// Gets a string representation of the packed vector.
-        /// </summary>
-        /// <returns>A string representation of the packed vector.</returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             return $"({this.R},{this.G},{this.B},{this.A})";

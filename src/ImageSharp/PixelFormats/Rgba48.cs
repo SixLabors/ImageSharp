@@ -9,13 +9,13 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Packed pixel type containing four 16-bit unsigned normalized values ranging from 0 to 635535.
+    /// Packed pixel type containing three 16-bit unsigned normalized values ranging from 0 to 635535.
     /// <para>
-    /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
+    /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
+    public struct Rgba48 : IPixel<Rgba48>
     {
         private const float Max = 65535F;
 
@@ -35,110 +35,76 @@ namespace SixLabors.ImageSharp.PixelFormats
         public ushort B;
 
         /// <summary>
-        /// Gets or sets the alpha component.
-        /// </summary>
-        public ushort A;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba48"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
-        /// <param name="a">The alpha component.</param>
-        public Rgba64(ushort r, ushort g, ushort b, ushort a)
+        public Rgba48(ushort r, ushort g, ushort b)
             : this()
         {
             this.R = r;
             this.G = g;
             this.B = b;
-            this.A = a;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba48"/> struct.
         /// </summary>
         /// <param name="r">The red component.</param>
         /// <param name="g">The green component.</param>
         /// <param name="b">The blue component.</param>
-        /// <param name="a">The alpha component.</param>
-        public Rgba64(float r, float g, float b, float a)
+        public Rgba48(float r, float g, float b)
           : this()
         {
             this.R = (ushort)MathF.Round(r.Clamp(0, 1) * Max);
             this.G = (ushort)MathF.Round(g.Clamp(0, 1) * Max);
             this.B = (ushort)MathF.Round(b.Clamp(0, 1) * Max);
-            this.A = (ushort)MathF.Round(a.Clamp(0, 1) * Max);
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// Initializes a new instance of the <see cref="Rgba48"/> struct.
         /// </summary>
         /// <param name="vector">The vector containing the components values.</param>
-        public Rgba64(Vector4 vector)
-            : this(vector.X, vector.Y, vector.Z, vector.W)
+        public Rgba48(Vector3 vector)
+            : this(vector.X, vector.Y, vector.Z)
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Rgba64"/> struct.
+        /// Compares two <see cref="Rgba48"/> objects for equality.
         /// </summary>
-        /// <param name="packed">The packed value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgba64(ulong packed)
-            : this()
-        {
-            this.PackedValue = packed;
-        }
-
-        /// <inheritdoc/>
-        public ulong PackedValue
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Unsafe.As<Rgba64, ulong>(ref this);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => Unsafe.As<Rgba64, ulong>(ref this) = value;
-        }
-
-        /// <summary>
-        /// Compares two <see cref="Rgba64"/> objects for equality.
-        /// </summary>
-        /// <param name="left">
-        /// The <see cref="Rgba64"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Rgba64"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Rgba48"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba48"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(Rgba64 left, Rgba64 right)
+        public static bool operator ==(Rgba48 left, Rgba48 right)
         {
-            return left.PackedValue == right.PackedValue;
+            return left.R == right.R
+                && left.G == right.G
+                && left.B == right.B;
         }
 
         /// <summary>
-        /// Compares two <see cref="Rgba64"/> objects for equality.
+        /// Compares two <see cref="Rgba48"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Rgba64"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Rgba64"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Rgba48"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba48"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(Rgba64 left, Rgba64 right)
+        public static bool operator !=(Rgba48 left, Rgba48 right)
         {
-            return left.PackedValue != right.PackedValue;
+            return left.R != right.R
+                || left.G != right.G
+                || left.B != right.B;
         }
 
         /// <inheritdoc />
-        public PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations<Rgba64>();
+        public PixelOperations<Rgba48> CreatePixelOperations() => new PixelOperations<Rgba48>();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return new Vector4(this.R / Max, this.G / Max, this.B / Max, this.A / Max);
+            return new Vector4(this.R / Max, this.G / Max, this.B / Max, 1);
         }
 
         /// <inheritdoc />
@@ -169,7 +135,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = (ushort)MathF.Round(vector.X);
             this.G = (ushort)MathF.Round(vector.Y);
             this.B = (ushort)MathF.Round(vector.Z);
-            this.A = (ushort)MathF.Round(vector.W);
         }
 
         /// <inheritdoc />
@@ -195,10 +160,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba64(Rgba64 source)
-        {
-            this = source;
-        }
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -219,13 +181,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.G = (byte)MathF.Round(vector.Y);
             dest.B = (byte)MathF.Round(vector.Z);
             dest.A = (byte)MathF.Round(vector.W);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba64(ref Rgba64 dest)
-        {
-            dest = this;
         }
 
         /// <inheritdoc />
@@ -260,30 +215,35 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = (byte)MathF.Round(vector.W);
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return obj is Rgba64 rgba64 && this.Equals(rgba64);
+            return obj is Rgba48 rgba48 && this.Equals(rgba48);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rgba64 other)
+        public bool Equals(Rgba48 other)
         {
-            return this.PackedValue == other.PackedValue;
+            return this.R == other.R
+                && this.G == other.G
+                && this.B == other.B;
         }
 
         /// <inheritdoc />
-        public override string ToString()
-        {
-            return this.ToVector4().ToString();
-        }
+        public override string ToString() => this.ToVector4().ToString();
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            return this.PackedValue.GetHashCode();
+            return HashHelpers.Combine(
+                this.R.GetHashCode(),
+                HashHelpers.Combine(this.G.GetHashCode(), this.B.GetHashCode()));
         }
     }
 }

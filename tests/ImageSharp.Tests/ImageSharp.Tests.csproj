@@ -25,6 +25,11 @@
   <ItemGroup>
     <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
   </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0'">
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
     <PackageReference Include="System.Drawing.Common" Version="4.5.0" />

@@ -4,9 +4,9 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Drawing.Processors
@@ -133,11 +133,11 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
 
             int width = maxX - minX;
 
-            MemoryManager memoryManager = this.Image.GetConfiguration().MemoryManager;
+            MemoryAllocator memoryAllocator = this.Image.GetConfiguration().MemoryAllocator;
 
-            using (IBuffer<float> amount = memoryManager.Allocate<float>(width))
+            using (IBuffer<float> amount = memoryAllocator.Allocate<float>(width))
             {
-                amount.Span.Fill(this.Opacity);
+                amount.GetSpan().Fill(this.Opacity);
 
                 Parallel.For(
                     minY,
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                         {
                             Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);
                             Span<TPixel> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                            blender.Blend(memoryManager, background, background, foreground, amount.Span);
+                            blender.Blend(memoryAllocator, background, background, foreground, amount.GetSpan());
                         });
             }
         }

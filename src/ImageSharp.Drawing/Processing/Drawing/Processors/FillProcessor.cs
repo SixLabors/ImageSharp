@@ -4,10 +4,10 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Drawing.Processors
@@ -77,13 +77,13 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                     startY = 0;
                 }
 
-                using (IBuffer<float> amount = source.MemoryManager.Allocate<float>(width))
+                using (IBuffer<float> amount = source.MemoryAllocator.Allocate<float>(width))
                 using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
                     source,
                     sourceRectangle,
                     this.options))
                 {
-                    amount.Span.Fill(1f);
+                    amount.GetSpan().Fill(1f);
 
                     Parallel.For(
                         minY,
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                                 int offsetY = y - startY;
                                 int offsetX = minX - startX;
 
-                                applicator.Apply(amount.Span, offsetX, offsetY);
+                                applicator.Apply(amount.GetSpan(), offsetX, offsetY);
                             });
                 }
             }

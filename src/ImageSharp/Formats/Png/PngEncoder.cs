@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(image.GetMemoryManager(), this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), this))
             {
                 encoder.Encode(image, stream);
             }

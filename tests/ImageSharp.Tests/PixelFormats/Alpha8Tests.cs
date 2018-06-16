@@ -176,6 +176,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Alpha8_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var alpha = default(Alpha8);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(0, 0, 0);
+
+            // act
+            alpha.PackFromRgb48(expected);
+            alpha.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Alpha8_PackFromRgba64_ToRgba64()
         {
             // arrange

@@ -103,36 +103,42 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
                 var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
-                using (PixelAccessor<TPixel> pixels = image.Lock())
+
+                Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
+
+                switch (this.infoHeader.Compression)
                 {
-                    switch (this.infoHeader.Compression)
-                    {
-                        case BmpCompression.RGB:
-                            if (this.infoHeader.BitsPerPixel == 32)
-                            {
-                                this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                            }
-                            else if (this.infoHeader.BitsPerPixel == 24)
-                            {
-                                this.ReadRgb24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                            }
-                            else if (this.infoHeader.BitsPerPixel == 16)
-                            {
-                                this.ReadRgb16(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
-                            }
-                            else if (this.infoHeader.BitsPerPixel <= 8)
-                            {
-                                this.ReadRgbPalette(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, this.infoHeader.BitsPerPixel, inverted);
-                            }
+                    case BmpCompression.RGB:
+                        if (this.infoHeader.BitsPerPixel == 32)
+                        {
+                            this.ReadRgb32(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                        }
+                        else if (this.infoHeader.BitsPerPixel == 24)
+                        {
+                            this.ReadRgb24(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                        }
+                        else if (this.infoHeader.BitsPerPixel == 16)
+                        {
+                            this.ReadRgb16(pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                        }
+                        else if (this.infoHeader.BitsPerPixel <= 8)
+                        {
+                            this.ReadRgbPalette(
+                                pixels,
+                                palette,
+                                this.infoHeader.Width,
+                                this.infoHeader.Height,
+                                this.infoHeader.BitsPerPixel,
+                                inverted);
+                        }
 
-                            break;
-                        case BmpCompression.RLE8:
-                            this.ReadRle8(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
+                        break;
+                    case BmpCompression.RLE8:
+                        this.ReadRle8(pixels, palette, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
-                            break;
-                        default:
-                            throw new NotSupportedException("Does not support this kind of bitmap files.");
-                    }
+                        break;
+                    default:
+                        throw new NotSupportedException("Does not support this kind of bitmap files.");
                 }
 
                 return image;
@@ -207,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRle8<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
+        private void ReadRle8<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             var color = default(TPixel);
@@ -319,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="bits">The number of bits per pixel.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgbPalette<TPixel>(PixelAccessor<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
+        private void ReadRgbPalette<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bits, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             // Pixels per byte (bits per pixel)
@@ -381,7 +387,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb16<TPixel>(PixelAccessor<TPixel> pixels, int width, int height, bool inverted)
+        private void ReadRgb16<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 2);
@@ -422,7 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb24<TPixel>(PixelAccessor<TPixel> pixels, int width, int height, bool inverted)
+        private void ReadRgb24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
@@ -447,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
-        private void ReadRgb32<TPixel>(PixelAccessor<TPixel> pixels, int width, int height, bool inverted)
+        private void ReadRgb32<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
@@ -574,6 +580,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.stream.Read(palette, 0, colorMapSize);
             }
 
+            // TODO: ReSharper tells this expression is always true, looks like he's pretty right about it:
             if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
             {
                 throw new ArgumentOutOfRangeException(

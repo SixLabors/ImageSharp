@@ -92,18 +92,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TPixel> pixels = image.Lock())
+            Buffer2D<TPixel> pixels = image.PixelBuffer;
+            switch (this.bitsPerPixel)
             {
-                switch (this.bitsPerPixel)
-                {
-                    case BmpBitsPerPixel.Pixel32:
-                        this.Write32Bit(stream, pixels);
-                        break;
+                case BmpBitsPerPixel.Pixel32:
+                    this.Write32Bit(stream, pixels);
+                    break;
 
-                    case BmpBitsPerPixel.Pixel24:
-                        this.Write24Bit(stream, pixels);
-                        break;
-                }
+                case BmpBitsPerPixel.Pixel24:
+                    this.Write24Bit(stream, pixels);
+                    break;
             }
         }
 
@@ -118,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
-        private void Write32Bit<TPixel>(Stream stream, PixelAccessor<TPixel> pixels)
+        private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
@@ -138,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
-        private void Write24Bit<TPixel>(Stream stream, PixelAccessor<TPixel> pixels)
+        private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))

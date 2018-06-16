@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Compresssed RLE8 stream is uncompressed by <see cref="UncompressRle8(int, Span{byte})"/>
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
@@ -319,7 +319,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Reads the color palette from the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="colors">The <see cref="T:byte[]"/> containing the colors.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Reads the 16 bit color palette from the stream
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
@@ -424,7 +424,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Reads the 24 bit color palette from the stream
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
@@ -449,7 +449,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Reads the 32 bit color palette from the stream
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> to assign the palette to.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="width">The width of the bitmap.</param>
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>

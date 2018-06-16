@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Output.WriteLine($"Component{i}: {diff}");
                 averageDifference += diff.average;
                 totalDifference += diff.total;
-                tolerance += libJpegComponent.SpectralBlocks.Buffer.Span.Length;
+                tolerance += libJpegComponent.SpectralBlocks.Buffer.GetSpan().Length;
             }
             averageDifference /= componentCount;
 

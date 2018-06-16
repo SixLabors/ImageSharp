@@ -5,17 +5,18 @@ using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Contains <see cref="Buffer{T}"/> and <see cref="ManagedByteBuffer"/>
     /// </summary>
-    public partial class ArrayPoolMemoryManager
+    public partial class ArrayPoolMemoryAllocator
     {
         /// <summary>
-        /// The buffer implementation of <see cref="ArrayPoolMemoryManager"/>
+        /// The buffer implementation of <see cref="ArrayPoolMemoryAllocator"/>.
+        /// In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
         /// </summary>
-        private class Buffer<T> : IBuffer<T>
+        private class Buffer<T> : ManagedBufferBase<T>
             where T : struct
         {
             /// <summary>
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
             /// </summary>
             /// <remarks>
             /// By using a weak reference here, we are making sure that array pools and their retained arrays are always GC-ed
-            /// after a call to <see cref="ArrayPoolMemoryManager.ReleaseRetainedResources"/>, regardless of having buffer instances still being in use.
+            /// after a call to <see cref="ArrayPoolMemoryAllocator.ReleaseRetainedResources"/>, regardless of having buffer instances still being in use.
             /// </remarks>
             private WeakReference<ArrayPool<byte>> sourcePoolReference;
 
@@ -45,12 +46,9 @@ namespace SixLabors.ImageSharp.Memory
             protected byte[] Data { get; private set; }
 
             /// <inheritdoc />
-            public Span<T> Span => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
-
-            /// <inheritdoc />
-            public void Dispose()
+            protected override void Dispose(bool disposing)
             {
-                if (this.Data == null || this.sourcePoolReference == null)
+                if (!disposing || this.Data == null || this.sourcePoolReference == null)
                 {
                     return;
                 }
@@ -63,10 +61,14 @@ namespace SixLabors.ImageSharp.Memory
                 this.sourcePoolReference = null;
                 this.Data = null;
             }
+
+            public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+
+            protected override object GetPinnableObject() => this.Data;
         }
 
         /// <summary>
-        /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryManager"/>.
+        /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryAllocator"/>.
         /// </summary>
         private class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
         {

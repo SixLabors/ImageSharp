@@ -4,9 +4,9 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Overlays.Processors
@@ -66,12 +66,12 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
 
             int width = maxX - minX;
 
-            using (IBuffer<TPixel> colors = source.MemoryManager.Allocate<TPixel>(width))
-            using (IBuffer<float> amount = source.MemoryManager.Allocate<float>(width))
+            using (IBuffer<TPixel> colors = source.MemoryAllocator.Allocate<TPixel>(width))
+            using (IBuffer<float> amount = source.MemoryAllocator.Allocate<float>(width))
             {
                 // Be careful! Do not capture colorSpan & amountSpan in the lambda below!
-                Span<TPixel> colorSpan = colors.Span;
-                Span<float> amountSpan = amount.Span;
+                Span<TPixel> colorSpan = colors.GetSpan();
+                Span<float> amountSpan = amount.GetSpan();
 
                 // TODO: Use Span.Fill?
                 for (int i = 0; i < width; i++)
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
                         Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
 
                         // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
-                        blender.Blend(source.MemoryManager, destination, colors.Span, destination, amount.Span);
+                        blender.Blend(source.MemoryAllocator, destination, colors.GetSpan(), destination, amount.GetSpan());
                     });
             }
         }

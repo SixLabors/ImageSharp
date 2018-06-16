@@ -3,11 +3,14 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Filters.Processors;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -128,27 +131,35 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
                     {
                         new ConvolutionProcessor<TPixel>(kernels[i]).Apply(pass, sourceRectangle, configuration);
 
-                        using (PixelAccessor<TPixel> passPixels = pass.Lock())
-                        using (PixelAccessor<TPixel> targetPixels = source.Lock())
-                        {
-                            Parallel.For(
-                                minY,
-                                maxY,
-                                configuration.ParallelOptions,
-                                y =>
+                        Buffer2D<TPixel> passPixels = pass.PixelBuffer;
+                        Buffer2D<TPixel> targetPixels = source.PixelBuffer;
+
+                        Parallel.For(
+                            minY,
+                            maxY,
+                            configuration.ParallelOptions,
+                            y =>
                                 {
                                     int offsetY = y - shiftY;
+
+                                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(passPixels.GetRowSpan(offsetY));
+                                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(targetPixels.GetRowSpan(offsetY));
+
                                     for (int x = minX; x < maxX; x++)
                                     {
                                         int offsetX = x - shiftX;
 
                                         // Grab the max components of the two pixels
-                                        TPixel packed = default(TPixel);
-                                        packed.PackFromVector4(Vector4.Max(passPixels[offsetX, offsetY].ToVector4(), targetPixels[offsetX, offsetY].ToVector4()));
-                                        targetPixels[offsetX, offsetY] = packed;
+                                        ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, offsetX);
+                                        ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, offsetX);
+
+                                        var pixelValue = Vector4.Max(
+                                            currentPassPixel.ToVector4(),
+                                            currentTargetPixel.ToVector4());
+
+                                        currentTargetPixel.PackFromVector4(pixelValue);
                                     }
                                 });
-                        }
                     }
                 }
             }

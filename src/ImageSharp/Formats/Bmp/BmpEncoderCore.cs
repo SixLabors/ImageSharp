@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {

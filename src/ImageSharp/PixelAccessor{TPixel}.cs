@@ -104,15 +104,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Copies the pixels to another <see cref="PixelAccessor{TPixel}"/> of the same size.
-        /// </summary>
-        /// <param name="target">The target pixel buffer accessor.</param>
-        internal void CopyTo(PixelAccessor<TPixel> target)
-        {
-            this.PixelBuffer.GetSpan().CopyTo(target.PixelBuffer.GetSpan());
-        }
-
-        /// <summary>
         /// Sets the pixel buffer in an unsafe manor this should not be used unless you know what its doing!!!
         /// </summary>
         /// <param name="pixels">The pixel buffer</param>

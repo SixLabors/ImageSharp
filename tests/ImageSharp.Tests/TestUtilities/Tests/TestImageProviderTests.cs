@@ -13,6 +13,8 @@ using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.Memory;
+
     public class TestImageProviderTests
     {
         public TestImageProviderTests(ITestOutputHelper output)
@@ -282,19 +284,17 @@ namespace SixLabors.ImageSharp.Tests
 
             var rgba = default(Rgba32);
 
-            using (PixelAccessor<TPixel> pixels = img.Lock())
+            Buffer2D<TPixel> pixels = img.GetRootFramePixelBuffer();
+            for (int y = 0; y < pixels.Height; y++)
             {
-                for (int y = 0; y < pixels.Height; y++)
+                for (int x = 0; x < pixels.Width; x++)
                 {
-                    for (int x = 0; x < pixels.Width; x++)
-                    {
-                        pixels[x, y].ToRgba32(ref rgba);
+                    pixels[x, y].ToRgba32(ref rgba);
 
-                        Assert.Equal(255, rgba.R);
-                        Assert.Equal(100, rgba.G);
-                        Assert.Equal(50, rgba.B);
-                        Assert.Equal(200, rgba.A);
-                    }
+                    Assert.Equal(255, rgba.R);
+                    Assert.Equal(100, rgba.G);
+                    Assert.Equal(50, rgba.B);
+                    Assert.Equal(200, rgba.A);
                 }
             }
         }

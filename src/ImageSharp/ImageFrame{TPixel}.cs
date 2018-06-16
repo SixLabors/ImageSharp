@@ -216,19 +216,10 @@ namespace SixLabors.ImageSharp
         /// It is imperative that the accessor is correctly disposed off after use.
         /// </remarks>
         /// </summary>
-        /// <returns>The <see cref="PixelAccessor{TPixel}"/></returns>
-        internal PixelAccessor<TPixel> Lock()
+        /// <returns>The <see cref="Buffer2D{TPixel}"/></returns>
+        internal Buffer2D<TPixel> Lock()
         {
-            return new PixelAccessor<TPixel>(this);
-        }
-
-        /// <summary>
-        /// Copies the pixels to a <see cref="PixelAccessor{TPixel}"/> of the same size.
-        /// </summary>
-        /// <param name="target">The target pixel buffer accessor.</param>
-        internal void CopyTo(PixelAccessor<TPixel> target)
-        {
-            this.CopyTo(target.PixelBuffer);
+            return this.PixelBuffer;
         }
 
         /// <summary>

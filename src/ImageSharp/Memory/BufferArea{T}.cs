@@ -18,7 +18,7 @@ namespace SixLabors.Memory
         public readonly Rectangle Rectangle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferArea(IBuffer2D<T> destinationBuffer, Rectangle rectangle)
+        public BufferArea(Buffer2D<T> destinationBuffer, Rectangle rectangle)
         {
             ImageSharp.DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.X, 0, nameof(rectangle));
             ImageSharp.DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.Y, 0, nameof(rectangle));
@@ -30,15 +30,15 @@ namespace SixLabors.Memory
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferArea(IBuffer2D<T> destinationBuffer)
+        public BufferArea(Buffer2D<T> destinationBuffer)
             : this(destinationBuffer, destinationBuffer.FullRectangle())
         {
         }
 
         /// <summary>
-        /// Gets the <see cref="IBuffer2D{T}"/> being pointed by this instance.
+        /// Gets the <see cref="Buffer2D{T}"/> being pointed by this instance.
         /// </summary>
-        public IBuffer2D<T> DestinationBuffer { get; }
+        public Buffer2D<T> DestinationBuffer { get; }
 
         /// <summary>
         /// Gets the size of the area.

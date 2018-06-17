@@ -5,13 +5,22 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Defines extension methods for <see cref="IBuffer2D{T}"/>.
     /// </summary>
     internal static class Buffer2DExtensions
     {
+        /// <summary>
+        /// Gets a <see cref="Span{T}"/> to the backing buffer of <paramref name="buffer"/>.
+        /// </summary>
+        internal static Span<T> GetSpan<T>(this IBuffer2D<T> buffer)
+            where T : struct
+        {
+            return buffer.Buffer.GetSpan();
+        }
+
         /// <summary>
         /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at 'x'.
         /// </summary>
@@ -24,7 +33,7 @@ namespace SixLabors.ImageSharp.Memory
         public static Span<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int x, int y)
             where T : struct
         {
-            return buffer.Span.Slice((y * buffer.Width) + x, buffer.Width - x);
+            return buffer.GetSpan().Slice((y * buffer.Width) + x, buffer.Width - x);
         }
 
         /// <summary>
@@ -38,7 +47,21 @@ namespace SixLabors.ImageSharp.Memory
         public static Span<T> GetRowSpan<T>(this IBuffer2D<T> buffer, int y)
             where T : struct
         {
-            return buffer.Span.Slice(y * buffer.Width, buffer.Width);
+            return buffer.GetSpan().Slice(y * buffer.Width, buffer.Width);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
+        /// </summary>
+        /// <param name="buffer">The buffer</param>
+        /// <param name="y">The y (row) coordinate</param>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <returns>The <see cref="Span{T}"/></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Memory<T> GetRowMemory<T>(this IBuffer2D<T> buffer, int y)
+            where T : struct
+        {
+            return buffer.Buffer.Memory.Slice(y * buffer.Width, buffer.Width);
         }
 
         /// <summary>

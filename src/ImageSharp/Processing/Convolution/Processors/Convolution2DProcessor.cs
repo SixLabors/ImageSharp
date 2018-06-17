@@ -5,10 +5,10 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Width, source.Height))
+            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
                 source.CopyTo(targetPixels);
 
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
                         }
                     });
 
-                Buffer2D<TPixel>.SwapContents(source.PixelBuffer, targetPixels);
+                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
         }
     }

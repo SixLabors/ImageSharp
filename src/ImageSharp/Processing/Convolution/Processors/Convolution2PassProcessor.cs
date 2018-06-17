@@ -4,10 +4,10 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Convolution.Processors
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
         {
             ParallelOptions parallelOptions = configuration.ParallelOptions;
 
-            using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryManager.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
                 this.ApplyConvolution(firstPassPixels, source.PixelBuffer, source.Bounds(), this.KernelX, parallelOptions);
                 this.ApplyConvolution(source.PixelBuffer, firstPassPixels, sourceRectangle, this.KernelY, parallelOptions);

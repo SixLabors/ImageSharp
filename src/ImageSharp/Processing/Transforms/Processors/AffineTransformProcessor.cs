@@ -9,9 +9,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors
@@ -111,10 +111,10 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             int xLength = (int)MathF.Ceiling((radius.X * 2) + 2);
             int yLength = (int)MathF.Ceiling((radius.Y * 2) + 2);
 
-            MemoryManager memoryManager = configuration.MemoryManager;
+            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
 
-            using (Buffer2D<float> yBuffer = memoryManager.Allocate2D<float>(yLength, height))
-            using (Buffer2D<float> xBuffer = memoryManager.Allocate2D<float>(xLength, height))
+            using (Buffer2D<float> yBuffer = memoryAllocator.Allocate2D<float>(yLength, height))
+            using (Buffer2D<float> xBuffer = memoryAllocator.Allocate2D<float>(xLength, height))
             {
                 Parallel.For(
                     0,

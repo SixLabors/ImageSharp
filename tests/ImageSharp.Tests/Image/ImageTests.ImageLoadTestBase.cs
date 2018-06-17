@@ -13,13 +13,9 @@
     {
         public abstract class ImageLoadTestBase : IDisposable
         {
-            
-
             protected Image<Rgba32> returnImage;
 
             protected Mock<IImageDecoder> localDecoder;
-
-            
 
             protected IImageFormatDetector localMimeTypeDetector;
 
@@ -35,9 +31,9 @@
             /// </summary>
             public Configuration TopLevelConfiguration { get; }
 
-            public byte[] Marker { get; private set; }
+            public byte[] Marker { get; }
 
-            public MemoryStream DataStream { get; private set; }
+            public MemoryStream DataStream { get; }
 
             public byte[] DecodedData { get; private set; }
 
@@ -50,7 +46,6 @@
                 this.localDecoder = new Mock<IImageDecoder>();
                 this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
-
                     .Callback<Configuration, Stream>((c, s) =>
                         {
                             using (var ms = new MemoryStream())
@@ -60,8 +55,6 @@
                             }
                         })
                     .Returns(this.returnImage);
-
-                
 
                 this.LocalConfiguration = new Configuration
                                               {

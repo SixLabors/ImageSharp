@@ -4,12 +4,10 @@
 using System;
 using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 using SixLabors.Primitives;
-
 using JpegColorConverter = SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters.JpegColorConverter;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -49,17 +47,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegImagePostProcessor"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="rawJpeg">The <see cref="IRawJpegData"/> representing the uncompressed spectral Jpeg data</param>
-        public JpegImagePostProcessor(MemoryManager memoryManager, IRawJpegData rawJpeg)
+        public JpegImagePostProcessor(MemoryAllocator memoryAllocator, IRawJpegData rawJpeg)
         {
             this.RawJpeg = rawJpeg;
             IJpegComponent c0 = rawJpeg.Components.First();
             this.NumberOfPostProcessorSteps = c0.SizeInBlocks.Height / BlockRowsPerStep;
             this.PostProcessorBufferSize = new Size(c0.SizeInBlocks.Width * 8, PixelRowsPerStep);
 
-            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryManager, this, c)).ToArray();
-            this.rgbaBuffer = memoryManager.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
+            this.ComponentProcessors = rawJpeg.Components.Select(c => new JpegComponentPostProcessor(memoryAllocator, this, c)).ToArray();
+            this.rgbaBuffer = memoryAllocator.Allocate<Vector4>(rawJpeg.ImageSizeInPixels.Width);
             this.colorConverter = JpegColorConverter.GetConverter(rawJpeg.ColorSpace);
         }
 
@@ -155,11 +153,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 int y = yy - this.PixelRowCounter;
 
                 var values = new JpegColorConverter.ComponentValues(buffers, y);
-                this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.Span);
+                this.colorConverter.ConvertToRgba(values, this.rgbaBuffer.GetSpan());
 
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
-                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer.Span, destRow, destination.Width);
+                PixelOperations<TPixel>.Instance.PackFromVector4(this.rgbaBuffer.GetSpan(), destRow, destination.Width);
             }
         }
     }

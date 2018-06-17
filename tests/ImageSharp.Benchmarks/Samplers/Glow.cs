@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using System;
     using System.Threading.Tasks;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.Primitives;
     using SixLabors.ImageSharp.Processing.Overlays.Processors;
     using SixLabors.ImageSharp.Processing.Processors;
@@ -102,10 +102,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 
                 int width = maxX - minX;
-                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryManager.Allocate<TPixel>(width))
+                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryAllocator.Allocate<TPixel>(width))
                 using (PixelAccessor<TPixel> sourcePixels = source.Lock())
                 {
-                    rowColors.Span.Fill(glowColor);
+                    rowColors.GetSpan().Fill(glowColor);
 
                     Parallel.For(
                         minY,

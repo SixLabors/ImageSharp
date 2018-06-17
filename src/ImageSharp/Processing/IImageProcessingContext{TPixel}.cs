@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets a reference to the <see cref="MemoryManager" /> used to allocate buffers
+        /// Gets a reference to the <see cref="MemoryAllocator" /> used to allocate buffers
         /// for this context.
         /// </summary>
-        MemoryManager MemoryManager { get; }
+        MemoryAllocator MemoryAllocator { get; }
 
         /// <summary>
         /// Gets the image dimensions at the current point in the processing pipeline.

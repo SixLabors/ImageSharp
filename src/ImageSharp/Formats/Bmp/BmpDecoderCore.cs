@@ -4,9 +4,9 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private readonly Configuration configuration;
 
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpDecoderCore"/> class.
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
             this.configuration = configuration;
-            this.memoryManager = configuration.MemoryManager;
+            this.memoryAllocator = configuration.MemoryAllocator;
         }
 
         /// <summary>
@@ -213,9 +213,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (Buffer2D<byte> buffer = this.memoryManager.AllocateClean2D<byte>(width, height))
+            using (Buffer2D<byte> buffer = this.memoryAllocator.AllocateClean2D<byte>(width, height))
             {
-                this.UncompressRle8(width, buffer.Span);
+                this.UncompressRle8(width, buffer.GetSpan());
 
                 for (int y = 0; y < height; y++)
                 {
@@ -337,12 +337,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
-            using (IManagedByteBuffer row = this.memoryManager.AllocateCleanManagedByteBuffer(arrayWidth + padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocateCleanManagedByteBuffer(arrayWidth + padding))
             {
                 TPixel color = default;
                 var rgba = new Rgba32(0, 0, 0, 255);
 
-                Span<byte> rowSpan = row.Span;
+                Span<byte> rowSpan = row.GetSpan();
 
                 for (int y = 0; y < height; y++)
                 {
@@ -389,7 +389,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             var color = default(TPixel);
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (IManagedByteBuffer buffer = this.memoryManager.AllocateManagedByteBuffer(stride))
+            using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -427,14 +427,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 3);
 
-            using (IManagedByteBuffer row = this.memoryManager.AllocatePaddedPixelRowBuffer(width, 3, padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
                     this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.Span, pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.PackFromBgr24Bytes(row.GetSpan(), pixelSpan, width);
                 }
             }
         }
@@ -452,14 +452,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 4);
 
-            using (IManagedByteBuffer row = this.memoryManager.AllocatePaddedPixelRowBuffer(width, 4, padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, padding))
             {
                 for (int y = 0; y < height; y++)
                 {
                     this.stream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.Span, pixelSpan, width);
+                    PixelOperations<TPixel>.Instance.PackFromBgra32Bytes(row.GetSpan(), pixelSpan, width);
                 }
             }
         }

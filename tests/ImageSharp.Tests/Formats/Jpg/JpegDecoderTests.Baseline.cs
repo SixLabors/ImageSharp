@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             using (Image<TPixel> image = provider.GetImage(GolangJpegDecoder))
             {
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     appendPixelTypeToFileName: false);
             }
 
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
+            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
         }
 
         [Theory]

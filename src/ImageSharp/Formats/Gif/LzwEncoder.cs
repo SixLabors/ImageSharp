@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -168,16 +168,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwEncoder"/> class.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="indexedPixels">The array of indexed pixels.</param>
         /// <param name="colorDepth">The color depth in bits.</param>
-        public LzwEncoder(MemoryManager memoryManager, byte[] indexedPixels, int colorDepth)
+        public LzwEncoder(MemoryAllocator memoryAllocator, byte[] indexedPixels, int colorDepth)
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
 
-            this.hashTable = memoryManager.Allocate<int>(HashSize, true);
-            this.codeTable = memoryManager.Allocate<int>(HashSize, true);
+            this.hashTable = memoryAllocator.Allocate<int>(HashSize, true);
+            this.codeTable = memoryAllocator.Allocate<int>(HashSize, true);
         }
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ResetCodeTable()
         {
-            this.hashTable.Span.Fill(-1);
+            this.hashTable.GetSpan().Fill(-1);
         }
 
         /// <summary>
@@ -293,8 +293,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.Output(this.clearCode, stream);
 
-            ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.Span);
-            ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.Span);
+            ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.GetSpan());
+            ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.GetSpan());
 
             while (this.position < this.pixelArray.Length)
             {

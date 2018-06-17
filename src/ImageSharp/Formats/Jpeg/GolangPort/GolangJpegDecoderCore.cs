@@ -705,7 +705,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 foreach (GolangComponent component in this.Components)
                 {
-                    component.InitializeDerivedData(this.configuration.MemoryManager, this);
+                    component.InitializeDerivedData(this.configuration.MemoryAllocator, this);
                 }
             }
         }
@@ -812,7 +812,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryAllocator, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);

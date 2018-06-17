@@ -3,11 +3,11 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Drawing.Processors
@@ -103,36 +103,35 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
             using (BrushApplicator<TPixel> applicator = this.Brush.CreateApplicator(source, rect, this.Options))
             {
                 int scanlineWidth = maxX - minX;
-                using (BasicArrayBuffer<float> buffer = source.MemoryManager.AllocateFake<float>(maxIntersections))
-                using (BasicArrayBuffer<float> scanline = source.MemoryManager.AllocateFake<float>(scanlineWidth))
+                using (IBuffer<float> bBuffer = source.MemoryAllocator.Allocate<float>(maxIntersections))
+                using (IBuffer<float> bScanline = source.MemoryAllocator.Allocate<float>(scanlineWidth))
                 {
                     bool scanlineDirty = true;
                     float subpixelFraction = 1f / subpixelCount;
                     float subpixelFractionPoint = subpixelFraction / subpixelCount;
+
+                    Span<float> buffer = bBuffer.GetSpan();
+                    Span<float> scanline = bScanline.GetSpan();
+
                     for (int y = minY; y < maxY; y++)
                     {
                         if (scanlineDirty)
                         {
-                            // clear the buffer
-                            for (int x = 0; x < scanlineWidth; x++)
-                            {
-                                scanline[x] = 0;
-                            }
-
+                            scanline.Clear();
                             scanlineDirty = false;
                         }
 
                         float yPlusOne = y + 1;
                         for (float subPixel = (float)y; subPixel < yPlusOne; subPixel += subpixelFraction)
                         {
-                            int pointsFound = region.Scan(subPixel + offset, buffer.Array, 0);
+                            int pointsFound = region.Scan(subPixel + offset, buffer, configuration);
                             if (pointsFound == 0)
                             {
                                 // nothing on this line skip
                                 continue;
                             }
 
-                            QuickSort(new Span<float>(buffer.Array, 0, pointsFound));
+                            QuickSort(buffer.Slice(0, pointsFound));
 
                             for (int point = 0; point < pointsFound; point += 2)
                             {
@@ -188,7 +187,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                                 }
                             }
 
-                            applicator.Apply(scanline.Span, minX, y);
+                            applicator.Apply(scanline, minX, y);
                         }
                     }
                 }
@@ -196,31 +195,45 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Swap(Span<float> data, int left, int right)
+        private static void Swap(ref float left, ref float right)
         {
-            float tmp = data[left];
-            data[left] = data[right];
-            data[right] = tmp;
+            float tmp = left;
+            left = right;
+            right = tmp;
         }
 
         private static void QuickSort(Span<float> data)
         {
-            QuickSort(data, 0, data.Length - 1);
+            if (data.Length < 2)
+            {
+                return;
+            }
+            else if (data.Length == 2)
+            {
+                if (data[0] > data[1])
+                {
+                    Swap(ref data[0], ref data[1]);
+                }
+
+                return;
+            }
+
+            QuickSort(ref data[0], 0, data.Length - 1);
         }
 
-        private static void QuickSort(Span<float> data, int lo, int hi)
+        private static void QuickSort(ref float data0, int lo, int hi)
         {
             if (lo < hi)
             {
-                int p = Partition(data, lo, hi);
-                QuickSort(data, lo, p);
-                QuickSort(data, p + 1, hi);
+                int p = Partition(ref data0, lo, hi);
+                QuickSort(ref data0, lo, p);
+                QuickSort(ref data0, p + 1, hi);
             }
         }
 
-        private static int Partition(Span<float> data, int lo, int hi)
+        private static int Partition(ref float data0, int lo, int hi)
         {
-            float pivot = data[lo];
+            float pivot = Unsafe.Add(ref data0, lo);
             int i = lo - 1;
             int j = hi + 1;
             while (true)
@@ -229,20 +242,20 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
                 {
                     i = i + 1;
                 }
-                while (data[i] < pivot && i < hi);
+                while (Unsafe.Add(ref data0, i) < pivot && i < hi);
 
                 do
                 {
                     j = j - 1;
                 }
-                while (data[j] > pivot && j > lo);
+                while (Unsafe.Add(ref data0, j) > pivot && j > lo);
 
                 if (i >= j)
                 {
                     return j;
                 }
 
-                Swap(data, i, j);
+                Swap(ref Unsafe.Add(ref data0, i), ref Unsafe.Add(ref data0, j));
             }
         }
     }

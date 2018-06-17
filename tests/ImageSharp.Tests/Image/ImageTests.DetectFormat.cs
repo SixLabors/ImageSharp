@@ -33,18 +33,27 @@ namespace SixLabors.ImageSharp.Tests
             private static readonly IImageFormat ExpectedGlobalFormat =
                 Configuration.Default.ImageFormatsManager.FindFormatByFileExtension("bmp");
 
-            [Fact]
-            public void FromBytes_GlobalConfiguration()
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void FromBytes_GlobalConfiguration(bool useSpan)
             {
-                IImageFormat type = Image.DetectFormat(this.ActualImageBytes);
-                
+                IImageFormat type = useSpan
+                                        ? Image.DetectFormat(this.ActualImageSpan)
+                                        : Image.DetectFormat(this.ActualImageBytes);
+
                 Assert.Equal(ExpectedGlobalFormat, type);
             }
 
-            [Fact]
-            public void FromBytes_CustomConfiguration()
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void FromBytes_CustomConfiguration(bool useSpan)
             {
-                IImageFormat type = Image.DetectFormat(this.LocalConfiguration, this.ByteArray);
+                IImageFormat type = useSpan
+                                        ? Image.DetectFormat(this.LocalConfiguration, this.ByteArray.AsSpan())
+                                        : Image.DetectFormat(this.LocalConfiguration, this.ByteArray);
+
                 Assert.Equal(this.LocalImageFormat, type);
             }
 

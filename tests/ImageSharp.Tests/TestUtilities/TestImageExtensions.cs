@@ -8,7 +8,7 @@ using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -27,13 +27,13 @@ namespace SixLabors.ImageSharp.Tests
         public static void MakeOpaque<TPixel>(this IImageProcessingContext<TPixel> ctx)
             where TPixel : struct, IPixel<TPixel>
         {
-            MemoryManager memoryManager = ctx.MemoryManager;
+            MemoryAllocator memoryAllocator = ctx.MemoryAllocator;
 
             ctx.Apply(img =>
             {
-                using (Buffer2D<Vector4> temp = memoryManager.Allocate2D<Vector4>(img.Width, img.Height))
+                using (Buffer2D<Vector4> temp = memoryAllocator.Allocate2D<Vector4>(img.Width, img.Height))
                 {
-                    Span<Vector4> tempSpan = temp.Span;
+                    Span<Vector4> tempSpan = temp.GetSpan();
                     foreach (ImageFrame<TPixel> frame in img.Frames)
                     {
                         Span<TPixel> pixelSpan = frame.GetPixelSpan();
@@ -665,7 +665,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
-            Span<float> bufferSpan = buffer.Span;
+            Span<float> bufferSpan = buffer.GetSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)
             {

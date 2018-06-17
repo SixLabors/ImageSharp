@@ -14,6 +14,8 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Advanced;
+
     /// <summary>
     /// Various utility and extension methods.
     /// </summary>
@@ -113,8 +115,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
-
-
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
         {
             if (pixelTypes == PixelTypes.Undefined)
@@ -163,11 +163,15 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="process">The image processing method to test. (As a delegate)</param>
         /// <param name="testOutputDetails">The value to append to the test output.</param>
         /// <param name="comparer">The custom image comparer to use</param>
+        /// <param name="appendPixelTypeToFileName"></param>
+        /// <param name="appendSourceFileOrDescription"></param>
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext<TPixel>> process,
             object testOutputDetails = null,
-            ImageComparer comparer = null)
+            ImageComparer comparer = null,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
             if (comparer == null)
@@ -178,12 +182,69 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(process);
-                image.DebugSave(provider, testOutputDetails);
+
+                image.DebugSave(
+                    provider,
+                    testOutputDetails,
+                    appendPixelTypeToFileName: appendPixelTypeToFileName,
+                    appendSourceFileOrDescription: appendSourceFileOrDescription);
 
                 // TODO: Investigate the cause of pixel inaccuracies under Linux
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
+                    image.CompareToReferenceOutput(
+                        comparer,
+                        provider,
+                        testOutputDetails,
+                        appendPixelTypeToFileName: appendPixelTypeToFileName,
+                        appendSourceFileOrDescription: appendSourceFileOrDescription);
+                }
+            }
+        }
+
+        public static void RunValidatingProcessorTestOnWrappedMemoryImage<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<IImageProcessingContext<TPixel>> process,
+            object testOutputDetails = null,
+            ImageComparer comparer = null,
+            string useReferenceOutputFrom = null,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.TolerantPercentage(0.001f);
+            }
+
+            using (Image<TPixel> image0 = provider.GetImage())
+            {
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOfPixelData(image0.GetPixelSpan());
+
+                using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
+                {
+                    image1.Mutate(process);
+                    image1.DebugSave(
+                        provider,
+                        testOutputDetails,
+                        appendPixelTypeToFileName: appendPixelTypeToFileName,
+                        appendSourceFileOrDescription: appendSourceFileOrDescription);
+
+                    // TODO: Investigate the cause of pixel inaccuracies under Linux
+                    if (TestEnvironment.IsWindows)
+                    {
+                        if (useReferenceOutputFrom != null)
+                        {
+                            provider.Utility.TestName = useReferenceOutputFrom;
+                        }
+
+                        image1.CompareToReferenceOutput(
+                            comparer,
+                            provider,
+                            testOutputDetails,
+                            appendPixelTypeToFileName: appendPixelTypeToFileName,
+                            appendSourceFileOrDescription: appendSourceFileOrDescription);
+                    }
                 }
             }
         }

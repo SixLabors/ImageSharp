@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Advanced
 {

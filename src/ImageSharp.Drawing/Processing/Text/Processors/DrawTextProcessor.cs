@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                     {
                         foreach (DrawingOperation operation in operations)
                         {
-                            IBuffer2D<float> buffer = operation.Map;
+                            Buffer2D<float> buffer = operation.Map;
                             int startY = operation.Location.Y;
                             int startX = operation.Location.X;
                             int offSetSpan = 0;
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
         private struct DrawingOperation
         {
-            public IBuffer2D<float> Map { get; set; }
+            public Buffer2D<float> Map { get; set; }
 
             public Point Location { get; set; }
         }

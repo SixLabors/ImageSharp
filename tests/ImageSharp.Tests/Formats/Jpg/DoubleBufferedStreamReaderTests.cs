@@ -4,14 +4,14 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class DoubleBufferedStreamReaderTests
     {
-        private readonly MemoryManager manager = Configuration.Default.MemoryManager;
+        private readonly MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
 
         [Fact]
         public void DoubleBufferedStreamReaderCanReadSingleByteFromOrigin()
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(this.manager, stream);
+                var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
                 Assert.Equal(expected[0], reader.ReadByte());
 
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(this.manager, stream);
+                var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
                 for (int i = 0; i < expected.Length; i++)
                 {
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 byte[] buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(this.manager, stream);
+                var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
                 Assert.Equal(2, reader.Read(buffer, 0, 2));
                 Assert.Equal(expected[0], buffer[0]);
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 byte[] buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(this.manager, stream);
+                var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
                 for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                 {
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (MemoryStream stream = this.CreateTestStream())
             {
                 byte[] expected = stream.ToArray();
-                var reader = new DoubleBufferedStreamReader(this.manager, stream);
+                var reader = new DoubleBufferedStreamReader(this.allocator, stream);
 
                 int skip = 50;
                 int plusOne = 1;

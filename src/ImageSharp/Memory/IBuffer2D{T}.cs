@@ -3,10 +3,10 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
-    /// An interface that represents a pinned buffer of value type objects
+    /// An interface that represents a contigous buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
@@ -24,8 +24,8 @@ namespace SixLabors.ImageSharp.Memory
         int Height { get; }
 
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the backing buffer.
+        /// Gets the contigous buffer being wrapped.
         /// </summary>
-        Span<T> Span { get; }
+        IBuffer<T> Buffer { get; }
     }
 }

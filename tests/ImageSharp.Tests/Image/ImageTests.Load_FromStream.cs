@@ -86,22 +86,6 @@ namespace SixLabors.ImageSharp.Tests
                 this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream));
             }
 
-            [Fact]
-            public void LoadFromPixelData_Pixels()
-            {
-                var img = Image.LoadPixelData<Rgba32>(new Rgba32[] {
-                                                                           Rgba32.Black, Rgba32.White,
-                                                                           Rgba32.White, Rgba32.Black,
-                                                                       }, 2, 2);
-
-                Assert.NotNull(img);
-                Assert.Equal(Rgba32.Black, img[0, 0]);
-                Assert.Equal(Rgba32.White, img[0, 1]);
-
-                Assert.Equal(Rgba32.White, img[1, 0]);
-                Assert.Equal(Rgba32.Black, img[1, 1]);
-            }
-
             // TODO: This should be a png decoder test!
             [Fact]
             public void LoadsImageWithoutThrowingCrcException()

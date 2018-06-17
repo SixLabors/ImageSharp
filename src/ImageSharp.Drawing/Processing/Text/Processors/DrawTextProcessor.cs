@@ -39,43 +39,50 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
         /// <param name="location">The location on the image to start drawign the text from.</param>
         public DrawTextProcessor(TextGraphicsOptions options, string text, Font font, IBrush<TPixel> brush, IPen<TPixel> pen, PointF location)
         {
-            this.Brush = brush;
+            Guard.NotNull(text, nameof(text));
+            Guard.NotNull(font, nameof(font));
+            if (brush == null && pen == null)
+            {
+                throw new ArgumentNullException($"at least one of {nameof(brush)} or {nameof(pen)} must not be null");
+            }
+
             this.Options = options;
             this.Text = text;
-            this.Pen = pen;
             this.Font = font;
             this.Location = location;
+            this.Brush = brush;
+            this.Pen = pen;
         }
 
         /// <summary>
-        /// Gets or sets the brush.
+        /// Gets the brush.
         /// </summary>
-        public IBrush<TPixel> Brush { get; set; }
+        public IBrush<TPixel> Brush { get; }
 
         /// <summary>
-        /// Gets or sets the options
+        /// Gets the options
         /// </summary>
-        public TextGraphicsOptions Options { get; set; }
+        public TextGraphicsOptions Options { get; }
 
         /// <summary>
-        /// Gets or sets the text
+        /// Gets  the text
         /// </summary>
-        public string Text { get; set; }
+        public string Text { get; }
 
         /// <summary>
-        /// Gets or sets the pen used for outlining the text, if Null then we will not outline
+        /// Gets the pen used for outlining the text, if Null then we will not outline
         /// </summary>
-        public IPen<TPixel> Pen { get; set; }
+        public IPen<TPixel> Pen { get; }
 
         /// <summary>
-        /// Gets or sets the font used to render the text.
+        /// Gets the font used to render the text.
         /// </summary>
-        public Font Font { get; set; }
+        public Font Font { get; }
 
         /// <summary>
-        /// Gets or sets the location to draw the text at.
+        /// Gets the location to draw the text at.
         /// </summary>
-        public PointF Location { get; set; }
+        public PointF Location { get; }
 
         protected override void BeforeImageApply(Image<TPixel> source, Rectangle sourceRectangle)
         {

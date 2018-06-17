@@ -5,6 +5,8 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -40,6 +42,16 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reusable crc for validating chunks.
         /// </summary>
         private readonly Crc32 crc = new Crc32();
+
+        /// <summary>
+        /// The png bit depth
+        /// </summary>
+        private readonly PngBitDepth pngBitDepth;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use 16 bit encoding for supported color types.
+        /// </summary>
+        private readonly bool use16Bit;
 
         /// <summary>
         /// The png color type.
@@ -149,8 +161,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngEncoderCore(MemoryAllocator memoryAllocator, IPngEncoderOptions options)
         {
             this.memoryAllocator = memoryAllocator;
-            this.pngColorType = options.PngColorType;
-            this.pngFilterMethod = options.PngFilterMethod;
+            this.pngBitDepth = options.BitDepth;
+            this.use16Bit = this.pngBitDepth.Equals(PngBitDepth.Bit16);
+            this.pngColorType = options.ColorType;
+            this.pngFilterMethod = options.FilterMethod;
             this.compressionLevel = options.CompressionLevel;
             this.gamma = options.Gamma;
             this.quantizer = options.Quantizer;
@@ -197,8 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                // TODO: How do we set this in the options while keeping the value inline with the PngColorType?
-                this.bitDepth = 8;
+                this.bitDepth = (byte)(this.use16Bit ? 16 : 8);
             }
 
             this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -206,10 +219,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             var header = new PngHeader(
                 width: image.Width,
                 height: image.Height,
-                colorType: this.pngColorType,
                 bitDepth: this.bitDepth,
-                filterMethod: 0, // None
-                compressionMethod: 0,
+                colorType: this.pngColorType,
+                compressionMethod: 0, // None
+                filterMethod: 0,
                 interlaceMethod: 0); // TODO: Can't write interlaced yet.
 
             this.WriteHeaderChunk(stream, header);
@@ -247,28 +260,62 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void CollectGrayscaleBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
-            byte[] rawScanlineArray = this.rawScanline.Array;
-            var rgba = default(Rgba32);
+            // Use ITU-R recommendation 709 to match libpng.
+            const float RX = .2126F;
+            const float GX = .7152F;
+            const float BX = .0722F;
+            Span<byte> rawScanlineSpan = this.rawScanline.GetSpan();
 
-            // Copy the pixels across from the image.
-            // Reuse the chunk type buffer.
-            for (int x = 0; x < this.width; x++)
+            if (this.pngColorType.Equals(PngColorType.Grayscale))
             {
-                // Convert the color to YCbCr and store the luminance
-                // Optionally store the original color alpha.
-                int offset = x * this.bytesPerPixel;
-                rowSpan[x].ToRgba32(ref rgba);
-                byte luminance = (byte)((0.299F * rgba.R) + (0.587F * rgba.G) + (0.114F * rgba.B));
-
-                for (int i = 0; i < this.bytesPerPixel; i++)
+                // TODO: Realistically we should support 1, 2, 4, 8, and 16 bit grayscale images.
+                // we currently do the other types via palette. Maybe RC as I don't understand how the data is packed yet
+                // for 1, 2, and 4 bit grayscale images.
+                if (this.use16Bit)
                 {
-                    if (i == 0)
+                    // 16 bit grayscale
+                    Rgb48 rgb = default;
+                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
                     {
-                        rawScanlineArray[offset] = luminance;
+                        rowSpan[x].ToRgb48(ref rgb);
+                        ushort luminance = (ushort)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
+                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
                     }
-                    else
+                }
+                else
+                {
+                    // 8 bit grayscale
+                    Rgb24 rgb = default;
+                    for (int x = 0; x < rowSpan.Length; x++)
                     {
-                        rawScanlineArray[offset + i] = rgba.A;
+                        rowSpan[x].ToRgb24(ref rgb);
+                        rawScanlineSpan[x] = (byte)((RX * rgb.R) + (GX * rgb.G) + (BX * rgb.B));
+                    }
+                }
+            }
+            else
+            {
+                if (this.use16Bit)
+                {
+                    // 16 bit grayscale + alpha
+                    Rgba64 rgba = default;
+                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 4)
+                    {
+                        rowSpan[x].ToRgba64(ref rgba);
+                        ushort luminance = (ushort)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
+                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
+                        BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.A);
+                    }
+                }
+                else
+                {
+                    // 8 bit grayscale + alpha
+                    Rgba32 rgba = default;
+                    for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 2)
+                    {
+                        rowSpan[x].ToRgba32(ref rgba);
+                        rawScanlineSpan[o] = (byte)((RX * rgba.R) + (GX * rgba.G) + (BX * rgba.B));
+                        rawScanlineSpan[o + 1] = rgba.A;
                     }
                 }
             }
@@ -282,14 +329,54 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void CollectTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: We need to cater for 64bit mode here.
-            if (this.bytesPerPixel == 4)
+            Span<byte> rawScanlineSpan = this.rawScanline.GetSpan();
+
+            switch (this.bytesPerPixel)
             {
-                PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, this.rawScanline.GetSpan(), this.width);
-            }
-            else
-            {
-                PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, this.rawScanline.GetSpan(), this.width);
+                case 4:
+                    {
+                        // 8 bit Rgba
+                        PixelOperations<TPixel>.Instance.ToRgba32Bytes(rowSpan, rawScanlineSpan, this.width);
+                        break;
+                    }
+
+                case 3:
+                    {
+                        // 8 bit Rgb
+                        PixelOperations<TPixel>.Instance.ToRgb24Bytes(rowSpan, rawScanlineSpan, this.width);
+                        break;
+                    }
+
+                case 8:
+                    {
+                        // 16 bit Rgba
+                        Rgba64 rgba = default;
+                        for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 8)
+                        {
+                            rowSpan[x].ToRgba64(ref rgba);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgba.R);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.G);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgba.B);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 6, 2), rgba.A);
+                        }
+
+                        break;
+                    }
+
+                default:
+                    {
+                        // 16 bit Rgb
+                        Rgb48 rgb = default;
+                        for (int x = 0, o = 0; x < rowSpan.Length; x++, o += 6)
+                        {
+                            rowSpan[x].ToRgb48(ref rgb);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), rgb.R);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgb.G);
+                            BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 4, 2), rgb.B);
+                        }
+
+                        break;
+                    }
             }
         }
 
@@ -367,6 +454,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             // early on which shaves a couple of milliseconds off the processing time.
             UpFilter.Encode(scanSpan, prevSpan, this.up.GetSpan(), out int currentSum);
 
+            // TODO: PERF.. We should be breaking out of the encoding for each line as soon as we hit the sum.
+            // That way the above comment would actually be true. It used to be anyway...
+            // If we could use SIMD for none branching filters we could really speed it up.
             int lowestSum = currentSum;
             IManagedByteBuffer actualResult = this.up;
 
@@ -402,26 +492,23 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <returns>The <see cref="int"/></returns>
         private int CalculateBytesPerPixel()
         {
-            // TODO: Cater for 64 bit here and below
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
-                    return 1;
+                    return this.use16Bit ? 2 : 1;
 
                 case PngColorType.GrayscaleWithAlpha:
-                    return 2;
+                    return this.use16Bit ? 4 : 2;
 
                 case PngColorType.Palette:
                     return 1;
 
                 case PngColorType.Rgb:
-                    return 3;
+                    return this.use16Bit ? 6 : 3;
 
                 // PngColorType.RgbWithAlpha
-                // TODO: Maybe figure out a way to detect if there are any transparent
-                // pixels and encode RGB if none.
                 default:
-                    return 4;
+                    return this.use16Bit ? 8 : 4;
             }
         }
 

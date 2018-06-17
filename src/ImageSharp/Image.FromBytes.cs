@@ -176,6 +176,33 @@ namespace SixLabors.ImageSharp
 #if !NETSTANDARD1_1
 
         /// <summary>
+        /// By reading the header on the provided byte array this calculates the images format.
+        /// </summary>
+        /// <param name="data">The byte array containing encoded image data to read the header from.</param>
+        /// <returns>The format or null if none found.</returns>
+        public static IImageFormat DetectFormat(ReadOnlySpan<byte> data)
+        {
+            return DetectFormat(Configuration.Default, data);
+        }
+
+        /// <summary>
+        /// By reading the header on the provided byte array this calculates the images format.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="data">The byte array containing encoded image data to read the header from.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        public static unsafe IImageFormat DetectFormat(Configuration config, ReadOnlySpan<byte> data)
+        {
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                {
+                    return DetectFormat(config, stream);
+                }
+            }
+        }
+
+        /// <summary>
         /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte span.
         /// </summary>
         /// <param name="data">The byte span containing image data.</param>

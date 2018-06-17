@@ -580,13 +580,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.stream.Read(palette, 0, colorMapSize);
             }
 
-            // TODO: ReSharper tells this expression is always false, looks like he's pretty right about it:
-            if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
-            {
-                throw new ArgumentOutOfRangeException(
-                    $"The input bmp '{this.infoHeader.Width}x{this.infoHeader.Height}' is "
-                    + $"bigger then the max allowed size '{int.MaxValue}x{int.MaxValue}'");
-            }
+            this.infoHeader.VerifyDimensions();
         }
     }
 }

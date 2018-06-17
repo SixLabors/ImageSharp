@@ -22,23 +22,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using (var source = new Image<Rgba32>(1024, 768))
             using (var target = new Image<Rgba32>(1024, 768))
             {
-                using (PixelAccessor<Rgba32> sourcePixels = source.Lock())
-                using (PixelAccessor<Rgba32> targetPixels = target.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        source.Height,
-                        Configuration.Default.ParallelOptions,
-                        y =>
+                Buffer2D<Rgba32> sourcePixels = source.GetRootFramePixelBuffer();
+                Buffer2D<Rgba32> targetPixels = target.GetRootFramePixelBuffer();
+                Parallel.For(
+                    0,
+                    source.Height,
+                    Configuration.Default.ParallelOptions,
+                    y =>
+                        {
+                            for (int x = 0; x < source.Width; x++)
                             {
-                                for (int x = 0; x < source.Width; x++)
-                                {
-                                    targetPixels[x, y] = sourcePixels[x, y];
-                                }
-                            });
+                                targetPixels[x, y] = sourcePixels[x, y];
+                            }
+                        });
 
-                    return targetPixels[0, 0];
-                }
+                return targetPixels[0, 0];
             }
         }
 
@@ -48,14 +46,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using (var source = new Image<Rgba32>(1024, 768))
             using (var target = new Image<Rgba32>(1024, 768))
             {
-                using (PixelAccessor<Rgba32> sourcePixels = source.Lock())
-                using (PixelAccessor<Rgba32> targetPixels = target.Lock())
-                {
-                    Parallel.For(
-                        0,
-                        source.Height,
-                        Configuration.Default.ParallelOptions,
-                        y =>
+                Buffer2D<Rgba32> sourcePixels = source.GetRootFramePixelBuffer();
+                Buffer2D<Rgba32> targetPixels = target.GetRootFramePixelBuffer();
+                Parallel.For(
+                    0,
+                    source.Height,
+                    Configuration.Default.ParallelOptions,
+                    y =>
                         {
                             Span<Rgba32> sourceRow = sourcePixels.GetRowSpan(y);
                             Span<Rgba32> targetRow = targetPixels.GetRowSpan(y);
@@ -66,8 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                             }
                         });
 
-                    return targetPixels[0, 0];
-                }
+                return targetPixels[0, 0];
             }
         }
 

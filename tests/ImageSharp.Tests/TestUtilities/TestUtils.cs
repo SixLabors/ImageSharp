@@ -15,6 +15,7 @@ using SixLabors.Primitives;
 namespace SixLabors.ImageSharp.Tests
 {
     using SixLabors.ImageSharp.Advanced;
+    using SixLabors.Memory;
 
     /// <summary>
     /// Various utility and extension methods.
@@ -63,36 +64,30 @@ namespace SixLabors.ImageSharp.Tests
             var rgb1 = default(Rgb24);
             var rgb2 = default(Rgb24);
 
-            using (PixelAccessor<TPixel> pixA = a.Lock())
+            Buffer2D<TPixel> pixA = a.GetRootFramePixelBuffer();
+            Buffer2D<TPixel> pixB = b.GetRootFramePixelBuffer();
+            for (int y = 0; y < a.Height; y++)
             {
-                using (PixelAccessor<TPixel> pixB = b.Lock())
+                for (int x = 0; x < a.Width; x++)
                 {
-                    for (int y = 0; y < a.Height; y++)
+                    TPixel ca = pixA[x, y];
+                    TPixel cb = pixB[x, y];
+
+                    if (compareAlpha)
                     {
-                        for (int x = 0; x < a.Width; x++)
+                        if (!ca.Equals(cb))
                         {
-                            TPixel ca = pixA[x, y];
-                            TPixel cb = pixB[x, y];
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        ca.ToRgb24(ref rgb1);
+                        cb.ToRgb24(ref rgb2);
 
-                            if (compareAlpha)
-                            {
-                                if (!ca.Equals(cb))
-                                {
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                ca.ToRgb24(ref rgb1);
-                                cb.ToRgb24(ref rgb2);
-
-                                if (rgb1.R != rgb2.R ||
-                                    rgb1.G != rgb2.G ||
-                                    rgb1.B != rgb2.B)
-                                {
-                                    return false;
-                                }
-                            }
+                        if (rgb1.R != rgb2.R || rgb1.G != rgb2.G || rgb1.B != rgb2.B)
+                        {
+                            return false;
                         }
                     }
                 }

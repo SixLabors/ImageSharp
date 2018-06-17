@@ -11,6 +11,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.Primitives;
+
     public partial class ImageTests
     {
         /// <summary>
@@ -27,6 +29,18 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.Equal(this.TestFormat.Sample<Rgba32>(), img);
 
                 this.TestFormat.VerifyDecodeCall(this.Marker, this.TopLevelConfiguration);
+            }
+
+            [Fact]
+            public void UseGlobalConfiguration()
+            {
+                byte[] data = TestFile.Create(TestImages.Bmp.F).Bytes;
+
+                using (var stream = new MemoryStream(data))
+                using (var img = Image.Load(stream))
+                {
+                    Assert.Equal(new Size(108, 202), img.Size());
+                }
             }
 
             [Fact]

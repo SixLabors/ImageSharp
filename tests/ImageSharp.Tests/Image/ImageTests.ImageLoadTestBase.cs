@@ -21,6 +21,12 @@
 
             protected Mock<IImageFormat> localImageFormatMock;
 
+            protected readonly string MockFilePath = Guid.NewGuid().ToString();
+
+            internal readonly Mock<IFileSystem> localFileSystemMock = new Mock<IFileSystem>();
+
+            protected readonly TestFileSystem topLevelFileSystem = new TestFileSystem();
+
             public Configuration LocalConfiguration { get; }
 
             public TestFormat TestFormat { get; } = new TestFormat();
@@ -67,8 +73,12 @@
                 this.Marker = Guid.NewGuid().ToByteArray();
                 this.DataStream = this.TestFormat.CreateStream(this.Marker);
 
-                
+                this.localFileSystemMock.Setup(x => x.OpenRead(this.MockFilePath)).Returns(this.DataStream);
+                this.topLevelFileSystem.AddFile(this.MockFilePath, this.DataStream);
+                this.LocalConfiguration.FileSystem = this.localFileSystemMock.Object;
+                this.TopLevelConfiguration.FileSystem = this.topLevelFileSystem;
             }
+
             public void Dispose()
             {
                 // clean up the global object;

@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
 
-                Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
+                Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 switch (this.infoHeader.Compression)
                 {
@@ -580,7 +580,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 this.stream.Read(palette, 0, colorMapSize);
             }
 
-            // TODO: ReSharper tells this expression is always true, looks like he's pretty right about it:
+            // TODO: ReSharper tells this expression is always false, looks like he's pretty right about it:
             if (this.infoHeader.Width > int.MaxValue || this.infoHeader.Height > int.MaxValue)
             {
                 throw new ArgumentOutOfRangeException(

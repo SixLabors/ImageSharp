@@ -17,10 +17,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
     using System;
     using System.Linq;
     using System.Text;
+    using SixLabors.ImageSharp.Processing.Drawing.Brushes;
     using SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes;
     using SixLabors.ImageSharp.Processing.Drawing.Pens;
     using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
     using SixLabors.Primitives;
+    using SixLabors.Shapes;
 
     [GroupOutput("Drawing/Text")]
     public class DrawTextOnImageTests
@@ -159,6 +161,45 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize), null, Pens.DashDot(color, 3), new PointF(x, y)));
                 },
                 $"pen_{fontName}-{fontSize}-{fnDisplayText}-({x},{y})",
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: true);
+        }
+
+
+        [Theory]
+        [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, "SixLaborsSampleAB.woff", AB)]
+        [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50,  "OpenSans-Regular.ttf", TestText)]
+        public void FontShapesAreRenderedCorrectlyAlongAPath<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int fontSize,
+            string fontName,
+            string text)
+            where TPixel : struct, IPixel<TPixel>
+        {
+
+            Font font = CreateFont(fontName, fontSize);
+            string fnDisplayText = text.Replace("\n", "");
+            fnDisplayText = fnDisplayText.Substring(0, Math.Min(fnDisplayText.Length, 4));
+            TPixel colorOutline = NamedColors<TPixel>.Black;
+            TPixel colorFill = NamedColors<TPixel>.Gray;
+
+            provider.VerifyOperation(
+                ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
+                img =>
+                {
+
+                    IPath path = new Path(new LinearLineSegment(new Point(0, img.Height), new Point(img.Width, 0)));
+                    img.Mutate(c => c.DrawText(
+                        new TextGraphicsOptions {
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Top
+                        } ,
+                        text, new Font(font, fontSize),
+                        Brushes.Solid(colorFill)
+                        , Pens.DashDot(colorOutline, 3), 
+                        path));
+                },
+                $"pen_{fontName}-{fontSize}-{fnDisplayText}",
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: true);
         }

@@ -57,20 +57,19 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkVectorConvert")]
         public CoreSize BulkVectorConvert()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
                     amounts.GetSpan().Fill(1);
-                    
-                    using (PixelAccessor<Rgba32> pixels = image.Lock())
+
+                    Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+                    for (int y = 0; y < image.Height; y++)
                     {
-                        for (int y = 0; y < image.Height; y++)
-                        {
-                            Span<Rgba32> span = pixels.GetRowSpan(y);
-                            this.BulkVectorConvert(span, span, span, amounts.GetSpan());
-                        }
+                        Span<Rgba32> span = pixels.GetRowSpan(y);
+                        this.BulkVectorConvert(span, span, span, amounts.GetSpan());
                     }
+
                     return new CoreSize(image.Width, image.Height);
                 }
             }
@@ -79,18 +78,16 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkPixelConvert")]
         public CoreSize BulkPixelConvert()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
                 using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
                     amounts.GetSpan().Fill(1);
-                    using (PixelAccessor<Rgba32> pixels = image.Lock())
+                    Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+                    for (int y = 0; y < image.Height; y++)
                     {
-                        for (int y = 0; y < image.Height; y++)
-                        {
-                            Span<Rgba32> span = pixels.GetRowSpan(y);
-                            this.BulkPixelConvert(span, span, span, amounts.GetSpan());
-                        }
+                        Span<Rgba32> span = pixels.GetRowSpan(y);
+                        this.BulkPixelConvert(span, span, span, amounts.GetSpan());
                     }
 
                     return new CoreSize(image.Width, image.Height);

@@ -42,7 +42,6 @@ namespace SixLabors.ImageSharp.Tests
 
             this.LocalConfiguration.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
 
-            TestFormat.RegisterGlobalTestFormat();
             this.Marker = Guid.NewGuid().ToByteArray();
             this.DataStream = TestFormat.GlobalTestFormat.CreateStream(this.Marker);
 

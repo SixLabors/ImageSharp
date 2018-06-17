@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     public sealed class ExifProfile
     {
         /// <summary>
+        /// The EXIF ID code: ASCII "Exif" followed by two zeros.
+        /// </summary>
+        private static readonly byte[] ExifCode = { 69, 120, 105, 102, 0, 0 };
+
+        /// <summary>
         /// The byte array to read the EXIF profile from.
         /// </summary>
         private readonly byte[] data;
@@ -270,12 +275,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return false;
             }
 
-            // The EXIF ID code: ASCII "Exif" followed by two zeros.
-            byte[] exifCode = { 69, 120, 105, 102, 0, 0 };
-            int exifLength = exifCode.Length;
-            for (int i = 0; i < exifCode.Length; i++)
+            int exifLength = ExifCode.Length;
+            for (int i = 0; i < ExifCode.Length; i++)
             {
-                if (exifBytes[i] != exifCode[i])
+                if (exifBytes[i] != ExifCode[i])
                 {
                     return false;
                 }

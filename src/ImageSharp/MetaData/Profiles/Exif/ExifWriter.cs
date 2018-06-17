@@ -106,27 +106,19 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             int i = 0;
             if (includeExifIdCode)
             {
-                result[0] = (byte)'E';
-                result[1] = (byte)'x';
-                result[2] = (byte)'i';
-                result[3] = (byte)'f';
-                result[4] = 0x00;
-                result[5] = 0x00;
-                result[6] = (byte)'I';
-                result[7] = (byte)'I';
-                result[8] = 0x2A;
-                result[9] = 0x00;
-                i = 10;
+                result[i++] = (byte)'E';
+                result[i++] = (byte)'x';
+                result[i++] = (byte)'i';
+                result[i++] = (byte)'f';
+                result[i++] = 0x00;
+                result[i++] = 0x00;
             }
-            else
-            {
-                // the byte order marker followed by the number 42 and a 0
-                result[0] = (byte)'I';
-                result[1] = (byte)'I';
-                result[2] = 0x2A;
-                result[3] = 0x00;
-                i = 4;
-            }
+
+            // the byte order marker for little-endian, followed by the number 42 and a 0
+            result[i++] = (byte)'I';
+            result[i++] = (byte)'I';
+            result[i++] = 0x2A;
+            result[i++] = 0x00;
 
             uint ifdOffset = ((uint)i - startIndex) + 4;
             uint thumbnailOffset = ifdOffset + ifdLength + exifLength + gpsLength;

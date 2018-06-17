@@ -16,23 +16,10 @@ namespace SixLabors.ImageSharp.Tests
     {
         public class Load_FileSystemPath : ImageLoadTestBase
         {
-            private readonly string filePath = Guid.NewGuid().ToString();
-            private readonly Mock<IFileSystem> localFileSystemMock = new Mock<IFileSystem>();
-            private readonly TestFileSystem topLevelFileSystem = new TestFileSystem();
-
-            public Load_FileSystemPath()
-            {
-                this.localFileSystemMock.Setup(x => x.OpenRead(this.filePath)).Returns(this.DataStream);
-
-                this.topLevelFileSystem.AddFile(this.filePath, this.DataStream);
-                this.LocalConfiguration.FileSystem = this.localFileSystemMock.Object;
-                this.TopLevelConfiguration.FileSystem = this.topLevelFileSystem;
-            }
-
             [Fact]
             public void BasicCase()
             {
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.filePath);
+                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.MockFilePath);
 
                 Assert.NotNull(img);
 
@@ -42,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void UseLocalConfiguration()
             {
-                var img = Image.Load<Rgba32>(this.LocalConfiguration, this.filePath);
+                var img = Image.Load<Rgba32>(this.LocalConfiguration, this.MockFilePath);
 
                 Assert.NotNull(img);
 
@@ -52,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void UseCustomDecoder()
             {
-                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.filePath, this.localDecoder.Object);
+                var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
 
                 Assert.NotNull(img);
                 this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, this.DataStream));

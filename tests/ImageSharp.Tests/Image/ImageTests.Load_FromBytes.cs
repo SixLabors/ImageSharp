@@ -95,9 +95,11 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void UseGlobalConfiguration(bool useSpan)
             {
-                Image<Rgba32> img = useSpan ? Image.Load(this.ActualImageSpan) : Image.Load(this.ActualImageBytes);
-
-                Assert.Equal(new Size(108, 202), img.Size());
+                using (Image<Rgba32> img =
+                    useSpan ? Image.Load(this.ActualImageSpan) : Image.Load(this.ActualImageBytes))
+                {
+                    Assert.Equal(new Size(108, 202), img.Size());
+                }
             }
 
             [Theory]
@@ -105,11 +107,12 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void UseGlobalConfiguration_NonDefaultPixelType(bool useSpan)
             {
-                Image<Rgb24> img = useSpan
-                                       ? Image.Load<Rgb24>(this.ActualImageSpan)
-                                       : Image.Load<Rgb24>(this.ActualImageBytes);
-
-                Assert.Equal(new Size(108, 202), img.Size());
+                using (Image<Rgb24> img = useSpan
+                                              ? Image.Load<Rgb24>(this.ActualImageSpan)
+                                              : Image.Load<Rgb24>(this.ActualImageBytes))
+                {
+                    Assert.Equal(new Size(108, 202), img.Size());
+                }
             }
         }
     }

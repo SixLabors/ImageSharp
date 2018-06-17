@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
     using BenchmarkDotNet.Attributes;
     using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
 
     public class CopyPixels : BenchmarkBase
     {

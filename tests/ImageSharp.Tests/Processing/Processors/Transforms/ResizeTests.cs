@@ -84,6 +84,28 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        public void Resize_ThrowsForWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image0 = provider.GetImage())
+            {
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOfPixelData(image0);
+
+                using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
+                {
+                    Assert.ThrowsAny<Exception>(
+                        () =>
+                            {
+                                image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true));
+                            });
+                }
+            }
+        }
+
+
         [Theory]
         [WithFile(TestImages.Png.Kaboom, DefaultPixelType)]
         public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider)

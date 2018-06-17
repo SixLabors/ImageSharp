@@ -4,8 +4,8 @@
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryManager.AllocateManagedByteBuffer(maxHeaderSize))
+            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(maxHeaderSize))
             {
                 long startPosition = stream.Position;
                 stream.Read(buffer.Array, 0, maxHeaderSize);
                 stream.Position = startPosition;
-                return config.ImageFormatsManager.FormatDetectors.Select(x => x.DetectFormat(buffer.Span)).LastOrDefault(x => x != null);
+                return config.ImageFormatsManager.FormatDetectors.Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
             }
         }
 

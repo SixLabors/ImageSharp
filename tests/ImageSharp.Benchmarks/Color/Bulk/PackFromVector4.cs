@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats;
 
     [Config(typeof(Config.ShortClr))]
@@ -23,8 +23,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
-            this.source = Configuration.Default.MemoryManager.Allocate<Vector4>(this.Count);
+            this.destination = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.source = Configuration.Default.MemoryAllocator.Allocate<Vector4>(this.Count);
         }
 
         [GlobalCleanup]
@@ -37,8 +37,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            ref Vector4 s = ref MemoryMarshal.GetReference(this.source.Span);
-            ref TPixel d = ref MemoryMarshal.GetReference(this.destination.Span);
+            ref Vector4 s = ref MemoryMarshal.GetReference(this.source.GetSpan());
+            ref TPixel d = ref MemoryMarshal.GetReference(this.destination.GetSpan());
             
             for (int i = 0; i < this.Count; i++)
             {
@@ -49,13 +49,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromVector4(this.source.Span, this.destination.Span, this.Count);
+            new PixelOperations<TPixel>().PackFromVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.PackFromVector4(this.source.Span, this.destination.Span, this.Count);
+            PixelOperations<TPixel>.Instance.PackFromVector4(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

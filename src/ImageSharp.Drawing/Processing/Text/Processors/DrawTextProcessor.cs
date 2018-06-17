@@ -7,13 +7,13 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 VerticalAlignment = this.Options.VerticalAlignment
             };
 
-            this.textRenderer = new CachingGlyphRenderer(source.GetMemoryManager(), this.Text.Length, this.Pen, this.Brush != null);
+            this.textRenderer = new CachingGlyphRenderer(source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
             this.textRenderer.Options = (GraphicsOptions)this.Options;
             TextRenderer.RenderTextTo(this.textRenderer, this.Text, style);
         }
@@ -121,11 +121,29 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                             IBuffer2D<float> buffer = operation.Map;
                             int startY = operation.Location.Y;
                             int startX = operation.Location.X;
+                            int offSetSpan = 0;
+                            if (startX < 0)
+                            {
+                                offSetSpan = -startX;
+                                startX = 0;
+                            }
+
+                            int fistRow = 0;
+                            if (startY < 0)
+                            {
+                                fistRow = -startY;
+                            }
+
                             int end = operation.Map.Height;
-                            for (int row = 0; row < end; row++)
+
+                            int maxHeight = source.Height - startY;
+                            end = Math.Min(end, maxHeight);
+
+                            for (int row = fistRow; row < end; row++)
                             {
                                 int y = startY + row;
-                                app.Apply(buffer.GetRowSpan(row), startX, y);
+                                Span<float> span = buffer.GetRowSpan(row).Slice(offSetSpan);
+                                app.Apply(span, startX, y);
                             }
                         }
                     }
@@ -146,7 +164,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             private Point currentRenderPosition = default(Point);
             private int currentRenderingGlyph = 0;
-
+            private int offset = 0;
             private PointF currentPoint = default(PointF);
             private HashSet<int> renderedGlyphs = new HashSet<int>();
             private Dictionary<int, Buffer2D<float>> glyphMap;
@@ -155,12 +173,13 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             private bool renderFill = false;
             private bool raterizationRequired = false;
 
-            public CachingGlyphRenderer(MemoryManager memoryManager, int size, IPen pen, bool renderFill)
+            public CachingGlyphRenderer(MemoryAllocator memoryManager, int size, IPen pen, bool renderFill)
             {
                 this.MemoryManager = memoryManager;
                 this.Pen = pen;
                 this.renderFill = renderFill;
                 this.renderOutline = pen != null;
+                this.offset = 2;
                 if (this.renderFill)
                 {
                     this.FillOperations = new List<DrawingOperation>(size);
@@ -169,6 +188,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
                 if (this.renderOutline)
                 {
+                    this.offset = (int)MathF.Ceiling((pen.StrokeWidth * 2) + 2);
                     this.OutlineOperations = new List<DrawingOperation>(size);
                     this.glyphMapPen = new Dictionary<int, Buffer2D<float>>();
                 }
@@ -180,7 +200,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public List<DrawingOperation> OutlineOperations { get; }
 
-            public MemoryManager MemoryManager { get; internal set; }
+            public MemoryAllocator MemoryManager { get; internal set; }
 
             public IPen Pen { get; internal set; }
 
@@ -194,6 +214,9 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             public bool BeginGlyph(RectangleF bounds, int cacheKey)
             {
                 this.currentRenderPosition = Point.Truncate(bounds.Location);
+
+                // we have offset our rendering origion a little bit down to prevent edge cropping, move the draw origin up to compensate
+                this.currentRenderPosition = new Point(this.currentRenderPosition.X - this.offset, this.currentRenderPosition.Y - this.offset);
                 this.currentRenderingGlyph = cacheKey;
                 if (this.renderedGlyphs.Contains(cacheKey))
                 {
@@ -206,7 +229,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 this.builder.Clear();
 
                 // ensure all glyphs render around [zero, zero]  so offset negative root positions so when we draw the glyph we can offet it back
-                this.builder.SetOrigin(new PointF(-(int)bounds.X, -(int)bounds.Y));
+                this.builder.SetOrigin(new PointF(-(int)bounds.X + this.offset, -(int)bounds.Y + this.offset));
 
                 this.raterizationRequired = true;
                 return true;
@@ -298,7 +321,9 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             private Buffer2D<float> Render(IPath path)
             {
-                var size = Rectangle.Ceiling(path.Bounds);
+                Size size = Rectangle.Ceiling(path.Bounds).Size;
+                size = new Size(size.Width + (this.offset * 2), size.Height + (this.offset * 2));
+
                 float subpixelCount = 4;
                 float offset = 0.5f;
                 if (this.Options.Antialias)
@@ -330,8 +355,8 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                         {
                             var start = new PointF(path.Bounds.Left - 1, subPixel);
                             var end = new PointF(path.Bounds.Right + 1, subPixel);
-                            Span<PointF> intersectionSpan = rowIntersectionBuffer.Span;
-                            Span<float> buffer = bufferBacking.Span;
+                            Span<PointF> intersectionSpan = rowIntersectionBuffer.GetSpan();
+                            Span<float> buffer = bufferBacking.GetSpan();
                             int pointsFound = path.FindIntersections(start, end, intersectionSpan);
 
                             if (pointsFound == 0)

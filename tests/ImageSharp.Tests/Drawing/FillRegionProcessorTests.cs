@@ -4,7 +4,8 @@
 using System.Numerics;
 
 using Moq;
-
+using System;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
@@ -13,13 +14,15 @@ using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.Primitives;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
+    
+
     public class FillRegionProcessorTests
     {
+        
         [Theory]
         [InlineData(true, 1, 4)]
         [InlineData(true, 2, 4)]
@@ -29,21 +32,20 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [InlineData(false, 16, 4)] // we always do 4 sub=pixels when antialising is off.
         public void MinimumAntialiasSubpixelDepth(bool antialias, int antialiasSubpixelDepth, int expectedAntialiasSubpixelDepth)
         {
-            var bounds = new SixLabors.Primitives.Rectangle(0, 0, 1, 1);
+            var bounds = new Rectangle(0, 0, 1, 1);
 
             var brush = new Mock<IBrush<Rgba32>>();
-            var region = new Mock<Region>();
-            region.Setup(x => x.Bounds).Returns(bounds);
+            var region = new MockRegion2(bounds);
 
             var options = new GraphicsOptions(antialias)
             {
                 AntialiasSubpixelDepth = 1
             };
-            var processor = new FillRegionProcessor<Rgba32>(brush.Object, region.Object, options);
+            var processor = new FillRegionProcessor<Rgba32>(brush.Object, region, options);
             var img = new Image<Rgba32>(1, 1);
             processor.Apply(img, bounds);
 
-            region.Verify(x => x.Scan(It.IsAny<float>(), It.IsAny<float[]>(), It.IsAny<int>()), Times.Exactly(4));
+            Assert.Equal(4, region.ScanInvocationCounter);
         }
 
         [Fact]
@@ -52,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             var bounds = new Rectangle(-100, -10, 10, 10);
             var brush = new Mock<IBrush<Rgba32>>();
             var options = new GraphicsOptions(true);
-            var processor = new FillRegionProcessor<Rgba32>(brush.Object, new MockRegion(), options);
+            var processor = new FillRegionProcessor<Rgba32>(brush.Object, new MockRegion1(), options);
             var img = new Image<Rgba32>(10, 10);
             processor.Apply(img, bounds);
         }
@@ -71,13 +73,11 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         }
 
         // Mocking the region throws an error in netcore2.0
-        private class MockRegion : Region
+        private class MockRegion1 : Region
         {
             public override Rectangle Bounds => new Rectangle(-100, -10, 10, 10);
 
-            public override int MaxIntersections => 10;
-
-            public override int Scan(float y, float[] buffer, int offset)
+            public override int Scan(float y, Span<float> buffer, Configuration configuration)
             {
                 if (y < 5)
                 {
@@ -85,6 +85,28 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     buffer[1] = 100f;
                     return 2;
                 }
+                return 0;
+            }
+
+            public override int MaxIntersections => 10;
+        }
+
+        private class MockRegion2 : Region
+        {
+            public MockRegion2(Rectangle bounds)
+            {
+                this.Bounds = bounds;
+            }
+
+            public override int MaxIntersections => 100;
+
+            public override Rectangle Bounds { get; }
+
+            public int ScanInvocationCounter { get; private set; }
+
+            public override int Scan(float y, Span<float> buffer, Configuration configuration)
+            {
+                this.ScanInvocationCounter++;
                 return 0;
             }
         }

@@ -680,6 +680,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.Grayscale:
 
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
+
+                    // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
                     ReadOnlySpan<byte> scanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
 
                     if (!this.hasTrans)
@@ -896,6 +898,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.Grayscale:
 
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
+
+                    // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
                     ReadOnlySpan<byte> scanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
 
                     if (!this.hasTrans)

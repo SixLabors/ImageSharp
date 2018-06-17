@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <param name="pen">The pen to apply to the shape.</param>
         // TODO: SixLabors.shape will be moving to a Span/ReadOnlySpan based API shortly use ToArray for now.
         public ShapePath(IPath shape, IPen pen)
-            : base(shape.GenerateOutline(pen.StrokeWidth, pen.StrokePattern.ToArray()))
+            : base(shape.GenerateOutline(pen.StrokeWidth, pen.StrokePattern))
         {
         }
     }

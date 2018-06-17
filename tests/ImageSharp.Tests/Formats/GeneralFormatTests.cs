@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     using System;
     using System.Reflection;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Quantization;
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             IQuantizer quantizer = GetQuantizer(quantizerName);
 
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests
                 image.DebugSave(provider, new PngEncoder() { PngColorType = PngColorType.Palette }, testOutputDetails: quantizerName);
             }
 
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
+            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
 
             //string path = TestEnvironment.CreateOutputDirectory("Quantize");
 

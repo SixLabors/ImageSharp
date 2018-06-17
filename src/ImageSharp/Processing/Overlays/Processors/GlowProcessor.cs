@@ -5,10 +5,10 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Overlays.Processors
@@ -112,10 +112,10 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
             }
 
             int width = maxX - minX;
-            using (IBuffer<TPixel> rowColors = source.MemoryManager.Allocate<TPixel>(width))
+            using (IBuffer<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
             {
                 // Be careful! Do not capture rowColorsSpan in the lambda below!
-                Span<TPixel> rowColorsSpan = rowColors.Span;
+                Span<TPixel> rowColorsSpan = rowColors.GetSpan();
 
                 for (int i = 0; i < width; i++)
                 {
@@ -128,9 +128,9 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
                     configuration.ParallelOptions,
                     y =>
                     {
-                        using (IBuffer<float> amounts = source.MemoryManager.Allocate<float>(width))
+                        using (IBuffer<float> amounts = source.MemoryAllocator.Allocate<float>(width))
                         {
-                            Span<float> amountsSpan = amounts.Span;
+                            Span<float> amountsSpan = amounts.GetSpan();
                             int offsetY = y - startY;
                             int offsetX = minX - startX;
                             for (int i = 0; i < width; i++)
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Overlays.Processors
 
                             Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
 
-                            this.blender.Blend(source.MemoryManager, destination, destination, rowColors.Span, amountsSpan);
+                            this.blender.Blend(source.MemoryAllocator, destination, destination, rowColors.GetSpan(), amountsSpan);
                         }
                     });
             }

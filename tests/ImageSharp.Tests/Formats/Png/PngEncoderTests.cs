@@ -130,8 +130,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 var encoder = new PngEncoder
                 {
-                    PngColorType = pngColorType,
-                    PngFilterMethod = pngFilterMethod,
+                    ColorType = pngColorType,
+                    FilterMethod = pngFilterMethod,
                     CompressionLevel = compressionLevel,
                     Quantizer = new WuQuantizer(paletteSize)
                 };

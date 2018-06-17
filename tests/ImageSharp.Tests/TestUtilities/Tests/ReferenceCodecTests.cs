@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
                     sourceImage.Mutate(c => c.MakeOpaque());
                 }
 
-                var encoder = new PngEncoder() { PngColorType = pngColorType };
+                var encoder = new PngEncoder() { ColorType = pngColorType };
                 return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
             }
         }

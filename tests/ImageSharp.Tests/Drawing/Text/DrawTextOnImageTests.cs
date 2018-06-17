@@ -52,6 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
+                ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
                 img =>
                 {
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize), color, new PointF(x, y)));
@@ -95,6 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
+                ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
                 img =>
                     {
                         img.Mutate(c => c.DrawText(textOptions, sb.ToString(), font, color, new PointF(10, 5)));
@@ -125,7 +127,36 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
                 img =>
                 {
-                    img.Mutate(c => c.DrawText(text, new Font(font, fontSize),null, Pens.Solid(color, 1), new PointF(x, y)));
+                    img.Mutate(c => c.DrawText(text, new Font(font, fontSize), null, Pens.Solid(color, 1), new PointF(x, y)));
+                },
+                $"pen_{fontName}-{fontSize}-{fnDisplayText}-({x},{y})",
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: true);
+        }
+
+        [Theory]
+        [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
+        [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "OpenSans-Regular.ttf", TestText)]
+        [WithSolidFilledImages(1100, 200, "White", PixelTypes.Rgba32, 50, 150, 100, "OpenSans-Regular.ttf", TestText)]
+        public void FontShapesAreRenderedCorrectlyWithAPenPatterned<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int fontSize,
+            int x,
+            int y,
+            string fontName,
+            string text)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Font font = CreateFont(fontName, fontSize);
+            string fnDisplayText = text.Replace("\n", "");
+            fnDisplayText = fnDisplayText.Substring(0, Math.Min(fnDisplayText.Length, 4));
+            TPixel color = NamedColors<TPixel>.Black;
+
+            provider.VerifyOperation(
+                ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
+                img =>
+                {
+                    img.Mutate(c => c.DrawText(text, new Font(font, fontSize), null, Pens.DashDot(color, 3), new PointF(x, y)));
                 },
                 $"pen_{fontName}-{fontSize}-{fnDisplayText}-({x},{y})",
                 appendPixelTypeToFileName: false,

@@ -37,29 +37,22 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Processors
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FillRegionProcessor{TPixel}" /> class.
+        /// Gets the brush.
         /// </summary>
-        public FillRegionProcessor()
-        {
-        }
+        public IBrush<TPixel> Brush { get; }
 
         /// <summary>
-        /// Gets or sets the brush.
+        /// Gets the region that this processor applies to.
         /// </summary>
-        public IBrush<TPixel> Brush { get; set; }
+        public Region Region { get; }
 
         /// <summary>
-        /// Gets or sets the region that this processor applies to.
-        /// </summary>
-        public Region Region { get; set; }
-
-        /// <summary>
-        /// Gets or sets the options.
+        /// Gets the options.
         /// </summary>
         /// <value>
         /// The options.
         /// </value>
-        public GraphicsOptions Options { get; set; }
+        public GraphicsOptions Options { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)

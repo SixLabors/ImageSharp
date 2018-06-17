@@ -173,6 +173,8 @@ namespace SixLabors.ImageSharp
             }
         }
 
+#if !NETSTANDARD1_1
+
         /// <summary>
         /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte span.
         /// </summary>
@@ -205,10 +207,16 @@ namespace SixLabors.ImageSharp
         /// <param name="data">The byte span containing encoded image data.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data)
+        public static unsafe Image<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data)
             where TPixel : struct, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                {
+                    return Load<TPixel>(config, stream);
+                }
+            }
         }
 
         /// <summary>
@@ -219,10 +227,19 @@ namespace SixLabors.ImageSharp
         /// <param name="decoder">The decoder.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data, IImageDecoder decoder)
+        public static unsafe Image<TPixel> Load<TPixel>(
+            Configuration config,
+            ReadOnlySpan<byte> data,
+            IImageDecoder decoder)
             where TPixel : struct, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                {
+                    return Load<TPixel>(config, stream, decoder);
+                }
+            }
         }
 
         /// <summary>
@@ -233,10 +250,20 @@ namespace SixLabors.ImageSharp
         /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data, out IImageFormat format)
+        public static unsafe Image<TPixel> Load<TPixel>(
+            Configuration config,
+            ReadOnlySpan<byte> data,
+            out IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                {
+                    return Load<TPixel>(config, stream, out format);
+                }
+            }
         }
+#endif
     }
 }

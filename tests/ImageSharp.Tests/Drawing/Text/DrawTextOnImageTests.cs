@@ -31,10 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
 
         private const string TestText = "Sphinx of black quartz, judge my vow\n0123456789";
 
-        private const string TestText2 =
-            "THISISTESTWORDS ";
-
         public static ImageComparer TextDrawingComparer = ImageComparer.TolerantPercentage(0.01f);
+        public static ImageComparer OutlinedTextDrawingComparer = ImageComparer.TolerantPercentage(0.5f, 3);
 
         [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, 0, 0, "SixLaborsSampleAB.woff", AB)]
@@ -124,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
-                TextDrawingComparer,
+                OutlinedTextDrawingComparer,
                 img =>
                 {
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize), null, Pens.Solid(color, 1), new PointF(x, y)));
@@ -151,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
-                TextDrawingComparer,
+                OutlinedTextDrawingComparer,
                 img =>
                 {
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize), null, Pens.DashDot(color, 3), new PointF(x, y)));
@@ -178,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             IPen<TPixel> outlinePen = Pens.DashDot(colorOutline, 3);
 
             provider.VerifyOperation(
-                TextDrawingComparer,
+                OutlinedTextDrawingComparer,
                 img =>
                     {
                         IPath path = new Path(new LinearLineSegment(new Point(0, img.Height), new Point(img.Width, 0)));

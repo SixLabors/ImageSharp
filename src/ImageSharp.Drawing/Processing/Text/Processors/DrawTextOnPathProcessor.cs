@@ -4,8 +4,6 @@
 using System;
 using System.Threading.Tasks;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;

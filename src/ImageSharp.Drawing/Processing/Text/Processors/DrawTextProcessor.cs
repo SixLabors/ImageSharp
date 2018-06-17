@@ -7,13 +7,13 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
 
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 VerticalAlignment = this.Options.VerticalAlignment
             };
 
-            this.textRenderer = new CachingGlyphRenderer(source.GetMemoryManager(), this.Text.Length, this.Pen, this.Brush != null);
+            this.textRenderer = new CachingGlyphRenderer(source.GetMemoryAllocator(), this.Text.Length, this.Pen, this.Brush != null);
             this.textRenderer.Options = (GraphicsOptions)this.Options;
             TextRenderer.RenderTextTo(this.textRenderer, this.Text, style);
         }
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             private bool renderFill = false;
             private bool raterizationRequired = false;
 
-            public CachingGlyphRenderer(MemoryManager memoryManager, int size, IPen pen, bool renderFill)
+            public CachingGlyphRenderer(MemoryAllocator memoryManager, int size, IPen pen, bool renderFill)
             {
                 this.MemoryManager = memoryManager;
                 this.Pen = pen;
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public List<DrawingOperation> OutlineOperations { get; }
 
-            public MemoryManager MemoryManager { get; internal set; }
+            public MemoryAllocator MemoryManager { get; internal set; }
 
             public IPen Pen { get; internal set; }
 
@@ -355,8 +355,8 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                         {
                             var start = new PointF(path.Bounds.Left - 1, subPixel);
                             var end = new PointF(path.Bounds.Right + 1, subPixel);
-                            Span<PointF> intersectionSpan = rowIntersectionBuffer.Span;
-                            Span<float> buffer = bufferBacking.Span;
+                            Span<PointF> intersectionSpan = rowIntersectionBuffer.GetSpan();
+                            Span<float> buffer = bufferBacking.GetSpan();
                             int pointsFound = path.FindIntersections(start, end, intersectionSpan);
 
                             if (pointsFound == 0)

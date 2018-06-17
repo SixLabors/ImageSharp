@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Memory managers are used to allocate memory for image processing operations.
     /// </summary>
-    public abstract class MemoryManager
+    public abstract class MemoryAllocator
     {
         /// <summary>
         /// Allocates an <see cref="IBuffer{T}"/> of size <paramref name="length"/>, optionally
@@ -26,16 +26,6 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="clear">A value indicating whether to clean the buffer</param>
         /// <returns>The <see cref="IManagedByteBuffer"/></returns>
         internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear);
-
-        /// <summary>
-        /// Temporal workaround. A method providing a "Buffer" based on a generic array without the 'Unsafe.As()' hackery.
-        /// Should be replaced with 'Allocate()' as soon as SixLabors.Shapes has Span-based API-s!
-        /// </summary>
-        internal BasicArrayBuffer<T> AllocateFake<T>(int length, bool dummy = false)
-            where T : struct
-        {
-            return new BasicArrayBuffer<T>(new T[length]);
-        }
 
         /// <summary>
         /// Releases all retained resources not being in use.

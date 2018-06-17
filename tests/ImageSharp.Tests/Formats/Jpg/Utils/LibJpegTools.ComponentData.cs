@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
     using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
     using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.Primitives;
 
     internal static partial class LibJpegTools
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.HeightInBlocks = heightInBlocks;
                 this.WidthInBlocks = widthInBlocks;
                 this.Index = index;
-                this.SpectralBlocks = Configuration.Default.MemoryManager.Allocate2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
+                this.SpectralBlocks = Configuration.Default.MemoryAllocator.Allocate2D<Block8x8>(this.WidthInBlocks, this.HeightInBlocks);
             }
 
             public Size Size => new Size(this.WidthInBlocks, this.HeightInBlocks);

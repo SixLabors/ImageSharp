@@ -1,12 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using SixLabors.ImageSharp.Memory;
+
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.Tests.Common;
     using SixLabors.Primitives;
 
@@ -21,15 +24,15 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 where T : struct
             {
                 ref T actual = ref MemoryMarshal.GetReference(span);
-                ref T expected = ref Unsafe.Add(ref buffer.DangerousGetPinnableReference(), bufferOffset);
+                ref T expected = ref Unsafe.Add(ref buffer.GetReference(), bufferOffset);
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual), "span does not point to the expected position");
             }
         }
 
-        private MemoryManager MemoryManager { get; } = new MockMemoryManager();
+        private MemoryAllocator MemoryAllocator { get; } = new MockMemoryAllocator();
 
-        private class MockMemoryManager : MemoryManager
+        private class MockMemoryAllocator : MemoryAllocator
         {
             internal override IBuffer<T> Allocate<T>(int length, bool clear)
             {
@@ -58,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(1025, 17)]
         public void Construct(int width, int height)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
@@ -69,9 +72,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateClean()
         {
-            using (Buffer2D<int> buffer = this.MemoryManager.Allocate2D<int>(42, 42, true))
+            using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, true))
             {
-                Span<int> span = buffer.Span;
+                Span<int> span = buffer.GetSpan();
                 for (int j = 0; j < span.Length; j++)
                 {
                     Assert.Equal(0, span[j]);
@@ -85,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 41)]
         public void GetRowSpanY(int width, int height, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
@@ -101,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(17, 42, 0, 41)]
         public void GetRowSpanXY(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
                 Span<TestStructs.Foo> span = buffer.GetRowSpan(x, y);
 
@@ -117,9 +120,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(99, 88, 98, 87)]
         public void Indexer(int width, int height, int x, int y)
         {
-            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryManager.Allocate2D<TestStructs.Foo>(width, height))
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.Buffer.Span;
+                Span<TestStructs.Foo> span = buffer.Buffer.GetSpan();
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 
@@ -128,22 +131,92 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }
         }
-
-        [Fact]
-        public void SwapContents()
+        
+        public class SwapOrCopyContent
         {
-            using (Buffer2D<int> a = this.MemoryManager.Allocate2D<int>(10, 5))
-            using (Buffer2D<int> b = this.MemoryManager.Allocate2D<int>(3, 7))
+            private MemoryAllocator MemoryAllocator { get; } = new MockMemoryAllocator();
+            
+            [Fact]
+            public void WhenBothBuffersAreMemoryOwners_ShouldSwap()
             {
-                IBuffer<int> aa = a.Buffer;
-                IBuffer<int> bb = b.Buffer;
+                using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
+                using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
+                {
+                    IBuffer<int> aa = a.Buffer;
+                    IBuffer<int> bb = b.Buffer;
 
-                Buffer2D<int>.SwapContents(a, b);
+                    Buffer2D<int>.SwapOrCopyContent(a, b);
 
-                Assert.Equal(bb, a.Buffer);
-                Assert.Equal(new Size(3, 7), a.Size());
-                Assert.Equal(new Size(10, 5), b.Size());
+                    Assert.Equal(bb, a.Buffer);
+                    Assert.Equal(aa, b.Buffer);
+                      
+                    Assert.Equal(new Size(3, 7), a.Size());
+                    Assert.Equal(new Size(10, 5), b.Size());
+                }
             }
+
+            [Fact]
+            public void WhenDestIsNotMemoryOwner_SameSize_ShouldCopy()
+            {
+                var data = new Rgba32[3 * 7];
+                var color = new Rgba32(1, 2, 3, 4);
+                
+                var mmg = new TestMemoryManager<Rgba32>(data);
+                var aBuff = new ConsumedBuffer<Rgba32>(mmg.Memory);
+
+                using (Buffer2D<Rgba32> a = new Buffer2D<Rgba32>(aBuff, 3, 7))
+                {
+                    IBuffer<Rgba32> aa = a.Buffer;
+
+                    // Precondition:
+                    Assert.Equal(aBuff, aa);
+
+                    using (Buffer2D<Rgba32> b = this.MemoryAllocator.Allocate2D<Rgba32>(3, 7))
+                    {
+                        IBuffer<Rgba32> bb = b.Buffer;
+                        bb.GetSpan()[10] = color;
+
+                        // Act:
+                        Buffer2D<Rgba32>.SwapOrCopyContent(a, b);
+
+                        // Assert:
+                        Assert.Equal(aBuff, a.Buffer);
+                        Assert.Equal(bb, b.Buffer);
+                    }
+
+                    // Assert:
+                    Assert.Equal(color, a.Buffer.GetSpan()[10]);
+                }
+            }
+
+            [Fact]
+            public void WhenDestIsNotMemoryOwner_DifferentSize_Throws()
+            {
+                var data = new Rgba32[3 * 7];
+                var color = new Rgba32(1, 2, 3, 4);
+                data[10] = color;
+
+                var mmg = new TestMemoryManager<Rgba32>(data);
+                var aBuff = new ConsumedBuffer<Rgba32>(mmg.Memory);
+
+                using (Buffer2D<Rgba32> a = new Buffer2D<Rgba32>(aBuff, 3, 7))
+                {
+                    IBuffer<Rgba32> aa = a.Buffer;
+                    using (Buffer2D<Rgba32> b = this.MemoryAllocator.Allocate2D<Rgba32>(3, 8))
+                    {
+                        IBuffer<Rgba32> bb = b.Buffer;
+
+                        Assert.ThrowsAny<InvalidOperationException>(
+                            () =>
+                                {
+                                    Buffer2D<Rgba32>.SwapOrCopyContent(a, b);
+                                });
+                    }
+
+                    Assert.Equal(color, a.Buffer.GetSpan()[10]);
+                }
+            }
+
         }
     }
 }

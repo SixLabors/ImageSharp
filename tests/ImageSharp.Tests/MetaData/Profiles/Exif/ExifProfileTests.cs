@@ -351,6 +351,32 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestProfileToByteArrayWorks(bool includeExifIdCode)
+        {
+            // arrange
+            byte[] exifBytesWithExifCode = new byte[] { 69, 120, 105, 102, 0, 0, 73, 73, 42, 0};
+            byte[] exifBytesWithoutExifCode = new byte[] { 73, 73, 42, 0 };
+            var profile = new ExifProfile(exifBytesWithExifCode);
+
+            // act
+            byte[] actual = profile.ToByteArray(includeExifIdCode);
+
+            // assert
+            Assert.NotNull(actual);
+            Assert.NotEmpty(actual);
+            if (includeExifIdCode)
+            {
+                Assert.Equal(exifBytesWithExifCode, actual);
+            }
+            else
+            {
+                Assert.Equal(exifBytesWithoutExifCode, actual);
+            }
+        }
+
         private static ExifProfile CreateExifProfile()
         {
             var profile = new ExifProfile();

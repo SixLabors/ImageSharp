@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
@@ -239,6 +240,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             if (this.values == null)
             {
+                if (!includeExifIdCode && this.StartsWithExifIdCode(this.data))
+                {
+                    // skip the first 6 bytes (the Exif Code)
+                    return this.data.Skip(6).ToArray();
+                }
+
                 return this.data;
             }
 
@@ -249,6 +256,32 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             var writer = new ExifWriter(this.values, this.Parts);
             return writer.GetData(includeExifIdCode);
+        }
+
+        /// <summary>
+        /// Checks if a byte array start with the Exif Code: ASCII "Exif" followed by two zeros.
+        /// </summary>
+        /// <param name="exifBytes">The byte array to check for the Exif Code.</param>
+        /// <returns>True, if the byte array starts with the Exif Code</returns>
+        private bool StartsWithExifIdCode(byte[] exifBytes)
+        {
+            if (exifBytes.Length < 6)
+            {
+                return false;
+            }
+
+            // The EXIF ID code: ASCII "Exif" followed by two zeros.
+            byte[] exifCode = { 69, 120, 105, 102, 0, 0 };
+            int exifLength = exifCode.Length;
+            for (int i = 0; i < exifCode.Length; i++)
+            {
+                if (exifBytes[i] != exifCode[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

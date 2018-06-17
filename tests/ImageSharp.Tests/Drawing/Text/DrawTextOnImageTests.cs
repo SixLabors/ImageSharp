@@ -150,8 +150,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             where TPixel : struct, IPixel<TPixel>
         {
             Font font = CreateFont(fontName, fontSize);
-            string fnDisplayText = text.Replace("\n", "");
-            fnDisplayText = fnDisplayText.Substring(0, Math.Min(fnDisplayText.Length, 4));
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(
@@ -160,16 +158,56 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 {
                     img.Mutate(c => c.DrawText(text, new Font(font, fontSize), null, Pens.DashDot(color, 3), new PointF(x, y)));
                 },
-                $"pen_{fontName}-{fontSize}-{fnDisplayText}-({x},{y})",
+                $"pen_{fontName}-{fontSize}-{ToTestOutputDisplayText(text)}-({x},{y})",
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: true);
         }
 
-
         [Theory]
         [WithSolidFilledImages(200, 100, "White", PixelTypes.Rgba32, 50, "SixLaborsSampleAB.woff", AB)]
-        [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50,  "OpenSans-Regular.ttf", TestText)]
+        [WithSolidFilledImages(900, 100, "White", PixelTypes.Rgba32, 50, "OpenSans-Regular.ttf", TestText)]
         public void FontShapesAreRenderedCorrectlyAlongAPath<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int fontSize,
+            string fontName,
+            string text)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Font font = CreateFont(fontName, fontSize);
+            TPixel colorFill = NamedColors<TPixel>.Gray;
+            TPixel colorOutline = NamedColors<TPixel>.Black;
+            IBrush<TPixel> fillBrush = Brushes.Solid(colorFill);
+            IPen<TPixel> outlinePen = Pens.DashDot(colorOutline, 3);
+
+            provider.VerifyOperation(
+                ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
+                img =>
+                    {
+                        IPath path = new Path(new LinearLineSegment(new Point(0, img.Height), new Point(img.Width, 0)));
+                        img.Mutate(
+                            c =>
+                                {
+                                    c.DrawText(
+                                        new TextGraphicsOptions
+                                            {
+                                                HorizontalAlignment = HorizontalAlignment.Center,
+                                                VerticalAlignment = VerticalAlignment.Top
+                                            },
+                                        text,
+                                        new Font(font, fontSize),
+                                        fillBrush,
+                                        outlinePen,
+                                        path);
+                                });
+                    },
+                $"pen_{fontName}-{fontSize}-{ToTestOutputDisplayText(text)}",
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: true);
+        }
+
+        [Theory]
+        [WithSolidFilledImages(600, 600, "White", PixelTypes.Rgba32, 50, "OpenSans-Regular.ttf", TestText)]
+        public void FontShapesAreRenderedCorrectlyAlongACirclePath<TPixel>(
             TestImageProvider<TPixel> provider,
             int fontSize,
             string fontName,
@@ -178,33 +216,44 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
         {
 
             Font font = CreateFont(fontName, fontSize);
-            string fnDisplayText = text.Replace("\n", "");
-            fnDisplayText = fnDisplayText.Substring(0, Math.Min(fnDisplayText.Length, 4));
-            TPixel colorOutline = NamedColors<TPixel>.Black;
-            TPixel colorFill = NamedColors<TPixel>.Gray;
-
+            TPixel colorFill = NamedColors<TPixel>.Black;
+            IBrush<TPixel> fillBrush = Brushes.Solid(colorFill);
+            
             provider.VerifyOperation(
                 ImageComparer.Tolerant(imageThreshold: 0.1f, perPixelManhattanThreshold: 20),
                 img =>
                 {
+                    int w = (int)(img.Width * 0.6);
+                    int h = (int)(img.Height * 0.6);
+                    IPath path = new EllipsePolygon(img.Width/2, img.Height/2, w, h);
 
-                    IPath path = new Path(new LinearLineSegment(new Point(0, img.Height), new Point(img.Width, 0)));
-                    img.Mutate(c => c.DrawText(
-                        new TextGraphicsOptions {
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            VerticalAlignment = VerticalAlignment.Top
-                        } ,
-                        text, new Font(font, fontSize),
-                        Brushes.Solid(colorFill)
-                        , Pens.DashDot(colorOutline, 3), 
-                        path));
+                    img.Mutate(c =>
+                    {
+                        c.DrawText(
+                                new TextGraphicsOptions
+                                {
+                                    HorizontalAlignment = HorizontalAlignment.Center,
+                                    VerticalAlignment = VerticalAlignment.Top
+                                },
+                                text,
+                                new Font(font, fontSize),
+                                fillBrush,
+                                path);
+                    });
                 },
-                $"pen_{fontName}-{fontSize}-{fnDisplayText}",
+                $"pen_{fontName}-{fontSize}-{ToTestOutputDisplayText(text)}",
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: true);
         }
 
         private static string Repeat(string str, int times) => string.Concat(Enumerable.Repeat(str, times));
+
+        private static string ToTestOutputDisplayText(string text)
+        {
+            string fnDisplayText = text.Replace("\n", "");
+            fnDisplayText = fnDisplayText.Substring(0, Math.Min(fnDisplayText.Length, 4));
+            return fnDisplayText;
+        }
 
         private static Font CreateFont(string fontName, int size)
         {

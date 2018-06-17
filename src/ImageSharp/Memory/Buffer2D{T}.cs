@@ -12,7 +12,7 @@ namespace SixLabors.Memory
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
+    internal class Buffer2D<T> : IDisposable
         where T : struct
     {
         /// <summary>
@@ -28,10 +28,14 @@ namespace SixLabors.Memory
             this.Height = height;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
         public int Width { get; private set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the height.
+        /// </summary>
         public int Height { get; private set; }
 
         /// <summary>

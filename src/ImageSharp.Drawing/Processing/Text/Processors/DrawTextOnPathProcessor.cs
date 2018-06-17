@@ -82,25 +82,18 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             {
                 ApplyKerning = this.Options.ApplyKerning,
                 TabWidth = this.Options.TabWidth,
-                WrappingWidth = this.Options.WrapTextWidth,
+                WrappingWidth = this.Path.Length,
                 HorizontalAlignment = this.Options.HorizontalAlignment,
                 VerticalAlignment = this.Options.VerticalAlignment
             };
 
             IPathCollection glyphs = TextBuilder.GenerateGlyphs(this.Text, this.Path, style);
+            this.fillRegionProcessor = new FillRegionProcessor<TPixel>();
+            this.fillRegionProcessor.Options = (GraphicsOptions)this.Options;
 
-            var pathOptions = (GraphicsOptions)this.Options;
             if (this.Brush != null)
             {
-                // we will reuse the processor for all fill operations to reduce allocations
-                if (this.fillRegionProcessor == null)
-                {
-                    this.fillRegionProcessor = new FillRegionProcessor<TPixel>()
-                    {
-                        Brush = this.Brush,
-                        Options = pathOptions
-                    };
-                }
+                this.fillRegionProcessor.Brush = this.Brush;
 
                 foreach (IPath p in glyphs)
                 {
@@ -111,15 +104,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             if (this.Pen != null)
             {
-                // we will reuse the processor for all fill operations to reduce allocations
-                if (this.fillRegionProcessor == null)
-                {
-                    this.fillRegionProcessor = new FillRegionProcessor<TPixel>()
-                    {
-                        Brush = this.Brush,
-                        Options = pathOptions
-                    };
-                }
+                this.fillRegionProcessor.Brush = this.Pen.StrokeFill;
 
                 foreach (IPath p in glyphs)
                 {

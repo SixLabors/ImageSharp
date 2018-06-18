@@ -341,45 +341,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Converts a byte array to a new array where each value in the original array is represented by the specified number of bits.
-        /// </summary>
-        /// <param name="source">The bytes to convert from. Cannot be empty.</param>
-        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
-        /// <param name="bits">The number of bits per value.</param>
-        /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
-        /// <exception cref="System.ArgumentException"><paramref name="bits"/> is less than or equals than zero.</exception>
-        private static ReadOnlySpan<byte> ToArrayByBitsLength(ReadOnlySpan<byte> source, int bytesPerScanline, int bits)
-        {
-            Guard.MustBeGreaterThan(source.Length, 0, nameof(source));
-            Guard.MustBeGreaterThan(bits, 0, nameof(bits));
-
-            if (bits >= 8)
-            {
-                return source;
-            }
-
-            // TODO: We should be pooling this.
-            byte[] result = new byte[bytesPerScanline * 8 / bits];
-            int mask = 0xFF >> (8 - bits);
-            int resultOffset = 0;
-
-            for (int i = 0; i < bytesPerScanline - 1; i++)
-            {
-                byte b = source[i];
-                for (int shift = 0; shift < 8; shift += bits)
-                {
-                    int colorIndex = (b >> (8 - bits - shift)) & mask;
-
-                    result[resultOffset] = (byte)colorIndex;
-
-                    resultOffset++;
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Reads the least significant bits from the byte pair with the others set to 0.
         /// </summary>
         /// <param name="buffer">The source buffer</param>
@@ -389,6 +350,43 @@ namespace SixLabors.ImageSharp.Formats.Png
         private static byte ReadByteLittleEndian(ReadOnlySpan<byte> buffer, int offset)
         {
             return (byte)(((buffer[offset] & 0xFF) << 16) | (buffer[offset + 1] & 0xFF));
+        }
+
+        /// <summary>
+        /// Attempts to convert a byte array to a new array where each value in the original array is represented by the
+        /// specified number of bits.
+        /// </summary>
+        /// <param name="source">The bytes to convert from. Cannot be empty.</param>
+        /// <param name="bytesPerScanline">The number of bytes per scanline</param>
+        /// <param name="bits">The number of bits per value.</param>
+        /// <param name="buffer">The new array.</param>
+        /// <returns>The resulting <see cref="ReadOnlySpan{Byte}"/> array.</returns>
+        private bool TryScaleUpTo8BitArray(ReadOnlySpan<byte> source, int bytesPerScanline, int bits, out IManagedByteBuffer buffer)
+        {
+            if (bits >= 8)
+            {
+                buffer = null;
+                return false;
+            }
+
+            buffer = this.MemoryAllocator.AllocateCleanManagedByteBuffer(bytesPerScanline * 8 / bits);
+            byte[] result = buffer.Array;
+            int mask = 0xFF >> (8 - bits);
+            int resultOffset = 0;
+
+            for (int i = 0; i < bytesPerScanline - 1; i++)
+            {
+                byte b = source[i];
+                for (int shift = 0; shift < 8; shift += bits)
+                {
+                    int colorIndex = (b >> (8 - bits - shift)) & mask;
+                    result[resultOffset] = (byte)colorIndex;
+
+                    resultOffset++;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -669,20 +667,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            var color = default(TPixel);
+            TPixel pixel = default;
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
-            ReadOnlySpan<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+            ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+
+            // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
+            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline, this.header.BitDepth, out IManagedByteBuffer buffer)
+            ? buffer.GetSpan()
+            : trimmed;
 
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
 
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-
-                    // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-                    ReadOnlySpan<byte> scanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
 
                     if (!this.hasTrans)
                     {
@@ -691,12 +691,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgb48 rgb48 = default;
                             for (int x = 0, o = 0; x < this.header.Width; x++, o += 2)
                             {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
+                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
                                 rgb48.R = luminance;
                                 rgb48.G = luminance;
                                 rgb48.B = luminance;
-                                color.PackFromRgb48(rgb48);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgb48(rgb48);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
@@ -705,12 +705,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                             var rgba32 = new Rgba32(0, 0, 0, byte.MaxValue);
                             for (int x = 0; x < this.header.Width; x++)
                             {
-                                byte luminance = (byte)(scanline[x] * factor);
+                                byte luminance = (byte)(scanlineSpan[x] * factor);
                                 rgba32.R = luminance;
                                 rgba32.G = luminance;
                                 rgba32.B = luminance;
-                                color.PackFromRgba32(rgba32);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba32);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -721,14 +721,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba64 rgba64 = default;
                             for (int x = 0, o = 0; x < this.header.Width; x++, o += 2)
                             {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
+                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
                                 rgba64.R = luminance;
                                 rgba64.G = luminance;
                                 rgba64.B = luminance;
                                 rgba64.A = luminance.Equals(this.luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
 
-                                color.PackFromRgba64(rgba64);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba64(rgba64);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
@@ -736,14 +736,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba32 rgba32 = default;
                             for (int x = 0; x < this.header.Width; x++)
                             {
-                                byte luminance = (byte)(scanline[x] * factor);
+                                byte luminance = (byte)(scanlineSpan[x] * factor);
                                 rgba32.R = luminance;
                                 rgba32.G = luminance;
                                 rgba32.B = luminance;
                                 rgba32.A = luminance.Equals(this.luminanceTrans) ? byte.MinValue : byte.MaxValue;
 
-                                color.PackFromRgba32(rgba32);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba32);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -757,15 +757,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgba64 rgba64 = default;
                         for (int x = 0, o = 0; x < this.header.Width; x++, o += 4)
                         {
-                            ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                            ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
+                            ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                            ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
                             rgba64.R = luminance;
                             rgba64.G = luminance;
                             rgba64.B = luminance;
                             rgba64.A = alpha;
 
-                            color.PackFromRgba64(rgba64);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba64(rgba64);
+                            rowSpan[x] = pixel;
                         }
                     }
                     else
@@ -774,16 +774,16 @@ namespace SixLabors.ImageSharp.Formats.Png
                         for (int x = 0; x < this.header.Width; x++)
                         {
                             int offset = x * this.bytesPerPixel;
-                            byte luminance = scanlineBuffer[offset];
-                            byte alpha = scanlineBuffer[offset + this.bytesPerSample];
+                            byte luminance = scanlineSpan[offset];
+                            byte alpha = scanlineSpan[offset + this.bytesPerSample];
 
                             rgba32.R = luminance;
                             rgba32.G = luminance;
                             rgba32.B = luminance;
                             rgba32.A = alpha;
 
-                            color.PackFromRgba32(rgba32);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba32(rgba32);
+                            rowSpan[x] = pixel;
                         }
                     }
 
@@ -791,7 +791,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.Palette:
 
-                    this.ProcessScanlineFromPalette(scanlineBuffer, rowSpan);
+                    this.ProcessScanlineFromPalette(scanlineSpan, rowSpan);
 
                     break;
 
@@ -804,16 +804,16 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgb48 rgb48 = default;
                             for (int x = 0, o = 0; x < this.header.Width; x++, o += 6)
                             {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
-                                color.PackFromRgb48(rgb48);
-                                rowSpan[x] = color;
+                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
+                                pixel.PackFromRgb48(rgb48);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
                         {
-                            PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineBuffer, rowSpan, this.header.Width);
+                            PixelOperations<TPixel>.Instance.PackFromRgb24Bytes(scanlineSpan, rowSpan, this.header.Width);
                         }
                     }
                     else
@@ -824,20 +824,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba64 rgba64 = default;
                             for (int x = 0, o = 0; x < this.header.Width; x++, o += 6)
                             {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
+                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
 
                                 rgba64.Rgb = rgb48;
                                 rgba64.A = rgb48.Equals(this.rgb48Trans) ? ushort.MinValue : ushort.MaxValue;
 
-                                color.PackFromRgba64(rgba64);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba64(rgba64);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
                         {
-                            ReadOnlySpan<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(scanlineBuffer);
+                            ReadOnlySpan<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(scanlineSpan);
                             for (int x = 0; x < this.header.Width; x++)
                             {
                                 ref readonly Rgb24 rgb24 = ref rgb24Span[x];
@@ -845,8 +845,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 rgba32.Rgb = rgb24;
                                 rgba32.A = rgb24.Equals(this.rgb24Trans) ? byte.MinValue : byte.MaxValue;
 
-                                color.PackFromRgba32(rgba32);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba32);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -860,21 +860,23 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgba64 rgba64 = default;
                         for (int x = 0, o = 0; x < this.header.Width; x++, o += 8)
                         {
-                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
-                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
-                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 6, 2));
-                            color.PackFromRgba64(rgba64);
-                            rowSpan[x] = color;
+                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
+                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 6, 2));
+                            pixel.PackFromRgba64(rgba64);
+                            rowSpan[x] = pixel;
                         }
                     }
                     else
                     {
-                        PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineBuffer, rowSpan, this.header.Width);
+                        PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(scanlineSpan, rowSpan, this.header.Width);
                     }
 
                     break;
             }
+
+            buffer?.Dispose();
         }
 
         /// <summary>
@@ -888,19 +890,21 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
-            var color = default(TPixel);
+            TPixel pixel = default;
 
             // Trim the first marker byte from the buffer
-            ReadOnlySpan<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+            ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
+
+            // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
+            ReadOnlySpan<byte> scanlineSpan = this.TryScaleUpTo8BitArray(trimmed, this.bytesPerScanline, this.header.BitDepth, out IManagedByteBuffer buffer)
+            ? buffer.GetSpan()
+            : trimmed;
 
             switch (this.pngColorType)
             {
                 case PngColorType.Grayscale:
 
                     int factor = 255 / ((int)Math.Pow(2, this.header.BitDepth) - 1);
-
-                    // Convert 1, 2, and 4 bit pixel data into the 8 bit equivalent.
-                    ReadOnlySpan<byte> scanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
 
                     if (!this.hasTrans)
                     {
@@ -909,13 +913,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgb48 rgb48 = default;
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 2)
                             {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
+                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
                                 rgb48.R = luminance;
                                 rgb48.G = luminance;
                                 rgb48.B = luminance;
 
-                                color.PackFromRgb48(rgb48);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgb48(rgb48);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
@@ -924,13 +928,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                             var rgba32 = new Rgba32(0, 0, 0, byte.MaxValue);
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                             {
-                                byte luminance = (byte)(scanline[o] * factor);
+                                byte luminance = (byte)(scanlineSpan[o] * factor);
                                 rgba32.R = luminance;
                                 rgba32.G = luminance;
                                 rgba32.B = luminance;
 
-                                color.PackFromRgba32(rgba32);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba32);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -941,14 +945,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba64 rgba64 = default;
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 2)
                             {
-                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
+                                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
                                 rgba64.R = luminance;
                                 rgba64.G = luminance;
                                 rgba64.B = luminance;
                                 rgba64.A = luminance.Equals(this.luminance16Trans) ? ushort.MinValue : ushort.MaxValue;
 
-                                color.PackFromRgba64(rgba64);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba64(rgba64);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
@@ -956,14 +960,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba32 rgba32 = default;
                             for (int x = pixelOffset; x < this.header.Width; x += increment)
                             {
-                                byte luminance = (byte)(scanline[x] * factor);
+                                byte luminance = (byte)(scanlineSpan[x] * factor);
                                 rgba32.R = luminance;
                                 rgba32.G = luminance;
                                 rgba32.B = luminance;
                                 rgba32.A = luminance.Equals(this.luminanceTrans) ? byte.MinValue : byte.MaxValue;
 
-                                color.PackFromRgba32(rgba32);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba32);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -977,15 +981,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgba64 rgba64 = default;
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 4)
                         {
-                            ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                            ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
+                            ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                            ushort alpha = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
                             rgba64.R = luminance;
                             rgba64.G = luminance;
                             rgba64.B = luminance;
                             rgba64.A = alpha;
 
-                            color.PackFromRgba64(rgba64);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba64(rgba64);
+                            rowSpan[x] = pixel;
                         }
                     }
                     else
@@ -994,15 +998,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                         for (int x = pixelOffset; x < this.header.Width; x += increment)
                         {
                             int offset = x * this.bytesPerPixel;
-                            byte luminance = scanlineBuffer[offset];
-                            byte alpha = scanlineBuffer[offset + this.bytesPerSample];
+                            byte luminance = scanlineSpan[offset];
+                            byte alpha = scanlineSpan[offset + this.bytesPerSample];
                             rgba32.R = luminance;
                             rgba32.G = luminance;
                             rgba32.B = luminance;
                             rgba32.A = alpha;
 
-                            color.PackFromRgba32(rgba32);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba32(rgba32);
+                            rowSpan[x] = pixel;
                         }
                     }
 
@@ -1010,8 +1014,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.Palette:
 
-                    ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
-                    Span<Rgb24> pal = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
+                    Span<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
 
                     if (this.paletteAlpha?.Length > 0)
                     {
@@ -1020,12 +1023,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgba32 rgba = default;
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                         {
-                            int index = newScanline[o];
+                            int index = scanlineSpan[o];
                             rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : byte.MaxValue;
-                            rgba.Rgb = pal[index];
+                            rgba.Rgb = palettePixels[index];
 
-                            color.PackFromRgba32(rgba);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba32(rgba);
+                            rowSpan[x] = pixel;
                         }
                     }
                     else
@@ -1033,11 +1036,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                         var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o++)
                         {
-                            int index = newScanline[o];
-                            rgba.Rgb = pal[index];
+                            int index = scanlineSpan[o];
+                            rgba.Rgb = palettePixels[index];
 
-                            color.PackFromRgba32(rgba);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba32(rgba);
+                            rowSpan[x] = pixel;
                         }
                     }
 
@@ -1053,15 +1056,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba64 rgba64 = default;
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 6)
                             {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
+                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
 
                                 rgba64.Rgb = rgb48;
                                 rgba64.A = rgb48.Equals(this.rgb48Trans) ? ushort.MinValue : ushort.MaxValue;
 
-                                color.PackFromRgba64(rgba64);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba64(rgba64);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
@@ -1069,11 +1072,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgb48 rgb48 = default;
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 6)
                             {
-                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
-                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
-                                color.PackFromRgb48(rgb48);
-                                rowSpan[x] = color;
+                                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
+                                pixel.PackFromRgb48(rgb48);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -1084,13 +1087,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                             Rgba32 rgba = default;
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                             {
-                                rgba.R = scanlineBuffer[o];
-                                rgba.G = scanlineBuffer[o + this.bytesPerSample];
-                                rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
+                                rgba.R = scanlineSpan[o];
+                                rgba.G = scanlineSpan[o + this.bytesPerSample];
+                                rgba.B = scanlineSpan[o + (2 * this.bytesPerSample)];
                                 rgba.A = this.rgb24Trans.Equals(rgba.Rgb) ? byte.MinValue : byte.MaxValue;
 
-                                color.PackFromRgba32(rgba);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba);
+                                rowSpan[x] = pixel;
                             }
                         }
                         else
@@ -1098,12 +1101,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                             var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
                             for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                             {
-                                rgba.R = scanlineBuffer[o];
-                                rgba.G = scanlineBuffer[o + this.bytesPerSample];
-                                rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
+                                rgba.R = scanlineSpan[o];
+                                rgba.G = scanlineSpan[o + this.bytesPerSample];
+                                rgba.B = scanlineSpan[o + (2 * this.bytesPerSample)];
 
-                                color.PackFromRgba32(rgba);
-                                rowSpan[x] = color;
+                                pixel.PackFromRgba32(rgba);
+                                rowSpan[x] = pixel;
                             }
                         }
                     }
@@ -1117,12 +1120,12 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgba64 rgba64 = default;
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += 8)
                         {
-                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o, 2));
-                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 2, 2));
-                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 4, 2));
-                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineBuffer.Slice(o + 6, 2));
-                            color.PackFromRgba64(rgba64);
-                            rowSpan[x] = color;
+                            rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                            rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                            rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 4, 2));
+                            rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 6, 2));
+                            pixel.PackFromRgba64(rgba64);
+                            rowSpan[x] = pixel;
                         }
                     }
                     else
@@ -1130,18 +1133,20 @@ namespace SixLabors.ImageSharp.Formats.Png
                         Rgba32 rgba = default;
                         for (int x = pixelOffset, o = 0; x < this.header.Width; x += increment, o += this.bytesPerPixel)
                         {
-                            rgba.R = scanlineBuffer[o];
-                            rgba.G = scanlineBuffer[o + this.bytesPerSample];
-                            rgba.B = scanlineBuffer[o + (2 * this.bytesPerSample)];
-                            rgba.A = scanlineBuffer[o + (3 * this.bytesPerSample)];
+                            rgba.R = scanlineSpan[o];
+                            rgba.G = scanlineSpan[o + this.bytesPerSample];
+                            rgba.B = scanlineSpan[o + (2 * this.bytesPerSample)];
+                            rgba.A = scanlineSpan[o + (3 * this.bytesPerSample)];
 
-                            color.PackFromRgba32(rgba);
-                            rowSpan[x] = color;
+                            pixel.PackFromRgba32(rgba);
+                            rowSpan[x] = pixel;
                         }
                     }
 
                     break;
             }
+
+            buffer?.Dispose();
         }
 
         /// <summary>
@@ -1193,13 +1198,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Processes a scanline that uses a palette
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
-        /// <param name="defilteredScanline">The scanline</param>
+        /// <param name="scanline">The defiltered scanline</param>
         /// <param name="row">Thecurrent  output image row</param>
-        private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> row)
+        private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> scanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
-            ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
-            ReadOnlySpan<Rgb24> pal = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
+            ReadOnlySpan<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
             var color = default(TPixel);
 
             if (this.paletteAlpha?.Length > 0)
@@ -1210,9 +1214,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 // channel and we should try to read it.
                 for (int x = 0; x < this.header.Width; x++)
                 {
-                    int index = newScanline[x];
+                    int index = scanline[x];
                     rgba.A = this.paletteAlpha.Length > index ? this.paletteAlpha[index] : byte.MaxValue;
-                    rgba.Rgb = pal[index];
+                    rgba.Rgb = palettePixels[index];
 
                     color.PackFromRgba32(rgba);
                     row[x] = color;
@@ -1220,13 +1224,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
+                // TODO: We should have PackFromRgb24.
                 var rgba = new Rgba32(0, 0, 0, byte.MaxValue);
-
                 for (int x = 0; x < this.header.Width; x++)
                 {
-                    int index = newScanline[x];
+                    int index = scanline[x];
 
-                    rgba.Rgb = pal[index];
+                    rgba.Rgb = palettePixels[index];
 
                     color.PackFromRgba32(rgba);
                     row[x] = color;

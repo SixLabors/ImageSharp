@@ -3,12 +3,10 @@
 
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
 using SixLabors.ImageSharp.Processing.Text.Processors;
 using SixLabors.Primitives;
-using SixLabors.Shapes;
 
 namespace SixLabors.ImageSharp.Processing.Text
 {

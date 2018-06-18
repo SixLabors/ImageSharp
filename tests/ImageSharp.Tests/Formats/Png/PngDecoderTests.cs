@@ -21,65 +21,83 @@ namespace SixLabors.ImageSharp.Tests
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
         // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
-        private static byte[] raw1x1PngIHDRAndpHYs =
+        private static readonly byte[] raw1x1PngIHDRAndpHYs =
          {
             // PNG Identifier 
             0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-            
+
             // IHDR
             0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00,
             // IHDR CRC
-            0x90, 0x77, 0x53, 0xDE, 
+            0x90, 0x77, 0x53, 0xDE,
 
             // pHYS
-            0x00, 0x00, 0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01, 
+            0x00, 0x00, 0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01,
             // pHYS CRC
             0xC7, 0x6F, 0xA8, 0x64
         };
 
         // Contains the png marker, IDAT and IEND chunks of a 1x1 pixel 32bit png 1 a single black pixel.
-        private static byte[] raw1x1PngIDATAndIEND =
+        private static readonly byte[] raw1x1PngIDATAndIEND =
           {
             // IDAT
             0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x18, 0x57, 0x63, 0x60, 0x60, 0x60, 0x00, 0x00,
-            0x00, 0x04, 0x00, 0x01, 
+            0x00, 0x04, 0x00, 0x01,
+            
             // IDAT CRC
-            0x5C, 0xCD, 0xFF, 0x69, 
+            0x5C, 0xCD, 0xFF, 0x69,
 
             // IEND
             0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
-            0x4E, 0x44, 
+            0x4E, 0x44,
+            
             // IEND CRC
             0xAE, 0x42, 0x60, 0x82
         };
 
         public static readonly string[] CommonTestImages =
-            {
-                TestImages.Png.Splash,
-                TestImages.Png.Indexed,
-                TestImages.Png.FilterVar,
-                TestImages.Png.Bad.ChunkLength1,
-                TestImages.Png.Bad.CorruptedChunk,
+        {
+            TestImages.Png.Splash,
+            TestImages.Png.Indexed,
+            TestImages.Png.FilterVar,
+            TestImages.Png.Bad.ChunkLength1,
+            TestImages.Png.Bad.CorruptedChunk,
 
-                TestImages.Png.VimImage1,
-                TestImages.Png.VersioningImage1,
-                TestImages.Png.VersioningImage2,
+            TestImages.Png.VimImage1,
+            TestImages.Png.VersioningImage1,
+            TestImages.Png.VersioningImage2,
 
-                TestImages.Png.SnakeGame,
-                TestImages.Png.Banner7Adam7InterlaceMode,
-                TestImages.Png.Banner8Index,
+            TestImages.Png.SnakeGame,
+            TestImages.Png.Banner7Adam7InterlaceMode,
+            TestImages.Png.Banner8Index,
 
-                TestImages.Png.Bad.ChunkLength2,
-                TestImages.Png.VimImage2,
-            };
+            TestImages.Png.Bad.ChunkLength2,
+            TestImages.Png.VimImage2,
+        };
 
 
         public static readonly string[] TestImages48Bpp =
-            {
-                TestImages.Png.Rgb48Bpp,
-                TestImages.Png.Rgb48BppInterlaced
-            };
+        {
+            TestImages.Png.Rgb48Bpp,
+            TestImages.Png.Rgb48BppInterlaced
+        };
+
+        public static readonly string[] TestImages64Bpp =
+{
+            TestImages.Png.Rgba64Bpp,
+        };
+
+        public static readonly string[] TestImagesGray16Bit =
+        {
+            TestImages.Png.Gray16Bit,
+        };
+
+        public static readonly string[] TestImagesGrayAlpha16Bit =
+        {
+            TestImages.Png.GrayAlpha16Bit,
+            TestImages.Png.GrayTrns16Bit
+        };
 
         // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
         // We shouldn't mix these with the Interleaved cases (which are also failing with Mono System.Drawing). Let's go AAA!
@@ -142,20 +160,66 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        // TODO: We need to decode these into Rgba64 properly, and do 'CompareToOriginal' in a Rgba64 mode! (See #285)
-        [Theory(Skip = "Skipped for now until we can update the reference images from libpng samples.")]
-        [WithFileCollection(nameof(TestImages48Bpp), PixelTypes.Rgba32)]
+        [Theory]
+        [WithFileCollection(nameof(TestImages48Bpp), PixelTypes.Rgb48)]
         public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                image.DebugSave(provider);
+                var encoder = new PngEncoder { ColorType = PngColorType.Rgb, BitDepth = PngBitDepth.Bit16 };
 
-                // Workaround a bug in mono-s System.Drawing PNG decoder. It can't deal with 48Bpp png-s :(
-                if (!TestEnvironment.IsLinux && !TestEnvironment.IsMono)
+                if (!SkipVerification(provider))
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact);
+                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ImageComparer.Exact);
+                }
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestImages64Bpp), PixelTypes.Rgba64)]
+        public void Decode_64Bpp<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                var encoder = new PngEncoder { ColorType = PngColorType.RgbWithAlpha, BitDepth = PngBitDepth.Bit16 };
+
+                if (!SkipVerification(provider))
+                {
+                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ImageComparer.Exact);
+                }
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestImagesGray16Bit), PixelTypes.Rgb48)]
+        public void Decode_Gray16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                var encoder = new PngEncoder { ColorType = PngColorType.Grayscale, BitDepth = PngBitDepth.Bit16 };
+
+                if (!SkipVerification(provider))
+                {
+                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ImageComparer.Exact);
+                }
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestImagesGrayAlpha16Bit), PixelTypes.Rgba64)]
+        public void Decode_GrayAlpha16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            {
+                var encoder = new PngEncoder { ColorType = PngColorType.GrayscaleWithAlpha, BitDepth = PngBitDepth.Bit16 };
+
+                if (!SkipVerification(provider))
+                {
+                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ImageComparer.Exact);
                 }
             }
         }
@@ -233,7 +297,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImages.Png.Rgb48BppInterlaced, 48)]
         public void DetectPixelSize(string imagePath, int expectedPixelSize)
         {
-            TestFile testFile = TestFile.Create(imagePath);
+            var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
@@ -257,10 +321,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 var decoder = new PngDecoder();
 
-                ImageFormatException exception = Assert.Throws<ImageFormatException>(() =>
-                {
-                    decoder.Decode<Rgb24>(null, memStream);
-                });
+                ImageFormatException exception = Assert.Throws<ImageFormatException>(() => decoder.Decode<Rgb24>(null, memStream));
 
                 Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
             }

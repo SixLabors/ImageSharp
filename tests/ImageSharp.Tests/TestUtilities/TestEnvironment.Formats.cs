@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
         private static Lazy<Configuration> configuration = new Lazy<Configuration>(CreateDefaultConfiguration);
 
         internal static Configuration Configuration => configuration.Value;
-        
+
         internal static IImageDecoder GetReferenceDecoder(string filePath)
         {
             IImageFormat format = GetImageFormat(filePath);
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests
         internal static IImageFormat GetImageFormat(string filePath)
         {
             string extension = Path.GetExtension(filePath);
-            
+
             IImageFormat format = Configuration.ImageFormatsManager.FindFormatByFileExtension(extension);
             return format;
         }
@@ -60,11 +60,10 @@ namespace SixLabors.ImageSharp.Tests
 
             if (!IsLinux)
             {
-                configuration.ConfigureCodecs(
-                    ImageFormats.Png,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                    new PngImageFormatDetector());
+                // System.Drawing on Windows can decode 48bit and 64bit pngs but
+                // it doesn't preserve the accuracy we require for comparison.
+                // This makes CompareToOriginal method non-useful.
+                configuration.Configure(new PngConfigurationModule());
 
                 configuration.ConfigureCodecs(
                     ImageFormats.Bmp,

@@ -27,7 +27,11 @@ namespace SixLabors.ImageSharp.Tests
             public const string Palette8Bpp = "Png/palette-8bpp.png";
             public const string Bpp1 = "Png/bpp1.png";
             public const string Gray4Bpp = "Png/gray_4bpp.png";
+            public const string Gray16Bit = "Png/gray-16.png";
+            public const string GrayAlpha16Bit = "Png/gray-alpha-16.png";
+            public const string GrayTrns16Bit = "Png/gray-16-tRNS.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string Rgba64Bpp = "Png/rgb-16-alpha.png";
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";
@@ -126,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests
                     };
             }
 
-            public class Issues
+            public static class Issues
             {
                 public const string CriticalEOF214 = "Jpg/issues/Issue214-CriticalEOF.jpg";
                 public const string MissingFF00ProgressiveGirl159 = "Jpg/issues/Issue159-MissingFF00-Progressive-Girl.jpg";

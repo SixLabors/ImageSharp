@@ -167,19 +167,19 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             private PathBuilder builder;
 
             private Point currentRenderPosition = default;
-            private GlyphRendererParameters currentRenderingGlyph = default;
+            private GlyphRendererParameters currentGlyphRenderParams = default;
             private int offset = 0;
             private PointF currentPoint = default(PointF);
-            private HashSet<GlyphRendererParameters> renderedGlyphs = new HashSet<GlyphRendererParameters>();
-            private Dictionary<GlyphRendererParameters, Buffer2D<float>> glyphMap;
-            private Dictionary<GlyphRendererParameters, Buffer2D<float>> glyphMapPen;
+
+            private readonly Dictionary<GlyphRendererParameters, GlyphRenderData> glyphData = new Dictionary<GlyphRendererParameters, GlyphRenderData>();
+
             private bool renderOutline = false;
             private bool renderFill = false;
             private bool raterizationRequired = false;
 
-            public CachingGlyphRenderer(MemoryAllocator memoryManager, int size, IPen pen, bool renderFill)
+            public CachingGlyphRenderer(MemoryAllocator memoryAllocator, int size, IPen pen, bool renderFill)
             {
-                this.MemoryManager = memoryManager;
+                this.MemoryAllocator = memoryAllocator;
                 this.Pen = pen;
                 this.renderFill = renderFill;
                 this.renderOutline = pen != null;
@@ -187,14 +187,12 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 if (this.renderFill)
                 {
                     this.FillOperations = new List<DrawingOperation>(size);
-                    this.glyphMap = new Dictionary<GlyphRendererParameters, Buffer2D<float>>();
                 }
 
                 if (this.renderOutline)
                 {
                     this.offset = (int)MathF.Ceiling((pen.StrokeWidth * 2) + 2);
                     this.OutlineOperations = new List<DrawingOperation>(size);
-                    this.glyphMapPen = new Dictionary<GlyphRendererParameters, Buffer2D<float>>();
                 }
 
                 this.builder = new PathBuilder();
@@ -204,7 +202,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public List<DrawingOperation> OutlineOperations { get; }
 
-            public MemoryAllocator MemoryManager { get; internal set; }
+            public MemoryAllocator MemoryAllocator { get; internal set; }
 
             public IPen Pen { get; internal set; }
 
@@ -221,8 +219,8 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
                 // we have offset our rendering origion a little bit down to prevent edge cropping, move the draw origin up to compensate
                 this.currentRenderPosition = new Point(this.currentRenderPosition.X - this.offset, this.currentRenderPosition.Y - this.offset);
-                this.currentRenderingGlyph = paramters;
-                if (this.renderedGlyphs.Contains(paramters))
+                this.currentGlyphRenderParams = paramters;
+                if (this.glyphData.ContainsKey(paramters))
                 {
                     // we have already drawn the glyph vectors skip trying again
                     this.raterizationRequired = false;
@@ -254,21 +252,12 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public void Dispose()
             {
-                if (this.renderFill)
+                foreach (KeyValuePair<GlyphRendererParameters, GlyphRenderData> kv in this.glyphData)
                 {
-                    foreach (KeyValuePair<GlyphRendererParameters, Buffer2D<float>> m in this.glyphMap)
-                    {
-                        m.Value.Dispose();
-                    }
+                    kv.Value.Dispose();
                 }
 
-                if (this.renderOutline)
-                {
-                    foreach (KeyValuePair<GlyphRendererParameters, Buffer2D<float>> m in this.glyphMapPen)
-                    {
-                        m.Value.Dispose();
-                    }
-                }
+                this.glyphData.Clear();
             }
 
             public void EndFigure()
@@ -278,13 +267,16 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
 
             public void EndGlyph()
             {
+                GlyphRenderData renderData = default;
+
                 // has the glyoh been rendedered already????
                 if (this.raterizationRequired)
                 {
                     IPath path = this.builder.Build();
+
                     if (this.renderFill)
                     {
-                        this.glyphMap[this.currentRenderingGlyph] = this.Render(path);
+                        renderData.FillMap = this.Render(path);
                     }
 
                     if (this.renderOutline)
@@ -298,10 +290,14 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                             path = path.GenerateOutline(this.Pen.StrokeWidth, this.Pen.StrokePattern);
                         }
 
-                        this.glyphMapPen[this.currentRenderingGlyph] = this.Render(path);
+                        renderData.OutlineMap = this.Render(path);
                     }
 
-                    this.renderedGlyphs.Add(this.currentRenderingGlyph);
+                    this.glyphData[this.currentGlyphRenderParams] = renderData;
+                }
+                else
+                {
+                    renderData = this.glyphData[this.currentGlyphRenderParams];
                 }
 
                 if (this.renderFill)
@@ -309,7 +305,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                     this.FillOperations.Add(new DrawingOperation
                     {
                         Location = this.currentRenderPosition,
-                        Map = this.glyphMap[this.currentRenderingGlyph]
+                        Map = renderData.FillMap
                     });
                 }
 
@@ -318,7 +314,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                     this.OutlineOperations.Add(new DrawingOperation
                     {
                         Location = this.currentRenderPosition,
-                        Map = this.glyphMapPen[this.currentRenderingGlyph]
+                        Map = renderData.OutlineMap
                     });
                 }
             }
@@ -341,10 +337,10 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 }
 
                 // take the path inside the path builder, scan thing and generate a Buffer2d representing the glyph and cache it.
-                Buffer2D<float> fullBuffer = this.MemoryManager.Allocate2D<float>(size.Width + 1, size.Height + 1, true);
+                Buffer2D<float> fullBuffer = this.MemoryAllocator.Allocate2D<float>(size.Width + 1, size.Height + 1, true);
 
-                using (IBuffer<float> bufferBacking = this.MemoryManager.Allocate<float>(path.MaxIntersections))
-                using (IBuffer<PointF> rowIntersectionBuffer = this.MemoryManager.Allocate<PointF>(size.Width))
+                using (IBuffer<float> bufferBacking = this.MemoryAllocator.Allocate<float>(path.MaxIntersections))
+                using (IBuffer<PointF> rowIntersectionBuffer = this.MemoryAllocator.Allocate<PointF>(size.Width))
                 {
                     float subpixelFraction = 1f / subpixelCount;
                     float subpixelFractionPoint = subpixelFraction / subpixelCount;
@@ -456,6 +452,19 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
             {
                 this.builder.AddBezier(this.currentPoint, secondControlPoint, point);
                 this.currentPoint = point;
+            }
+
+            private struct GlyphRenderData : IDisposable
+            {
+                public Buffer2D<float> FillMap;
+
+                public Buffer2D<float> OutlineMap;
+
+                public void Dispose()
+                {
+                    this.FillMap?.Dispose();
+                    this.OutlineMap?.Dispose();
+                }
             }
         }
     }

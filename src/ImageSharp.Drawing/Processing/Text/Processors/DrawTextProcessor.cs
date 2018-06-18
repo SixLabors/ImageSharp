@@ -3,16 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.ImageSharp.Processing.Drawing.Pens;
-using SixLabors.ImageSharp.Processing.Drawing.Processors;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Utils;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
@@ -377,7 +374,7 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                                 buffer[i] = intersectionSpan[i].X;
                             }
 
-                            QuickSort(buffer.Slice(0, pointsFound));
+                            QuickSort.Sort(buffer.Slice(0, pointsFound));
 
                             for (int point = 0; point < pointsFound; point += 2)
                             {
@@ -437,57 +434,6 @@ namespace SixLabors.ImageSharp.Processing.Text.Processors
                 }
 
                 return fullBuffer;
-            }
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void Swap(Span<float> data, int left, int right)
-            {
-                float tmp = data[left];
-                data[left] = data[right];
-                data[right] = tmp;
-            }
-
-            private static void QuickSort(Span<float> data)
-            {
-                QuickSort(data, 0, data.Length - 1);
-            }
-
-            private static void QuickSort(Span<float> data, int lo, int hi)
-            {
-                if (lo < hi)
-                {
-                    int p = Partition(data, lo, hi);
-                    QuickSort(data, lo, p);
-                    QuickSort(data, p + 1, hi);
-                }
-            }
-
-            private static int Partition(Span<float> data, int lo, int hi)
-            {
-                float pivot = data[lo];
-                int i = lo - 1;
-                int j = hi + 1;
-                while (true)
-                {
-                    do
-                    {
-                        i = i + 1;
-                    }
-                    while (data[i] < pivot && i < hi);
-
-                    do
-                    {
-                        j = j - 1;
-                    }
-                    while (data[j] > pivot && j > lo);
-
-                    if (i >= j)
-                    {
-                        return j;
-                    }
-
-                    Swap(data, i, j);
-                }
             }
 
             public void EndText()

@@ -84,12 +84,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
             }
 
             var textOptions = new TextGraphicsOptions
-                                  {
-                                      Antialias = true,
-                                      ApplyKerning = true,
-                                      VerticalAlignment = VerticalAlignment.Top,
-                                      HorizontalAlignment = HorizontalAlignment.Left,
-                                  };
+            {
+                Antialias = true,
+                ApplyKerning = true,
+                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(

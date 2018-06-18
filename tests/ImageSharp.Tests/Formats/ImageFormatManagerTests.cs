@@ -20,12 +20,12 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class ImageFormatManagerTests
     {
-        public ImageFormatManager FormatsManagerEmpty { get; private set; }
-        public ImageFormatManager DefaultFormatsManager { get; private set; }
+        public ImageFormatManager FormatsManagerEmpty { get; }
+        public ImageFormatManager DefaultFormatsManager { get; }
 
         public ImageFormatManagerTests()
         {
-            this.DefaultFormatsManager = Configuration.Default.ImageFormatsManager;
+            this.DefaultFormatsManager = Configuration.CreateDefaultInstance().ImageFormatsManager;
             this.FormatsManagerEmpty = new ImageFormatManager();
         }        
 

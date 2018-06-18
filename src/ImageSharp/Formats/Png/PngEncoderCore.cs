@@ -5,8 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -394,7 +392,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Palette:
-                    // TODO: Use Span copy!
                     Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length(), this.rawScanline.Array, 0, this.rawScanline.Length());
                     break;
                 case PngColorType.Grayscale:
@@ -646,12 +643,37 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.rawScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
             this.result = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
 
-            if (this.pngColorType != PngColorType.Palette)
+            switch (this.pngFilterMethod)
             {
-                this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                case PngFilterMethod.None:
+                    break;
+
+                case PngFilterMethod.Sub:
+
+                    this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    break;
+
+                case PngFilterMethod.Up:
+
+                    this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    break;
+
+                case PngFilterMethod.Average:
+
+                    this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    break;
+
+                case PngFilterMethod.Paeth:
+
+                    this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    break;
+                case PngFilterMethod.Adaptive:
+
+                    this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    break;
             }
 
             byte[] buffer;

@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(SystemDrawingReferenceEncoder))]
+        [InlineData("lol/foo.png", typeof(PngEncoder))]
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(SystemDrawingReferenceDecoder))]
+        [InlineData("lol/foo.png", typeof(PngDecoder))]
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]

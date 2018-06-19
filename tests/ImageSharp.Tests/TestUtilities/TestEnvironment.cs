@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
 
         /// <summary>
-        /// Gets the .NET Core version, if running on .NET Core, otherwise returns null.
+        /// Gets the .NET Core version, if running on .NET Core, otherwise returns an empty string.
         /// </summary>
         internal static string NetCoreVersion => NetCoreVersionLazy.Value;
 

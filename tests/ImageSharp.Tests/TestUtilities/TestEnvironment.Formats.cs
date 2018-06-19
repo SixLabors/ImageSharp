@@ -60,10 +60,14 @@ namespace SixLabors.ImageSharp.Tests
 
             if (!IsLinux)
             {
-                // System.Drawing on Windows can decode 48bit and 64bit pngs but
+                // TODO: System.Drawing on Windows can decode 48bit and 64bit pngs but
                 // it doesn't preserve the accuracy we require for comparison.
                 // This makes CompareToOriginal method non-useful.
-                configuration.Configure(new PngConfigurationModule());
+                configuration.ConfigureCodecs(
+                    ImageFormats.Png,
+                    SystemDrawingReferenceDecoder.Instance,
+                    SystemDrawingReferenceEncoder.Png,
+                     new PngImageFormatDetector());
 
                 configuration.ConfigureCodecs(
                     ImageFormats.Bmp,

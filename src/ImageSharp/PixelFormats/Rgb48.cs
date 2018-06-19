@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void PackFromRgba64(Rgba64 source) => this = source.Rgb;
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -225,7 +225,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+        public void ToRgba64(ref Rgba64 dest)
+        {
+            dest.Rgb = this;
+            dest.A = ushort.MaxValue;
+        }
 
         /// <inheritdoc />
         public override bool Equals(object obj)

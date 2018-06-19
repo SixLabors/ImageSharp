@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Tests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
-        // This should be exact but for some reason it fails in some build environments.
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0001F, 26);
+        // TODO: Cannot use exact comparer since System.Drawing doesn't preserve more than 32bits.
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.1302F, 2134);
 
         // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
         private static readonly byte[] raw1x1PngIHDRAndpHYs =
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 if (!SkipVerification(provider))
                 {
-                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ImageComparer.Exact);
+                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ValidatorComparer);
                 }
             }
         }
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 if (!SkipVerification(provider))
                 {
-                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ImageComparer.Exact);
+                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ValidatorComparer);
                 }
             }
         }

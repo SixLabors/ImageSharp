@@ -23,6 +23,11 @@
     <WarningsAsErrors />
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="TestUtilities\Factories\**" />
+    <EmbeddedResource Remove="TestUtilities\Factories\**" />
+    <None Remove="TestUtilities\Factories\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -48,8 +53,5 @@
     <None Update="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="TestUtilities\Factories\" />
   </ItemGroup>
 </Project>

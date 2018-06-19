@@ -1,11 +1,11 @@
 ﻿using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Contains common factory methods and configuration constants.
     /// </summary>
-    public partial class ArrayPoolMemoryManager
+    public partial class ArrayPoolMemoryAllocator
     {
         /// <summary>
         /// The default value for: maximum size of pooled arrays in bytes.
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.Memory
         /// This is the default. Should be good for most use cases.
         /// </summary>
         /// <returns>The memory manager</returns>
-        public static ArrayPoolMemoryManager CreateDefault()
+        public static ArrayPoolMemoryAllocator CreateDefault()
         {
-            return new ArrayPoolMemoryManager(
+            return new ArrayPoolMemoryAllocator(
                 DefaultMaxPooledBufferSizeInBytes,
                 DefaultBufferSelectorThresholdInBytes,
                 DefaultLargePoolBucketCount,
@@ -45,27 +45,27 @@ namespace SixLabors.ImageSharp.Memory
         /// For environments with limited memory capabilities. Only small images are pooled, which can result in reduced througput.
         /// </summary>
         /// <returns>The memory manager</returns>
-        public static ArrayPoolMemoryManager CreateWithModeratePooling()
+        public static ArrayPoolMemoryAllocator CreateWithModeratePooling()
         {
-            return new ArrayPoolMemoryManager(1024 * 1024, 32 * 1024, 16, 24);
+            return new ArrayPoolMemoryAllocator(1024 * 1024, 32 * 1024, 16, 24);
         }
 
         /// <summary>
         /// Only pool small buffers like image rows.
         /// </summary>
         /// <returns>The memory manager</returns>
-        public static ArrayPoolMemoryManager CreateWithMinimalPooling()
+        public static ArrayPoolMemoryAllocator CreateWithMinimalPooling()
         {
-            return new ArrayPoolMemoryManager(64 * 1024, 32 * 1024, 8, 24);
+            return new ArrayPoolMemoryAllocator(64 * 1024, 32 * 1024, 8, 24);
         }
 
         /// <summary>
         /// RAM is not an issue for me, gimme maximum througput!
         /// </summary>
         /// <returns>The memory manager</returns>
-        public static ArrayPoolMemoryManager CreateWithAggressivePooling()
+        public static ArrayPoolMemoryAllocator CreateWithAggressivePooling()
         {
-            return new ArrayPoolMemoryManager(128 * 1024 * 1024, 32 * 1024 * 1024, 16, 32);
+            return new ArrayPoolMemoryAllocator(128 * 1024 * 1024, 32 * 1024 * 1024, 16, 32);
         }
     }
 }

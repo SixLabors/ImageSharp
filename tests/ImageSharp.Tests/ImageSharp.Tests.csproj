@@ -23,11 +23,6 @@
     <WarningsAsErrors />
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="TestUtilities\Factories\**" />
-    <EmbeddedResource Remove="TestUtilities\Factories\**" />
-    <None Remove="TestUtilities\Factories\**" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
   </ItemGroup>
   <ItemGroup>

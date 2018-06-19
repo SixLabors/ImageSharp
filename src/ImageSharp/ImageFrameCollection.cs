@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -27,6 +28,16 @@ namespace SixLabors.ImageSharp
 
             // Frames are already cloned within the caller
             this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
+        }
+
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, IBuffer<TPixel> consumedBuffer)
+        {
+            Guard.NotNull(parent, nameof(parent));
+
+            this.parent = parent;
+
+            // Frames are already cloned within the caller
+            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, consumedBuffer));
         }
 
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)

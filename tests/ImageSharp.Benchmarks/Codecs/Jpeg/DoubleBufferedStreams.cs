@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             this.stream2 = new MemoryStream(this.buffer);
             this.stream3 = new MemoryStream(this.buffer);
             this.stream4 = new MemoryStream(this.buffer);
-            this.reader1 = new DoubleBufferedStreamReader(Configuration.Default.MemoryManager, this.stream2);
-            this.reader2 = new DoubleBufferedStreamReader(Configuration.Default.MemoryManager, this.stream2);
+            this.reader1 = new DoubleBufferedStreamReader(Configuration.Default.MemoryAllocator, this.stream2);
+            this.reader2 = new DoubleBufferedStreamReader(Configuration.Default.MemoryAllocator, this.stream2);
         }
 
         [GlobalCleanup]

@@ -4,7 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.PixelFormats.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.Span, 64)
+                    (s, d) => ImageSharp.PixelFormats.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.GetSpan(), 64)
                 );
             }
 
@@ -56,14 +56,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (IBuffer<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryManager.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
-                using (IBuffer<Vector4> dest = Configuration.Default.MemoryManager.Allocate<Vector4>(count))
+                using (IBuffer<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryAllocator.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
+                using (IBuffer<Vector4> dest = Configuration.Default.MemoryAllocator.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance.ToVector4(source.Span, dest.Span, count);
+                                PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance.ToVector4(source.GetSpan(), dest.GetSpan(), count);
                             });
                 }
             }
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromVector4(s, d.Span, count)
+                (s, d) => Operations.PackFromVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromScaledVector4(s, d.Span, count)
+                (s, d) => Operations.PackFromScaledVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(s, d.Span, count)
+                (s, d) => Operations.ToVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToScaledVector4(s, d.Span, count)
+                (s, d) => Operations.ToScaledVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgb24Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromRgb24Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgb24Bytes(s, d.Span, count)
+                (s, d) => Operations.ToRgb24Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -263,7 +263,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgba32Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromRgba32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgba32Bytes(s, d.Span, count)
+                (s, d) => Operations.ToRgba32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgr24Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromBgr24Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -333,7 +333,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgr24Bytes(s, d.Span, count)
+                (s, d) => Operations.ToBgr24Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgra32Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromBgra32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -379,7 +379,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgra32Bytes(s, d.Span, count)
+                (s, d) => Operations.ToBgra32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -400,7 +400,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromArgb32Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromArgb32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -425,7 +425,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToArgb32Bytes(s, d.Span, count)
+                (s, d) => Operations.ToArgb32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
                 this.SourceBuffer = source;
                 this.ExpectedDestBuffer = expectedDest;
-                this.ActualDestBuffer = Configuration.Default.MemoryManager.Allocate<TDest>(expectedDest.Length);
+                this.ActualDestBuffer = Configuration.Default.MemoryAllocator.Allocate<TDest>(expectedDest.Length);
             }
 
             public void Dispose()
@@ -459,7 +459,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 {
 
                     Span<Vector4> expected = MemoryMarshal.Cast<TDest, Vector4>(this.ExpectedDestBuffer.AsSpan());
-                    Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.Span);
+                    Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.GetSpan());
 
                     for (int i = 0; i < count; i++)
                     {
@@ -471,7 +471,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 else
                 {
                     Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
-                    Span<TDest> actual = this.ActualDestBuffer.Span;
+                    Span<TDest> actual = this.ActualDestBuffer.GetSpan();
                     for (int i = 0; i < count; i++)
                     {
                         Assert.Equal(expected[i], actual[i]);

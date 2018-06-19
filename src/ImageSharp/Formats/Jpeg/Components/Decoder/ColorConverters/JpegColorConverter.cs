@@ -7,7 +7,7 @@ using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Common.Tuples;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             /// </summary>
             /// <param name="componentBuffers">The 1-4 sized list of component buffers.</param>
             /// <param name="row">The row to convert</param>
-            public ComponentValues(IReadOnlyList<IBuffer2D<float>> componentBuffers, int row)
+            public ComponentValues(IReadOnlyList<Buffer2D<float>> componentBuffers, int row)
             {
                 this.ComponentCount = componentBuffers.Count;
 

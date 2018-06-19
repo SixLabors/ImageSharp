@@ -5,14 +5,14 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
     /// Represents a buffer of value type objects
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer2D<T> : IBuffer2D<T>, IDisposable
+    internal class Buffer2D<T> : IDisposable
         where T : struct
     {
         /// <summary>
@@ -28,21 +28,24 @@ namespace SixLabors.ImageSharp.Memory
             this.Height = height;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the width.
+        /// </summary>
         public int Width { get; private set; }
 
-        /// <inheritdoc />
-        public int Height { get; private set; }
-
         /// <summary>
-        /// Gets the span to the whole area.
+        /// Gets the height.
         /// </summary>
-        public Span<T> Span => this.Buffer.Span;
+        public int Height { get; private set; }
 
         /// <summary>
         /// Gets the backing <see cref="IBuffer{T}"/>
         /// </summary>
         public IBuffer<T> Buffer { get; private set; }
+
+        public Memory<T> Memory => this.Buffer.Memory;
+
+        public Span<T> Span => this.Buffer.GetSpan();
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -55,9 +58,9 @@ namespace SixLabors.ImageSharp.Memory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
+                ImageSharp.DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-                Span<T> span = this.Buffer.Span;
+                Span<T> span = this.Buffer.GetSpan();
                 return ref span[(this.Width * y) + x];
             }
         }
@@ -71,12 +74,33 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
+        /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
+        /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
+        /// </summary>
+        public static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
+        {
+            if (source.Buffer.IsMemoryOwner && destination.Buffer.IsMemoryOwner)
+            {
+                SwapContents(destination, source);
+            }
+            else
+            {
+                if (destination.Size() != source.Size())
+                {
+                    throw new InvalidOperationException("SwapOrCopyContents(): buffers should both owned or the same size!");
+                }
+
+                source.Span.CopyTo(destination.Span);
+            }
+        }
+
+        /// <summary>
         /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
-        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="ImageFrame{TPixel}.PixelBuffer"/>
+        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="SixLabors.ImageSharp.ImageFrame{T}.PixelBuffer"/>
         /// </summary>
         /// <param name="a">The first buffer</param>
         /// <param name="b">The second buffer</param>
-        public static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
+        private static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();

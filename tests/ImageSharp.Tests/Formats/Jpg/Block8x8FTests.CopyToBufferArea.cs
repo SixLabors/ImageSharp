@@ -5,7 +5,7 @@
 //#define BENCHMARKING
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.Primitives;
 
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 Block8x8F block = CreateRandomFloatBlock(0, 100);
 
-                using (var buffer = Configuration.Default.MemoryManager.Allocate2D<float>(20, 20))
+                using (var buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20))
                 {
                     BufferArea<float> area = buffer.GetArea(5, 10, 8, 8);
                     block.CopyTo(area);
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 var start = new Point(50, 50);
 
-                using (var buffer = Configuration.Default.MemoryManager.Allocate2D<float>(100, 100))
+                using (var buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100))
                 {
                     BufferArea<float> area = buffer.GetArea(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
                     block.CopyTo(area, horizontalFactor, verticalFactor);

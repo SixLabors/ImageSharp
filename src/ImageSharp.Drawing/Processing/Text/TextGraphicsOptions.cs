@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Processing.Text
     /// </summary>
     public struct TextGraphicsOptions
     {
+        private const int DefaultTextDpi = 72;
+
         /// <summary>
         /// Represents the default <see cref="TextGraphicsOptions"/>.
         /// </summary>
@@ -26,11 +28,16 @@ namespace SixLabors.ImageSharp.Processing.Text
 
         private float? tabWidth;
 
+        private float? dpiX;
+
+        private float? dpiY;
+
         private PixelBlenderMode blenderMode;
 
         private float wrapTextWidth;
 
         private HorizontalAlignment? horizontalAlignment;
+
         private VerticalAlignment? verticalAlignment;
 
         /// <summary>
@@ -49,6 +56,8 @@ namespace SixLabors.ImageSharp.Processing.Text
             this.blenderMode = PixelBlenderMode.Normal;
             this.blendPercentage = 1;
             this.antialias = enableAntialiasing;
+            this.dpiX = DefaultTextDpi;
+            this.dpiY = DefaultTextDpi;
         }
 
         /// <summary>
@@ -89,6 +98,16 @@ namespace SixLabors.ImageSharp.Processing.Text
         /// Gets or sets a value indicating if greater than zero determine the width at which text should wrap.
         /// </summary>
         public float WrapTextWidth { get => this.wrapTextWidth; set => this.wrapTextWidth = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the DPI to render text along the X axis.
+        /// </summary>
+        public float DpiX { get => this.dpiX ?? DefaultTextDpi; set => this.dpiX = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the DPI to render text along the Y axis.
+        /// </summary>
+        public float DpiY { get => this.dpiY ?? DefaultTextDpi; set => this.dpiY = value; }
 
         /// <summary>
         /// Gets or sets a value indicating how to align the text relative to the rendering space.

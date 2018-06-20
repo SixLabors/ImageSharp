@@ -7,12 +7,11 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Overlays;
+using SixLabors.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.Memory;
-
     public class Beziers : FileTestBase
     {
         [Fact]

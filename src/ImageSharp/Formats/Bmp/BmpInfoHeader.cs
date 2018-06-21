@@ -132,6 +132,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx"/>
         public static BmpInfoHeader Parse(ReadOnlySpan<byte> data)
         {
+            if (data.Length != Size)
+            {
+                throw new ArgumentException(nameof(data), $"Must be {Size} bytes. Was {data.Length} bytes.");
+            }
+
             return MemoryMarshal.Cast<byte, BmpInfoHeader>(data)[0];
         }
 

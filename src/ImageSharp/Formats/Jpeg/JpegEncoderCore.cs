@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -736,16 +737,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteStartOfFrame(int width, int height, int componentCount)
         {
             // "default" to 4:2:0
-            byte[] subsamples = { 0x22, 0x11, 0x11 };
-            byte[] chroma = { 0x00, 0x01, 0x01 };
+            Span<byte> subsamples = stackalloc byte[] { 0x22, 0x11, 0x11 };
+            Span<byte> chroma = stackalloc byte[] { 0x00, 0x01, 0x01 };
 
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    subsamples = new byte[] { 0x11, 0x11, 0x11 };
+                    subsamples = stackalloc byte[] { 0x11, 0x11, 0x11 };
                     break;
                 case JpegSubsample.Ratio420:
-                    subsamples = new byte[] { 0x22, 0x11, 0x11 };
+                    subsamples = stackalloc byte[] { 0x22, 0x11, 0x11 };
                     break;
             }
 

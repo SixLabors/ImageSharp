@@ -69,13 +69,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.B;
-                hashCode = (hashCode * 397) ^ this.G;
-                hashCode = (hashCode * 397) ^ this.R;
-                return hashCode;
-            }
+            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
+            return HashHelpers.Combine(hash, this.B.GetHashCode());
         }
 
         /// <inheritdoc/>
@@ -149,7 +144,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.R = this.R;
             dest.G = this.G;
             dest.B = this.B;
-            dest.A = 255;
+            dest.A = byte.MaxValue;
         }
 
         /// <inheritdoc/>
@@ -159,7 +154,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.R = this.R;
             dest.G = this.G;
             dest.B = this.B;
-            dest.A = 255;
+            dest.A = byte.MaxValue;
         }
 
         /// <inheritdoc/>
@@ -174,12 +169,17 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.R = this.R;
             dest.G = this.G;
             dest.B = this.B;
-            dest.A = 255;
+            dest.A = byte.MaxValue;
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void PackFromRgb48(Rgb48 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -187,7 +187,12 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+        public void PackFromRgba64(Rgba64 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

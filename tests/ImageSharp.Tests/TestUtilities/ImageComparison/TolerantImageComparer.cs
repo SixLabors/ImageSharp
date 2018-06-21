@@ -18,6 +18,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         /// <summary>
         /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
         /// </summary>
+        /// <param name="imageThreshold">The maximal tolerated difference represented by a value between 0.0 and 1.0 scaled to 0 and 65535.</param>
+        /// <param name="perPixelManhattanThreshold">Gets the threshold of the individual pixels before they acumulate towards the overall difference.</param>
         public TolerantImageComparer(float imageThreshold, int perPixelManhattanThreshold = 0)
         {
             Guard.MustBeGreaterThanOrEqualTo(imageThreshold, 0, nameof(imageThreshold));
@@ -27,24 +29,27 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         }
 
         /// <summary>
-        /// The maximal tolerated difference represented by a value between 0.0 and 1.0.
+        /// <para>
+        /// Gets the maximal tolerated difference represented by a value between 0.0 and 1.0 scaled to 0 and 65535.
         /// Examples of percentage differences on a single pixel:
         /// 1. PixelA = (65535,65535,65535,0) PixelB =(0,0,0,65535) leads to 100% difference on a single pixel
         /// 2. PixelA = (65535,65535,65535,0) PixelB =(65535,65535,65535,65535) leads to 25% difference on a single pixel
-        /// 3. PixelA = (65535,65535,65535,0) PixelB =(128,128,128,128) leads to 50% difference on a single pixel
-        /// 
+        /// 3. PixelA = (65535,65535,65535,0) PixelB =(32767,32767,32767,32767) leads to 50% difference on a single pixel
+        /// </para>
+        /// <para>
         /// The total differences is the sum of all pixel differences normalized by image dimensions!
         /// The individual distances are calculated using the Manhattan function:
         /// <see>
         ///     <cref>https://en.wikipedia.org/wiki/Taxicab_geometry</cref>
         /// </see>
-        /// ImageThresholdInPercents = 1.0/65535 means that we allow one unit difference per channel on a 1x1 image
-        /// ImageThresholdInPercents = 1.0/(100*100*65535) means that we allow only one unit difference per channel on a 100x100 image
+        /// ImageThresholdInPercents = 1/255 =  257/65535 means that we allow one unit difference per channel on a 1x1 image
+        /// ImageThresholdInPercents = 1/(100*100*255) = 257/(100*100*65535) means that we allow only one unit difference per channel on a 100x100 image
+        /// </para>
         /// </summary>
         public float ImageThreshold { get; }
 
         /// <summary>
-        /// The threshold of the individual pixels before they acumulate towards the overall difference.
+        /// Gets the threshold of the individual pixels before they acumulate towards the overall difference.
         /// For an individual <see cref="Rgba64"/> pixel pair the value is the Manhattan distance of pixels:
         /// <see>
         ///     <cref>https://en.wikipedia.org/wiki/Taxicab_geometry</cref>

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
             () =>
                 {
                     bool isCi;
-                    return Boolean.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
+                    return bool.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
                 });
 
         // ReSharper disable once InconsistentNaming

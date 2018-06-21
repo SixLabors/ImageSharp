@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         /// <summary>
         /// Returns an image from the given System.Drawing bitmap.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="bmp">The input bitmap.</param>
         /// <exception cref="ArgumentException">Thrown if the image pixel format is not of type <see cref="PixelFormat.Format32bppArgb"/></exception>
         internal static unsafe Image<TPixel> From32bppArgbSystemDrawingBitmap<TPixel>(Bitmap bmp)
@@ -64,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         /// <summary>
         /// Returns an image from the given System.Drawing bitmap.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="bmp">The input bitmap.</param>
         /// <exception cref="ArgumentException">Thrown if the image pixel format is not of type <see cref="PixelFormat.Format24bppRgb"/></exception>
         internal static unsafe Image<TPixel> From24bppRgbSystemDrawingBitmap<TPixel>(Bitmap bmp)
@@ -124,7 +126,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             {
                 fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                 {
-
                     for (int y = 0; y < h; y++)
                     {
                         Span<TPixel> row = image.Frames.RootFrame.GetPixelRowSpan(y);

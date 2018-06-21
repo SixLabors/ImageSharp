@@ -166,53 +166,48 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
         {
-            Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
+            dest.R = (byte)(((this.R * 255) + 32895) >> 16);
+            dest.G = (byte)(((this.G * 255) + 32895) >> 16);
+            dest.B = (byte)(((this.B * 255) + 32895) >> 16);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)(((this.R * 255) + 32895) >> 16);
+            dest.G = (byte)(((this.G * 255) + 32895) >> 16);
+            dest.B = (byte)(((this.B * 255) + 32895) >> 16);
+            dest.A = 255;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToArgb32(ref Argb32 dest)
         {
-            Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)(((this.R * 255) + 32895) >> 16);
+            dest.G = (byte)(((this.G * 255) + 32895) >> 16);
+            dest.B = (byte)(((this.B * 255) + 32895) >> 16);
+            dest.A = 255;
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgr24(ref Bgr24 dest)
         {
-            Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
+            dest.R = (byte)(((this.R * 255) + 32895) >> 16);
+            dest.G = (byte)(((this.G * 255) + 32895) >> 16);
+            dest.B = (byte)(((this.B * 255) + 32895) >> 16);
         }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToBgra32(ref Bgra32 dest)
         {
-            Vector4 vector = this.ToVector4() * 255F;
-            dest.R = (byte)MathF.Round(vector.X);
-            dest.G = (byte)MathF.Round(vector.Y);
-            dest.B = (byte)MathF.Round(vector.Z);
-            dest.A = (byte)MathF.Round(vector.W);
+            dest.R = (byte)(((this.R * 255) + 32895) >> 16);
+            dest.G = (byte)(((this.G * 255) + 32895) >> 16);
+            dest.B = (byte)(((this.B * 255) + 32895) >> 16);
+            dest.A = 255;
         }
 
         /// <inheritdoc/>

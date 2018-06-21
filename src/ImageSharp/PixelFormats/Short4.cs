@@ -295,8 +295,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             vector *= 255;
             vector += Half;
             vector += Round;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
-            return vector;
+            return Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
         }
     }
 }

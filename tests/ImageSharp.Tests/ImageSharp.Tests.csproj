@@ -25,6 +25,7 @@
   <ItemGroup>
     <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
   </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
     <PackageReference Include="System.Drawing.Common" Version="4.5.0" />

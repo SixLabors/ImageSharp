@@ -104,6 +104,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Rgb48_ToArgb32()
+        {
+            // arrange
+            var rgba48 = new Rgb48(0.08f, 0.15f, 0.30f);
+            var actual = default(Argb32);
+            var expected = new Argb32(20, 38, 76, 255);
+
+            // act
+            rgba48.ToArgb32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Rgba64_ToBgr24()
         {
             // arrange

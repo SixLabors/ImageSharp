@@ -79,6 +79,7 @@ namespace SixLabors.ImageSharp.Tests
             TestImages.Png.VimImage2,
 
             TestImages.Png.Rgb24BppTrans,
+            TestImages.Png.GrayAlpha8Bit
         };
 
         public static readonly string[] TestImages48Bpp =
@@ -101,21 +102,23 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly string[] TestImagesGrayAlpha16Bit =
         {
             TestImages.Png.GrayAlpha16Bit,
-            TestImages.Png.GrayTrns16Bit
+            TestImages.Png.GrayTrns16BitInterlaced
         };
 
         // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
         // We shouldn't mix these with the Interleaved cases (which are also failing with Mono System.Drawing). Let's go AAA!
         private static readonly string[] SkipOnMono =
-            {
-                TestImages.Png.Bad.ChunkLength2,
-                TestImages.Png.VimImage2,
-                TestImages.Png.Splash,
-                TestImages.Png.Indexed,
-                TestImages.Png.Bad.ChunkLength1,
-                TestImages.Png.VersioningImage1,
-                TestImages.Png.Banner7Adam7InterlaceMode,
-            };
+        {
+            TestImages.Png.Bad.ChunkLength2,
+            TestImages.Png.VimImage2,
+            TestImages.Png.Splash,
+            TestImages.Png.Indexed,
+            TestImages.Png.Bad.ChunkLength1,
+            TestImages.Png.VersioningImage1,
+            TestImages.Png.Banner7Adam7InterlaceMode,
+            TestImages.Png.GrayTrns16BitInterlaced,
+            TestImages.Png.Rgb48BppInterlaced
+        };
 
         private static bool SkipVerification(ITestImageProvider provider)
         {

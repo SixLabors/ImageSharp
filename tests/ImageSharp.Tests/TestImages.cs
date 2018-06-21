@@ -30,13 +30,15 @@ namespace SixLabors.ImageSharp.Tests
             public const string Gray16Bit = "Png/gray-16.png";
             public const string GrayAlpha16Bit = "Png/gray-alpha-16.png";
             public const string GrayTrns16Bit = "Png/gray-16-tRNS.png";
+            public const string Rgb24BppTrans = "Png/rgb-8-tRNS.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
+            public const string Rgb48BppTrans = "Png/rgb-16-tRNS.png";
             public const string Rgba64Bpp = "Png/rgb-16-alpha.png";
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";
             public const string BikeGrayscale = "Png/BikeGrayscale.png";
-            public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string SnakeGame = "Png/SnakeGame.png";
             public const string Icon = "Png/icon.png";
             public const string Kaboom = "Png/kaboom.png";

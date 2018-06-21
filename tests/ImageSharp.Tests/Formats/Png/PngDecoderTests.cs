@@ -77,6 +77,8 @@ namespace SixLabors.ImageSharp.Tests
 
             TestImages.Png.Bad.ChunkLength2,
             TestImages.Png.VimImage2,
+
+            TestImages.Png.Rgb24BppTrans,
         };
 
         public static readonly string[] TestImages48Bpp =
@@ -88,6 +90,7 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly string[] TestImages64Bpp =
 {
             TestImages.Png.Rgba64Bpp,
+            TestImages.Png.Rgb48BppTrans
         };
 
         public static readonly string[] TestImagesGray16Bit =

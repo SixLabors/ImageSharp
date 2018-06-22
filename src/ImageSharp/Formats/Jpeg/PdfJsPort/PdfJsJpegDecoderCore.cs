@@ -786,7 +786,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
-            var scanDecoder = default(PdfJsScanDecoder);
+            PdfJsScanDecoder scanDecoder = default;
 
             scanDecoder.DecodeScan(
                  this.Frame,

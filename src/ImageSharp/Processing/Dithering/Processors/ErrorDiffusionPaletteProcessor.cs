@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             float threshold = this.Threshold * 255F;
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());

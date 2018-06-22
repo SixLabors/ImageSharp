@@ -773,7 +773,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </exception>
         private void ProcessStartOfScanMarker(int remaining)
         {
-            var scan = default(GolangJpegScanDecoder);
+            GolangJpegScanDecoder scan = default;
             GolangJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default;
             scan.DecodeBlocks(this);

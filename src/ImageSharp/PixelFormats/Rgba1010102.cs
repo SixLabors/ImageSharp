@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Rgba1010102) && this.Equals((Rgba1010102)obj);
+            return obj is Rgba1010102 other && this.Equals(other);
         }
 
         /// <inheritdoc />

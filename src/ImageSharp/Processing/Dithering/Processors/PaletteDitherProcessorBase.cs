@@ -46,8 +46,8 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
             float secondLeastDistance = int.MaxValue;
             var vector = pixel.ToVector4();
 
-            var closest = default(TPixel);
-            var secondClosest = default(TPixel);
+            TPixel closest = default;
+            TPixel secondClosest = default;
             for (int index = 0; index < colorPalette.Length; index++)
             {
                 TPixel temp = colorPalette[index];

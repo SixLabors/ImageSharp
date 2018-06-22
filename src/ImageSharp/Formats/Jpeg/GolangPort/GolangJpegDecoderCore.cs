@@ -338,6 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case JpegConstants.Markers.DHT:
+
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -721,7 +722,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             {
                 if (remaining < 17)
                 {
-                    throw new ImageFormatException("DHT has wrong length");
+                    throw new ImageFormatException($"DHT has wrong length. {remaining}");
                 }
 
                 this.InputProcessor.ReadFull(this.Temp, 0, 17);

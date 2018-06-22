@@ -23,8 +23,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLab ToCieLab(CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Conversion (perserving white point)
             CieLab unadapted = CieLchToCieLabConverter.Convert(color);
 
@@ -77,8 +75,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLab ToCieLab(CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Adaptation
             CieXyz adapted = !this.WhitePoint.Equals(this.TargetLabWhitePoint) && this.IsChromaticAdaptationPerformed
                 ? this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetLabWhitePoint)
@@ -96,8 +92,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLab ToCieLab(Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }
@@ -120,8 +114,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLab"/></returns>
         public CieLab ToCieLab(Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             CieXyz xyzColor = this.ToCieXyz(color);
             return this.ToCieLab(xyzColor);
         }

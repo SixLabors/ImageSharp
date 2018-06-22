@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
 
                 // And loop through each column
-                var rgba = default(Rgba32);
+                Rgba32 rgba = default;
                 for (int x = 0; x < width; x++)
                 {
                     ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             byte pixelValue = this.QuantizePixel(sourcePixel, ref rgba);
             TPixel[] colorPalette = this.GetPalette();
             TPixel transformedPixel = colorPalette[pixelValue];
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = this.colors;
-            var trans = default(Rgba32);
+            Rgba32 trans = default;
             for (int i = this.palette.Length - 1; i >= 0; i--)
             {
                 this.palette[i].ToRgba32(ref trans);
@@ -539,7 +539,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                         byte b = (this.blue / this.pixelCount).ToByte();
 
                         // And set the color of the palette entry
-                        var pixel = default(TPixel);
+                        TPixel pixel = default;
                         pixel.PackFromRgba32(new Rgba32(r, g, b, 255));
                         palette[index] = pixel;
 

@@ -48,12 +48,10 @@ namespace SixLabors.ImageSharp
         private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out IImageFormat format)
         {
             format = InternalDetectFormat(stream, config);
-            if (format != null)
-            {
-                return config.ImageFormatsManager.FindDecoder(format);
-            }
 
-            return null;
+            return format != null
+                ? config.ImageFormatsManager.FindDecoder(format)
+                : null;
         }
 
 #pragma warning disable SA1008 // Opening parenthesis must be spaced correctly

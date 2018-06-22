@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -13,9 +14,11 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 using Xunit.Abstractions;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
+    
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)
@@ -29,6 +32,29 @@ namespace SixLabors.ImageSharp.Tests
         {
             this.Output.WriteLine(path);
             Assert.True(Directory.Exists(path));
+        }
+
+        /// <summary>
+        /// We need this test to make sure that the netcoreapp2.1 test execution actually covers the netcoreapp2.1 build configuration of ImageSharp.
+        /// </summary>
+        [Fact]
+        public void ImageSharpAssemblyUnderTest_MatchesExpectedTargetFramework()
+        {
+            this.Output.WriteLine("NetCoreVersion: " + TestEnvironment.NetCoreVersion);
+            this.Output.WriteLine("ImageSharpBuiltAgainst: " + TestHelpers.ImageSharpBuiltAgainst);
+
+            if (string.IsNullOrEmpty(TestEnvironment.NetCoreVersion))
+            {
+                this.Output.WriteLine("Not running under .NET Core!");
+            }
+            else if (TestEnvironment.NetCoreVersion.StartsWith("2.1"))
+            {
+                Assert.Equal("netcoreapp2.1", TestHelpers.ImageSharpBuiltAgainst);
+            }
+            else
+            {
+                Assert.Equal("netstandard2.0", TestHelpers.ImageSharpBuiltAgainst);
+            }
         }
 
         [Fact]

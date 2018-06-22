@@ -66,8 +66,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 reserved: 0,
                 fileSize: 54 + infoHeader.ImageSize);
 
-            byte[] buffer = new byte[40]; // TODO: stackalloc
-
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[40];
+#else
+            byte[] buffer = new byte[40];
+#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);

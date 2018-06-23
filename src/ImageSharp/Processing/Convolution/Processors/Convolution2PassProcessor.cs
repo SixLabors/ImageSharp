@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Convolution.Processors
 
                     for (int x = startX; x < endX; x++)
                     {
-                        var destination = default(Vector4);
+                        Vector4 destination = default;
 
                         // Apply each matrix multiplier to the color components for each pixel.
                         for (int fy = 0; fy < kernelHeight; fy++)

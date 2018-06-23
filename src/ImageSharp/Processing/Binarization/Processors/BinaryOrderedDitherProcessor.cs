@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Binarization.Processors
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());

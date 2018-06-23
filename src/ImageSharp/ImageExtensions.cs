@@ -111,72 +111,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Returns the a copy of the image pixels as a byte array in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <returns>A copy of the pixel data as bytes from this frame.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static byte[] SavePixelData<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-         => MemoryMarshal.AsBytes(source.GetPixelSpan()).ToArray();
-
-        /// <summary>
-        /// Writes the raw image pixels to the given byte array in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="buffer">The buffer to save the raw pixel data to.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, byte[] buffer)
-            where TPixel : struct, IPixel<TPixel>
-            => SavePixelData(source, MemoryMarshal.Cast<byte, TPixel>(buffer.AsSpan()));
-
-        /// <summary>
-        /// Writes the raw image pixels to the given TPixel array in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <param name="buffer">The buffer to save the raw pixel data to.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, TPixel[] buffer)
-            where TPixel : struct, IPixel<TPixel>
-            => SavePixelData(source, buffer.AsSpan());
-
-        /// <summary>
-        /// Returns a copy of the raw image pixels as a byte array in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <returns>A copy of the pixel data from the first frame as bytes.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static byte[] SavePixelData<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-         => source.Frames.RootFrame.SavePixelData();
-
-        /// <summary>
-        /// Writes the raw image pixels to the given byte array in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <param name="buffer">The buffer to save the raw pixel data to.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this Image<TPixel> source, byte[] buffer)
-            where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.SavePixelData(buffer);
-
-        /// <summary>
-        /// Writes the raw image pixels to the given TPixel array in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <param name="buffer">The buffer to save the raw pixel data to.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this Image<TPixel> source, TPixel[] buffer)
-            where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.SavePixelData(buffer);
-
-        /// <summary>
         /// Returns a Base64 encoded string from the given image.
         /// </summary>
         /// <example><see href="data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA=="/></example>
@@ -193,33 +127,6 @@ namespace SixLabors.ImageSharp
                 stream.Flush();
                 return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
             }
-        }
-
-        /// <summary>
-        /// Writes the raw image bytes to the given byte span.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <param name="buffer">The span to save the raw pixel data to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this Image<TPixel> source, Span<byte> buffer)
-            where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.SavePixelData(MemoryMarshal.Cast<byte, TPixel>(buffer));
-
-        /// <summary>
-        /// Writes the raw image pixels to the given TPixel span.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <param name="buffer">The span to save the raw pixel data to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SavePixelData<TPixel>(this ImageFrame<TPixel> source, Span<TPixel> buffer)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            Span<TPixel> sourceBuffer = source.GetPixelSpan();
-            Guard.MustBeGreaterThanOrEqualTo(buffer.Length, sourceBuffer.Length, nameof(buffer));
-
-            sourceBuffer.CopyTo(buffer);
         }
     }
 }

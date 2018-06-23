@@ -387,7 +387,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return (obj is Rgba32) && this.Equals((Rgba32)obj);
+            return obj is Rgba32 other && this.Equals(other);
         }
 
         /// <inheritdoc/>

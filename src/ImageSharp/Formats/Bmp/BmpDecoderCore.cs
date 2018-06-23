@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.MetaData;
@@ -216,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadRle8<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
-            var color = default(TPixel);
+            TPixel color = default;
             var rgba = new Rgba32(0, 0, 0, 255);
 
             using (Buffer2D<byte> buffer = this.memoryAllocator.AllocateClean2D<byte>(width, height))
@@ -251,7 +252,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="buffer">Buffer for uncompressed data.</param>
         private void UncompressRle8(int w, Span<byte> buffer)
         {
+#if NETCOREAPP2_1
+            Span<byte> cmd = stackalloc byte[2];
+#else
             byte[] cmd = new byte[2];
+#endif
             int count = 0;
 
             while (count < buffer.Length)
@@ -392,7 +397,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 2);
             int stride = (width * 2) + padding;
-            var color = default(TPixel);
+            TPixel color = default;
             var rgba = new Rgba32(0, 0, 0, 255);
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))
@@ -475,12 +480,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadInfoHeader()
         {
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[BmpInfoHeader.MaxHeaderSize];
+#else
             byte[] buffer = new byte[BmpInfoHeader.MaxHeaderSize];
+#endif
+            this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize); // read the header size
 
-            // read header size
-            this.stream.Read(buffer, 0, BmpInfoHeader.HeaderSizeSize);
-
-            int headerSize = BitConverter.ToInt32(buffer, 0);
+            int headerSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             if (headerSize < BmpInfoHeader.CoreSize)
             {
                 throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
@@ -504,7 +511,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             else if (headerSize >= BmpInfoHeader.Size)
             {
                 // >= 40 bytes
-                this.infoHeader = BmpInfoHeader.Parse(buffer.AsSpan(0, 40));
+                this.infoHeader = BmpInfoHeader.Parse(buffer);
             }
             else
             {
@@ -520,8 +527,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         private void ReadFileHeader()
         {
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[BmpFileHeader.Size];
+#else
             byte[] buffer = new byte[BmpFileHeader.Size];
-
+#endif
             this.stream.Read(buffer, 0, BmpFileHeader.Size);
 
             this.fileHeader = BmpFileHeader.Parse(buffer);

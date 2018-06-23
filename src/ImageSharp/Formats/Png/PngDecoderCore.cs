@@ -680,7 +680,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
-            var color = default(TPixel);
+            TPixel color = default;
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
             // Trim the first marker byte from the buffer
@@ -763,7 +763,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 for (int x = 0; x < this.header.Width; x++)
                                 {
                                     ref Rgb24 rgb24 = ref rgb24Span[x];
-                                    var rgba32 = default(Rgba32);
+                                    Rgba32 rgba32 = default;
                                     rgba32.Rgb = rgb24;
                                     rgba32.A = (byte)(rgb24.Equals(this.rgb24Trans) ? 0 : 255);
 
@@ -778,7 +778,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             for (int x = 0; x < this.header.Width; x++)
                             {
                                 ref readonly Rgb24 rgb24 = ref rgb24Span[x];
-                                var rgba32 = default(Rgba32);
+                                Rgba32 rgba32 = default;
                                 rgba32.Rgb = rgb24;
                                 rgba32.A = (byte)(rgb24.Equals(this.rgb24Trans) ? 0 : 255);
 
@@ -829,7 +829,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Decodes and assigns marker colors that identify transparent pixels in non indexed images
         /// </summary>
-        /// <param name="alpha">The aplha tRNS array</param>
+        /// <param name="alpha">The alpha tRNS array</param>
         private void AssignTransparentMarkers(byte[] alpha)
         {
             if (this.pngColorType == PngColorType.Rgb)
@@ -858,15 +858,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="defilteredScanline">The scanline</param>
-        /// <param name="row">Thecurrent  output image row</param>
+        /// <param name="row">The current output image row</param>
         private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
             ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(defilteredScanline, this.bytesPerScanline, this.header.BitDepth);
             ReadOnlySpan<Rgb24> pal = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
-            var color = default(TPixel);
-
-            var rgba = default(Rgba32);
+            TPixel color = default;
+            Rgba32 rgba = default;
 
             if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)
             {
@@ -910,7 +909,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, int pixelOffset = 0, int increment = 1)
             where TPixel : struct, IPixel<TPixel>
         {
-            var color = default(TPixel);
+            TPixel color = default;
 
             // Trim the first marker byte from the buffer
             ReadOnlySpan<byte> scanlineBuffer = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
@@ -953,7 +952,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.Palette:
 
                     ReadOnlySpan<byte> newScanline = ToArrayByBitsLength(scanlineBuffer, this.bytesPerScanline, this.header.BitDepth);
-                    var rgba = default(Rgba32);
+                    Rgba32 rgba = default;
                     Span<Rgb24> pal = MemoryMarshal.Cast<byte, Rgb24>(this.palette);
 
                     if (this.paletteAlpha != null && this.paletteAlpha.Length > 0)

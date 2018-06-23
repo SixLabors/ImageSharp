@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Buffers;
+using System;
 using System.IO;
 
 namespace SixLabors.ImageSharp
@@ -11,6 +11,33 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class StreamExtensions
     {
+#if NETCOREAPP2_1
+        /// <summary>
+        /// Writes data from a stream into the provided buffer.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="offset">The offset within the buffer to begin writing.</param>
+        /// <param name="count">The number of bytes to write to the stream.</param>
+        public static void Write(this Stream stream, Span<byte> buffer, int offset, int count)
+        {
+            stream.Write(buffer.Slice(offset, count));
+        }
+
+        /// <summary>
+        /// Reads data from a stream into the provided buffer.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="buffer">The buffer..</param>
+        /// <param name="offset">The offset within the buffer where the bytes are read into.</param>
+        /// <param name="count">The number of bytes, if available, to read.</param>
+        /// <returns>The actual number of bytes read.</returns>
+        public static int Read(this Stream stream, Span<byte> buffer, int offset, int count)
+        {
+            return stream.Read(buffer.Slice(offset, count));
+        }
+#endif
+
         /// <summary>
         /// Skips the number of bytes in the given stream.
         /// </summary>

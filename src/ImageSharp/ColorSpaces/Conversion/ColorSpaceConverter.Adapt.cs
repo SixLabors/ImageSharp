@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
@@ -21,9 +20,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieXyz Adapt(CieXyz color, CieXyz sourceWhitePoint)
         {
-            Guard.NotNull(color, nameof(color));
-            Guard.NotNull(sourceWhitePoint, nameof(sourceWhitePoint));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -39,8 +35,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLab Adapt(CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -62,8 +56,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLch Adapt(CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -85,8 +77,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLchuv Adapt(CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -108,8 +98,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLuv Adapt(CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -131,8 +119,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public HunterLab Adapt(HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -154,8 +140,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public LinearRgb Adapt(LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             if (!this.IsChromaticAdaptationPerformed)
             {
                 throw new InvalidOperationException("Cannot perform chromatic adaptation, provide a chromatic adaptation method and white point.");
@@ -185,8 +169,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public Rgb Adapt(Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             LinearRgb linearInput = this.ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);
             return this.ToRgb(linearOutput);

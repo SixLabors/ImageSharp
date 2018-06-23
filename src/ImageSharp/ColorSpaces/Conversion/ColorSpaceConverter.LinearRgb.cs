@@ -115,8 +115,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="LinearRgb"/></returns>
         public LinearRgb ToLinearRgb(Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var rgb = this.ToRgb(color);
             return this.ToLinearRgb(rgb);
         }

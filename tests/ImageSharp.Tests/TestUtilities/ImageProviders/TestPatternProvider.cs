@@ -80,11 +80,12 @@ namespace SixLabors.ImageSharp.Tests
                     stride = 1;
                 }
 
-                TPixel[] c = {
-                                     NamedColors<TPixel>.HotPink,
-                                     NamedColors<TPixel>.Blue
-                                 };
-                
+                TPixel[] c =
+                {
+                    NamedColors<TPixel>.HotPink,
+                    NamedColors<TPixel>.Blue
+                };
+
                 for (int y = top; y < bottom; y++)
                 {
                     int p = 0;
@@ -112,10 +113,11 @@ namespace SixLabors.ImageSharp.Tests
                 int top = 0;
                 int bottom = pixels.Height / 2;
                 int stride = pixels.Width / 6;
-                TPixel[] c = {
-                                     NamedColors<TPixel>.Black,
-                                     NamedColors<TPixel>.White
-                                 };
+                TPixel[] c = 
+                {
+                    NamedColors<TPixel>.Black,
+                    NamedColors<TPixel>.White
+                };
 
                 int p = 0;
                 for (int y = top; y < bottom; y++)

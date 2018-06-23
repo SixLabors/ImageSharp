@@ -86,6 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Text
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Left,
             };
+
             TPixel color = NamedColors<TPixel>.Black;
 
             provider.VerifyOperation(

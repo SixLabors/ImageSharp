@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             byte[] rawScanlineArray = this.rawScanline.Array;
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
 
             // Copy the pixels across from the image.
             // Reuse the chunk type buffer.
@@ -306,8 +306,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Palette:
-                    // TODO: Use Span copy!
-                    Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length(), this.rawScanline.Array, 0, this.rawScanline.Length());
+                    int stride = this.rawScanline.Length();
+
+                    this.palettePixelData.AsSpan(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:

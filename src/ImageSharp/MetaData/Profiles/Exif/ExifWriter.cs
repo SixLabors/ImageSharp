@@ -106,19 +106,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             int i = 0;
             if (includeExifIdCode)
             {
-                result[i++] = (byte)'E';
-                result[i++] = (byte)'x';
-                result[i++] = (byte)'i';
-                result[i++] = (byte)'f';
-                result[i++] = 0x00;
-                result[i++] = 0x00;
+                ExifConstants.ExifIdCode.AsSpan().CopyTo(result); // 0-5
+                i += ExifConstants.ExifIdCode.Length;
             }
 
             // the byte order marker for little-endian, followed by the number 42 and a 0
-            result[i++] = (byte)'I';
-            result[i++] = (byte)'I';
-            result[i++] = 0x2A;
-            result[i++] = 0x00;
+            ExifConstants.LittleEndianByteOrderMarker.AsSpan().CopyTo(result.AsSpan(start: i));
+            i += ExifConstants.LittleEndianByteOrderMarker.Length;
 
             uint ifdOffset = ((uint)i - startIndex) + 4;
             uint thumbnailOffset = ifdOffset + ifdLength + exifLength + gpsLength;
@@ -268,7 +262,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return length;
         }
 
-        private int WriteArray(ExifValue value, byte[] destination, int offset)
+        private int WriteArray(ExifValue value, Span<byte> destination, int offset)
         {
             if (value.DataType == ExifDataType.Ascii)
             {
@@ -284,7 +278,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteData(uint startIndex, List<int> indexes, byte[] destination, int offset)
+        private int WriteData(uint startIndex, List<int> indexes, Span<byte> destination, int offset)
         {
             if (this.dataOffsets.Count == 0)
             {
@@ -307,7 +301,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteHeaders(List<int> indexes, byte[] destination, int offset)
+        private int WriteHeaders(List<int> indexes, Span<byte> destination, int offset)
         {
             this.dataOffsets = new List<int>();
 
@@ -388,7 +382,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
         }
 
-        private int WriteValue(ExifValue value, byte[] destination, int offset)
+        private int WriteValue(ExifValue value, Span<byte> destination, int offset)
         {
             if (value.IsArray && value.DataType != ExifDataType.Ascii)
             {

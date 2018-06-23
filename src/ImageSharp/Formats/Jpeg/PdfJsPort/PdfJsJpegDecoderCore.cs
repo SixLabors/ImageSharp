@@ -270,6 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             }
 
                         case JpegConstants.Markers.DHT:
+
                             if (metadataOnly)
                             {
                                 this.InputStream.Skip(remaining);
@@ -698,11 +699,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
-            if (remaining < 17)
-            {
-                throw new ImageFormatException($"DHT has wrong length: {remaining}");
-            }
-
             using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
@@ -790,7 +786,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
-            var scanDecoder = default(PdfJsScanDecoder);
+            PdfJsScanDecoder scanDecoder = default;
 
             scanDecoder.DecodeScan(
                  this.Frame,

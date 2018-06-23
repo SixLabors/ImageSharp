@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms
     /// <summary>
     /// Contains helper methods for working with affine and non-affine transforms
     /// </summary>
-    internal class TransformHelpers
+    internal static class TransformHelpers
     {
         /// <summary>
         /// Updates the dimensional metadata of a transformed image

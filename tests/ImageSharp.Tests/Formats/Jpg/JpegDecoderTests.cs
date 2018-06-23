@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             if (!CustomToleranceValues.TryGetValue(file, out float tolerance))
             {
-                bool baseline = file.ToLower().Contains("baseline");
+                bool baseline = file.IndexOf("baseline", StringComparison.OrdinalIgnoreCase) >= 0;
                 tolerance = baseline ? BaselineTolerance : ProgressiveTolerance;
             }
 

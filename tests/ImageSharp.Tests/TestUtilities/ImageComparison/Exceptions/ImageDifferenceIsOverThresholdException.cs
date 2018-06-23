@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             int i = 0;
             foreach (ImageSimilarityReport r in reports)
             {
-                sb.Append($"Report{i}: ");
+                sb.Append($"Report ImageFrame {i}: ");
                 sb.Append(r);
                 sb.Append(Environment.NewLine);
                 i++;

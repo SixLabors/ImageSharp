@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="bytesToCheck">The bytes to check</param>
         /// <param name="profileIdentifier">The profile identifier</param>
         /// <returns>The <see cref="bool"/></returns>
-        public static bool IsProfile(Span<byte> bytesToCheck, Span<byte> profileIdentifier)
+        public static bool IsProfile(ReadOnlySpan<byte> bytesToCheck, ReadOnlySpan<byte> profileIdentifier)
         {
             return bytesToCheck.Length >= profileIdentifier.Length
                    && bytesToCheck.Slice(0, profileIdentifier.Length).SequenceEqual(profileIdentifier);

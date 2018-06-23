@@ -544,15 +544,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 specs = new[] { HuffmanSpec.TheHuffmanSpecs[0], HuffmanSpec.TheHuffmanSpecs[1] };
             }
 
-            foreach (HuffmanSpec s in specs)
+            for (int i = 0; i < specs.Length; i++)
             {
+                ref HuffmanSpec s = ref specs[i];
                 markerlen += 1 + 16 + s.Values.Length;
             }
 
             this.WriteMarkerHeader(JpegConstants.Markers.DHT, markerlen);
             for (int i = 0; i < specs.Length; i++)
             {
-                HuffmanSpec spec = specs[i];
+                ref HuffmanSpec spec = ref specs[i];
                 int len = 0;
 
                 fixed (byte* huffman = this.huffmanBuffer)

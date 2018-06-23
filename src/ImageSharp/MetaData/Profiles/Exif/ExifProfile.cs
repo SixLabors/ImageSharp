@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
@@ -15,11 +16,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     public sealed class ExifProfile
     {
-        /// <summary>
-        /// The EXIF ID code: ASCII "Exif" followed by two zeros.
-        /// </summary>
-        private static readonly byte[] ExifCode = { 69, 120, 105, 102, 0, 0 };
-
         /// <summary>
         /// The byte array to read the EXIF profile from.
         /// </summary>
@@ -239,7 +235,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// Converts this instance to a byte array.
         /// </summary>
         /// <param name="includeExifIdCode">Indicates, if the Exif ID code should be included.
-        /// This Exif ID code should not be included in case of PNG's. Defaults to true.</param>
+        /// The Exif Id Code is part of the JPEG APP1 segment. This Exif ID code should not be included in case of PNG's.
+        /// Defaults to true.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
         public byte[] ToByteArray(bool includeExifIdCode = true)
         {
@@ -275,10 +272,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return false;
             }
 
-            int exifLength = ExifCode.Length;
-            for (int i = 0; i < ExifCode.Length; i++)
+            int exifLength = ProfileResolver.ExifMarker.Length;
+            for (int i = 0; i < ProfileResolver.ExifMarker.Length; i++)
             {
-                if (exifBytes[i] != ExifCode[i])
+                if (exifBytes[i] != ProfileResolver.ExifMarker[i])
                 {
                     return false;
                 }

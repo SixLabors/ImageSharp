@@ -5,15 +5,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
     internal static class ExifConstants
     {
-        public static readonly byte[] ExifIdCode = {
-            (byte)'E',
-            (byte)'x',
-            (byte)'i',
-            (byte)'f',
-            0x00,
-            0x00
-        };
-
         public static readonly byte[] LittleEndianByteOrderMarker = {
             (byte)'I',
             (byte)'I',

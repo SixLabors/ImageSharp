@@ -15,8 +15,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public static readonly byte[] BigEndianByteOrderMarker = {
             (byte)'M',
             (byte)'M',
-            0x2A,
             0x00,
+            0x2A
         };
     }
 }

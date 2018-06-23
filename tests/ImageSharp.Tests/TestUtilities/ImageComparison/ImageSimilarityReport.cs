@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             this.TotalNormalizedDifference = totalNormalizedDifference;
             this.Differences = differences.ToArray();
         }
+
         public object ExpectedImage { get; }
 
         public object ActualImage { get; }
@@ -59,6 +60,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             var sb = new StringBuilder();
             if (this.TotalNormalizedDifference.HasValue)
             {
+                sb.AppendLine();
                 sb.AppendLine($"Total difference: {this.DifferencePercentageString}");
             }
             int max = Math.Min(5, this.Differences.Length);
@@ -68,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 sb.Append(this.Differences[i]);
                 if (i < max - 1)
                 {
-                    sb.Append("; ");
+                    sb.AppendFormat(";{0}", Environment.NewLine);
                 }
             }
             if (this.Differences.Length >= 5)

@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = r;
             this.G = g;
             this.B = b;
-            this.A = 255;
+            this.A = byte.MaxValue;
         }
 
         /// <summary>
@@ -199,7 +199,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.Rgba;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => this.Rgba = value;
         }
 
@@ -385,9 +388,38 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Rgba32 ToRgba32() => this;
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+            this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source)
+        {
+            // Taken from libpng pngtran.c line: 2419
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+            this.A = (byte)(((source.A * 255) + 32895) >> 16);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is Rgba32 other && this.Equals(other);
+            return obj is Rgba32 rgba32 && this.Equals(rgba32);
         }
 
         /// <inheritdoc/>
@@ -397,10 +429,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             return this.Rgba == other.Rgba;
         }
 
-        /// <summary>
-        /// Gets a string representation of the packed vector.
-        /// </summary>
-        /// <returns>A string representation of the packed vector.</returns>
+        /// <inheritdoc/>
         public override string ToString()
         {
             return $"({this.R},{this.G},{this.B},{this.A})";
@@ -410,8 +439,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            // ReSharper disable once NonReadonlyMemberInGetHashCode
-            return this.Rgba.GetHashCode();
+            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
+            return HashHelpers.Combine(hash, this.A.GetHashCode());
         }
 
         /// <summary>

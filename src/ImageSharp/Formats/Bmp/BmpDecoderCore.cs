@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void ReadRle8<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
             where TPixel : struct, IPixel<TPixel>
         {
-            var color = default(TPixel);
+            TPixel color = default;
             var rgba = new Rgba32(0, 0, 0, 255);
 
             using (Buffer2D<byte> buffer = this.memoryAllocator.AllocateClean2D<byte>(width, height))
@@ -397,7 +397,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             int padding = CalculatePadding(width, 2);
             int stride = (width * 2) + padding;
-            var color = default(TPixel);
+            TPixel color = default;
             var rgba = new Rgba32(0, 0, 0, 255);
 
             using (IManagedByteBuffer buffer = this.memoryAllocator.AllocateManagedByteBuffer(stride))

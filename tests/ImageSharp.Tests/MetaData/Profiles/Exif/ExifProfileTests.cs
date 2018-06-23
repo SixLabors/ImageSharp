@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -357,8 +358,8 @@ namespace SixLabors.ImageSharp.Tests
         public void TestProfileToByteArrayWorks(bool includeExifIdCode)
         {
             // arrange
-            byte[] exifBytesWithExifCode = new byte[] { 69, 120, 105, 102, 0, 0, 73, 73, 42, 0};
-            byte[] exifBytesWithoutExifCode = new byte[] { 73, 73, 42, 0 };
+            byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray(); 
+            byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
             var profile = new ExifProfile(exifBytesWithExifCode);
 
             // act

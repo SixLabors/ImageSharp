@@ -62,9 +62,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 // Walking 8 elements at one step:
                 int n = result.Length / 8;
 
-                var rr = default(Vector4Pair);
-                var gg = default(Vector4Pair);
-                var bb = default(Vector4Pair);
+                Vector4Pair rr = default;
+                Vector4Pair gg = default;
+                Vector4Pair bb = default;
 
                 ref Vector<float> rrRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref rr);
                 ref Vector<float> ggRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref gg);

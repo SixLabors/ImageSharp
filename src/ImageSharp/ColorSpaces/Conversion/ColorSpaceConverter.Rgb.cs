@@ -110,8 +110,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Rgb"/></returns>
         public Rgb ToRgb(Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Conversion
             return HslAndRgbConverter.Convert(color);
         }

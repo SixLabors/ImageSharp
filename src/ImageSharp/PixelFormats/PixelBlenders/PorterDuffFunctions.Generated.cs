@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Normal<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Normal(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Multiply<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Multiply(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Add<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Add(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Subtract<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Subtract(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Screen<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Screen(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -306,7 +306,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Darken<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Darken(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Lighten<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Lighten(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Overlay<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Overlay(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -333,7 +333,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLight<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(HardLight(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Src<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Src(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Atop<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Atop(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Over<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Over(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -369,7 +369,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel In<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(In(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Out<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Out(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -387,7 +387,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Dest<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Dest(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -396,7 +396,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DestAtop<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(DestAtop(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -405,7 +405,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DestOver<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(DestOver(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -414,7 +414,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DestIn<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(DestIn(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -423,7 +423,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DestOut<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(DestOut(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -432,7 +432,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Clear<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Clear(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel Xor<TPixel>(TPixel backdrop, TPixel source, float amount)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel dest = default(TPixel);
+            TPixel dest = default;
             dest.PackFromVector4(Xor(backdrop.ToVector4(), source.ToVector4(), amount));
             return dest;
         }

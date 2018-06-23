@@ -392,7 +392,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             switch (this.pngColorType)
             {
                 case PngColorType.Palette:
-                    Buffer.BlockCopy(this.palettePixelData, row * this.rawScanline.Length(), this.rawScanline.Array, 0, this.rawScanline.Length());
+
+                    int stride = this.rawScanline.Length();
+                    this.palettePixelData.AsSpan(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
+
                     break;
                 case PngColorType.Grayscale:
                 case PngColorType.GrayscaleWithAlpha:

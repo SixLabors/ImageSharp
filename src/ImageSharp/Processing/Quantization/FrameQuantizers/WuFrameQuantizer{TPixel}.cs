@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
 
                 // And loop through each column
-                var rgba = default(Rgba32);
+                Rgba32 rgba = default;
                 for (int x = 0; x < width; x++)
                 {
                     ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
@@ -858,7 +858,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             }
 
             // Expected order r->g->b->a
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             pixel.ToRgba32(ref rgba);
 
             int r = rgba.R >> (8 - IndexBits);

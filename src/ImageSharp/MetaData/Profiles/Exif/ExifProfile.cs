@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             if (other.data != null)
             {
                 this.data = new byte[other.data.Length];
-                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
+                other.data.AsSpan().CopyTo(this.data);
             }
         }
 

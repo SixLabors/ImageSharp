@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GetBitsNeededForColorDepth(int colors)
         {
-            return (int)Math.Ceiling(Math.Log(colors, 2));
+            return Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
         }
 
         /// <summary>

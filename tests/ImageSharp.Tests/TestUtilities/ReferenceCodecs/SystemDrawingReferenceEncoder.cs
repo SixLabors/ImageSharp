@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.ToSystemDrawingBitmap(image))
+            using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image))
             {
                 sdBitmap.Save(stream, this.imageFormat);
             }

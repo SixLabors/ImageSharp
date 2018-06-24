@@ -56,7 +56,4 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="TestUtilities\Factories\" />
-  </ItemGroup>
 </Project>

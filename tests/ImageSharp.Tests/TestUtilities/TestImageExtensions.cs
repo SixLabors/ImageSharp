@@ -38,15 +38,15 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         Span<TPixel> pixelSpan = frame.GetPixelSpan();
 
-                        PixelOperations<TPixel>.Instance.ToVector4(pixelSpan, tempSpan, pixelSpan.Length);
+                        PixelOperations<TPixel>.Instance.ToScaledVector4(pixelSpan, tempSpan, pixelSpan.Length);
 
                         for (int i = 0; i < tempSpan.Length; i++)
                         {
                             ref Vector4 v = ref tempSpan[i];
-                            v.W = 1.0f;
+                            v.W = 1F;
                         }
 
-                        PixelOperations<TPixel>.Instance.PackFromVector4(tempSpan, pixelSpan, pixelSpan.Length);
+                        PixelOperations<TPixel>.Instance.PackFromScaledVector4(tempSpan, pixelSpan, pixelSpan.Length);
                     }
                 }
             });

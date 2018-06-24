@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
+    using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
     using SixLabors.ImageSharp.Processing.Transforms;
 
     public class AutoOrientTests : FileTestBase
@@ -65,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var profile = new ExifProfile();
             profile.SetValue(ExifTag.JPEGTables, orientation);
 
-            byte[] bytes = profile.ToByteArray();
+            byte[] bytes = profile.ToByteArray(ProfileResolver.ExifMarker);
             // Change the tag into ExifTag.Orientation
             bytes[16] = 18;
             bytes[17] = 1;

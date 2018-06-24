@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp.Tests
             // Force parsing of the profile.
             Assert.Equal(24, profile.Values.Count);
 
-            byte[] bytes = profile.ToByteArray();
+            byte[] bytes = profile.ToByteArray(ProfileResolver.ExifMarker);
             Assert.Equal(495, bytes.Length);
         }
 
@@ -360,21 +360,21 @@ namespace SixLabors.ImageSharp.Tests
             // arrange
             byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray(); 
             byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
-            var profile = new ExifProfile(exifBytesWithExifCode);
+            ExifProfile profile = CreateExifProfile();
 
             // act
-            byte[] actual = profile.ToByteArray(includeExifIdCode);
+            byte[] actual = profile.ToByteArray(includeExifIdCode ? ProfileResolver.ExifMarker : default(ReadOnlySpan<byte>));
 
             // assert
             Assert.NotNull(actual);
             Assert.NotEmpty(actual);
             if (includeExifIdCode)
             {
-                Assert.Equal(exifBytesWithExifCode, actual);
+                Assert.Equal(exifBytesWithExifCode, actual.Take(exifBytesWithExifCode.Length).ToArray());
             }
             else
             {
-                Assert.Equal(exifBytesWithoutExifCode, actual);
+                Assert.Equal(exifBytesWithoutExifCode, actual.Take(exifBytesWithoutExifCode.Length).ToArray());
             }
         }
 

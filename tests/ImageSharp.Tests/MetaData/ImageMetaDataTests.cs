@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,6 +33,7 @@ namespace SixLabors.ImageSharp.Tests
             ImageMetaData clone = metaData.Clone();
 
             Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
+            Assert.Equal(exifProfile.ToByteArray(ProfileResolver.ExifMarker), clone.ExifProfile.ToByteArray(ProfileResolver.ExifMarker));
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
             Assert.Equal(imageProperty, clone.Properties[0]);

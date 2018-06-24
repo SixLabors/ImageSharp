@@ -22,10 +22,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             int width = actual.Width;
 
-            // TODO: Comparing through Rgba32 is not robust enough because of the existance of super high precision pixel types.
+            // TODO: Comparing through Rgba64 may not be robust enough because of the existance of super high precision pixel types.
 
-            var aBuffer = new Rgba32[width];
-            var bBuffer = new Rgba32[width];
+            var aBuffer = new Rgba64[width];
+            var bBuffer = new Rgba64[width];
 
             var differences = new List<PixelDifference>();
 
@@ -34,13 +34,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 Span<TPixelA> aSpan = expected.GetPixelRowSpan(y);
                 Span<TPixelB> bSpan = actual.GetPixelRowSpan(y);
 
-                PixelOperations<TPixelA>.Instance.ToRgba32(aSpan, aBuffer, width);
-                PixelOperations<TPixelB>.Instance.ToRgba32(bSpan, bBuffer, width);
+                PixelOperations<TPixelA>.Instance.ToRgba64(aSpan, aBuffer, width);
+                PixelOperations<TPixelB>.Instance.ToRgba64(bSpan, bBuffer, width);
 
                 for (int x = 0; x < width; x++)
                 {
-                    Rgba32 aPixel = aBuffer[x];
-                    Rgba32 bPixel = bBuffer[x];
+                    Rgba64 aPixel = aBuffer[x];
+                    Rgba64 bPixel = bBuffer[x];
 
                     if (aPixel != bPixel)
                     {

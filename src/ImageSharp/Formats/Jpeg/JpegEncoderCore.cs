@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
@@ -608,7 +609,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteExifProfile(ExifProfile exifProfile)
         {
             const int Max = 65533;
-            byte[] data = exifProfile?.ToByteArray();
+            byte[] data = exifProfile?.ToByteArray(ProfileResolver.ExifMarker);
             if (data == null || data.Length == 0)
             {
                 return;

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 
@@ -234,20 +233,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
-        /// <param name="includeExifIdCode">Indicates, if the Exif ID code should be included.
-        /// The Exif Id Code is part of the JPEG APP1 segment. This Exif ID code should not be included in case of PNG's.
-        /// Defaults to true.</param>
+        /// <param name="exifIdCode">The Exif Id Code is part of the JPEG APP1 segment (Exif00). Those bytes will be written at
+        /// the beginning of the array. This Exif ID code should not be included in case of PNG's.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public byte[] ToByteArray(bool includeExifIdCode = true)
+        public byte[] ToByteArray(ReadOnlySpan<byte> exifIdCode = default)
         {
             if (this.values == null)
             {
-                if (!includeExifIdCode && this.StartsWithExifIdCode(this.data))
-                {
-                    // skip the first 6 bytes (the Exif Code)
-                    return this.data.Skip(6).ToArray();
-                }
-
                 return this.data;
             }
 
@@ -257,31 +249,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             var writer = new ExifWriter(this.values, this.Parts);
-            return writer.GetData(includeExifIdCode);
-        }
-
-        /// <summary>
-        /// Checks if a byte array start with the Exif Code: ASCII "Exif" followed by two zeros.
-        /// </summary>
-        /// <param name="exifBytes">The byte array to check for the Exif Code.</param>
-        /// <returns>True, if the byte array starts with the Exif Code</returns>
-        private bool StartsWithExifIdCode(byte[] exifBytes)
-        {
-            if (exifBytes.Length < 6)
-            {
-                return false;
-            }
-
-            int exifLength = ProfileResolver.ExifMarker.Length;
-            for (int i = 0; i < ProfileResolver.ExifMarker.Length; i++)
-            {
-                if (exifBytes[i] != ProfileResolver.ExifMarker[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return writer.GetData(exifIdCode);
         }
 
         /// <summary>

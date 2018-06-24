@@ -536,7 +536,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (image.MetaData.ExifProfile?.Values.Count > 0)
             {
-                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.ToByteArray(includeExifIdCode: false));
+                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.ToByteArray());
             }
         }
 

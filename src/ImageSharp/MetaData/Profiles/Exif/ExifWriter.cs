@@ -5,7 +5,6 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
@@ -42,15 +41,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Returns the EXIF data.
         /// </summary>
-        /// <param name="includeExifIdCode">Indicates, if the Exif ID code should be included.
-        /// The Exif Id Code is part of the JPEG APP1 segment. This Exif ID code should not be included in case of PNG's.
-        /// Defaults to true.</param>
+        /// <param name="exifIdCode">The Exif Id Code is part of the JPEG APP1 segment (Exif00). Those bytes will be written at
+        /// the beginning of the array. This Exif ID code should not be included in case of PNG's.</param>
         /// <returns>
         /// The <see cref="T:byte[]"/>.
         /// </returns>
-        public byte[] GetData(bool includeExifIdCode = true)
+        public byte[] GetData(ReadOnlySpan<byte> exifIdCode)
         {
-            uint startIndex = (uint)ProfileResolver.ExifMarker.Length;
+            uint exifIdCodeLength = exifIdCode.IsEmpty ? 0 : (uint)exifIdCode.Length;
+            uint startIndex = exifIdCodeLength;
             uint length;
             int exifIndex = -1;
             int gpsIndex = -1;
@@ -86,17 +85,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return null;
             }
 
-            if (includeExifIdCode)
-            {
-                // Exif Id Code "Exif00" (6 bytes)
-                length += (uint)ProfileResolver.ExifMarker.Length;
-            }
-            else
-            {
-                // special case for PNG eXIf Chunk:
-                // if the Exif Code ("Exif00") is not included, the start index is 0 instead of 6
-                startIndex = 0;
-            }
+            length += exifIdCodeLength;
 
             // two bytes for the byte Order marker 'II', followed by the number 42 (0x2A) and a 0, making 4 bytes total
             length += (uint)ExifConstants.LittleEndianByteOrderMarker.Length;
@@ -106,10 +95,10 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             byte[] result = new byte[length];
 
             int i = 0;
-            if (includeExifIdCode)
+            if (!exifIdCode.IsEmpty)
             {
-                ProfileResolver.ExifMarker.AsSpan().CopyTo(result); // 0-5
-                i += ProfileResolver.ExifMarker.Length;
+                exifIdCode.CopyTo(result); // 0-5
+                i += exifIdCode.Length;
             }
 
             // the byte order marker for little-endian, followed by the number 42 and a 0

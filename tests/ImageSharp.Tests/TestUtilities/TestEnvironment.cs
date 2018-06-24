@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
             () =>
                 {
                     bool isCi;
-                    return Boolean.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
+                    return bool.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
                 });
 
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);

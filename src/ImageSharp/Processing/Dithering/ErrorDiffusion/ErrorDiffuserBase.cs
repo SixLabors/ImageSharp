@@ -78,6 +78,19 @@ namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();
 
+            // No error? Break out as there's nothing to pass.
+            if (error.Equals(Vector4.Zero))
+            {
+                return;
+            }
+
+            this.DoDither(image, x, y, minX, minY, maxX, maxY, error);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void DoDither<TPixel>(ImageFrame<TPixel> image, int x, int y, int minX, int minY, int maxX, int maxY, Vector4 error)
+            where TPixel : struct, IPixel<TPixel>
+        {
             // Loop through and distribute the error amongst neighboring pixels.
             for (int row = 0; row < this.matrixHeight; row++)
             {

@@ -125,9 +125,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         protected byte GetClosestPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
         {
             // Check if the color is in the lookup table
-            if (cache.ContainsKey(pixel))
+            if (cache.TryGetValue(pixel, out byte value))
             {
-                return cache[pixel];
+                return value;
             }
 
             return this.GetClosestPixelSlow(pixel, colorPalette, cache);

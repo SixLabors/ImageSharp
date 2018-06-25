@@ -224,11 +224,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             private readonly OctreeNode root;
 
             /// <summary>
-            /// Array of reducible nodes
-            /// </summary>
-            private readonly OctreeNode[] reducibleNodes;
-
-            /// <summary>
             /// Maximum number of significant bits in the image
             /// </summary>
             private readonly int maxColorBits;
@@ -253,7 +248,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             {
                 this.maxColorBits = maxColorBits;
                 this.Leaves = 0;
-                this.reducibleNodes = new OctreeNode[9];
+                this.ReducibleNodes = new OctreeNode[9];
                 this.root = new OctreeNode(0, this.maxColorBits, this);
                 this.previousColor = default;
                 this.previousNode = null;
@@ -262,12 +257,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             /// <summary>
             /// Gets or sets the number of leaves in the tree
             /// </summary>
-            private int Leaves { get; set; }
+            public int Leaves { get; set; }
 
             /// <summary>
             /// Gets the array of reducible nodes
             /// </summary>
-            private OctreeNode[] ReducibleNodes => this.reducibleNodes;
+            private OctreeNode[] ReducibleNodes { get; }
 
             /// <summary>
             /// Add a given color value to the Octree
@@ -354,14 +349,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             {
                 // Find the deepest level containing at least one reducible node
                 int index = this.maxColorBits - 1;
-                while ((index > 0) && (this.reducibleNodes[index] == null))
+                while ((index > 0) && (this.ReducibleNodes[index] == null))
                 {
                     index--;
                 }
 
                 // Reduce the node most recently added to the list at level 'index'
-                OctreeNode node = this.reducibleNodes[index];
-                this.reducibleNodes[index] = node.NextReducible;
+                OctreeNode node = this.ReducibleNodes[index];
+                this.ReducibleNodes[index] = node.NextReducible;
 
                 // Decrement the leaf count after reducing the node
                 this.Leaves -= node.Reduce();

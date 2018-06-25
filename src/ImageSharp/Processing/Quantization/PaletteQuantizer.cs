@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Dithering;
 using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
@@ -46,19 +47,20 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// <inheritdoc />
         public IErrorDiffuser Diffuser { get; }
 
+        /// <inheritdoc />
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+            => this.CreateFrameQuantizer(() => NamedColors<TPixel>.WebSafePalette);
+
         /// <summary>
         /// Gets the palette to use to quantize the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The <see cref="T:TPixel[]"/></returns>
-        public virtual TPixel[] GetPalette<TPixel>()
+        /// <param name="paletteFunction">The method to return the palette.</param>
+        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
+        public virtual IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Func<TPixel[]> paletteFunction)
             where TPixel : struct, IPixel<TPixel>
-            => NamedColors<TPixel>.WebSafePalette;
-
-        /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
-            => new PaletteFrameQuantizer<TPixel>(this);
+            => new PaletteFrameQuantizer<TPixel>(this, paletteFunction.Invoke());
 
         private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
     }

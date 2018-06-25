@@ -1,4 +1,6 @@
-using System.IO;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -8,13 +10,13 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 {
-    public class ReferenceCodecTests
+    public class SystemDrawingReferenceCodecTests
     {
         private ITestOutputHelper Output { get; }
 
-        public ReferenceCodecTests(ITestOutputHelper output)
+        public SystemDrawingReferenceCodecTests(ITestOutputHelper output)
         {
             this.Output = output;
         }

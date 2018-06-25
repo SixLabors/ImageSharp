@@ -641,7 +641,8 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder encoder,
             ImageComparer customComparer = null,
             bool appendPixelTypeToFileName = true,
-            string referenceImageExtension = null)
+            string referenceImageExtension = null,
+            IImageDecoder referenceDecoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string actualOutputFile = provider.Utility.SaveTestOutputFile(
@@ -650,7 +651,8 @@ namespace SixLabors.ImageSharp.Tests
                 encoder,
                 testOutputDetails,
                 appendPixelTypeToFileName);
-            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+
+            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
             using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
             {

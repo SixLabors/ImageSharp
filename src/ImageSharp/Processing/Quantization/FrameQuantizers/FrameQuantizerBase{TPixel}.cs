@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <remarks>
         /// If you construct this class with a true value for singlePass, then the code will, when quantizing your image,
         /// only call the <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/> methods.
-        /// If two passes are required, the code will also call <see cref="SecondPass(ImageFrame{TPixel}, byte[], int, int)"/>
+        /// If two passes are required, the code will also call <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, int, int)"/>
         /// and then 'QuantizeImage'.
         /// </remarks>
         protected FrameQuantizerBase(IQuantizer quantizer, bool singlePass)
@@ -58,7 +58,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             // Get the size of the source image
             int height = image.Height;
             int width = image.Width;
-            byte[] quantizedPixels = new byte[width * height];
 
             // Call the FirstPass function if not a single pass algorithm.
             // For something like an Octree quantizer, this will run through
@@ -69,22 +68,22 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             }
 
             // Collect the palette. Required before the second pass runs.
-            TPixel[] colorPalette = this.GetPalette();
+            var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, this.GetPalette());
 
             if (this.Dither)
             {
                 // We clone the image as we don't want to alter the original.
                 using (ImageFrame<TPixel> clone = image.Clone())
                 {
-                    this.SecondPass(clone, quantizedPixels, width, height);
+                    this.SecondPass(clone, quantizedFrame.GetPixelSpan(), width, height);
                 }
             }
             else
             {
-                this.SecondPass(image, quantizedPixels, width, height);
+                this.SecondPass(image, quantizedFrame.GetPixelSpan(), width, height);
             }
 
-            return new QuantizedFrame<TPixel>(width, height, colorPalette, quantizedPixels);
+            return quantizedFrame;
         }
 
         /// <summary>
@@ -104,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <param name="output">The output pixel array</param>
         /// <param name="width">The width in pixels of the image</param>
         /// <param name="height">The height in pixels of the image</param>
-        protected abstract void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height);
+        protected abstract void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height);
 
         /// <summary>
         /// Retrieve the palette for the quantized image.
@@ -131,7 +130,13 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 return cache[pixel];
             }
 
-            // Not found - loop through the palette and find the nearest match.
+            return this.GetClosestPixelSlow(pixel, colorPalette, cache);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private byte GetClosestPixelSlow(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
+        {
+            // Loop through the palette and find the nearest match.
             byte colorIndex = 0;
             float leastDistance = int.MaxValue;
             var vector = pixel.ToVector4();

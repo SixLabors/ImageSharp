@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             {
                 this.palette[i].ToRgba32(ref trans);
 
-                if (trans.Equals(default(Rgba32)))
+                if (trans.Equals(default))
                 {
                     index = i;
                 }
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             }
 
             pixel.ToRgba32(ref rgba);
-            if (rgba.Equals(default(Rgba32)))
+            if (rgba.Equals(default))
             {
                 return this.transparentIndex;
             }
@@ -255,7 +255,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 this.Leaves = 0;
                 this.reducibleNodes = new OctreeNode[9];
                 this.root = new OctreeNode(0, this.maxColorBits, this);
-                this.previousColor = default(TPixel);
+                this.previousColor = default;
                 this.previousNode = null;
             }
 
@@ -476,9 +476,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                         int shift = 7 - level;
                         pixel.ToRgba32(ref rgba);
 
-                        int index = ((rgba.B & Mask[level]) >> (shift - 2)) |
-                                    ((rgba.G & Mask[level]) >> (shift - 1)) |
-                                    ((rgba.R & Mask[level]) >> shift);
+                        int index = ((rgba.B & Mask[level]) >> (shift - 2))
+                                    | ((rgba.G & Mask[level]) >> (shift - 1))
+                                    | ((rgba.R & Mask[level]) >> shift);
 
                         OctreeNode child = this.children[index];
 
@@ -551,10 +551,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                         // Loop through children looking for leaves
                         for (int i = 0; i < 8; i++)
                         {
-                            if (this.children[i] != null)
-                            {
-                                this.children[i].ConstructPalette(palette, ref index);
-                            }
+                            this.children[i]?.ConstructPalette(palette, ref index);
                         }
                     }
                 }
@@ -577,9 +574,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                         int shift = 7 - level;
                         pixel.ToRgba32(ref rgba);
 
-                        int pixelIndex = ((rgba.B & Mask[level]) >> (shift - 2)) |
-                                         ((rgba.G & Mask[level]) >> (shift - 1)) |
-                                         ((rgba.R & Mask[level]) >> shift);
+                        int pixelIndex = ((rgba.B & Mask[level]) >> (shift - 2))
+                                         | ((rgba.G & Mask[level]) >> (shift - 1))
+                                         | ((rgba.R & Mask[level]) >> shift);
 
                         if (this.children[pixelIndex] != null)
                         {

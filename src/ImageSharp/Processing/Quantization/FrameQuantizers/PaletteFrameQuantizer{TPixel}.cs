@@ -24,22 +24,23 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
-        /// List of all colors in the palette
+        /// List of all colors in the palette.
         /// </summary>
         private readonly TPixel[] colors;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
-        /// <param name="quantizer">The palette quantizer</param>
-        public PaletteFrameQuantizer(PaletteQuantizer quantizer)
+        /// <param name="quantizer">The palette quantizer.</param>
+        /// <param name="colors">An array of all colors in the palette.</param>
+        public PaletteFrameQuantizer(PaletteQuantizer quantizer, TPixel[] colors)
             : base(quantizer, true)
         {
-            this.colors = quantizer.GetPalette<TPixel>();
+            this.colors = colors;
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
@@ -88,10 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override TPixel[] GetPalette()
-        {
-            return this.colors;
-        }
+        protected override TPixel[] GetPalette() => this.colors;
 
         /// <summary>
         /// Process the pixel in the second pass of the algorithm
@@ -101,9 +99,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel)
-        {
-            return this.GetClosestPixel(pixel, this.GetPalette(), this.colorMap);
-        }
+        private byte QuantizePixel(TPixel pixel) => this.GetClosestPixel(pixel, this.GetPalette(), this.colorMap);
     }
 }

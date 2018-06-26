@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.Tests.Icc
 
         [Theory]
         [MemberData(nameof(IccTestDataNonPrimitives.VersionNumberTestData), MemberType = typeof(IccTestDataNonPrimitives))]
-        public void ReadVersionNumber(byte[] data, Version expected)
+        public void ReadVersionNumber(byte[] data, IccVersion expected)
         {
             IccDataReader reader = CreateReader(data);
 
-            Version output = reader.ReadVersionNumber();
+            IccVersion output = reader.ReadVersionNumber();
 
             Assert.Equal(expected, output);
         }

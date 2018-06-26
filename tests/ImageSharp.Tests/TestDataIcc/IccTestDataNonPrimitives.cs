@@ -67,10 +67,10 @@ namespace SixLabors.ImageSharp.Tests
 
         #region VersionNumber
 
-        public static readonly Version VersionNumber_ValMin = new Version(0, 0, 0);
-        public static readonly Version VersionNumber_Val211 = new Version(2, 1, 1);
-        public static readonly Version VersionNumber_Val430 = new Version(4, 3, 0);
-        public static readonly Version VersionNumber_ValMax = new Version(255, 15, 15);
+        public static readonly IccVersion VersionNumber_ValMin = new IccVersion(0, 0, 0);
+        public static readonly IccVersion VersionNumber_Val211 = new IccVersion(2, 1, 1);
+        public static readonly IccVersion VersionNumber_Val430 = new IccVersion(4, 3, 0);
+        public static readonly IccVersion VersionNumber_ValMax = new IccVersion(255, 15, 15);
 
         public static readonly byte[] VersionNumber_Min = { 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] VersionNumber_211 = { 0x02, 0x11, 0x00, 0x00 };

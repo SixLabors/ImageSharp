@@ -63,7 +63,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-
             return obj is IccMultiLocalizedUnicodeTagDataEntry other && this.Equals(other);
         }
 

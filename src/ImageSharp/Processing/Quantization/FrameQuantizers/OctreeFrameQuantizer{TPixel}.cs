@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -19,11 +20,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
-
-        /// <summary>
         /// Maximum allowed color depth
         /// </summary>
         private readonly byte colors;
@@ -32,6 +28,11 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// Stores the tree
         /// </summary>
         private readonly Octree octree;
+
+        /// <summary>
+        /// A lookup table for colors
+        /// </summary>
+        private Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
         /// The reduced image palette
@@ -476,7 +477,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                                     | ((rgba.R & Mask[level]) >> shift);
 
                         OctreeNode child = this.children[index];
-
                         if (child == null)
                         {
                             // Create a new child node and store it in the array
@@ -501,12 +501,13 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                     // Loop through all children and add their information to this node
                     for (int index = 0; index < 8; index++)
                     {
-                        if (this.children[index] != null)
+                        OctreeNode child = this.children[index];
+                        if (child != null)
                         {
-                            this.red += this.children[index].red;
-                            this.green += this.children[index].green;
-                            this.blue += this.children[index].blue;
-                            this.pixelCount += this.children[index].pixelCount;
+                            this.red += child.red;
+                            this.green += child.green;
+                            this.blue += child.blue;
+                            this.pixelCount += child.pixelCount;
                             ++childNodes;
                             this.children[index] = null;
                         }
@@ -528,14 +529,10 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 {
                     if (this.leaf)
                     {
-                        // This seems faster than using Vector4
-                        byte r = (this.red / this.pixelCount).ToByte();
-                        byte g = (this.green / this.pixelCount).ToByte();
-                        byte b = (this.blue / this.pixelCount).ToByte();
-
-                        // And set the color of the palette entry
+                        // Set the color of the palette entry
+                        var vector = Vector3.Clamp(new Vector3(this.red, this.green, this.blue) / this.pixelCount, Vector3.Zero, new Vector3(255));
                         TPixel pixel = default;
-                        pixel.PackFromRgba32(new Rgba32(r, g, b, 255));
+                        pixel.PackFromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                         palette[index] = pixel;
 
                         // Consume the next palette index
@@ -573,13 +570,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                                          | ((rgba.G & Mask[level]) >> (shift - 1))
                                          | ((rgba.R & Mask[level]) >> shift);
 
-                        if (this.children[pixelIndex] != null)
+                        OctreeNode child = this.children[pixelIndex];
+                        if (child != null)
                         {
-                            index = this.children[pixelIndex].GetPaletteIndex(ref pixel, level + 1, ref rgba);
+                            index = child.GetPaletteIndex(ref pixel, level + 1, ref rgba);
                         }
                         else
                         {
-                            throw new Exception($"Cannot retrive a pixel at the given index {pixelIndex}.");
+                            throw new Exception($"Cannot retrieve a pixel at the given index {pixelIndex}.");
                         }
                     }
 

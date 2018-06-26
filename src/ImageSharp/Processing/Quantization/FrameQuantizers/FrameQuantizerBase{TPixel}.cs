@@ -125,11 +125,10 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         protected byte GetClosestPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
         {
             // Check if the color is in the lookup table
-            if (cache.TryGetValue(pixel, out byte value))
-            {
-                return value;
-            }
-
+            // if (cache.TryGetValue(pixel, out byte value))
+            // {
+            //  return value;
+            // }
             return this.GetClosestPixelSlow(pixel, colorPalette, cache);
         }
 
@@ -137,34 +136,31 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         private byte GetClosestPixelSlow(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
         {
             // Loop through the palette and find the nearest match.
-            byte colorIndex = 0;
-            float leastDistance = int.MaxValue;
+            int colorIndex = 0;
+            float leastDistance = float.MaxValue;
             var vector = pixel.ToVector4();
 
             for (int index = 0; index < colorPalette.Length; index++)
             {
-                float distance = Vector4.Distance(vector, colorPalette[index].ToVector4());
+                ref TPixel candidate = ref colorPalette[index];
+                float distance = Vector4.DistanceSquared(vector, candidate.ToVector4());
 
-                // Greater... Move on.
-                if (!(distance < leastDistance))
+                if (distance < leastDistance)
                 {
-                    continue;
+                    colorIndex = index;
+                    leastDistance = distance;
                 }
 
-                colorIndex = (byte)index;
-                leastDistance = distance;
-
-                // And if it's an exact match, exit the loop
-                if (MathF.Abs(distance) < Constants.Epsilon)
+                // If it's an exact match, exit the loop
+                if (distance == 0)
                 {
                     break;
                 }
             }
 
             // Now I have the index, pop it into the cache for next time
-            cache.Add(pixel, colorIndex);
-
-            return colorIndex;
+            // cache.Add(pixel, colorIndex);
+            return (byte)colorIndex;
         }
     }
 }

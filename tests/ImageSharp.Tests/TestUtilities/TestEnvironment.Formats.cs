@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Tests
 {
     public static partial class TestEnvironment
     {
-        private static Lazy<Configuration> configuration = new Lazy<Configuration>(CreateDefaultConfiguration);
+        private static readonly Lazy<Configuration> ConfigurationLazy = new Lazy<Configuration>(CreateDefaultConfiguration);
 
-        internal static Configuration Configuration => configuration.Value;
+        internal static Configuration Configuration => ConfigurationLazy.Value;
 
         internal static IImageDecoder GetReferenceDecoder(string filePath)
         {
@@ -52,36 +52,25 @@ namespace SixLabors.ImageSharp.Tests
 
         private static Configuration CreateDefaultConfiguration()
         {
-            var configuration = new Configuration(
-                new PngConfigurationModule(),
+            var cfg = new Configuration(
                 new JpegConfigurationModule(),
                 new GifConfigurationModule()
             );
 
-            if (!IsLinux)
-            {
-                // TODO: System.Drawing on Windows can decode 48bit and 64bit pngs but
-                // it doesn't preserve the accuracy we require for comparison.
-                // This makes CompareToOriginal method non-useful.
-                configuration.ConfigureCodecs(
-                    ImageFormats.Png,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                     new PngImageFormatDetector());
+            // Magick codecs should work on all
+            cfg.ConfigureCodecs(
+                ImageFormats.Png,
+                MagickReferenceDecoder.Instance,
+                SystemDrawingReferenceEncoder.Png,
+                new PngImageFormatDetector());
 
-                configuration.ConfigureCodecs(
-                    ImageFormats.Bmp,
-                    SystemDrawingReferenceDecoder.Instance,
-                    SystemDrawingReferenceEncoder.Png,
-                    new PngImageFormatDetector());
-            }
-            else
-            {
-                configuration.Configure(new PngConfigurationModule());
-                configuration.Configure(new BmpConfigurationModule());
-            }
+            cfg.ConfigureCodecs(
+                ImageFormats.Bmp,
+                MagickReferenceDecoder.Instance,
+                SystemDrawingReferenceEncoder.Bmp,
+                new BmpImageFormatDetector());
 
-            return configuration;
+            return cfg;
         }
     }
 }

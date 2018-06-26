@@ -30,11 +30,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         private readonly Octree octree;
 
         /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
-
-        /// <summary>
         /// The reduced image palette
         /// </summary>
         private TPixel[] palette;
@@ -182,7 +177,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             {
                 // The colors have changed so we need to use Euclidean distance calculation to find the closest value.
                 // This palette can never be null here.
-                return this.GetClosestPixel(pixel, this.palette, this.colorMap);
+                return this.GetClosestPixel(pixel, this.palette);
             }
 
             pixel.ToRgba32(ref rgba);
@@ -258,12 +253,23 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             /// <summary>
             /// Gets or sets the number of leaves in the tree
             /// </summary>
-            public int Leaves { get; set; }
+            public int Leaves
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get;
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                set;
+            }
 
             /// <summary>
             /// Gets the array of reducible nodes
             /// </summary>
-            private OctreeNode[] ReducibleNodes { get; }
+            private OctreeNode[] ReducibleNodes
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get;
+            }
 
             /// <summary>
             /// Add a given color value to the Octree
@@ -302,6 +308,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             /// <returns>
             /// An <see cref="List{TPixel}"/> with the palletized colors
             /// </returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public TPixel[] Palletize(int colorCount)
             {
                 while (this.Leaves > colorCount)
@@ -327,6 +334,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             /// <returns>
             /// The <see cref="int"/>.
             /// </returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public int GetPaletteIndex(ref TPixel pixel, ref Rgba32 rgba)
             {
                 return this.root.GetPaletteIndex(ref pixel, 0, ref rgba);
@@ -338,6 +346,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             /// <param name="node">
             /// The node last quantized
             /// </param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             protected void TrackPrevious(OctreeNode node)
             {
                 this.previousNode = node;
@@ -446,7 +455,11 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 /// <summary>
                 /// Gets the next reducible node
                 /// </summary>
-                public OctreeNode NextReducible { get; }
+                public OctreeNode NextReducible
+                {
+                    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                    get;
+                }
 
                 /// <summary>
                 /// Add a color into the tree
@@ -525,6 +538,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 /// </summary>
                 /// <param name="palette">The palette</param>
                 /// <param name="index">The current palette index</param>
+                [MethodImpl(MethodImplOptions.NoInlining)]
                 public void ConstructPalette(TPixel[] palette, ref int index)
                 {
                     if (this.leaf)
@@ -557,6 +571,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 /// <returns>
                 /// The <see cref="int"/> representing the index of the pixel in the palette.
                 /// </returns>
+                [MethodImpl(MethodImplOptions.NoInlining)]
                 public int GetPaletteIndex(ref TPixel pixel, int level, ref Rgba32 rgba)
                 {
                     int index = this.paletteIndex;
@@ -589,6 +604,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 /// </summary>
                 /// <param name="pixel">The pixel to add.</param>
                 /// <param name="rgba">The color to map to.</param>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public void Increment(ref TPixel pixel, ref Rgba32 rgba)
                 {
                     pixel.ToRgba32(ref rgba);

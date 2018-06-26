@@ -69,11 +69,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
         /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
-
-        /// <summary>
         /// Moment of <c>P(c)</c>.
         /// </summary>
         private IBuffer<long> vwt;
@@ -480,7 +475,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             using (IBuffer<long> volumeB = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
             using (IBuffer<long> volumeA = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
             using (IBuffer<float> volume2 = memoryAllocator.Allocate<float>(IndexCount * IndexAlphaCount))
-
             using (IBuffer<long> area = memoryAllocator.Allocate<long>(IndexAlphaCount))
             using (IBuffer<long> areaR = memoryAllocator.Allocate<long>(IndexAlphaCount))
             using (IBuffer<long> areaG = memoryAllocator.Allocate<long>(IndexAlphaCount))
@@ -855,7 +849,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             {
                 // The colors have changed so we need to use Euclidean distance calculation to find the closest value.
                 // This palette can never be null here.
-                return this.GetClosestPixel(pixel, this.palette, this.colorMap);
+                return this.GetClosestPixel(pixel, this.palette);
             }
 
             // Expected order r->g->b->a

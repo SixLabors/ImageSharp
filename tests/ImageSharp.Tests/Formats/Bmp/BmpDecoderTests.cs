@@ -30,7 +30,11 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder()))
             {
                 image.DebugSave(provider, "bmp");
-                image.CompareToOriginal(provider);
+
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
             }
         }
 
@@ -52,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(NegHeight, 24)]
         [InlineData(Bit8, 8)]
         [InlineData(Bit8Inverted, 8)]
-        public void DetectPixelSize(string imagePath, int expectedPixelSize)
+        public void Identify(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))

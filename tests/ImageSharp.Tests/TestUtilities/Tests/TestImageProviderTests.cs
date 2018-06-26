@@ -244,7 +244,6 @@ namespace SixLabors.ImageSharp.Tests
         public static string[] AllBmpFiles =
             {
                 TestImages.Bmp.F,
-                TestImages.Bmp.CoreHeader,
                 TestImages.Bmp.Bit8
             };
 

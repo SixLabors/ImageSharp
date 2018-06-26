@@ -1,28 +1,24 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
-using System.Text;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
 // ReSharper disable InconsistentNaming
 
-namespace SixLabors.ImageSharp.Tests
+using System.Buffers.Binary;
+using System.IO;
+using System.Text;
+
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
-    using System.Buffers.Binary;
-    using System.Linq;
-
-    using SixLabors.ImageSharp.Formats.Png;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    // TODO: Fix all bugs, and re enable Skipped and commented stuff !!!
     public class PngDecoderTests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
-
-        // TODO: Cannot use exact comparer since System.Drawing doesn't preserve more than 32bits.
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.1302F, 2134);
-
+        
         // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
         private static readonly byte[] raw1x1PngIHDRAndpHYs =
          {
@@ -105,30 +101,6 @@ namespace SixLabors.ImageSharp.Tests
             TestImages.Png.GrayTrns16BitInterlaced
         };
 
-        // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
-        // We shouldn't mix these with the Interleaved cases (which are also failing with Mono System.Drawing). Let's go AAA!
-        private static readonly string[] SkipOnMono =
-        {
-            TestImages.Png.Bad.ChunkLength2,
-            TestImages.Png.VimImage2,
-            TestImages.Png.Splash,
-            TestImages.Png.Indexed,
-            TestImages.Png.Bad.ChunkLength1,
-            TestImages.Png.VersioningImage1,
-            TestImages.Png.Banner7Adam7InterlaceMode,
-            TestImages.Png.GrayTrns16BitInterlaced,
-            TestImages.Png.Rgb48BppInterlaced
-        };
-
-        private static bool SkipVerification(ITestImageProvider provider)
-        {
-            string fn = provider.SourceFileOrDescription;
-
-            // This is a workaround for Mono-s decoder being incompatible with ours and GDI+.
-            // We shouldn't mix these with the Interleaved cases (which are also failing with Mono System.Drawing). Let's go AAA!
-            return (TestEnvironment.IsLinux || TestEnvironment.IsMono) && SkipOnMono.Contains(fn);
-        }
-
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
@@ -137,22 +109,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 image.DebugSave(provider);
-
-                if (!SkipVerification(provider))
-                {
-                    image.CompareToOriginal(provider, ImageComparer.Exact);
-                }
-            }
-        }
-
-        [Theory]
-        [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
-        public void Decode_Interlaced_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
-            {
-                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 
@@ -175,12 +132,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                var encoder = new PngEncoder { ColorType = PngColorType.Rgb, BitDepth = PngBitDepth.Bit16 };
-
-                if (!SkipVerification(provider))
-                {
-                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ValidatorComparer);
-                }
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 
@@ -191,12 +144,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                var encoder = new PngEncoder { ColorType = PngColorType.RgbWithAlpha, BitDepth = PngBitDepth.Bit16 };
-
-                if (!SkipVerification(provider))
-                {
-                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ValidatorComparer);
-                }
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 
@@ -207,12 +156,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                var encoder = new PngEncoder { ColorType = PngColorType.Grayscale, BitDepth = PngBitDepth.Bit16 };
-
-                if (!SkipVerification(provider))
-                {
-                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ValidatorComparer);
-                }
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 
@@ -223,12 +168,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
-                var encoder = new PngEncoder { ColorType = PngColorType.GrayscaleWithAlpha, BitDepth = PngBitDepth.Bit16 };
-
-                if (!SkipVerification(provider))
-                {
-                    image.VerifyEncoder(provider, "png", null, encoder, customComparer: ValidatorComparer);
-                }
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ImageComparer.Exact);
             }
         }
 
@@ -303,7 +244,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData(TestImages.Png.Blur, 32)]
         [InlineData(TestImages.Png.Rgb48Bpp, 48)]
         [InlineData(TestImages.Png.Rgb48BppInterlaced, 48)]
-        public void DetectPixelSize(string imagePath, int expectedPixelSize)
+        public void Identify(string imagePath, int expectedPixelSize)
         {
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))

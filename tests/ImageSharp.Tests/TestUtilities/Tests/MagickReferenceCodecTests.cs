@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using ImageMagick;
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -84,22 +83,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 {
                     Assert.True(report.IsEmpty);
                 }
-            }
-        }
-
-        [Theory]
-        [WithTestPatternImages(100, 100, PixelTypesToTest32, MagickFormat.Png)]
-        [WithTestPatternImages(100, 100, PixelTypesToTest32, MagickFormat.Jpg)]
-        public void MagickEncode_8BitDepthImage<TPixel>(TestImageProvider<TPixel> provider, MagickFormat format)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            string extension = format.ToString().ToLower();
-
-            var encoder = new MagickReferenceEncoder(format);
-
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                image.VerifyEncoder(provider, extension, $"{format}", encoder, referenceDecoder: new SystemDrawingReferenceDecoder());
             }
         }
     }

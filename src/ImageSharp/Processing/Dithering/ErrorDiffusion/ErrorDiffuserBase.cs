@@ -47,7 +47,6 @@ namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
         /// <param name="divisor">The divisor.</param>
         internal ErrorDiffuserBase(DenseMatrix<float> matrix, byte divisor)
         {
-            Guard.NotNull(matrix, nameof(matrix));
             Guard.MustBeGreaterThan(divisor, 0, nameof(divisor));
 
             this.matrix = matrix;

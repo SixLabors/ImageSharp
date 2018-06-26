@@ -144,20 +144,24 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             int colorIndex = 0;
             float leastDistance = float.MaxValue;
             var vector = pixel.ToVector4();
+            float epsilon = Constants.EpsilonSquared;
 
             for (int index = 0; index < colorPalette.Length; index++)
             {
                 ref TPixel candidate = ref colorPalette[index];
                 float distance = Vector4.DistanceSquared(vector, candidate.ToVector4());
 
-                if (distance < leastDistance)
+                // Greater... Move on.
+                if (!(distance < leastDistance))
                 {
-                    colorIndex = index;
-                    leastDistance = distance;
+                    continue;
                 }
 
-                // If it's an exact match, exit the loop
-                if (distance == 0)
+                colorIndex = index;
+                leastDistance = distance;
+
+                // And if it's an exact match, exit the loop
+                if (distance < epsilon)
                 {
                     break;
                 }

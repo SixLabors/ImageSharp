@@ -75,15 +75,14 @@ namespace SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion
         {
             image[x, y] = transformed;
 
-            // Calculate the error
-            Vector4 error = source.ToVector4() - transformed.ToVector4();
-
-            // No error? Break out as there's nothing to pass.
-            if (error.Equals(Vector4.Zero))
+            // Equal? Break out as there's nothing to pass.
+            if (source.Equals(transformed))
             {
                 return;
             }
 
+            // Calculate the error
+            Vector4 error = source.ToVector4() - transformed.ToVector4();
             this.DoDither(image, x, y, minX, minY, maxX, maxY, error);
         }
 

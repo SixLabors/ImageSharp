@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public PaletteFrameQuantizer(PaletteQuantizer quantizer, TPixel[] colors)
             : base(quantizer, true)
         {
-            Guard.MustBeLessThanOrEqualTo(256, colors.Length, "Maximum color count must be 256.");
+            Guard.MustBeBetweenOrEqualTo(colors.Length, 1, 255, nameof(colors));
             this.colors = colors;
         }
 

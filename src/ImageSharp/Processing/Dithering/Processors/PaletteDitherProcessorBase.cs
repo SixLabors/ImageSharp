@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
     /// <summary>
     /// The base class for dither and diffusion processors that consume a palette.
     /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal abstract class PaletteDitherProcessorBase<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {

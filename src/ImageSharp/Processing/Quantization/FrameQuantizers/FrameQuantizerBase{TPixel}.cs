@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
+        /// A lookup table for colors
+        /// </summary>
+        private readonly Dictionary<TPixel, byte> distanceCache = new Dictionary<TPixel, byte>();
+
+        /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
         /// </summary>
         private readonly bool singlePass;
@@ -119,21 +124,21 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// </summary>
         /// <param name="pixel">The color.</param>
         /// <param name="colorPalette">The color palette.</param>
-        /// <param name="cache">The cache to store the result in.</param>
-        /// <returns>The <see cref="byte"/></returns>
+        /// <returns>The <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetClosestPixel(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
+        protected byte GetClosestPixel(TPixel pixel, TPixel[] colorPalette)
         {
             // Check if the color is in the lookup table
-            // if (cache.TryGetValue(pixel, out byte value))
-            // {
-            //  return value;
-            // }
-            return this.GetClosestPixelSlow(pixel, colorPalette, cache);
+            if (this.distanceCache.TryGetValue(pixel, out byte value))
+            {
+                return value;
+            }
+
+            return this.GetClosestPixelSlow(pixel, colorPalette);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private byte GetClosestPixelSlow(TPixel pixel, TPixel[] colorPalette, Dictionary<TPixel, byte> cache)
+        private byte GetClosestPixelSlow(TPixel pixel, TPixel[] colorPalette)
         {
             // Loop through the palette and find the nearest match.
             int colorIndex = 0;
@@ -159,8 +164,9 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             }
 
             // Now I have the index, pop it into the cache for next time
-            // cache.Add(pixel, colorIndex);
-            return (byte)colorIndex;
+            byte result = (byte)colorIndex;
+            this.distanceCache.Add(pixel, result);
+            return result;
         }
     }
 }

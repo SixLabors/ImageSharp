@@ -374,7 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int NextPixel(Span<byte> indexedPixels)
         {
-            return indexedPixels[this.position++] & 0xff;
+            return indexedPixels[this.position++] & 0xFF;
         }
 
         /// <summary>

@@ -37,11 +37,17 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
         protected PixelPair<TPixel> GetClosestPixelPair(ref TPixel pixel, TPixel[] colorPalette)
         {
             // Check if the color is in the lookup table
-            if (this.cache.ContainsKey(pixel))
+            if (this.cache.TryGetValue(pixel, out PixelPair<TPixel> value))
             {
-                return this.cache[pixel];
+                return value;
             }
 
+            return this.GetClosestPixelPairSlow(ref pixel, colorPalette);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private PixelPair<TPixel> GetClosestPixelPairSlow(ref TPixel pixel, TPixel[] colorPalette)
+        {
             // Not found - loop through the palette and find the nearest match.
             float leastDistance = float.MaxValue;
             float secondLeastDistance = float.MaxValue;
@@ -51,19 +57,19 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
             TPixel secondClosest = default;
             for (int index = 0; index < colorPalette.Length; index++)
             {
-                TPixel temp = colorPalette[index];
-                float distance = Vector4.DistanceSquared(vector, temp.ToVector4());
+                ref TPixel candidate = ref colorPalette[index];
+                float distance = Vector4.DistanceSquared(vector, candidate.ToVector4());
 
                 if (distance < leastDistance)
                 {
                     leastDistance = distance;
                     secondClosest = closest;
-                    closest = temp;
+                    closest = candidate;
                 }
                 else if (distance < secondLeastDistance)
                 {
                     secondLeastDistance = distance;
-                    secondClosest = temp;
+                    secondClosest = candidate;
                 }
             }
 

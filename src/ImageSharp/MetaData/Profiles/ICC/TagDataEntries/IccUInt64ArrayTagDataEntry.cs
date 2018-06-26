@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        { 
+        {
             return obj is IccUInt64ArrayTagDataEntry other && this.Equals(other);
         }
 

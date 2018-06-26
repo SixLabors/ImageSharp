@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is IccViewingConditionsTagDataEntry && this.Equals((IccViewingConditionsTagDataEntry)obj);
+            return obj is IccViewingConditionsTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>

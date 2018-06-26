@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         public IErrorDiffuser Diffuser { get; }
 
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
+        public virtual IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
             => this.CreateFrameQuantizer(() => NamedColors<TPixel>.WebSafePalette);
 
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="paletteFunction">The method to return the palette.</param>
         /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
-        public virtual IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Func<TPixel[]> paletteFunction)
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Func<TPixel[]> paletteFunction)
             where TPixel : struct, IPixel<TPixel>
             => new PaletteFrameQuantizer<TPixel>(this, paletteFunction.Invoke());
 

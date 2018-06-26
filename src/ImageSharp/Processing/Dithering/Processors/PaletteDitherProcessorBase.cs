@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
             }
 
             // Not found - loop through the palette and find the nearest match.
-            float leastDistance = int.MaxValue;
-            float secondLeastDistance = int.MaxValue;
+            float leastDistance = float.MaxValue;
+            float secondLeastDistance = float.MaxValue;
             var vector = pixel.ToVector4();
 
             TPixel closest = default;

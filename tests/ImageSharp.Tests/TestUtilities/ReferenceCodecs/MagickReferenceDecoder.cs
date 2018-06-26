@@ -15,6 +15,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     public class MagickReferenceDecoder : IImageDecoder
     {
+        public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
+
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -40,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                     }
                     else
                     {
-                        throw new NotImplementedException();
+                        throw new InvalidOperationException();
                     }
                 }
 

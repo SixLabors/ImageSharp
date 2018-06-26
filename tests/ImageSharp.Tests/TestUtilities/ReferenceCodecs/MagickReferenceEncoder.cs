@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             var black = MagickColor.FromRgba(0, 0, 0, 255);
             using (var magickImage = new MagickImage(black, image.Width, image.Height))
             {
-                bool isDeep = Unsafe.SizeOf<TPixel>() > 32;
+                bool isDeep = Unsafe.SizeOf<TPixel>() > 4;
 
                 magickImage.Depth = isDeep ? 16 : 8;
 

@@ -83,8 +83,7 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(c => c.Quantize(quantizer));
-                image.DebugSave(provider, new PngEncoder() { ColorType = PngColorType.Palette }, testOutputDetails: quantizerName);
+                image.DebugSave(provider, new PngEncoder() { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: quantizerName);
             }
 
             provider.Configuration.MemoryAllocator.ReleaseRetainedResources();

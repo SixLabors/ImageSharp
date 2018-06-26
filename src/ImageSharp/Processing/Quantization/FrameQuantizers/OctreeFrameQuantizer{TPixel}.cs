@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             : base(quantizer, false)
         {
             this.colors = (byte)quantizer.MaxColors;
-            this.octree = new Octree(this.GetBitsNeededForColorDepth(this.colors));
+            this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.colors).Clamp(1, 8));
         }
 
         /// <inheritdoc/>
@@ -187,20 +187,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             }
 
             return (byte)this.octree.GetPaletteIndex(ref pixel, ref rgba);
-        }
-
-        /// <summary>
-        /// Returns how many bits are required to store the specified number of colors.
-        /// Performs a Log2() on the value.
-        /// </summary>
-        /// <param name="colorCount">The number of colors.</param>
-        /// <returns>
-        /// The <see cref="int"/>
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetBitsNeededForColorDepth(int colorCount)
-        {
-            return (int)Math.Ceiling(Math.Log(colorCount, 2));
         }
 
         /// <summary>

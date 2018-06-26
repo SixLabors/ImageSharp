@@ -78,6 +78,13 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         pair = this.GetClosestPixelPair(ref sourcePixel, this.Palette);
+
+                        // No error to spread, exact match.
+                        if (sourcePixel.Equals(pair.First))
+                        {
+                            continue;
+                        }
+
                         sourcePixel.ToRgba32(ref rgba);
                         luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
 

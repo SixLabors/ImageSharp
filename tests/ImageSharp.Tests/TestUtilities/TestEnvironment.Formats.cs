@@ -58,16 +58,19 @@ namespace SixLabors.ImageSharp.Tests
             );
 
             // Magick codecs should work on all platforms
+            IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new PngEncoder();
+            IImageEncoder bmpEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
+
             cfg.ConfigureCodecs(
                 ImageFormats.Png,
                 MagickReferenceDecoder.Instance,
-                SystemDrawingReferenceEncoder.Png,
+                pngEncoder,
                 new PngImageFormatDetector());
 
             cfg.ConfigureCodecs(
                 ImageFormats.Bmp,
                 SystemDrawingReferenceDecoder.Instance,
-                SystemDrawingReferenceEncoder.Bmp,
+                bmpEncoder,
                 new BmpImageFormatDetector());
 
             return cfg;

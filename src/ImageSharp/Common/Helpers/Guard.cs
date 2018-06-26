@@ -19,7 +19,8 @@ namespace SixLabors.ImageSharp
         /// <param name="value">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentNullException"><paramref name="value"/> is null</exception>
-        public static void NotNull(object value, string parameterName)
+        public static void NotNull<T>(T value, string parameterName)
+            where T : class
         {
             if (value == null)
             {

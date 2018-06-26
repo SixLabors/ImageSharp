@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -19,11 +18,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
-
-        /// <summary>
         /// List of all colors in the palette.
         /// </summary>
         private readonly TPixel[] colors;
@@ -36,6 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public PaletteFrameQuantizer(PaletteQuantizer quantizer, TPixel[] colors)
             : base(quantizer, true)
         {
+            Guard.MustBeLessThanOrEqualTo(256, colors.Length, "Maximum color count must be 256.");
             this.colors = colors;
         }
 
@@ -99,6 +94,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel) => this.GetClosestPixel(pixel, this.GetPalette(), this.colorMap);
+        private byte QuantizePixel(TPixel pixel) => this.GetClosestPixel(pixel, this.GetPalette());
     }
 }

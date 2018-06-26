@@ -241,7 +241,12 @@ namespace SixLabors.ImageSharp.Tests
         }
 
 
-        public static string[] AllBmpFiles => TestImages.Bmp.All;
+        public static string[] AllBmpFiles =
+            {
+                TestImages.Bmp.F,
+                TestImages.Bmp.CoreHeader,
+                TestImages.Bmp.Bit8
+            };
 
         [Theory]
         [WithFileCollection(nameof(AllBmpFiles), PixelTypes.Rgba32 | PixelTypes.Argb32)]

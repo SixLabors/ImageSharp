@@ -65,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                         $"Unable to find ImageSharp solution directory from {assemblyLocation} because of {ex.GetType().Name}!",
                         ex);
                 }
+
                 if (directory == null)
                 {
                     throw new Exception($"Unable to find ImageSharp solution directory from {assemblyLocation}!");
@@ -116,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         internal static string CreateOutputDirectory(string path, params string[] pathParts)
         {
-            path = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, path);
+            path = Path.Combine(ActualOutputDirectoryFullPath, path);
 
             if (pathParts != null && pathParts.Length > 0)
             {

@@ -18,7 +18,6 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)

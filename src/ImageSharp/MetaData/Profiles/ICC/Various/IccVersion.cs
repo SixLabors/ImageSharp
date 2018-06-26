@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// Represents the ICC profile version number.
     /// </summary>
-    public readonly struct IccVersion
+    public readonly struct IccVersion : IEquatable<IccVersion>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="IccVersion"/> struct.
@@ -35,6 +37,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// Gets the patch number.
         /// </summary>
         public int Patch { get; }
+
+        /// <inheritdoc/>
+        public bool Equals(IccVersion other) =>
+            this.Major == other.Major &&
+            this.Minor == other.Minor &&
+            this.Patch == other.Patch;
 
         /// <inheritdoc/>
         public override string ToString()

@@ -142,6 +142,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 quantized = null; // So next frame can regenerate it
             }
 
+            if (this.cutRepeatedPixels)
+            {
+                renderedFrame.Dispose();
+                cutFrame.Dispose();
+            }
+
             // TODO: Write extension etc
             stream.WriteByte(GifConstants.EndIntroducer);
         }

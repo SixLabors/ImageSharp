@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is IccChromaticityTagDataEntry && this.Equals((IccChromaticityTagDataEntry)obj);
+            return obj is IccChromaticityTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>

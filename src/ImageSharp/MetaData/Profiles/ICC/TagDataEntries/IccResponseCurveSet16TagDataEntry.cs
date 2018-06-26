@@ -77,17 +77,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (obj is null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccResponseCurveSet16TagDataEntry && this.Equals((IccResponseCurveSet16TagDataEntry)obj);
+            return obj is IccResponseCurveSet16TagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />

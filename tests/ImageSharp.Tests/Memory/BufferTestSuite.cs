@@ -46,8 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             public override bool Equals(object obj)
             {
-                if (ReferenceEquals(null, obj)) return false;
-                return obj is CustomStruct && this.Equals((CustomStruct)obj);
+                return obj is CustomStruct other && this.Equals(other);
             }
 
             public override int GetHashCode()

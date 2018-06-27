@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / to.Ratio;
 
                         // TODO: this should be changeble for different gradienting functions
-                        Vector4 result = PorterDuffFunctions.Normal(
+                        Vector4 result = PorterDuffFunctions.Normal_SrcOver(
                             fromAsVector,
                             toAsVector,
                             onLocalGradient);

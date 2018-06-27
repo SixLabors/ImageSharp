@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(NormalBlendFunctionData))]
         public void NormalBlendFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Normal((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Normal_SrcOver((Vector4)back, source, amount);
             Assert.Equal(expected, actual);
         }
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(MultiplyFunctionData))]
         public void MultiplyFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Multiply((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Multiply_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(AddFunctionData))]
         public void AddFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Multiply((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Multiply_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(SubstractFunctionData))]
         public void SubstractFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Subtract((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Subtract_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(ScreenFunctionData))]
         public void ScreenFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Screen((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Screen_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(DarkenFunctionData))]
         public void DarkenFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Darken((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Darken_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(LightenFunctionData))]
         public void LightenFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Lighten((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Lighten_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(OverlayFunctionData))]
         public void OverlayFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.Overlay((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.Overlay_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
 
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         [MemberData(nameof(HardLightFunctionData))]
         public void HardLightFunction(TestVector4 back, TestVector4 source, float amount, TestVector4 expected)
         {
-            Vector4 actual = PorterDuffFunctions.HardLight((Vector4)back, source, amount);
+            Vector4 actual = PorterDuffFunctions.HardLight_SrcOver((Vector4)back, source, amount);
             VectorAssert.Equal(expected, actual, 5);
         }
     }

@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                 ProfileConnectionSpace = IccColorSpaceType.CieXyz,
                 RenderingIntent = IccRenderingIntent.AbsoluteColorimetric,
                 Size = size,
-                Version = new Version(4, 3, 0),
+                Version = new IccVersion(4, 3, 0),
             };
         }
 

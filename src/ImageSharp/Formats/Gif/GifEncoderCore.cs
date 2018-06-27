@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 localColorTableFlag: hasColorTable,
                 interfaceFlag: false,
                 sortFlag: false,
-                localColorTableSize: (byte)(this.bitDepth - 1)); // Note: we subtract 1 from the colorTableSize writing
+                localColorTableSize: (byte)this.bitDepth);
 
             var descriptor = new GifImageDescriptor(
                 left: 0,

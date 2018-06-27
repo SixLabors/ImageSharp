@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccParametricCurve other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }
@@ -148,16 +148,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj == null)
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
             return obj is IccParametricCurve other && this.Equals(other);
         }
 

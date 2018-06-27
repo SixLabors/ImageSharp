@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source over backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Normal(Vector4 backdrop, Vector4 source)
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source multiplied by backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Multiply(Vector4 backdrop, Vector4 source)
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source added to backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Add(Vector4 backdrop, Vector4 source)
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source subtracted from backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Subtract(Vector4 backdrop, Vector4 source)
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Complement of source multiplied by the complement of backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Screen(Vector4 backdrop, Vector4 source)
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Per element, chooses the smallest value of source and backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Darken(Vector4 backdrop, Vector4 source)
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Per element, chooses the largest value of source and backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Lighten(Vector4 backdrop, Vector4 source)
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Overlays source over backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Overlay(Vector4 backdrop, Vector4 source)
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Hard light effect
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>        
+        /// <param name="source">Source color</param>
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLight(Vector4 backdrop, Vector4 source)

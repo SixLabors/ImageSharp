@@ -1162,7 +1162,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Decodes and assigns marker colors that identify transparent pixels in non indexed images
         /// </summary>
-        /// <param name="alpha">The aplha tRNS array</param>
+        /// <param name="alpha">The alpha tRNS array</param>
         private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha)
         {
             if (this.pngColorType == PngColorType.Rgb)
@@ -1209,7 +1209,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="scanline">The defiltered scanline</param>
-        /// <param name="row">Thecurrent  output image row</param>
+        /// <param name="row">The current  output image row</param>
         private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> scanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {

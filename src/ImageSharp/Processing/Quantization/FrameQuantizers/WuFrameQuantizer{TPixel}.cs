@@ -39,7 +39,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes )
         // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
         //   (T, R, G, B, A, M2) could be grouped together!
-        // - There are per-pixel virtual calls in InitialQuantizePixel, why not do it on a per-row basis?
         // - It's a frequently used class, we need tests! (So we can optimize safely.) There are tests in the original!!! We should just adopt them!
         //   https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant/blob/master/JeremyAnsel.ColorQuant/JeremyAnsel.ColorQuant.Tests/WuColorQuantizerTests.cs
 
@@ -182,7 +181,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                         float a = Volume(ref this.colorCube[k], this.vma.GetSpan());
 
                         ref TPixel color = ref this.palette[k];
-                        color.PackFromVector4(new Vector4(r, g, b, a) / weight / 255F);
+                        color.PackFromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
                     }
                 }
             }
@@ -246,15 +245,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, ReadOnlySpan<TPixel> palette, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
-            byte pixelValue = this.QuantizePixel(sourcePixel);
-            TPixel[] colorPalette = this.GetPalette();
-            TPixel transformedPixel = colorPalette[pixelValue];
+            byte pixelValue = this.QuantizePixel(ref sourcePixel);
+            TPixel transformedPixel = palette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -271,14 +269,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         // Quantize the pixel
-                        pixelValue = this.QuantizePixel(sourcePixel);
+                        pixelValue = this.QuantizePixel(ref sourcePixel);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;
 
                         if (this.Dither)
                         {
-                            transformedPixel = colorPalette[pixelValue];
+                            transformedPixel = palette[pixelValue];
                         }
                     }
 
@@ -843,13 +841,13 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel)
+        private byte QuantizePixel(ref TPixel pixel)
         {
             if (this.Dither)
             {
-                // The colors have changed so we need to use Euclidean distance calculation to find the closest value.
-                // This palette can never be null here.
-                return this.GetClosestPixel(pixel, this.palette);
+                // The colors have changed so we need to use Euclidean distance calculation to
+                // find the closest value.
+                return this.GetClosestPixel(ref pixel);
             }
 
             // Expected order r->g->b->a

@@ -40,7 +40,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             { "Stucki", KnownDiffusers.Stucki },
         };
 
-
         private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
         private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;

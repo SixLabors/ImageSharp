@@ -21,37 +21,15 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
     internal static partial class PorterDuffFunctions
     {
-<#
-    
-    void GeneratePixelBlender (string blender)
-    {
-#>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel <#=blender#><TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            TPixel dest = default;
-            dest.PackFromVector4(<#=blender#>(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
-        }
-
-<#
-    }
-
-    void GenerateVectorCompositor(string name, string sourceVar, string destVar, string blendVar)
+<# void GenerateVectorCompositor(string name, string sourceVar, string destVar, string blendVar)
     {
         int a_s = sourceVar == "Vector4.Zero" ? 0 : 1;
         int a_b = destVar == "Vector4.Zero" ? 0 : 1;
         int a_x = blendVar == "Vector4.Zero" ? 0 : 1;
 #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, Vector4 xform)
         {
-            opacity = opacity.Clamp(0, 1);
-<# if(sourceVar != "Vector4.Zero" ) { #>
-            source.W *= opacity;
-<# } #>
-
             // calculate weights
             float xw = backdrop.W * source.W;
             float bw = backdrop.W - xw;
@@ -61,52 +39,98 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             float fw = (sw * <#=a_s#>) + (bw * <#=a_b#>) + (xw * <#=a_x#>);
 
             // calculate final value
-            Vector4 xform = ((<#=blendVar#> * xw) + (<#=destVar#> * bw) + (<#=sourceVar#> * sw)) / MathF.Max(fw, Constants.Epsilon);
+            xform = ((<#=blendVar#> * xw) + (<#=destVar#> * bw) + (<#=sourceVar#> * sw)) / MathF.Max(fw, Constants.Epsilon);
             xform.W = fw;
 
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return xform;
+        }
+<# } #>
+<# void GeneratePixelBlender(string blender, string compositor) { #>
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_<#=compositor#>(Vector4 backdrop, Vector4 source, float opacity)            
+        {
+			opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;            
+            
+            return <#=compositor#>(backdrop,source, <#=blender#>(backdrop, source));
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel <#=blender#>_<#=compositor#><TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            opacity = opacity.Clamp(0, 1);            
+
+            Vector4 backdropV = backdrop.ToVector4();
+            Vector4 sourceV = source.ToVector4();            
+            sourceV.W *= opacity;
+
+            TPixel dest = default;
+            dest.PackFromVector4(<#=compositor#>(backdropV,sourceV, <#=blender#>(backdropV, sourceV)));
+            return dest;
+        }        
+
+<# } #>
+        #region Compositors
+
 <#
-    }
-        GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "source");
-        GenerateVectorCompositor("Atop",     "Vector4.Zero", "backdrop",     "source");
-        GenerateVectorCompositor("Over",     "source",       "backdrop",     "source");
-        GenerateVectorCompositor("In",       "Vector4.Zero", "Vector4.Zero", "source");
-        GenerateVectorCompositor("Out",      "source",       "Vector4.Zero", "Vector4.Zero");
-        GenerateVectorCompositor("Dest",     "Vector4.Zero", "backdrop",     "backdrop");
-        GenerateVectorCompositor("DestAtop", "source",       "Vector4.Zero", "backdrop");
-        GenerateVectorCompositor("DestOver", "source",       "backdrop",     "backdrop");
-        GenerateVectorCompositor("DestIn",   "Vector4.Zero", "Vector4.Zero", "backdrop");
-        GenerateVectorCompositor("DestOut",  "Vector4.Zero", "backdrop",     "Vector4.Zero");
-        GenerateVectorCompositor("Clear",    "Vector4.Zero", "Vector4.Zero", "Vector4.Zero");
-        GenerateVectorCompositor("Xor",      "source",       "backdrop",     "Vector4.Zero");
-
-        
-        GeneratePixelBlender("Normal");
-        GeneratePixelBlender("Multiply");
-        GeneratePixelBlender("Add");
-        GeneratePixelBlender("Subtract");
-        GeneratePixelBlender("Screen");
-        GeneratePixelBlender("Darken");
-        GeneratePixelBlender("Lighten");
-        GeneratePixelBlender("Overlay");
-        GeneratePixelBlender("HardLight");
-                             
-        GeneratePixelBlender("Src");
-        GeneratePixelBlender("Atop");
-        GeneratePixelBlender("Over");
-        GeneratePixelBlender("In");
-        GeneratePixelBlender("Out");
-        GeneratePixelBlender("Dest");
-        GeneratePixelBlender("DestAtop");
-        GeneratePixelBlender("DestOver");
-        GeneratePixelBlender("DestIn");
-        GeneratePixelBlender("DestOut");
-        GeneratePixelBlender("Clear");
-        GeneratePixelBlender("Xor");
-
-
+GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "xform");
+GenerateVectorCompositor("SrcAtop",  "Vector4.Zero", "backdrop",     "xform");
+GenerateVectorCompositor("SrcOver",  "source",       "backdrop",     "xform");
+GenerateVectorCompositor("SrcIn",    "Vector4.Zero", "Vector4.Zero", "xform");
+GenerateVectorCompositor("SrcOut",   "source",       "Vector4.Zero", "Vector4.Zero");
+GenerateVectorCompositor("Dest",     "Vector4.Zero", "backdrop",     "backdrop");
+GenerateVectorCompositor("DestAtop", "source",       "Vector4.Zero", "backdrop");
+GenerateVectorCompositor("DestOver", "source",       "backdrop",     "backdrop");
+GenerateVectorCompositor("DestIn",   "Vector4.Zero", "Vector4.Zero", "backdrop");
+GenerateVectorCompositor("DestOut",  "Vector4.Zero", "backdrop",     "Vector4.Zero");
+GenerateVectorCompositor("Clear",    "Vector4.Zero", "Vector4.Zero", "Vector4.Zero");
+GenerateVectorCompositor("Xor",      "source",       "backdrop",     "Vector4.Zero");        
 #>
+
+        #endregion
+
+        #region Blenders
+
+<#
+string[] composers = new []{         
+    "Src"      ,
+    "SrcAtop"     ,
+    "SrcOver"     ,
+    "SrcIn"       ,
+    "SrcOut"      ,
+    "Dest"     ,
+    "DestAtop" ,
+    "DestOver" ,
+    "DestIn"   ,
+    "DestOut"  ,
+    "Clear"    ,
+    "Xor"      ,
+};
+
+string[] blenders = new []{         
+    "Normal"      ,
+    "Multiply"     ,
+    "Add"     ,
+    "Subtract"       ,
+    "Screen"      ,
+    "Darken"     ,
+    "Lighten" ,
+    "Overlay" ,
+    "HardLight"
+}; 
+
+foreach(var composer in composers)
+{
+    foreach(var blender in blenders)
+    {
+        GeneratePixelBlender(blender,composer);
+
+    }
+}
+#>
+
+        #endregion
     }
 }

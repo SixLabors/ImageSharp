@@ -24,134 +24,116 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source over backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Normal(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Normal(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, source);
+            return source;
         }
 
         /// <summary>
         /// Source multiplied by backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Multiply(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Multiply(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, backdrop * source);
+            return backdrop * source;
         }
 
         /// <summary>
         /// Source added to backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Add(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Add(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, Vector4.Min(Vector4.One, backdrop + source));
+            return Vector4.Min(Vector4.One, backdrop + source);
         }
 
         /// <summary>
         /// Source subtracted from backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Subtract(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Subtract(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, Vector4.Max(Vector4.Zero, backdrop - source));
+            return Vector4.Max(Vector4.Zero, backdrop - source);
         }
 
         /// <summary>
         /// Complement of source multiplied by the complement of backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Screen(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Screen(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, Vector4.One - ((Vector4.One - backdrop) * (Vector4.One - source)));
+            return Vector4.One - ((Vector4.One - backdrop) * (Vector4.One - source));
         }
 
         /// <summary>
         /// Per element, chooses the smallest value of source and backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Darken(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Darken(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, Vector4.Min(backdrop, source));
+            return Vector4.Min(backdrop, source);
         }
 
         /// <summary>
         /// Per element, chooses the largest value of source and backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Lighten(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Lighten(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
-            return Compose(backdrop, source, Vector4.Max(backdrop, source));
+            return Vector4.Max(backdrop, source);
         }
 
         /// <summary>
         /// Overlays source over backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Overlay(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 Overlay(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
             float cr = OverlayValueFunction(backdrop.X, source.X);
             float cg = OverlayValueFunction(backdrop.Y, source.Y);
             float cb = OverlayValueFunction(backdrop.Z, source.Z);
 
-            return Compose(backdrop, source, Vector4.Min(Vector4.One, new Vector4(cr, cg, cb, 0)));
+            return Vector4.Min(Vector4.One, new Vector4(cr, cg, cb, 0));
         }
 
         /// <summary>
         /// Hard light effect
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <param name="opacity">Opacity applied to Source Alpha</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 HardLight(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 HardLight(Vector4 backdrop, Vector4 source)
         {
-            source.W *= opacity;
             float cr = OverlayValueFunction(source.X, backdrop.X);
             float cg = OverlayValueFunction(source.Y, backdrop.Y);
             float cb = OverlayValueFunction(source.Z, backdrop.Z);
 
-            return Compose(backdrop, source, Vector4.Min(Vector4.One, new Vector4(cr, cg, cb, 0)));
+            return Vector4.Min(Vector4.One, new Vector4(cr, cg, cb, 0));
         }
 
         /// <summary>
@@ -173,6 +155,9 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">Original source color</param>
         /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
         /// <returns>The final color</returns>
+        /// <remarks>
+        /// This is the default compositor for "normal" alpha blending, which matches the generated SrcOver compositor.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 Compose(Vector4 backdrop, Vector4 source, Vector4 xform)
         {

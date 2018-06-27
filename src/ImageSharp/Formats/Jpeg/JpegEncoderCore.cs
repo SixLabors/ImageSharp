@@ -430,7 +430,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
         private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
         {
-            // Write the start of image marker. Markers are always prefixed with with 0xff.
+            // Write the start of image marker. Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = JpegConstants.Markers.SOI;
 
@@ -617,7 +617,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (data.Length > Max)
             {
-                throw new ImageFormatException($"Exif profile size exceeds limit. nameof{Max}");
+                throw new ImageFormatException($"Exif profile size exceeds limit of {Max} bytes.");
             }
 
             int length = data.Length + 2;
@@ -640,7 +640,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIccProfile(IccProfile iccProfile)
         {
-            // Just incase someone set the value to null by accident.
+            // Just in-case someone set the value to null by accident.
             if (iccProfile == null)
             {
                 return;
@@ -896,7 +896,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="length">The marker length.</param>
         private void WriteMarkerHeader(byte marker, int length)
         {
-            // Markers are always prefixed with with 0xff.
+            // Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = marker;
             this.buffer[2] = (byte)(length >> 8);

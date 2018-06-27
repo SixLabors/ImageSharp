@@ -30,11 +30,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         private readonly Octree octree;
 
         /// <summary>
-        /// The reduced image palette
-        /// </summary>
-        private TPixel[] palette;
-
-        /// <summary>
         /// The transparent index
         /// </summary>
         private byte transparentIndex;
@@ -77,16 +72,21 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
+        protected override void SecondPass(
+            ImageFrame<TPixel> source,
+            Span<byte> output,
+            ReadOnlySpan<TPixel> palette,
+            int width,
+            int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
             Rgba32 rgba = default;
-            byte pixelValue = this.QuantizePixel(sourcePixel, ref rgba);
-            TPixel[] colorPalette = this.GetPalette();
-            TPixel transformedPixel = colorPalette[pixelValue];
+            this.transparentIndex = this.GetTransparentIndex();
+            byte pixelValue = this.QuantizePixel(ref sourcePixel, ref rgba);
+            TPixel transformedPixel = palette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -103,14 +103,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         // Quantize the pixel
-                        pixelValue = this.QuantizePixel(sourcePixel, ref rgba);
+                        pixelValue = this.QuantizePixel(ref sourcePixel, ref rgba);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;
 
                         if (this.Dither)
                         {
-                            transformedPixel = colorPalette[pixelValue];
+                            transformedPixel = palette[pixelValue];
                         }
                     }
 
@@ -126,58 +126,22 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         }
 
         /// <inheritdoc/>
-        protected override TPixel[] GetPalette()
-        {
-            if (this.palette == null)
-            {
-                this.palette = this.octree.Palletize(Math.Max(this.colors, (byte)1));
-                this.transparentIndex = this.GetTransparentIndex();
-            }
-
-            return this.palette;
-        }
+        protected override TPixel[] GetPalette() => this.octree.Palletize(this.colors);
 
         /// <summary>
-        /// Returns the index of the first instance of the transparent color in the palette.
+        /// Process the pixel in the second pass of the algorithm.
         /// </summary>
-        /// <returns>
-        /// The <see cref="int"/>.
-        /// </returns>
+        /// <param name="pixel">The pixel to quantize.</param>
+        /// <param name="rgba">The color to compare against.</param>
+        /// <returns>The <see cref="byte"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte GetTransparentIndex()
-        {
-            // Transparent pixels are much more likely to be found at the end of a palette
-            int index = this.colors;
-            Rgba32 trans = default;
-            for (int i = this.palette.Length - 1; i >= 0; i--)
-            {
-                this.palette[i].ToRgba32(ref trans);
-
-                if (trans.Equals(default))
-                {
-                    index = i;
-                }
-            }
-
-            return (byte)index;
-        }
-
-        /// <summary>
-        /// Process the pixel in the second pass of the algorithm
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <param name="rgba">The color to compare against</param>
-        /// <returns>
-        /// The quantized value
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel, ref Rgba32 rgba)
+        private byte QuantizePixel(ref TPixel pixel, ref Rgba32 rgba)
         {
             if (this.Dither)
             {
-                // The colors have changed so we need to use Euclidean distance calculation to find the closest value.
-                // This palette can never be null here.
-                return this.GetClosestPixel(pixel, this.palette);
+                // The colors have changed so we need to use Euclidean distance calculation to
+                // find the closest value.
+                return this.GetClosestPixel(ref pixel);
             }
 
             pixel.ToRgba32(ref rgba);

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -18,9 +19,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// List of all colors in the palette.
+        /// The reduced image palette.
         /// </summary>
-        private readonly TPixel[] colors;
+        private readonly TPixel[] palette;
+
+        /// <summary>
+        /// The vector representation of the image palette.
+        /// </summary>
+        private readonly Vector4[] paletteVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
@@ -30,20 +36,27 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public PaletteFrameQuantizer(PaletteQuantizer quantizer, TPixel[] colors)
             : base(quantizer, true)
         {
-            Guard.MustBeBetweenOrEqualTo(colors.Length, 1, 255, nameof(colors));
-            this.colors = colors;
+            Guard.MustBeBetweenOrEqualTo(colors.Length, 1, 256, nameof(colors));
+            this.palette = colors;
+            this.paletteVector = new Vector4[this.palette.Length];
+            PixelOperations<TPixel>.Instance.ToScaledVector4(this.palette, this.paletteVector, this.palette.Length);
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, int width, int height)
+        protected override void SecondPass(
+            ImageFrame<TPixel> source,
+            Span<byte> output,
+            ReadOnlySpan<TPixel> palette,
+            int width,
+            int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
-            byte pixelValue = this.QuantizePixel(sourcePixel);
-            ref TPixel colorPaletteRef = ref MemoryMarshal.GetReference(this.GetPalette().AsSpan());
-            TPixel transformedPixel = Unsafe.Add(ref colorPaletteRef, pixelValue);
+            byte pixelValue = this.QuantizePixel(ref sourcePixel);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(palette);
+            TPixel transformedPixel = Unsafe.Add(ref paletteRef, pixelValue);
 
             for (int y = 0; y < height; y++)
             {
@@ -60,14 +73,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         // Quantize the pixel
-                        pixelValue = this.QuantizePixel(sourcePixel);
+                        pixelValue = this.QuantizePixel(ref sourcePixel);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;
 
                         if (this.Dither)
                         {
-                            transformedPixel = Unsafe.Add(ref colorPaletteRef, pixelValue);
+                            transformedPixel = Unsafe.Add(ref paletteRef, pixelValue);
                         }
                     }
 
@@ -84,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override TPixel[] GetPalette() => this.colors;
+        protected override TPixel[] GetPalette() => this.palette;
 
         /// <summary>
         /// Process the pixel in the second pass of the algorithm
@@ -94,6 +107,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel) => this.GetClosestPixel(pixel, this.GetPalette());
+        private byte QuantizePixel(ref TPixel pixel) => this.GetClosestPixel(ref pixel);
     }
 }

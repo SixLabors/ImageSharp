@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// Reads an ICC profile version number
         /// </summary>
         /// <returns>the version number</returns>
-        public Version ReadVersionNumber()
+        public IccVersion ReadVersionNumber()
         {
             int version = this.ReadInt32();
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             int minor = (version >> 20) & 0x0F;
             int bugfix = (version >> 16) & 0x0F;
 
-            return new Version(major, minor, bugfix);
+            return new IccVersion(major, minor, bugfix);
         }
 
         /// <summary>

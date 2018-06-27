@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Rg32) && this.Equals((Rg32)obj);
+            return obj is Rg32 other && this.Equals(other);
         }
 
         /// <inheritdoc />

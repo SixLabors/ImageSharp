@@ -30,14 +30,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
 
-        /// <summary>
-        /// Gets or sets a value indicating whether pixels that stay the same between two frames should be reused
-        /// by forcing the <see cref="DisposalMethod"/> of all frames to <see cref="DisposalMethod.NotDispose"/>
-        /// and making the repeated pixel transparent. This improves GIF quality when pixels are
-        /// repeated across frames.
-        /// </summary>
-        public bool CutRepeatedPixels { get; set; } = false;
-
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>

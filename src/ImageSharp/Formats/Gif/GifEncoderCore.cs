@@ -43,13 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly bool ignoreMetadata;
 
         /// <summary>
-        /// A flag indicating whether to make repeated pixels transparent and use
-        /// <see cref="DisposalMethod.NotDispose"/> to reduce the number of colors
-        /// in the frame and improve quantization quality.
-        /// </summary>
-        private readonly bool cutRepeatedPixels;
-
-        /// <summary>
         /// The number of bits requires to store the color palette.
         /// </summary>
         private int bitDepth;
@@ -65,7 +58,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.quantizer = options.Quantizer;
             this.ignoreMetadata = options.IgnoreMetadata;
-            this.cutRepeatedPixels = options.CutRepeatedPixels;
         }
 
         /// <summary>
@@ -103,15 +95,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.WriteApplicationExtension(stream, image.MetaData.RepeatCount);
             }
 
-            Buffer2D<TPixel> renderedFrame = null;
+            ImageFrame<TPixel> lastFrame = null;
             ImageFrame<TPixel> cutFrame = null;
-
-            if (this.cutRepeatedPixels)
-            {
-                renderedFrame = this.memoryAllocator.Allocate2D<TPixel>(image.Width, image.Height);
-                image.Frames.RootFrame.GetPixelSpan().CopyTo(renderedFrame.Span);
-                cutFrame = new ImageFrame<TPixel>(Configuration.Default, image.Width, image.Height);
-            }
 
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
@@ -119,19 +104,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     ImageFrame<TPixel> frameToQuantize = frame;
 
-                    if (this.cutRepeatedPixels)
+                    if (lastFrame.MetaData.DisposalMethod == DisposalMethod.NotDispose)
                     {
-                        this.DoCutRepeatedPixels(renderedFrame, frame, cutFrame);
+                        if (cutFrame == null)
+                        {
+                            cutFrame = new ImageFrame<TPixel>(Configuration.Default, image.Width, image.Height);
+                        }
+
+                        this.DoCutRepeatedPixels(lastFrame, frame, cutFrame);
                         frameToQuantize = cutFrame;
                     }
 
                     quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frameToQuantize);
                     transparentIndex = this.GetTransparentIndex(quantized);
-
-                    if (this.cutRepeatedPixels)
-                    {
-                        this.UpdateRenderedFrame(renderedFrame, quantized, transparentIndex);
-                    }
                 }
 
                 this.WriteGraphicalControlExtension(frame.MetaData, stream, transparentIndex);
@@ -140,13 +125,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.WriteImageData(quantized, stream);
 
                 quantized = null; // So next frame can regenerate it
+                lastFrame = frame;
             }
 
-            if (this.cutRepeatedPixels)
-            {
-                renderedFrame.Dispose();
-                cutFrame.Dispose();
-            }
+            cutFrame?.Dispose();
 
             // TODO: Write extension etc
             stream.WriteByte(GifConstants.EndIntroducer);
@@ -286,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="transparencyIndex">The index of the color in the color palette to make transparent.</param>
         private void WriteGraphicalControlExtension(ImageFrameMetaData metaData, Stream stream, int transparencyIndex)
         {
-            DisposalMethod disposalMethod = this.cutRepeatedPixels ? DisposalMethod.NotDispose : metaData.DisposalMethod;
+            DisposalMethod disposalMethod = metaData.DisposalMethod;
 
             byte packedValue = GifGraphicControlExtension.GetPackedValue(
                 disposalMethod: disposalMethod,
@@ -398,12 +380,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The output frame. Pixels will be made transparent if the source color is the same as the rendered color
         /// and get the same color as in the <paramref name="sourceFrame"/> if it is not.
         /// </param>
-        private void DoCutRepeatedPixels<TPixel>(Buffer2D<TPixel> renderedFrame, ImageFrame<TPixel> sourceFrame, ImageFrame<TPixel> cutFrame)
+        private void DoCutRepeatedPixels<TPixel>(ImageFrame<TPixel> renderedFrame, ImageFrame<TPixel> sourceFrame, ImageFrame<TPixel> cutFrame)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int y = 0; y < sourceFrame.Height; y++)
             {
-                Span<TPixel> renderedRow = renderedFrame.GetRowSpan(y);
+                Span<TPixel> renderedRow = renderedFrame.GetPixelRowSpan(y);
                 Span<TPixel> sourceRow = sourceFrame.GetPixelRowSpan(y);
                 Span<TPixel> cutRow = cutFrame.GetPixelRowSpan(y);
 
@@ -412,35 +394,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     TPixel sourcePixel = sourceRow[x];
                     TPixel color = renderedRow[x].Equals(sourcePixel) ? default : sourcePixel;
                     cutRow[x] = color;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Writes all non-transparent pixels from the quantized frame to the rendered frame.
-        /// </summary>
-        /// <param name="renderedFrame">The rendered frame.</param>
-        /// <param name="quantized">The quantized frame.</param>
-        /// <param name="transparentIndex">The index of the transparent color in the quantized frames palette.</param>
-        private void UpdateRenderedFrame<TPixel>(Buffer2D<TPixel> renderedFrame, QuantizedFrame<TPixel> quantized, int transparentIndex)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            int paletteCount = quantized.Palette.Length - 1;
-
-            for (int y = 0; y < renderedFrame.Height; y++)
-            {
-                Span<TPixel> renderedRow = renderedFrame.GetRowSpan(y);
-                int yy = y * renderedFrame.Width;
-
-                for (int x = 0; x < renderedFrame.Width; x++)
-                {
-                    int i = x + yy;
-                    int paletteIndex = Math.Min(paletteCount, quantized.Pixels[i]);
-
-                    if (paletteIndex != transparentIndex)
-                    {
-                        renderedRow[x] = quantized.Palette[paletteIndex];
-                    }
                 }
             }
         }

@@ -25,13 +25,5 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the quantizer used to generate the color palette.
         /// </summary>
         IQuantizer Quantizer { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether pixels that stay the same between two frames should be reused
-        /// by forcing the <see cref="DisposalMethod"/> of all frames to <see cref="DisposalMethod.NotDispose"/>
-        /// and making the repeated pixel transparent. This improves GIF quality when pixels are
-        /// repeated across frames.
-        /// </summary>
-        bool CutRepeatedPixels { get; }
     }
 }

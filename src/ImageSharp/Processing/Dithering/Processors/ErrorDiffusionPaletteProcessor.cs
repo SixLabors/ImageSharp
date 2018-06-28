@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
             // Collect the values before looping so we can reduce our calculation count for identical sibling pixels
             TPixel sourcePixel = source[startX, startY];
             TPixel previousPixel = sourcePixel;
-            PixelPair<TPixel> pair = this.GetClosestPixelPair(ref sourcePixel, this.Palette);
+            PixelPair<TPixel> pair = this.GetClosestPixelPair(ref sourcePixel);
             sourcePixel.ToRgba32(ref rgba);
 
             // Convert to grayscale using ITU-R Recommendation BT.709 if required
@@ -96,7 +96,14 @@ namespace SixLabors.ImageSharp.Processing.Dithering.Processors
                     // rather than calculating it again. This is an inexpensive optimization.
                     if (!previousPixel.Equals(sourcePixel))
                     {
-                        pair = this.GetClosestPixelPair(ref sourcePixel, this.Palette);
+                        pair = this.GetClosestPixelPair(ref sourcePixel);
+
+                        // No error to spread, exact match.
+                        if (sourcePixel.Equals(pair.First))
+                        {
+                            continue;
+                        }
+
                         sourcePixel.ToRgba32(ref rgba);
                         luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
 

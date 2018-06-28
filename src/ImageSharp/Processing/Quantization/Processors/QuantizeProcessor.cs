@@ -36,22 +36,24 @@ namespace SixLabors.ImageSharp.Processing.Quantization.Processors
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             IFrameQuantizer<TPixel> executor = this.Quantizer.CreateFrameQuantizer<TPixel>();
-            QuantizedFrame<TPixel> quantized = executor.QuantizeFrame(source);
-            int paletteCount = quantized.Palette.Length - 1;
-
-            // Not parallel to remove "quantized" closure allocation.
-            // We can operate directly on the source here as we've already read it to get the
-            // quantized result
-            for (int y = 0; y < source.Height; y++)
+            using (QuantizedFrame<TPixel> quantized = executor.QuantizeFrame(source))
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                int yy = y * source.Width;
+                int paletteCount = quantized.Palette.Length - 1;
 
-                for (int x = 0; x < source.Width; x++)
+                // Not parallel to remove "quantized" closure allocation.
+                // We can operate directly on the source here as we've already read it to get the
+                // quantized result
+                for (int y = 0; y < source.Height; y++)
                 {
-                    int i = x + yy;
-                    TPixel color = quantized.Palette[Math.Min(paletteCount, quantized.Pixels[i])];
-                    row[x] = color;
+                    Span<TPixel> row = source.GetPixelRowSpan(y);
+                    ReadOnlySpan<byte> quantizedPixelSpan = quantized.GetPixelSpan();
+                    int yy = y * source.Width;
+
+                    for (int x = 0; x < source.Width; x++)
+                    {
+                        int i = x + yy;
+                        row[x] = quantized.Palette[Math.Min(paletteCount, quantizedPixelSpan[i])];
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.IO;
@@ -463,7 +464,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
         }
 
-        private unsafe double ConvertToDouble(ReadOnlySpan<byte> buffer)
+        private double ConvertToDouble(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length < 8)
             {
@@ -474,7 +475,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 ? BinaryPrimitives.ReadInt64BigEndian(buffer)
                 : BinaryPrimitives.ReadInt64LittleEndian(buffer);
 
-            return *((double*)&intValue);
+            return Unsafe.As<long, double>(ref intValue);
         }
 
         private uint ConvertToUInt32(ReadOnlySpan<byte> buffer)
@@ -502,7 +503,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         }
 
-        private unsafe float ConvertToSingle(ReadOnlySpan<byte> buffer)
+        private float ConvertToSingle(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length < 4)
             {
@@ -513,7 +514,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
 
-            return *((float*)&intValue);
+            return Unsafe.As<int, float>(ref intValue);
         }
 
         private Rational ToRational(ReadOnlySpan<byte> buffer)

@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is IccScreeningChannel && this.Equals((IccScreeningChannel)obj);
+            return obj is IccScreeningChannel other && this.Equals(other);
         }
 
         /// <inheritdoc/>

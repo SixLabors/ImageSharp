@@ -499,16 +499,18 @@ namespace SixLabors.ImageSharp.Tests
 
         public static Image<TPixel> CompareToOriginal<TPixel>(
             this Image<TPixel> image,
-            ITestImageProvider provider)
+            ITestImageProvider provider,
+            IImageDecoder referenceDecoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            return CompareToOriginal(image, provider, ImageComparer.Tolerant());
+            return CompareToOriginal(image, provider, ImageComparer.Tolerant(), referenceDecoder);
         }
 
         public static Image<TPixel> CompareToOriginal<TPixel>(
             this Image<TPixel> image,
             ITestImageProvider provider,
-            ImageComparer comparer)
+            ImageComparer comparer,
+            IImageDecoder referenceDecoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
@@ -519,15 +521,8 @@ namespace SixLabors.ImageSharp.Tests
 
             var testFile = TestFile.Create(path);
 
-            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(path);
-            IImageFormat format = TestEnvironment.GetImageFormat(path);
-            IImageDecoder defaultDecoder = Configuration.Default.ImageFormatsManager.FindDecoder(format);
-
-            //if (referenceDecoder.GetType() == defaultDecoder.GetType())
-            //{
-            //    throw new InvalidOperationException($"Can't use CompareToOriginal(): no actual reference decoder registered for {format.Name}");
-            //}
-
+            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
+            
             using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
             {
                 comparer.VerifySimilarity(original, image);
@@ -641,7 +636,8 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder encoder,
             ImageComparer customComparer = null,
             bool appendPixelTypeToFileName = true,
-            string referenceImageExtension = null)
+            string referenceImageExtension = null,
+            IImageDecoder referenceDecoder = null)
             where TPixel : struct, IPixel<TPixel>
         {
             string actualOutputFile = provider.Utility.SaveTestOutputFile(
@@ -650,7 +646,8 @@ namespace SixLabors.ImageSharp.Tests
                 encoder,
                 testOutputDetails,
                 appendPixelTypeToFileName);
-            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+
+            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
             using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
             {

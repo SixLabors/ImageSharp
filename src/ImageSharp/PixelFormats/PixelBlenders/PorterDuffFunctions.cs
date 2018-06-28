@@ -20,11 +20,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     /// </remarks>
     internal static partial class PorterDuffFunctions
     {
+        #region color blenders
+
         /// <summary>
         /// Source over backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Normal(Vector4 backdrop, Vector4 source)
@@ -36,7 +38,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source multiplied by backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Multiply(Vector4 backdrop, Vector4 source)
@@ -48,7 +50,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source added to backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Add(Vector4 backdrop, Vector4 source)
@@ -60,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Source subtracted from backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Subtract(Vector4 backdrop, Vector4 source)
@@ -72,7 +74,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Complement of source multiplied by the complement of backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Screen(Vector4 backdrop, Vector4 source)
@@ -84,7 +86,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Per element, chooses the smallest value of source and backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Darken(Vector4 backdrop, Vector4 source)
@@ -96,7 +98,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Per element, chooses the largest value of source and backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Lighten(Vector4 backdrop, Vector4 source)
@@ -108,7 +110,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Overlays source over backdrop
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Overlay(Vector4 backdrop, Vector4 source)
@@ -124,7 +126,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// Hard light effect
         /// </summary>
         /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
+        /// <param name="source">Source color</param>        
         /// <returns>Output color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLight(Vector4 backdrop, Vector4 source)
@@ -148,6 +150,10 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return backdrop <= 0.5f ? (2 * backdrop * source) : 1 - ((2 * (1 - source)) * (1 - backdrop));
         }
 
+        #endregion
+
+        #region alpha composers
+
         /// <summary>
         /// General composition function for all modes, with a general solution for alpha channel
         /// </summary>
@@ -155,11 +161,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="source">Original source color</param>
         /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
         /// <returns>The final color</returns>
-        /// <remarks>
-        /// This is the default compositor for "normal" alpha blending, which matches the generated SrcOver compositor.
-        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 Compose(Vector4 backdrop, Vector4 source, Vector4 xform)
+        private static Vector4 SrcOver_Reference(Vector4 backdrop, Vector4 source, Vector4 xform)
         {
             // calculate weights
             float xw = backdrop.W * source.W;
@@ -175,5 +178,133 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
             return xform;
         }
+
+
+
+
+
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Src(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float fw = (sw * 1) + (bw * 0) + (xw * 1);
+
+            // calculate final value
+            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
+            xform.W = fw;
+
+            return Vector4.Lerp(backdrop, xform, source.W);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SrcIn(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            // calculate weights
+            float xw = backdrop.W * source.W;
+
+            // calculate final value
+            xform.W = xw;
+
+            return Vector4.Lerp(backdrop, xform, source.W);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SrcOut(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float fw = sw;
+
+            // calculate final value
+            xform = source;
+            xform.W = fw;
+
+            return Vector4.Lerp(backdrop, xform, source.W);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float fw = (sw * 1) + (bw * 0) + (xw * 1);
+
+            // calculate final value
+            xform = ((backdrop * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
+            xform.W = fw;
+
+            return Vector4.Lerp(backdrop, xform, source.W);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DestOver(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float fw = (sw * 1) + (bw * 1) + (xw * 1);
+
+            // calculate final value
+            xform = ((backdrop * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
+            xform.W = fw;
+
+            return Vector4.Lerp(backdrop, xform, source.W);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DestIn(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            // calculate weights
+            float xw = backdrop.W * source.W;
+            float bw = backdrop.W - xw;
+            float sw = source.W - xw;
+
+            // calculate final alpha
+            float fw = (sw * 0) + (bw * 0) + (xw * 1);
+
+            // calculate final value
+            xform = ((backdrop * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
+            xform.W = fw;
+
+            return Vector4.Lerp(backdrop, xform, source.W);
+        }
+
+        /// <summary>
+        /// General composition function for all modes, with a general solution for alpha channel
+        /// </summary>
+        /// <param name="backdrop">Original Backdrop color</param>
+        /// <param name="source">Original source color</param>
+        /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
+        /// <returns>The final color</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector4 Clear(Vector4 backdrop, Vector4 source, Vector4 xform)
+        {
+            return Vector4.Lerp(backdrop, Vector4.Zero, xform.W);
+        }
+
+        #endregion
+
+
+
+
+
     }
 }

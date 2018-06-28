@@ -21,6 +21,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
     internal static partial class PorterDuffFunctions
     {
+
+
 <# void GenerateVectorCompositor(string name, string sourceVar, string destVar, string blendVar)
     {
         int a_s = sourceVar == "Vector4.Zero" ? 0 : 1;
@@ -45,55 +47,152 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return xform;
         }
 <# } #>
-<# void GeneratePixelBlender(string blender, string compositor) { #>
+
+
+
+
+
+<# void GeneratePixelBlenders(string blender) { #>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 <#=blender#>_<#=compositor#>(Vector4 backdrop, Vector4 source, float opacity)            
+        public static Vector4 <#=blender#>_Src(Vector4 backdrop, Vector4 source, float opacity)
         {
-			opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;            
-            
-            return <#=compositor#>(backdrop,source, <#=blender#>(backdrop, source));
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Src(backdrop, source, <#=blender#>(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel <#=blender#>_<#=compositor#><TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 <#=blender#>_SrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);            
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            Vector4 backdropV = backdrop.ToVector4();
-            Vector4 sourceV = source.ToVector4();            
-            sourceV.W *= opacity;
+            return SrcAtop(backdrop, source, <#=blender#>(backdrop, source));
+        }
 
-            TPixel dest = default;
-            dest.PackFromVector4(<#=compositor#>(backdropV,sourceV, <#=blender#>(backdropV, sourceV)));
-            return dest;
-        }        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_SrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return SrcOver(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_SrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return SrcIn(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_SrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return SrcOut(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_Dest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Dest(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_DestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return DestAtop(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_DestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return DestOver(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_DestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return DestIn(backdrop, source, <#=blender#>(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_DestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return DestOut(backdrop, source, <#=blender#>(backdrop, source));
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_Clear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source, source);
+        }             
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_Xor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source, source);
+        }   
 
 <# } #>
-        #region Compositors
 
-<#
-GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "xform");
-GenerateVectorCompositor("SrcAtop",  "Vector4.Zero", "backdrop",     "xform");
-GenerateVectorCompositor("SrcOver",  "source",       "backdrop",     "xform");
-GenerateVectorCompositor("SrcIn",    "Vector4.Zero", "Vector4.Zero", "xform");
-GenerateVectorCompositor("SrcOut",   "source",       "Vector4.Zero", "Vector4.Zero");
-GenerateVectorCompositor("Dest",     "Vector4.Zero", "backdrop",     "backdrop");
-GenerateVectorCompositor("DestAtop", "source",       "Vector4.Zero", "backdrop");
-GenerateVectorCompositor("DestOver", "source",       "backdrop",     "backdrop");
-GenerateVectorCompositor("DestIn",   "Vector4.Zero", "Vector4.Zero", "backdrop");
-GenerateVectorCompositor("DestOut",  "Vector4.Zero", "backdrop",     "Vector4.Zero");
-GenerateVectorCompositor("Clear",    "Vector4.Zero", "Vector4.Zero", "Vector4.Zero");
-GenerateVectorCompositor("Xor",      "source",       "backdrop",     "Vector4.Zero");        
-#>
 
-        #endregion
+<# void GenerateGenericPixelBlender(string blender, string composer) { #>        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel <#=blender#>_<#=composer#><TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(<#=blender#>_<#=composer#>(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+<# } #>
 
         #region Blenders
-
 <#
+
+// GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "xform");
+GenerateVectorCompositor("SrcAtop",     "Vector4.Zero", "backdrop",     "xform");
+GenerateVectorCompositor("SrcOver",     "source",       "backdrop",     "xform");
+// GenerateVectorCompositor("SrcIn",       "Vector4.Zero", "Vector4.Zero", "xform");
+// GenerateVectorCompositor("SrcOut",      "source",       "Vector4.Zero", "Vector4.Zero");
+GenerateVectorCompositor("Dest",     "Vector4.Zero", "backdrop",     "backdrop");
+// GenerateVectorCompositor("DestAtop", "source",       "Vector4.Zero", "backdrop");
+// GenerateVectorCompositor("DestOver", "source",       "backdrop",     "backdrop");
+// GenerateVectorCompositor("DestIn",   "Vector4.Zero", "Vector4.Zero", "backdrop");
+GenerateVectorCompositor("DestOut",  "Vector4.Zero", "backdrop",     "Vector4.Zero");
+// GenerateVectorCompositor("Clear",    "Vector4.Zero", "Vector4.Zero", "Vector4.Zero");
+GenerateVectorCompositor("Xor", "source", "backdrop", "Vector4.Zero");
+
 string[] composers = new []{         
     "Src"      ,
     "SrcAtop"     ,
@@ -121,14 +220,16 @@ string[] blenders = new []{
     "HardLight"
 }; 
 
-foreach(var composer in composers)
-{
     foreach(var blender in blenders)
-    {
-        GeneratePixelBlender(blender,composer);
-
+    {        
+        GeneratePixelBlenders(blender);
+        
+        foreach(var composer in composers)
+        {
+            GenerateGenericPixelBlender(blender,composer);
+        }
     }
-}
+
 #>
 
         #endregion

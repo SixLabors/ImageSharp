@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests
     {
         // This is bull. Failing online for no good reason. 
         // The images are an exact match. Maybe the submodule isn't updating?
-        private const float ToleranceThresholdForPaletteEncoder = 0.2273F;
+        private const float ToleranceThresholdForPaletteEncoder = 1.0F / 100;
 
         /// <summary>
         /// All types except Palette

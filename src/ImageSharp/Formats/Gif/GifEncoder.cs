@@ -30,6 +30,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
 
+        /// <summary>
+        /// Gets or sets the color table mode: Global or local.
+        /// </summary>
+        public GifColorTableMode ColorTableMode { get; set; }
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>

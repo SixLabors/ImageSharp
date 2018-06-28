@@ -18,7 +18,6 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)
@@ -99,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(SystemDrawingReferenceDecoder))]
+        [InlineData("lol/foo.png", typeof(MagickReferenceDecoder))]
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
@@ -125,8 +124,8 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(PngDecoder))]
-        [InlineData("lol/Rofl.bmp", typeof(BmpDecoder))]
+        [InlineData("lol/foo.png", typeof(MagickReferenceDecoder))]
+        [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(string fileName, Type expectedDecoderType)

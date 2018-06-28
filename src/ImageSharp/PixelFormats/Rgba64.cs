@@ -290,7 +290,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public override string ToString()
         {
-            return this.ToVector4().ToString();
+            return $"({this.R},{this.G},{this.B},{this.A})";
         }
 
         /// <inheritdoc />

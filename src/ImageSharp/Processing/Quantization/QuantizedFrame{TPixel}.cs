@@ -3,39 +3,36 @@
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
+// TODO: Consider pooling the TPixel palette also. For Rgba48+ this would end up on th LOH if 256 colors.
 namespace SixLabors.ImageSharp.Processing.Quantization
 {
     /// <summary>
     /// Represents a quantized image frame where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class QuantizedFrame<TPixel>
+    public class QuantizedFrame<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
+        private IBuffer<byte> pixels;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="QuantizedFrame{TPixel}"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">Used to allocated memory for image processing operations.</param>
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
-        /// <param name="pixels">The quantized pixels.</param>
-        public QuantizedFrame(int width, int height, TPixel[] palette, byte[] pixels)
+        public QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, TPixel[] palette)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
-            Guard.NotNull(palette, nameof(palette));
-            Guard.NotNull(pixels, nameof(pixels));
-
-            if (pixels.Length != width * height)
-            {
-                throw new ArgumentException($"Pixel array size must be {nameof(width)} * {nameof(height)}", nameof(pixels));
-            }
 
             this.Width = width;
             this.Height = height;
             this.Palette = palette;
-            this.Pixels = pixels;
+            this.pixels = memoryAllocator.AllocateCleanManagedByteBuffer(width * height);
         }
 
         /// <summary>
@@ -51,11 +48,20 @@ namespace SixLabors.ImageSharp.Processing.Quantization
         /// <summary>
         /// Gets the color palette of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
-        public TPixel[] Palette { get; }
+        public TPixel[] Palette { get; private set; }
 
         /// <summary>
         /// Gets the pixels of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
-        public byte[] Pixels { get; }
+        /// <returns>The <see cref="Span{T}"/></returns>
+        public Span<byte> GetPixelSpan() => this.pixels.GetSpan();
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.pixels?.Dispose();
+            this.pixels = null;
+            this.Palette = null;
+        }
     }
 }

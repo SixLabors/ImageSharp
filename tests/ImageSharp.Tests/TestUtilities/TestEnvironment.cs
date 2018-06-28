@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Tests
 
         private const string ToolsDirectoryRelativePath = @"tests\Images\External\tools";
 
-        private static Lazy<string> solutionDirectoryFullPath = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
+        private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
-        private static Lazy<bool> runsOnCi = new Lazy<bool>(
+        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(
             () =>
                 {
                     bool isCi;
@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
-        internal static bool RunsOnCI => runsOnCi.Value;
+        internal static bool RunsOnCI => RunsOnCiLazy.Value;
 
-        internal static string SolutionDirectoryFullPath => solutionDirectoryFullPath.Value;
+        internal static string SolutionDirectoryFullPath => SolutionDirectoryFullPathLazy.Value;
 
         private static string GetSolutionDirectoryFullPathImpl()
         {
@@ -65,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                         $"Unable to find ImageSharp solution directory from {assemblyLocation} because of {ex.GetType().Name}!",
                         ex);
                 }
+
                 if (directory == null)
                 {
                     throw new Exception($"Unable to find ImageSharp solution directory from {assemblyLocation}!");
@@ -116,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         internal static string CreateOutputDirectory(string path, params string[] pathParts)
         {
-            path = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, path);
+            path = Path.Combine(ActualOutputDirectoryFullPath, path);
 
             if (pathParts != null && pathParts.Length > 0)
             {

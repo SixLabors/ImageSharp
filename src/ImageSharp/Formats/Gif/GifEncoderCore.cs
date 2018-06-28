@@ -130,6 +130,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void EncodeGlobal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
+            DisposalMethod lastFrameDisposalMethod = DisposalMethod.Unspecified;
+            QuantizedFrame<TPixel> renderedFrame = quantized;
             var palleteQuantizer = new PaletteQuantizer(this.quantizer.Diffuser);
 
             for (int i = 0; i < image.Frames.Count; i++)
@@ -145,12 +147,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (QuantizedFrame<TPixel> paletteQuantized = palleteQuantizer.CreateFrameQuantizer(() => quantized.Palette).QuantizeFrame(frame))
+                    QuantizedFrame<TPixel> paletteQuantized = palleteQuantizer.CreateFrameQuantizer(() => quantized.Palette).QuantizeFrame(frame);
+
+                    if (lastFrameDisposalMethod == DisposalMethod.NotDispose)
                     {
-                        this.WriteImageData(paletteQuantized, stream);
+                        this.DoCutRepeatedPixelsGlobal(renderedFrame, paletteQuantized, transparencyIndex);
                     }
+                    else
+                    {
+                        renderedFrame.Dispose();
+                        renderedFrame = paletteQuantized;
+                    }
+
+                    this.WriteImageData(paletteQuantized, stream);
                 }
+
+                lastFrameDisposalMethod = frame.MetaData.DisposalMethod;
             }
+
+            renderedFrame.Dispose();
         }
 
         private void EncodeLocal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, Stream stream)
@@ -453,6 +468,33 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     TPixel sourcePixel = sourceRow[x];
                     TPixel color = renderedRow[x].Equals(sourcePixel) ? default : sourcePixel;
                     cutRow[x] = color;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Makes pixels that are repeated after quantization transparent.
+        /// The renderedFrame and nextFrame must use the same palette.
+        /// </summary>
+        /// <param name="renderedFrame">The currently rendered quantized frame. Will be updated with overwritten colors.</param>
+        /// <param name="nextFrame">The next frame. Will be mutated to make repeated indices transparent.</param>
+        /// <param name="transparencyIndex">The index of the transparent color in the palette.</param>
+        private void DoCutRepeatedPixelsGlobal<TPixel>(QuantizedFrame<TPixel> renderedFrame, QuantizedFrame<TPixel> nextFrame, int transparencyIndex)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            Span<byte> renderedPixels = renderedFrame.GetPixelSpan();
+            Span<byte> nextPixels = nextFrame.GetPixelSpan();
+
+            for (int i = 0; i < renderedPixels.Length; i++)
+            {
+                byte paletteIndex = nextPixels[i];
+                if (paletteIndex == renderedPixels[i])
+                {
+                    nextPixels[i] = (byte)transparencyIndex;
+                }
+                else
+                {
+                    renderedPixels[i] = paletteIndex;
                 }
             }
         }

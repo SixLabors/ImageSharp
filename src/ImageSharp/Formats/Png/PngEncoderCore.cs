@@ -625,6 +625,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             if (image.MetaData.ExifProfile?.Values.Count > 0)
             {
+                image.MetaData.SyncProfiles();
                 this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.ToByteArray());
             }
         }

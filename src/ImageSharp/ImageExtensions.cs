@@ -31,34 +31,37 @@ namespace SixLabors.ImageSharp
             Guard.NotNullOrWhiteSpace(filePath, nameof(filePath));
 
             string ext = Path.GetExtension(filePath);
-            IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
-            if (format == null)
+            using (Telemetry.StartEncodeToFile(source, ext))
             {
-                var sb = new StringBuilder();
-                sb.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
-                foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
+                IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
+                if (format == null)
                 {
-                    sb.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
+                    foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
+                    {
+                        sb.AppendLine($" - {fmt.Name} : {string.Join(", ", fmt.FileExtensions)}");
+                    }
+
+                    throw new NotSupportedException(sb.ToString());
                 }
 
-                throw new NotSupportedException(sb.ToString());
-            }
+                IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
-            IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
-
-            if (encoder == null)
-            {
-                var sb = new StringBuilder();
-                sb.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
-                foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+                if (encoder == null)
                 {
-                    sb.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
+                    var sb = new StringBuilder();
+                    sb.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                    foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+                    {
+                        sb.AppendLine($" - {enc.Key} : {enc.Value.GetType().Name}");
+                    }
+
+                    throw new NotSupportedException(sb.ToString());
                 }
 
-                throw new NotSupportedException(sb.ToString());
+                source.Save(filePath, encoder);
             }
-
-            source.Save(filePath, encoder);
         }
 
         /// <summary>
@@ -93,21 +96,23 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(format, nameof(format));
             IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
-
-            if (encoder == null)
+            using (Telemetry.StartEncode(source, encoder, stream))
             {
-                var sb = new StringBuilder();
-                sb.AppendLine("Can't find encoder for provided mime type. Available encoded:");
-
-                foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+                if (encoder == null)
                 {
-                    sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
+                    var sb = new StringBuilder();
+                    sb.AppendLine("Can't find encoder for provided mime type. Available encoded:");
+
+                    foreach (KeyValuePair<IImageFormat, IImageEncoder> val in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+                    {
+                        sb.AppendLine($" - {val.Key.Name} : {val.Value.GetType().Name}");
+                    }
+
+                    throw new NotSupportedException(sb.ToString());
                 }
 
-                throw new NotSupportedException(sb.ToString());
+                source.Save(stream, encoder);
             }
-
-            source.Save(stream, encoder);
         }
 
         /// <summary>
@@ -121,11 +126,14 @@ namespace SixLabors.ImageSharp
         public static string ToBase64String<TPixel>(this Image<TPixel> source, IImageFormat format)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var stream = new MemoryStream())
+            using (Telemetry.StartEncodeAsBase64(source, format))
             {
-                source.Save(stream, format);
-                stream.Flush();
-                return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+                using (var stream = new MemoryStream())
+                {
+                    source.Save(stream, format);
+                    stream.Flush();
+                    return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+                }
             }
         }
     }

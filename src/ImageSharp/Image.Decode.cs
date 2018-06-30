@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
@@ -69,13 +70,24 @@ namespace SixLabors.ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
-            if (decoder == null)
+            using (Telemetry.StartDecodeImage(stream.Length, format, decoder, config))
             {
-                return (null, null);
-            }
+                try
+                {
+                    if (decoder == null)
+                    {
+                        return (null, null);
+                    }
 
-            Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
-            return (img, format);
+                    Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
+                    return (img, format);
+                }
+                catch(Exception ex)
+                {
+                    Telemetry.DecodingException(ex, stream.Length, format, decoder, config);
+                    throw;
+                }
+            }
         }
 
         /// <summary>

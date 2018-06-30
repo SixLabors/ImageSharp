@@ -187,8 +187,19 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
+            using (Telemetry.StartEncode(this, encoder, stream))
+            {
+                try
+                {
+                    encoder.Encode(this, stream);
+                }
+                catch(Exception ex)
+                {
 
-            encoder.Encode(this, stream);
+                    Telemetry.EncodingException(ex, this, encoder, stream);
+                    throw;
+                }
+            }
         }
 
         /// <summary>

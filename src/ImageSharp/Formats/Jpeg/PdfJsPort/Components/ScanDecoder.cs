@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             mcu++;
 
                             // Every data block is an MCU, so countdown the restart interval
-                            if (this.todo-- <= 0)
+                            if (--this.todo <= 0)
                             {
                                 if (this.codeBits < 24)
                                 {
@@ -147,44 +147,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         for (int i = 0; i < mcusPerLine; i++)
                         {
-                            try
+                            // Scan an interleaved mcu... process components in order
+                            for (int k = 0; k < this.componentsLength; k++)
                             {
-                                // Scan an interleaved mcu... process components in order
-                                for (int k = 0; k < this.componentsLength; k++)
-                                {
-                                    PdfJsFrameComponent component = this.components[k];
-                                    ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                                    ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                                    ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                                    Span<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
-                                    int h = component.HorizontalSamplingFactor;
-                                    int v = component.VerticalSamplingFactor;
+                                PdfJsFrameComponent component = this.components[k];
+                                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                                Span<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                                int h = component.HorizontalSamplingFactor;
+                                int v = component.VerticalSamplingFactor;
 
-                                    // Scan out an mcu's worth of this component; that's just determined
-                                    // by the basic H and V specified for the component
-                                    for (int y = 0; y < v; y++)
+                                // Scan out an mcu's worth of this component; that's just determined
+                                // by the basic H and V specified for the component
+                                for (int y = 0; y < v; y++)
+                                {
+                                    for (int x = 0; x < h; x++)
                                     {
-                                        for (int x = 0; x < h; x++)
-                                        {
-                                            int mcuRow = mcu / mcusPerLine;
-                                            int mcuCol = mcu % mcusPerLine;
-                                            int blockRow = (mcuRow * v) + y;
-                                            int blockCol = (mcuCol * h) + x;
-                                            int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                            this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
-                                        }
+                                        int mcuRow = mcu / mcusPerLine;
+                                        int mcuCol = mcu % mcusPerLine;
+                                        int blockRow = (mcuRow * v) + y;
+                                        int blockCol = (mcuCol * h) + x;
+                                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
                                     }
                                 }
-                            }
-                            catch
-                            {
-                                break;
                             }
 
                             // After all interleaved components, that's an interleaved MCU,
                             // so now count down the restart interval
                             mcu++;
-                            if (this.todo-- <= 0)
+                            if (--this.todo <= 0)
                             {
                                 if (this.codeBits < 24)
                                 {

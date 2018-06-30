@@ -146,7 +146,6 @@ namespace SixLabors.ImageSharp.Tests
                 appendSourceFileOrDescription);
         }
 
-
         /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
         /// </summary>
@@ -154,7 +153,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="image">The image instance</param>
         /// <param name="extension">The requested extension</param>
         /// <param name="encoder">Optional encoder</param>
-        /// /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
+        /// <param name="appendPixelTypeToFileName">A value indicating whether to append the pixel type to the test output file name</param>
+        /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
+        /// <param name="testOutputDetails">Additional information to append to the test output file name</param>
         public string SaveTestOutputFile<TPixel>(
             Image<TPixel> image,
             string extension = null,
@@ -176,6 +177,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 image.Save(stream, encoder);
             }
+
             return path;
         }
 
@@ -192,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Directory.CreateDirectory(baseDir);
             }
-            
+
             for (int i = 0; i < frameCount; i++)
             {
                 string filePath = $"{baseDir}/{i:D2}.{extension}";
@@ -258,7 +260,7 @@ namespace SixLabors.ImageSharp.Tests
             this.TestName = methodName;
             this.OutputSubfolderName = outputSubfolderName;
         }
-        
+
         internal string GetTestOutputDir()
         {
             string testGroupName = Path.GetFileNameWithoutExtension(this.TestGroupName);
@@ -281,25 +283,26 @@ namespace SixLabors.ImageSharp.Tests
         where TPixel : struct, IPixel<TPixel>
         {
             TPixel pixel = img[x, y];
-            var rgbaPixel = default(Rgba32);
-            pixel.ToRgba32(ref rgbaPixel);
+            Rgba64 rgbaPixel = default;
+            pixel.ToRgba64(ref rgbaPixel);
+            ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
             if (rgbaPixel.R + perChannelChange <= 255)
             {
-                rgbaPixel.R += perChannelChange;
+                rgbaPixel.R += change;
             }
             else
             {
-                rgbaPixel.R -= perChannelChange;
+                rgbaPixel.R -= change;
             }
 
             if (rgbaPixel.G + perChannelChange <= 255)
             {
-                rgbaPixel.G += perChannelChange;
+                rgbaPixel.G += change;
             }
             else
             {
-                rgbaPixel.G -= perChannelChange;
+                rgbaPixel.G -= change;
             }
 
             if (rgbaPixel.B + perChannelChange <= 255)
@@ -320,7 +323,7 @@ namespace SixLabors.ImageSharp.Tests
                 rgbaPixel.A -= perChannelChange;
             }
 
-            pixel.PackFromRgba32(rgbaPixel);
+            pixel.PackFromRgba64(rgbaPixel);
             img[x, y] = pixel;
         }
     }

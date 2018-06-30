@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Binarization.Processors
                 y =>
                 {
                     Span<TPixel> row = source.GetPixelRowSpan(y);
-                    var rgba = default(Rgba32);
+                    Rgba32 rgba = default;
 
                     for (int x = startX; x < endX; x++)
                     {

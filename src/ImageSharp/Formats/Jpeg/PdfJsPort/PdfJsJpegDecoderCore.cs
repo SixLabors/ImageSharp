@@ -11,12 +11,12 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public void ParseStream(Stream stream, bool metadataOnly = false)
         {
             this.MetaData = new ImageMetaData();
-            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryManager, stream);
+            this.InputStream = new DoubleBufferedStreamReader(this.configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 this.QuantizationTables = new Block8x8F[4];
                 this.dcHuffmanTables = new PdfJsHuffmanTables();
                 this.acHuffmanTables = new PdfJsHuffmanTables();
-                this.fastACTables = new FastACTables(this.configuration.MemoryManager);
+                this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
             }
 
             while (fileMarker.Marker != JpegConstants.Markers.EOI)
@@ -276,6 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             }
 
                         case JpegConstants.Markers.DHT:
+
                             if (metadataOnly)
                             {
                                 this.InputStream.Skip(remaining);
@@ -683,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         maxV = v;
                     }
 
-                    var component = new PdfJsFrameComponent(this.configuration.MemoryManager, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                    var component = new PdfJsFrameComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
@@ -706,22 +707,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
-            if (remaining < 17)
+            using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
             {
-                throw new ImageFormatException($"DHT has wrong length: {remaining}");
-            }
-
-            using (IManagedByteBuffer huffmanData = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
-            {
-                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.Span);
+                ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
                 {
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(17))
+                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(17))
                     {
-                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.Span);
+                        ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
                         int codeLengthSum = 0;
 
                         for (int j = 1; j < 17; j++)
@@ -729,7 +725,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
-                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryManager.AllocateCleanManagedByteBuffer(256))
+                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -741,8 +737,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             this.BuildHuffmanTable(
                                 tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
                                 tableIndex,
-                                codeLengths.Span,
-                                huffmanValues.Span);
+                                codeLengths.GetSpan(),
+                                huffmanValues.GetSpan());
 
                             if (huffmanTableSpec >> 4 != 0)
                             {
@@ -821,7 +817,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             sd.ParseEntropyCodedData(this.Frame, this.dcHuffmanTables, this.acHuffmanTables, this.fastACTables);
 
-            // var scanDecoder = default(PdfJsScanDecoder);
+            // PdfJsScanDecoder scanDecoder = default;
             //
             // scanDecoder.DecodeScan(
             //     this.Frame,
@@ -848,7 +844,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryManager, codeLengths, values);
+            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
         }
 
         /// <summary>
@@ -865,7 +861,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryAllocator, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);

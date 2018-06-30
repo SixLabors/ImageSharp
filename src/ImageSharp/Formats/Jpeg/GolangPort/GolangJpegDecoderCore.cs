@@ -338,6 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                         break;
                     case JpegConstants.Markers.DHT:
+
                         if (metadataOnly)
                         {
                             this.InputProcessor.Skip(remaining);
@@ -705,7 +706,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
 
                 foreach (GolangComponent component in this.Components)
                 {
-                    component.InitializeDerivedData(this.configuration.MemoryManager, this);
+                    component.InitializeDerivedData(this.configuration.MemoryAllocator, this);
                 }
             }
         }
@@ -721,7 +722,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             {
                 if (remaining < 17)
                 {
-                    throw new ImageFormatException("DHT has wrong length");
+                    throw new ImageFormatException($"DHT has wrong length. {remaining}");
                 }
 
                 this.InputProcessor.ReadFull(this.Temp, 0, 17);
@@ -772,7 +773,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         /// </exception>
         private void ProcessStartOfScanMarker(int remaining)
         {
-            var scan = default(GolangJpegScanDecoder);
+            GolangJpegScanDecoder scan = default;
             GolangJpegScanDecoder.InitStreamReading(&scan, this, remaining);
             this.InputProcessor.Bits = default;
             scan.DecodeBlocks(this);
@@ -812,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryManager, this))
+            using (var postProcessor = new JpegImagePostProcessor(this.configuration.MemoryAllocator, this))
             {
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);

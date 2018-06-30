@@ -3,8 +3,8 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -20,16 +20,16 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private readonly BmpBitsPerPixel bitsPerPixel;
 
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options</param>
-        /// <param name="memoryManager">The memory manager</param>
-        public BmpEncoderCore(IBmpEncoderOptions options, MemoryManager memoryManager)
+        /// <param name="memoryAllocator">The memory manager</param>
+        public BmpEncoderCore(IBmpEncoderOptions options, MemoryAllocator memoryAllocator)
         {
-            this.memoryManager = memoryManager;
+            this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
         }
 
@@ -66,8 +66,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 reserved: 0,
                 fileSize: 54 + infoHeader.ImageSize);
 
-            byte[] buffer = new byte[40]; // TODO: stackalloc
-
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[40];
+#else
+            byte[] buffer = new byte[40];
+#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);
@@ -92,24 +95,22 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (PixelAccessor<TPixel> pixels = image.Lock())
+            Buffer2D<TPixel> pixels = image.PixelBuffer;
+            switch (this.bitsPerPixel)
             {
-                switch (this.bitsPerPixel)
-                {
-                    case BmpBitsPerPixel.Pixel32:
-                        this.Write32Bit(stream, pixels);
-                        break;
+                case BmpBitsPerPixel.Pixel32:
+                    this.Write32Bit(stream, pixels);
+                    break;
 
-                    case BmpBitsPerPixel.Pixel24:
-                        this.Write24Bit(stream, pixels);
-                        break;
-                }
+                case BmpBitsPerPixel.Pixel24:
+                    this.Write24Bit(stream, pixels);
+                    break;
             }
         }
 
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel)
         {
-            return this.memoryManager.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
+            return this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, this.padding);
         }
 
         /// <summary>
@@ -117,8 +118,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
-        private void Write32Bit<TPixel>(Stream stream, PixelAccessor<TPixel> pixels)
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
@@ -126,7 +127,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.Span, pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgra32Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }
@@ -137,8 +138,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-        /// <param name="pixels">The <see cref="PixelAccessor{TPixel}"/> containing pixel data.</param>
-        private void Write24Bit<TPixel>(Stream stream, PixelAccessor<TPixel> pixels)
+        /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
+        private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
@@ -146,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.Span, pixelSpan.Length);
+                    PixelOperations<TPixel>.Instance.ToBgr24Bytes(pixelSpan, row.GetSpan(), pixelSpan.Length);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }

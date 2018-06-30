@@ -12,13 +12,17 @@ namespace SixLabors.ImageSharp.Tests.Helpers
     /// </summary>
     public class GuardTests
     {
+        class Test
+        {
+        }
+
         /// <summary>
         /// Tests that the <see cref="M:Guard.NotNull"/> method throws when the argument is null.
         /// </summary>
         [Fact]
         public void NotNullThrowsWhenArgIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() => Guard.NotNull(null, "foo"));
+            Assert.Throws<ArgumentNullException>(() => Guard.NotNull((Test)null, "foo"));
         }
 
         /// <summary>
@@ -27,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [Fact]
         public void NotNullThrowsWhenArgNameEmpty()
         {
-            Assert.Throws<ArgumentNullException>(() => Guard.NotNull(null, string.Empty));
+            Assert.Throws<ArgumentNullException>(() => Guard.NotNull((Test)null, string.Empty));
         }
 
         /// <summary>

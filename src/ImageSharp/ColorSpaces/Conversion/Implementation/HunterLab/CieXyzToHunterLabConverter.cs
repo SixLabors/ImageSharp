@@ -33,18 +33,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
         /// <summary>
         /// Gets the target reference white. When not set, <see cref="HunterLab.DefaultWhitePoint"/> is used.
         /// </summary>
-        public CieXyz HunterLabWhitePoint
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
+        public CieXyz HunterLabWhitePoint { get; }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public HunterLab Convert(CieXyz input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here: http://en.wikipedia.org/wiki/Lab_color_space#Hunter_Lab
             float x = input.X, y = input.Y, z = input.Z;
             float xn = this.HunterLabWhitePoint.X, yn = this.HunterLabWhitePoint.Y, zn = this.HunterLabWhitePoint.Z;

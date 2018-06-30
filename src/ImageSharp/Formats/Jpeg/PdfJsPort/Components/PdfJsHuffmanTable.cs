@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
@@ -42,17 +42,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="count">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(MemoryManager memoryManager, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
+        public PdfJsHuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
         {
             const int Length = 257;
-            using (IBuffer<short> huffcode = memoryManager.Allocate<short>(Length))
+            using (IBuffer<short> huffcode = memoryAllocator.Allocate<short>(Length))
             {
-                Span<short> codes = huffcode.Span;
-                ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.Span);
-
+                Span<short> codes = huffcode.GetSpan();
+                ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
                 this.GenerateSizeTable(count);
 
                 int k = 0;
@@ -196,7 +195,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     }
                     else
                     {
-                       // maxcodeRef[i] = -1; // -1 if no codes of this length
+                        // maxcodeRef[i] = -1; // -1 if no codes of this length
                     }
                 }
 

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             {
                 if (sourceBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
                 {
-                    return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(sourceBitmap);
+                    return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sourceBitmap);
                 }
 
                 using (var convertedBitmap = new System.Drawing.Bitmap(
@@ -37,7 +37,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
                         g.DrawImage(sourceBitmap, 0, 0, sourceBitmap.Width, sourceBitmap.Height);
                     }
-                    return SystemDrawingBridge.FromFromArgb32SystemDrawingBitmap<TPixel>(convertedBitmap);
+
+                    return SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(convertedBitmap);
                 }
             }
         }

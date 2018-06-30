@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 {
@@ -16,12 +16,12 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <summary>
         /// Initializes a new instance of the <see cref="WeightsBuffer"/> class.
         /// </summary>
-        /// <param name="memoryManager">The MemoryManager to use for allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for allocations.</param>
         /// <param name="sourceSize">The size of the source window</param>
         /// <param name="destinationSize">The size of the destination window</param>
-        public WeightsBuffer(MemoryManager memoryManager, int sourceSize, int destinationSize)
+        public WeightsBuffer(MemoryAllocator memoryAllocator, int sourceSize, int destinationSize)
         {
-            this.dataBuffer = memoryManager.Allocate2D<float>(sourceSize, destinationSize, true);
+            this.dataBuffer = memoryAllocator.Allocate2D<float>(sourceSize, destinationSize, true);
             this.Weights = new WeightsWindow[destinationSize];
         }
 

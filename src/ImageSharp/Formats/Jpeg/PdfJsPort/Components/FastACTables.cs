@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
@@ -14,10 +14,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="FastACTables"/> class.
         /// </summary>
-        /// <param name="memoryManager">The memory manager used to allocate memory for image processing operations.</param>
-        public FastACTables(MemoryManager memoryManager)
+        /// <param name="memoryAllocator">The memory allocator used to allocate memory for image processing operations.</param>
+        public FastACTables(MemoryAllocator memoryAllocator)
         {
-            this.Tables = memoryManager.AllocateClean2D<short>(512, 4);
+            this.Tables = memoryAllocator.AllocateClean2D<short>(512, 4);
         }
 
         /// <summary>

@@ -562,21 +562,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 int b = this.nomore ? 0 : this.stream.ReadByte();
                 if (b == JpegConstants.Markers.XFF)
                 {
-                    long position = this.stream.Position - 1;
                     int c = this.stream.ReadByte();
                     while (c == JpegConstants.Markers.XFF)
                     {
-                        if (c != 0)
-                        {
-                            this.marker = (byte)c;
-                            this.nomore = true;
-                            if (!this.IsRestartMarker(this.marker))
-                            {
-                                this.stream.Position = position;
-                            }
+                        c = this.stream.ReadByte();
+                    }
 
-                            return;
-                        }
+                    if (c != 0)
+                    {
+                        this.marker = (byte)c;
+                        this.nomore = true;
+                        return;
                     }
                 }
 
@@ -586,7 +582,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             while (this.codeBits <= 24);
         }
 
-        // TODO: Split into Fast/Slow and inline Fast
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int DecodeHuffman(ref PdfJsHuffmanTable table)
         {
             this.CheckBits();
@@ -608,6 +604,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 return table.Values[k];
             }
 
+            return this.DecodeHuffmanSlow(ref table);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private int DecodeHuffmanSlow(ref PdfJsHuffmanTable table)
+        {
             // Naive test is to shift the code_buffer down so k bits are
             // valid, then test against MaxCode. To speed this up, we've
             // preshifted maxcode left so that it has (16-k) 0s at the
@@ -615,6 +617,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             // wants to be compared against something shifted to have 16;
             // that way we don't need to shift inside the loop.
             uint temp = this.codeBuffer >> 16;
+            int k;
             for (k = FastBits + 1; ; k++)
             {
                 if (temp < table.MaxCode[k])
@@ -636,7 +639,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             // Convert the huffman code to the symbol id
-            c = (int)(((this.codeBuffer >> (32 - k)) & Bmask[k]) + table.ValOffset[k]);
+            int c = (int)(((this.codeBuffer >> (32 - k)) & Bmask[k]) + table.ValOffset[k]);
 
             // Convert the id to a symbol
             this.codeBits -= k;

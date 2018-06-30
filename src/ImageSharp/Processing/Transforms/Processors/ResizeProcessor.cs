@@ -9,9 +9,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Transforms.Processors
@@ -143,12 +143,12 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations</param>
         /// <param name="destinationSize">The destination size</param>
         /// <param name="sourceSize">The source size</param>
         /// <returns>The <see cref="WeightsBuffer"/></returns>
         // TODO: Made internal to simplify experimenting with weights data. Make it private when finished figuring out how to optimize all the stuff!
-        internal WeightsBuffer PrecomputeWeights(MemoryManager memoryManager, int destinationSize, int sourceSize)
+        internal WeightsBuffer PrecomputeWeights(MemoryAllocator memoryAllocator, int destinationSize, int sourceSize)
         {
             float ratio = (float)sourceSize / destinationSize;
             float scale = ratio;
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
 
             IResampler sampler = this.Sampler;
             float radius = MathF.Ceiling(scale * sampler.Radius);
-            var result = new WeightsBuffer(memoryManager, sourceSize, destinationSize);
+            var result = new WeightsBuffer(memoryAllocator, sourceSize, destinationSize);
 
             for (int i = 0; i < destinationSize; i++)
             {
@@ -226,14 +226,14 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             if (!(this.Sampler is NearestNeighborResampler))
             {
                 // Since all image frame dimensions have to be the same we can calculate this for all frames.
-                MemoryManager memoryManager = source.GetMemoryManager();
+                MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
                 this.horizontalWeights = this.PrecomputeWeights(
-                    memoryManager,
+                    memoryAllocator,
                     this.ResizeRectangle.Width,
                     sourceRectangle.Width);
 
                 this.verticalWeights = this.PrecomputeWeights(
-                    memoryManager,
+                    memoryAllocator,
                     this.ResizeRectangle.Height,
                     sourceRectangle.Height);
             }
@@ -295,7 +295,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
             // First process the columns. Since we are not using multiple threads startY and endY
             // are the upper and lower bounds of the source rectangle.
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
-            using (Buffer2D<Vector4> firstPassPixels = source.MemoryManager.Allocate2D<Vector4>(width, source.Height))
+            using (Buffer2D<Vector4> firstPassPixels = source.MemoryAllocator.Allocate2D<Vector4>(width, source.Height))
             {
                 firstPassPixels.Buffer.Clear();
 
@@ -308,7 +308,7 @@ namespace SixLabors.ImageSharp.Processing.Transforms.Processors
                         {
                             ref Vector4 firstPassRow = ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                            Span<Vector4> tempRowSpan = tempRowBuffer.Span;
+                            Span<Vector4> tempRowSpan = tempRowBuffer.GetSpan();
 
                             PixelOperations<TPixel>.Instance.ToVector4(sourceRow, tempRowSpan, sourceRow.Length);
 

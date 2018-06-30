@@ -16,8 +16,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieXyyColor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyy Convert(CieXyz input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             float x = input.X / (input.X + input.Y + input.Z);
             float y = input.Y / (input.X + input.Y + input.Z);
 
@@ -33,8 +31,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieXyyColor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(CieXyy input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             if (MathF.Abs(input.Y) < Constants.Epsilon)
             {
                 return new CieXyz(0, 0, input.Yl);

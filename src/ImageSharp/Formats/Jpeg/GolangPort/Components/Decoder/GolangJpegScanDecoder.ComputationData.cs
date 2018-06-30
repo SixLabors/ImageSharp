@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
             /// <returns>The <see cref="ComputationData"/></returns>
             public static ComputationData Create()
             {
-                var data = default(ComputationData);
+                ComputationData data = default;
                 data.Unzig = ZigZag.CreateUnzigTable();
                 return data;
             }

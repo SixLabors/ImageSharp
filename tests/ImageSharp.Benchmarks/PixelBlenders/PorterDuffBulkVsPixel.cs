@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using CoreSize = SixLabors.Primitives.Size;
     using System.Numerics;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
     public class PorterDuffBulkVsPixel : BenchmarkBase
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-            using (IBuffer<Vector4> buffer = Configuration.Default.MemoryManager.Allocate<Vector4>(destination.Length * 3))
+            using (IBuffer<Vector4> buffer = Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
             {
                 Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -57,20 +57,19 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkVectorConvert")]
         public CoreSize BulkVectorConvert()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
-                using (IBuffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width))
+                using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
-                    amounts.Span.Fill(1);
-                    
-                    using (PixelAccessor<Rgba32> pixels = image.Lock())
+                    amounts.GetSpan().Fill(1);
+
+                    Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+                    for (int y = 0; y < image.Height; y++)
                     {
-                        for (int y = 0; y < image.Height; y++)
-                        {
-                            Span<Rgba32> span = pixels.GetRowSpan(y);
-                            this.BulkVectorConvert(span, span, span, amounts.Span);
-                        }
+                        Span<Rgba32> span = pixels.GetRowSpan(y);
+                        this.BulkVectorConvert(span, span, span, amounts.GetSpan());
                     }
+
                     return new CoreSize(image.Width, image.Height);
                 }
             }
@@ -79,18 +78,16 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp BulkPixelConvert")]
         public CoreSize BulkPixelConvert()
         {
-            using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
+            using (var image = new Image<Rgba32>(800, 800))
             {
-                using (IBuffer<float> amounts = Configuration.Default.MemoryManager.Allocate<float>(image.Width))
+                using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
-                    amounts.Span.Fill(1);
-                    using (PixelAccessor<Rgba32> pixels = image.Lock())
+                    amounts.GetSpan().Fill(1);
+                    Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+                    for (int y = 0; y < image.Height; y++)
                     {
-                        for (int y = 0; y < image.Height; y++)
-                        {
-                            Span<Rgba32> span = pixels.GetRowSpan(y);
-                            this.BulkPixelConvert(span, span, span, amounts.Span);
-                        }
+                        Span<Rgba32> span = pixels.GetRowSpan(y);
+                        this.BulkPixelConvert(span, span, span, amounts.GetSpan());
                     }
 
                     return new CoreSize(image.Width, image.Height);

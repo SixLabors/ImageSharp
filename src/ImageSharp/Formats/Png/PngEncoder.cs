@@ -14,14 +14,20 @@ namespace SixLabors.ImageSharp.Formats.Png
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
         /// <summary>
-        /// Gets or sets the png color type.
+        /// Gets or sets the number of bits per sample or per palette index (not per pixel).
+        /// Not all values are allowed for all <see cref="ColorType"/> values.
         /// </summary>
-        public PngColorType PngColorType { get; set; } = PngColorType.RgbWithAlpha;
+        public PngBitDepth BitDepth { get; set; } = PngBitDepth.Bit8;
 
         /// <summary>
-        /// Gets or sets the png filter method.
+        /// Gets or sets the color type.
         /// </summary>
-        public PngFilterMethod PngFilterMethod { get; set; } = PngFilterMethod.Adaptive;
+        public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
+
+        /// <summary>
+        /// Gets or sets the filter method.
+        /// </summary>
+        public PngFilterMethod FilterMethod { get; set; } = PngFilterMethod.Paeth;
 
         /// <summary>
         /// Gets or sets the compression level 1-9.
@@ -63,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(image.GetMemoryManager(), this))
+            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), this))
             {
                 encoder.Encode(image, stream);
             }

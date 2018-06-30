@@ -35,6 +35,26 @@ namespace SixLabors.ImageSharp.Processing.Contrast
                 }
             }
 
+            int min = luminanceLevels - 1;
+            for (int i = 0; i < histogram.Length - 1; i++)
+            {
+                if (histogram[i] != 0)
+                {
+                    min = i;
+                    break;
+                }
+            }
+
+            int max = 0;
+            for (int i = histogram.Length - 1; i > 0; i--)
+            {
+                if (histogram[i] != 0)
+                {
+                    max = i;
+                    break;
+                }
+            }
+
             // calculate the cumulative distribution function
             double[] cdf = new double[luminanceLevels];
             double sum = 0.0d;
@@ -54,8 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Contrast
                     TPixel sourcePixel = row[x];
                     sourcePixel.ToRgb24(ref rgb);
                     int luminance = (int)((.2126F * rgb.R) + (.7152F * rgb.G) + (.0722F * rgb.B));
-                    byte luminanceEqualized = (byte)(cdf[luminance] * luminance);
-
+                    byte luminanceEqualized = (byte)(cdf[luminance] * (luminanceLevels - 1));
                     row[x].PackFromRgba32(new Rgba32(luminanceEqualized, luminanceEqualized, luminanceEqualized));
                 }
             }

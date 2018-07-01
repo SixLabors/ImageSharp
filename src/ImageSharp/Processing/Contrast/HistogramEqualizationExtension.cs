@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Contrast
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The image this method extends.</param>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>A histogram equalized grayscale image.</returns>
         public static IImageProcessingContext<TPixel> HistogramEqualization<TPixel>(this IImageProcessingContext<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new HistogramEqualizationProcessor<TPixel>());

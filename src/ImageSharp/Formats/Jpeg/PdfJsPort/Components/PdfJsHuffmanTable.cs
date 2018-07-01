@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             }
 
                             // Figure F.15: generate decoding tables for bit-sequential decoding.
-                            // Compute largest code + 1 for this size. preshifted as neeed later.
+                            // Compute largest code + 1 for this size. preshifted as need later.
                             maxcodeRef[j] = code << (16 - j);
                             code <<= 1;
                         }

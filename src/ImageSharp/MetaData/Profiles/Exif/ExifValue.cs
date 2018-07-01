@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc />
         public bool Equals(ExifValue other)
         {
-            if (ReferenceEquals(other, null))
+            if (other is null)
             {
                 return false;
             }

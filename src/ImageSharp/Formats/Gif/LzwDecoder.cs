@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -48,18 +48,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
-        /// <param name="memoryManager">The <see cref="MemoryManager"/> to use for buffer allocations.</param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="stream">The stream to read from.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
-        public LzwDecoder(MemoryManager memoryManager, Stream stream)
+        public LzwDecoder(MemoryAllocator memoryAllocator, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
 
-            this.prefix = memoryManager.Allocate<int>(MaxStackSize, true);
-            this.suffix = memoryManager.Allocate<int>(MaxStackSize, true);
-            this.pixelStack = memoryManager.Allocate<int>(MaxStackSize + 1, true);
+            this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, true);
+            this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, true);
+            this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, true);
         }
 
         /// <summary>
@@ -102,9 +102,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
             int data = 0;
             int first = 0;
 
-            ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.Span);
-            ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.Span);
-            ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.Span);
+            ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
+            ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
+            ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
             ref byte pixelsRef = ref MemoryMarshal.GetReference(pixels);
 
             for (code = 0; code < clearCode; code++)
@@ -112,7 +112,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 Unsafe.Add(ref suffixRef, code) = (byte)code;
             }
 
+#if NETCOREAPP2_1
+            Span<byte> buffer = stackalloc byte[255];
+#else
             byte[] buffer = new byte[255];
+#endif
+
             while (xyz < length)
             {
                 if (top == 0)
@@ -221,15 +226,21 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if NETCOREAPP2_1
+        private int ReadBlock(Span<byte> buffer)
+#else
         private int ReadBlock(byte[] buffer)
+#endif
         {
             int bufferSize = this.stream.ReadByte();
+
             if (bufferSize < 1)
             {
                 return 0;
             }
 
             int count = this.stream.Read(buffer, 0, bufferSize);
+
             return count != bufferSize ? 0 : bufferSize;
         }
 

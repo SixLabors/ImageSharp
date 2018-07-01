@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using System.Reflection;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Transforms;
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     {
         private readonly ITestOutputHelper Output;
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0085f, 3);
 
         /// <summary>
         /// angleDeg, sx, sy, tx, ty
@@ -241,8 +241,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            var data = new TPixel[image.Width * image.Height];
-            image.Frames.RootFrame.SavePixelData(data);
+            Span<TPixel> data = image.Frames.RootFrame.GetPixelSpan();
             var rgba = default(Rgba32);
             var white = new Rgb24(255, 255, 255);
             foreach (TPixel pixel in data)

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
     [GroupOutput("Filters")]
     public class FilterTest
     {
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.005f, 3);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0218f, 3);
 
         // Testing the generic FilterProcessor with more than one pixel type intentionally.
         // There is no need to do this with the specialized ones.

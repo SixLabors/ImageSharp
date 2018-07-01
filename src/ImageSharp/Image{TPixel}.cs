@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -78,7 +79,28 @@ namespace SixLabors.ImageSharp
             this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata ?? new ImageMetaData();
-            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// consuming an external buffer instance.
+        /// </summary>
+        internal Image(Configuration configuration, IBuffer<TPixel> consumedBuffer, int width, int height)
+            : this(configuration, consumedBuffer, width, height, new ImageMetaData())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// consuming an external buffer instance.
+        /// </summary>
+        internal Image(Configuration configuration, IBuffer<TPixel> consumedBuffer, int width, int height, ImageMetaData metadata)
+        {
+            this.configuration = configuration;
+            this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
+            this.MetaData = metadata;
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, consumedBuffer);
         }
 
         /// <summary>
@@ -211,13 +233,13 @@ namespace SixLabors.ImageSharp
         /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
         /// </summary>
         /// <param name="pixelSource">The pixel source.</param>
-        internal void SwapPixelsBuffers(Image<TPixel> pixelSource)
+        internal void SwapOrCopyPixelsBuffersFrom(Image<TPixel> pixelSource)
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
             for (int i = 0; i < this.frames.Count; i++)
             {
-                this.frames[i].SwapPixelsBuffers(pixelSource.frames[i]);
+                this.frames[i].SwapOrCopyPixelsBufferFrom(pixelSource.frames[i]);
             }
         }
     }

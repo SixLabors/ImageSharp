@@ -90,16 +90,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
             byte[] result = new byte[length];
 
-            result[0] = (byte)'E';
-            result[1] = (byte)'x';
-            result[2] = (byte)'i';
-            result[3] = (byte)'f';
-            result[4] = 0x00;
-            result[5] = 0x00;
-            result[6] = (byte)'I';
-            result[7] = (byte)'I';
-            result[8] = 0x2A;
-            result[9] = 0x00;
+            ExifConstants.Header.AsSpan().CopyTo(result); // 0-9
 
             int i = 10;
             uint ifdOffset = ((uint)i - StartIndex) + 4;
@@ -250,7 +241,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return length;
         }
 
-        private int WriteArray(ExifValue value, byte[] destination, int offset)
+        private int WriteArray(ExifValue value, Span<byte> destination, int offset)
         {
             if (value.DataType == ExifDataType.Ascii)
             {
@@ -266,7 +257,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteData(List<int> indexes, byte[] destination, int offset)
+        private int WriteData(List<int> indexes, Span<byte> destination, int offset)
         {
             if (this.dataOffsets.Count == 0)
             {
@@ -289,7 +280,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return newOffset;
         }
 
-        private int WriteHeaders(List<int> indexes, byte[] destination, int offset)
+        private int WriteHeaders(List<int> indexes, Span<byte> destination, int offset)
         {
             this.dataOffsets = new List<int>();
 
@@ -370,7 +361,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
         }
 
-        private int WriteValue(ExifValue value, byte[] destination, int offset)
+        private int WriteValue(ExifValue value, Span<byte> destination, int offset)
         {
             if (value.IsArray && value.DataType != ExifDataType.Ascii)
             {

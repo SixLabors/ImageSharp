@@ -22,6 +22,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private readonly DoubleBufferedStreamReader stream;
         private readonly PdfJsFrameComponent[] components;
         private readonly ZigZag dctZigZag;
+        private readonly int restartInterval;
+        private readonly int componentIndex;
+        private readonly int componentsLength;
+        private readonly int spectralStart;
+        private readonly int spectralEnd;
+        private readonly int successiveHigh;
+        private readonly int successiveLow;
+
         private int codeBits;
         private uint codeBuffer;
         private bool nomore;
@@ -29,16 +37,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private byte marker;
         private bool badMarker;
         private long markerPosition;
-
         private int todo;
-        private int restartInterval;
-        private int componentIndex;
-        private int componentsLength;
         private int eobrun;
-        private int spectralStart;
-        private int spectralEnd;
-        private int successiveHigh;
-        private int successiveLow;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ScanDecoder"/> class.
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId));
 
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         int blockRow = mcu / w;
                         int blockCol = mcu % w;
                         int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, ref fastACRef);
                         mcu++;
 
                         // Every data block is an MCU, so countdown the restart interval
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                             ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                             ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                            ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId));
                             int h = component.HorizontalSamplingFactor;
                             int v = component.VerticalSamplingFactor;
 
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                     int blockRow = (mcuRow * v) + y;
                                     int blockCol = (mcuCol * h) + x;
                                     int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                    this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                                    this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, ref fastACRef);
                                 }
                             }
                         }
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId));
 
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         }
                         else
                         {
-                            this.DecodeBlockProgressiveAC(ref Unsafe.Add(ref blockDataRef, offset), ref acHuffmanTable, fastAC);
+                            this.DecodeBlockProgressiveAC(ref Unsafe.Add(ref blockDataRef, offset), ref acHuffmanTable, ref fastACRef);
                         }
 
                         mcu++;
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             ref short blockDataRef,
             ref PdfJsHuffmanTable dcTable,
             ref PdfJsHuffmanTable acTable,
-            ReadOnlySpan<short> fastAc)
+            ref short fastACRef)
         {
             this.CheckBits();
             int t = this.DecodeHuffman(ref dcTable);
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                 this.CheckBits();
                 int c = this.PeekBits();
-                int r = fastAc[c];
+                int r = Unsafe.Add(ref fastACRef, c);
 
                 if (r != 0)
                 {
@@ -474,7 +474,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private void DecodeBlockProgressiveAC(
             ref short blockDataRef,
             ref PdfJsHuffmanTable acTable,
-            ReadOnlySpan<short> fastAc)
+            ref short fastACRef)
         {
             int k;
 
@@ -501,7 +501,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                     this.CheckBits();
                     int c = this.PeekBits();
-                    int r = fastAc[c];
+                    int r = Unsafe.Add(ref fastACRef, c);
 
                     if (r != 0)
                     {

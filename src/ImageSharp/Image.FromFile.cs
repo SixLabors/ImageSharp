@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration config, string path)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Telemetry.StartDecodeImageFromFile(path, config))
+            using (Telemetry.StartDecodeImageFromFile<TPixel>(path, config))
             {
                 using (Stream stream = config.FileSystem.OpenRead(path))
                 {

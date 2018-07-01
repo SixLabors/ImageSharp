@@ -40,36 +40,50 @@ namespace SixLabors.Telemetry
         public static void Enable()
         {
             // this call will disable the provider at all and no-op any calls
-            activeProvider = registeredProvider ?? nullProvider;
+            if (wrappedProvider.InnerProvider == null)
+            {
+                activeProvider = nullProvider;
+            }
+            else
+            {
+                activeProvider = wrappedProvider;
+            }
             enabled = true;
         }
 
         internal static TelemetryProviderBase Provider => activeProvider;
-        private static TelemetryProviderBase registeredProvider;
         private static TelemetryProviderBase activeProvider;
-        private static TelemetryProviderBase nullProvider;
+        private static SafeWrappingProvider wrappedProvider = new SafeWrappingProvider();
+        private static NullProvider nullProvider;
 
         internal static void RegisterProvider(TelemetryProviderBase provider)
         {
             // use guard 
             if (provider == null) throw new ArgumentNullException();
 
-            if (registeredProvider == null)
+            if (wrappedProvider.InnerProvider == null)
             {
-                registeredProvider = provider;
+                wrappedProvider.InnerProvider = provider;
             }
-            else if (registeredProvider is AggregateProvider ap)
+            else if (wrappedProvider.InnerProvider is AggregateProvider ap)
             {
                 ap.RegisterProvider(provider);
             }
             else
             {
-                registeredProvider = new AggregateProvider(registeredProvider, provider);
+                wrappedProvider.InnerProvider = new AggregateProvider(wrappedProvider.InnerProvider, provider);
             }
 
             if (enabled)
             {
-                activeProvider = registeredProvider ?? nullProvider;
+                if (wrappedProvider.InnerProvider == null)
+                {
+                    activeProvider = nullProvider;
+                }
+                else
+                {
+                    activeProvider = wrappedProvider;
+                }
             }
         }
     }

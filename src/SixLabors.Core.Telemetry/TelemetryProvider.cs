@@ -21,7 +21,20 @@ namespace SixLabors.Telemetry
 
     internal struct TelemetryDetails
     {
+        /// <summary>
+        /// Detailed operatino name, Decode From Stream, Decode From File Path
+        /// </summary>
         public string Operation { get; set; }
+
+        /// <summary>
+        /// The name of the Library to ensure we log transitions from one to the other
+        /// </summary>
+        public string Library { get; set; }
+
+        /// <summary>
+        /// This is for things like, Decoding, Encoding, Mutating, Processing
+        /// </summary>
+        public string OperationType { get; set; }
 
         public IDictionary<string, string> Properties { get; set; }
 

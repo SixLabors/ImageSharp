@@ -114,7 +114,8 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="backgroundColor">The color to initialize the pixels with.</param>
         /// <param name="metadata">The images metadata.</param>
-        internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetaData metadata) {
+        internal Image(Configuration configuration, int width, int height, TPixel backgroundColor, ImageMetaData metadata)
+        {
             this.configuration = configuration ?? Configuration.Default;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata ?? new ImageMetaData();
@@ -193,9 +194,8 @@ namespace SixLabors.ImageSharp
                 {
                     encoder.Encode(this, stream);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-
                     Telemetry.EncodingException(ex, this, encoder, stream);
                     throw;
                 }

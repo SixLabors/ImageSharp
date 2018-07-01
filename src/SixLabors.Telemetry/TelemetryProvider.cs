@@ -19,12 +19,14 @@ namespace SixLabors.Telemetry
             var config = new TelemetryConfiguration("86a8b580-17ac-4648-be54-a962bcbf74a2");
 
             config
-                .TelemetryProcessorChainBuilder.Use(p => new MachineMetricsProcessors(p))
+                .TelemetryProcessorChainBuilder
+                .Use(p => new MachineMetricsProcessors(p))
                 .Build();
 
             this.client = new Microsoft.ApplicationInsights.TelemetryClient(config);
 #if !NETSTANDARD1_3
-            AppDomain.CurrentDomain.ProcessExit += (s, e) => {
+            AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+            {
                 this.client.Flush();
             };
 #endif
@@ -39,14 +41,26 @@ namespace SixLabors.Telemetry
         public override void Exception(Exception ex, Func<TelemetryDetails> detailsFunc)
         {
             var details = detailsFunc();
+            details.Properties["Library"] = details.Library;
             this.client.TrackException(ex, details.Properties, details.Metrics);
         }
 
         public override IDisposable Operation(Func<TelemetryDetails> detailsFunc)
         {
+            var previousActivityLibrary = Activity.Current?.GetBaggageItem("Library");
+            var previousOperationType = Activity.Current?.GetBaggageItem("OperationType");
             var details = detailsFunc();
 
-            var operation = this.client.StartOperation<RequestTelemetry>(new Activity(details.Operation));
+            // we are transitioning from one library to another 
+            // lets tag it up so we can filter them out later as required
+            bool startInLib = (details.Library != previousActivityLibrary) || (details.OperationType != previousOperationType);
+
+            var activity = new Activity(details.Operation);
+            activity.AddBaggage("Library", details.Library);
+            activity.AddBaggage("OperationType", details.OperationType);
+
+            var operation = this.client.StartOperation<RequestTelemetry>(activity);
+            operation.Telemetry.Source = details.Library;
             if (details.Properties != null)
             {
                 foreach (KeyValuePair<string, string> d in details.Properties)
@@ -60,6 +74,11 @@ namespace SixLabors.Telemetry
                 {
                     operation.Telemetry.Metrics.Add(d.Key, d.Value);
                 }
+            }
+
+            if (startInLib)
+            {
+                operation.Telemetry.Metrics.Add("LibraryTransition", 1);
             }
 
             return Wrap(details, operation);
@@ -96,7 +115,6 @@ namespace SixLabors.Telemetry
             }
         }
     }
-
     internal class MachineMetricsProcessors : ITelemetryProcessor
     {
         private readonly double hardwardVectors;
@@ -115,7 +133,19 @@ namespace SixLabors.Telemetry
                 hasMetrics.Metrics.Add("Hardware Vectors", hardwardVectors);
             }
 
-            next?.Process(item);
+            if (item is RequestTelemetry request)
+            {
+                if (request.Metrics.Remove("LibraryTransition")) // remove and then only log trantion items
+                {
+                    next?.Process(item);
+
+                }
+            }
+            else
+            {
+                next?.Process(item);
+            }
+
         }
     }
 }

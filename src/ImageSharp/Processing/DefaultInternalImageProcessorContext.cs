@@ -56,22 +56,25 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
-            if (!this.mutate && this.destination == null)
+            using (Telemetry.ApplyingProcessor(this.source, processor, rectangle))
             {
-                // This will only work if the first processor applied is the cloning one thus
-                // realistically for this optimization to work the resize must the first processor
-                // applied any only up processors will take the double data path.
-                if (processor is ICloningImageProcessor<TPixel> cloningImageProcessor)
+                if (!this.mutate && this.destination == null)
                 {
-                    this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
-                    return this;
+                    // This will only work if the first processor applied is the cloning one thus
+                    // realistically for this optimization to work the resize must the first processor
+                    // applied any only up processors will take the double data path.
+                    if (processor is ICloningImageProcessor<TPixel> cloningImageProcessor)
+                    {
+                        this.destination = cloningImageProcessor.CloneAndApply(this.source, rectangle);
+                        return this;
+                    }
+
+                    this.destination = this.source.Clone();
                 }
 
-                this.destination = this.source.Clone();
+                processor.Apply(this.destination, rectangle);
+                return this;
             }
-
-            processor.Apply(this.destination, rectangle);
-            return this;
         }
 
         /// <inheritdoc/>

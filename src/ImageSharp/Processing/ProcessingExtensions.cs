@@ -36,10 +36,12 @@ namespace SixLabors.ImageSharp.Processing
         {
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
-
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
-            operation(operationsRunner);
-            operationsRunner.Apply();
+            using (Telemetry.MutatingImage(source))
+            {
+                IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
+                operation(operationsRunner);
+                operationsRunner.Apply();
+            }
         }
 
         /// <summary>
@@ -54,9 +56,12 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operations, nameof(operations));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
-            operationsRunner.ApplyProcessors(operations);
-            operationsRunner.Apply();
+            using (Telemetry.MutatingImage(source))
+            {
+                IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, true);
+                operationsRunner.ApplyProcessors(operations);
+                operationsRunner.Apply();
+            }
         }
 
         /// <summary>
@@ -72,9 +77,12 @@ namespace SixLabors.ImageSharp.Processing
             Guard.NotNull(operation, nameof(operation));
             Guard.NotNull(source, nameof(source));
 
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
-            operation(operationsRunner);
-            return operationsRunner.Apply();
+            using (Telemetry.CloningImage(source))
+            {
+                IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
+                operation(operationsRunner);
+                return operationsRunner.Apply();
+            }
         }
 
         /// <summary>
@@ -89,10 +97,12 @@ namespace SixLabors.ImageSharp.Processing
         {
             Guard.NotNull(operations, nameof(operations));
             Guard.NotNull(source, nameof(source));
-
-            IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
-            operationsRunner.ApplyProcessors(operations);
-            return operationsRunner.Apply();
+            using (Telemetry.CloningImage(source))
+            {
+                IInternalImageProcessingContext<TPixel> operationsRunner = source.GetConfiguration().ImageOperationsProvider.CreateImageProcessingContext(source, false);
+                operationsRunner.ApplyProcessors(operations);
+                return operationsRunner.Apply();
+            }
         }
 
         /// <summary>

@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
-            using (Telemetry.StartDecodeImage(stream.Length, format, decoder, config))
+            using (Telemetry.StartDecodeImage<TPixel>(stream.Length, format, decoder, config))
             {
                 try
                 {
@@ -82,9 +82,9 @@ namespace SixLabors.ImageSharp
                     Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
                     return (img, format);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    Telemetry.DecodingException(ex, stream.Length, format, decoder, config);
+                    Telemetry.DecodingException<TPixel>(ex, stream.Length, format, decoder, config);
                     throw;
                 }
             }

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using System;
     using System.Threading.Tasks;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.Primitives;
     using SixLabors.ImageSharp.Processing.Overlays.Processors;
     using SixLabors.ImageSharp.Processing.Processors;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         }
 
         internal class GlowProcessorParallel<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+            where TPixel : struct, IPixel<TPixel>
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="GlowProcessorParallel{TPixel}" /> class.
@@ -102,10 +102,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 
                 int width = maxX - minX;
-                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryManager.Allocate<TPixel>(width))
-                using (PixelAccessor<TPixel> sourcePixels = source.Lock())
+                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryAllocator.Allocate<TPixel>(width))
                 {
-                    rowColors.Span.Fill(glowColor);
+                    Buffer2D<TPixel> sourcePixels = source.PixelBuffer;
+                    rowColors.GetSpan().Fill(glowColor);
 
                     Parallel.For(
                         minY,

@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
-            public MemoryManager MemoryManager => this.Source.GetConfiguration().MemoryManager;
+            public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
 
             public Image<TPixel> Apply()
             {

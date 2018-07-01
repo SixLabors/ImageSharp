@@ -84,8 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="dcHuffmanTables">The DC Huffman tables.</param>
         /// <param name="acHuffmanTables">The AC Huffman tables.</param>
         /// <param name="fastACTables">The fast AC decoding tables.</param>
-        /// <returns>The <see cref="int"/></returns>
-        public int ParseEntropyCodedData(
+        public void ParseEntropyCodedData(
             PdfJsFrame frame,
             PdfJsHuffmanTables dcHuffmanTables,
             PdfJsHuffmanTables acHuffmanTables,
@@ -95,256 +94,272 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             if (!frame.Progressive)
             {
-                if (this.componentsLength == 1)
-                {
-                    PdfJsFrameComponent component = this.components[this.componentIndex];
-
-                    // Non-interleaved data, we just need to process one block at a time,
-                    // in trivial scanline order
-                    // number of blocks to do just depends on how many actual "pixels" this
-                    // component has, independent of interleaved MCU blocking and such
-                    int w = component.WidthInBlocks;
-                    int h = component.HeightInBlocks;
-                    ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                    ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                    ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                    ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
-
-                    int mcu = 0;
-                    for (int j = 0; j < h; j++)
-                    {
-                        for (int i = 0; i < w; i++)
-                        {
-                            if (this.eof)
-                            {
-                                continue;
-                            }
-
-                            int blockRow = mcu / w;
-                            int blockCol = mcu % w;
-                            int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                            this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
-                            mcu++;
-
-                            // Every data block is an MCU, so countdown the restart interval
-                            if (--this.todo <= 0)
-                            {
-                                if (this.codeBits < 24)
-                                {
-                                    this.GrowBufferUnsafe();
-                                }
-
-                                // If it's NOT a restart, then just bail, so we get corrupt data
-                                // rather than no data
-                                if (!this.IsRestartMarker(this.marker))
-                                {
-                                    return 1;
-                                }
-
-                                this.Reset();
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Interleaved
-                    int mcu = 0;
-                    int mcusPerColumn = frame.McusPerColumn;
-                    int mcusPerLine = frame.McusPerLine;
-                    for (int j = 0; j < mcusPerColumn; j++)
-                    {
-                        for (int i = 0; i < mcusPerLine; i++)
-                        {
-                            // Scan an interleaved mcu... process components in order
-                            for (int k = 0; k < this.componentsLength; k++)
-                            {
-                                PdfJsFrameComponent component = this.components[k];
-                                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                                ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
-                                int h = component.HorizontalSamplingFactor;
-                                int v = component.VerticalSamplingFactor;
-
-                                // Scan out an mcu's worth of this component; that's just determined
-                                // by the basic H and V specified for the component
-                                for (int y = 0; y < v; y++)
-                                {
-                                    for (int x = 0; x < h; x++)
-                                    {
-                                        if (this.eof)
-                                        {
-                                            continue;
-                                        }
-
-                                        int mcuRow = mcu / mcusPerLine;
-                                        int mcuCol = mcu % mcusPerLine;
-                                        int blockRow = (mcuRow * v) + y;
-                                        int blockCol = (mcuCol * h) + x;
-                                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
-                                    }
-                                }
-                            }
-
-                            // After all interleaved components, that's an interleaved MCU,
-                            // so now count down the restart interval
-                            mcu++;
-                            if (--this.todo <= 0)
-                            {
-                                if (this.codeBits < 24)
-                                {
-                                    this.GrowBufferUnsafe();
-                                }
-
-                                // If it's NOT a restart, then just bail, so we get corrupt data
-                                // rather than no data
-                                if (!this.IsRestartMarker(this.marker))
-                                {
-                                    return 1;
-                                }
-
-                                this.Reset();
-                            }
-                        }
-                    }
-                }
+                this.ParseBaselineData(frame, dcHuffmanTables, acHuffmanTables, fastACTables);
             }
             else
             {
-                if (this.componentsLength == 1)
-                {
-                    PdfJsFrameComponent component = this.components[this.componentIndex];
-
-                    // Non-interleaved data, we just need to process one block at a time,
-                    // in trivial scanline order
-                    // number of blocks to do just depends on how many actual "pixels" this
-                    // component has, independent of interleaved MCU blocking and such
-                    int w = component.WidthInBlocks;
-                    int h = component.HeightInBlocks;
-                    ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                    ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                    ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                    ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
-
-                    int mcu = 0;
-                    for (int j = 0; j < h; j++)
-                    {
-                        for (int i = 0; i < w; i++)
-                        {
-                            if (this.eof)
-                            {
-                                continue;
-                            }
-
-                            int blockRow = mcu / w;
-                            int blockCol = mcu % w;
-                            int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-
-                            if (this.spectralStart == 0)
-                            {
-                                this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
-                            }
-                            else
-                            {
-                                this.DecodeBlockProgressiveAC(ref Unsafe.Add(ref blockDataRef, offset), ref acHuffmanTable, fastAC);
-                            }
-
-                            mcu++;
-
-                            // Every data block is an MCU, so countdown the restart interval
-                            if (--this.todo <= 0)
-                            {
-                                if (this.codeBits < 24)
-                                {
-                                    this.GrowBufferUnsafe();
-                                }
-
-                                // If it's NOT a restart, then just bail, so we get corrupt data
-                                // rather than no data
-                                if (!this.IsRestartMarker(this.marker))
-                                {
-                                    return 1;
-                                }
-
-                                this.Reset();
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Interleaved
-                    int mcu = 0;
-                    int mcusPerColumn = frame.McusPerColumn;
-                    int mcusPerLine = frame.McusPerLine;
-                    for (int j = 0; j < mcusPerColumn; j++)
-                    {
-                        for (int i = 0; i < mcusPerLine; i++)
-                        {
-                            // Scan an interleaved mcu... process components in order
-                            for (int k = 0; k < this.componentsLength; k++)
-                            {
-                                PdfJsFrameComponent component = this.components[k];
-                                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                                ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
-                                int h = component.HorizontalSamplingFactor;
-                                int v = component.VerticalSamplingFactor;
-
-                                // Scan out an mcu's worth of this component; that's just determined
-                                // by the basic H and V specified for the component
-                                for (int y = 0; y < v; y++)
-                                {
-                                    for (int x = 0; x < h; x++)
-                                    {
-                                        if (this.eof)
-                                        {
-                                            continue;
-                                        }
-
-                                        int mcuRow = mcu / mcusPerLine;
-                                        int mcuCol = mcu % mcusPerLine;
-                                        int blockRow = (mcuRow * v) + y;
-                                        int blockCol = (mcuCol * h) + x;
-                                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                        this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
-                                    }
-                                }
-                            }
-
-                            // After all interleaved components, that's an interleaved MCU,
-                            // so now count down the restart interval
-                            mcu++;
-                            if (--this.todo <= 0)
-                            {
-                                if (this.codeBits < 24)
-                                {
-                                    this.GrowBufferUnsafe();
-                                }
-
-                                // If it's NOT a restart, then just bail, so we get corrupt data
-                                // rather than no data
-                                if (!this.IsRestartMarker(this.marker))
-                                {
-                                    return 1;
-                                }
-
-                                this.Reset();
-                            }
-                        }
-                    }
-                }
+                this.ParseProgressiveData(frame, dcHuffmanTables, acHuffmanTables, fastACTables);
             }
 
             if (this.badMarker)
             {
                 this.stream.Position = this.markerPosition;
             }
+        }
 
-            return 1;
+        private void ParseBaselineData(
+            PdfJsFrame frame,
+            PdfJsHuffmanTables dcHuffmanTables,
+            PdfJsHuffmanTables acHuffmanTables,
+            FastACTables fastACTables)
+        {
+            if (this.componentsLength == 1)
+            {
+                PdfJsFrameComponent component = this.components[this.componentIndex];
+
+                // Non-interleaved data, we just need to process one block at a time,
+                // in trivial scanline order
+                // number of blocks to do just depends on how many actual "pixels" this
+                // component has, independent of interleaved MCU blocking and such
+                int w = component.WidthInBlocks;
+                int h = component.HeightInBlocks;
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+
+                int mcu = 0;
+                for (int j = 0; j < h; j++)
+                {
+                    for (int i = 0; i < w; i++)
+                    {
+                        if (this.eof)
+                        {
+                            return;
+                        }
+
+                        int blockRow = mcu / w;
+                        int blockCol = mcu % w;
+                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                        mcu++;
+
+                        // Every data block is an MCU, so countdown the restart interval
+                        if (--this.todo <= 0)
+                        {
+                            if (this.codeBits < 24)
+                            {
+                                this.GrowBufferUnsafe();
+                            }
+
+                            // If it's NOT a restart, then just bail, so we get corrupt data
+                            // rather than no data
+                            if (!this.ContinueOnRestart())
+                            {
+                                return;
+                            }
+
+                            this.Reset();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Interleaved
+                int mcu = 0;
+                int mcusPerColumn = frame.McusPerColumn;
+                int mcusPerLine = frame.McusPerLine;
+                for (int j = 0; j < mcusPerColumn; j++)
+                {
+                    for (int i = 0; i < mcusPerLine; i++)
+                    {
+                        // Scan an interleaved mcu... process components in order
+                        for (int k = 0; k < this.componentsLength; k++)
+                        {
+                            PdfJsFrameComponent component = this.components[k];
+                            ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                            ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                            int h = component.HorizontalSamplingFactor;
+                            int v = component.VerticalSamplingFactor;
+
+                            // Scan out an mcu's worth of this component; that's just determined
+                            // by the basic H and V specified for the component
+                            for (int y = 0; y < v; y++)
+                            {
+                                for (int x = 0; x < h; x++)
+                                {
+                                    if (this.eof)
+                                    {
+                                        return;
+                                    }
+
+                                    int mcuRow = mcu / mcusPerLine;
+                                    int mcuCol = mcu % mcusPerLine;
+                                    int blockRow = (mcuRow * v) + y;
+                                    int blockCol = (mcuCol * h) + x;
+                                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                    this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, fastAC);
+                                }
+                            }
+                        }
+
+                        // After all interleaved components, that's an interleaved MCU,
+                        // so now count down the restart interval
+                        mcu++;
+                        if (--this.todo <= 0)
+                        {
+                            if (this.codeBits < 24)
+                            {
+                                this.GrowBufferUnsafe();
+                            }
+
+                            // If it's NOT a restart, then just bail, so we get corrupt data
+                            // rather than no data
+                            if (!this.ContinueOnRestart())
+                            {
+                                return;
+                            }
+
+                            this.Reset();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ParseProgressiveData(
+            PdfJsFrame frame,
+            PdfJsHuffmanTables dcHuffmanTables,
+            PdfJsHuffmanTables acHuffmanTables,
+            FastACTables fastACTables)
+        {
+            if (this.componentsLength == 1)
+            {
+                PdfJsFrameComponent component = this.components[this.componentIndex];
+
+                // Non-interleaved data, we just need to process one block at a time,
+                // in trivial scanline order
+                // number of blocks to do just depends on how many actual "pixels" this
+                // component has, independent of interleaved MCU blocking and such
+                int w = component.WidthInBlocks;
+                int h = component.HeightInBlocks;
+                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+
+                int mcu = 0;
+                for (int j = 0; j < h; j++)
+                {
+                    for (int i = 0; i < w; i++)
+                    {
+                        if (this.eof)
+                        {
+                            return;
+                        }
+
+                        int blockRow = mcu / w;
+                        int blockCol = mcu % w;
+                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+
+                        if (this.spectralStart == 0)
+                        {
+                            this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
+                        }
+                        else
+                        {
+                            this.DecodeBlockProgressiveAC(ref Unsafe.Add(ref blockDataRef, offset), ref acHuffmanTable, fastAC);
+                        }
+
+                        mcu++;
+
+                        // Every data block is an MCU, so countdown the restart interval
+                        if (--this.todo <= 0)
+                        {
+                            if (this.codeBits < 24)
+                            {
+                                this.GrowBufferUnsafe();
+                            }
+
+                            // If it's NOT a restart, then just bail, so we get corrupt data
+                            // rather than no data
+                            if (!this.ContinueOnRestart())
+                            {
+                                return;
+                            }
+
+                            this.Reset();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Interleaved
+                int mcu = 0;
+                int mcusPerColumn = frame.McusPerColumn;
+                int mcusPerLine = frame.McusPerLine;
+                for (int j = 0; j < mcusPerColumn; j++)
+                {
+                    for (int i = 0; i < mcusPerLine; i++)
+                    {
+                        // Scan an interleaved mcu... process components in order
+                        for (int k = 0; k < this.componentsLength; k++)
+                        {
+                            PdfJsFrameComponent component = this.components[k];
+                            ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                            ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
+                            int h = component.HorizontalSamplingFactor;
+                            int v = component.VerticalSamplingFactor;
+
+                            // Scan out an mcu's worth of this component; that's just determined
+                            // by the basic H and V specified for the component
+                            for (int y = 0; y < v; y++)
+                            {
+                                for (int x = 0; x < h; x++)
+                                {
+                                    if (this.eof)
+                                    {
+                                        return;
+                                    }
+
+                                    int mcuRow = mcu / mcusPerLine;
+                                    int mcuCol = mcu % mcusPerLine;
+                                    int blockRow = (mcuRow * v) + y;
+                                    int blockCol = (mcuCol * h) + x;
+                                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                    this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
+                                }
+                            }
+                        }
+
+                        // After all interleaved components, that's an interleaved MCU,
+                        // so now count down the restart interval
+                        mcu++;
+                        if (--this.todo <= 0)
+                        {
+                            if (this.codeBits < 24)
+                            {
+                                this.GrowBufferUnsafe();
+                            }
+
+                            // If it's NOT a restart, then just bail, so we get corrupt data
+                            // rather than no data
+                            if (!this.ContinueOnRestart())
+                            {
+                                return;
+                            }
+
+                            this.Reset();
+                        }
+                    }
+                }
+            }
         }
 
         private int DecodeBlock(
@@ -696,7 +711,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             do
             {
-                // TODO: EOF
                 int b = this.nomore ? 0 : this.stream.ReadByte();
 
                 if (b == -1)
@@ -725,7 +739,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         this.marker = (byte)c;
                         this.nomore = true;
-                        if (!this.IsRestartMarker(this.marker))
+                        if (!this.HasRestart())
                         {
                             this.badMarker = true;
                         }
@@ -831,21 +845,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int PeekBits()
+        private int PeekBits() => (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ContinueOnRestart()
         {
-            return (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
+            if (this.badMarker)
+            {
+                this.stream.Position = this.markerPosition;
+            }
+
+            return this.HasRestart();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint LRot(uint x, int y)
+        private bool HasRestart()
         {
-            return (x << y) | (x >> (32 - y));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsRestartMarker(byte x)
-        {
-            return x >= JpegConstants.Markers.RST0 && x <= JpegConstants.Markers.RST7;
+            byte m = this.marker;
+            return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

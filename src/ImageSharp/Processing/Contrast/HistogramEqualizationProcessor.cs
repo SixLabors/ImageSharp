@@ -35,37 +35,34 @@ namespace SixLabors.ImageSharp.Processing.Contrast
                 }
             }
 
-            int min = luminanceLevels - 1;
-            for (int i = 0; i < histogram.Length - 1; i++)
-            {
-                if (histogram[i] != 0)
-                {
-                    min = i;
-                    break;
-                }
-            }
-
-            int max = 0;
-            for (int i = histogram.Length - 1; i > 0; i--)
-            {
-                if (histogram[i] != 0)
-                {
-                    max = i;
-                    break;
-                }
-            }
-
-            // calculate the cumulative distribution function
-            double[] cdf = new double[luminanceLevels];
-            double sum = 0.0d;
+            // calculate the cumulative distribution function which will be the cumulative histogram
+            int[] cdf = new int[luminanceLevels];
+            int histSum = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
-                double p = (double)histogram[i] / numberOfPixels;
-                sum += p;
-                cdf[i] = sum;
+                histSum += histogram[i];
+                cdf[i] = histSum;
+            }
+
+            int cdfMin = 0;
+            for (int i = 0; i < histogram.Length; i++)
+            {
+                if (histogram[i] != 0)
+                {
+                    cdfMin = cdf[i];
+                    break;
+                }
+            }
+
+            int[] lut = new int[luminanceLevels];
+            for (int i = 0; i < histogram.Length; i++)
+            {
+                lut[i] = cdf[i] - cdfMin;
             }
 
             // apply the cdf to each pixel of the image
+            double numberOfPixelsMinusCdfMin = (double)(numberOfPixels - cdfMin);
+            int luminanceLevelsMinusOne = luminanceLevels - 1;
             for (int y = 0; y < source.Height; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
@@ -74,8 +71,9 @@ namespace SixLabors.ImageSharp.Processing.Contrast
                     TPixel sourcePixel = row[x];
                     sourcePixel.ToRgb24(ref rgb);
                     int luminance = (int)((.2126F * rgb.R) + (.7152F * rgb.G) + (.0722F * rgb.B));
-                    byte luminanceEqualized = (byte)(cdf[luminance] * (luminanceLevels - 1));
-                    row[x].PackFromRgba32(new Rgba32(luminanceEqualized, luminanceEqualized, luminanceEqualized));
+                    double luminanceEqualized = (lut[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
+                    luminanceEqualized = Math.Round(luminanceEqualized);
+                    row[x].PackFromRgba32(new Rgba32((byte)luminanceEqualized, (byte)luminanceEqualized, (byte)luminanceEqualized));
                 }
             }
         }

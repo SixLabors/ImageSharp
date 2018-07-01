@@ -362,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        private int DecodeBlock(
+        private void DecodeBlock(
             PdfJsFrameComponent component,
             ref short blockDataRef,
             ref PdfJsHuffmanTable dcTable,
@@ -436,11 +436,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     }
                 }
             } while (k < 64);
-
-            return 1;
         }
 
-        private int DecodeBlockProgressiveDC(
+        private void DecodeBlockProgressiveDC(
             PdfJsFrameComponent component,
             ref short blockDataRef,
             ref PdfJsHuffmanTable dcTable)
@@ -471,11 +469,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     blockDataRef += (short)(1 << this.successiveLow);
                 }
             }
-
-            return 1;
         }
 
-        private int DecodeBlockProgressiveAC(
+        private void DecodeBlockProgressiveAC(
             ref short blockDataRef,
             ref PdfJsHuffmanTable acTable,
             ReadOnlySpan<short> fastAc)
@@ -494,7 +490,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 if (this.eobrun != 0)
                 {
                     this.eobrun--;
-                    return 1;
+                    return;
                 }
 
                 k = this.spectralStart;
@@ -672,8 +668,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     while (k <= this.spectralEnd);
                 }
             }
-
-            return 1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

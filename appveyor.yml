@@ -4,13 +4,6 @@ image: Visual Studio 2017
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true
 
-assembly_info:
-  patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '{build}'
-  assembly_file_version: '{build}'
-  assembly_informational_version: '{build}'
-
 environment:
   matrix:
     - target_framework: netcoreapp2.1

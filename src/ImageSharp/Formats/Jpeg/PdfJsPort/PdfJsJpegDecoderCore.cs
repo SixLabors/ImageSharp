@@ -816,22 +816,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 successiveApproximation & 15);
 
             sd.ParseEntropyCodedData(this.Frame, this.dcHuffmanTables, this.acHuffmanTables, this.fastACTables);
-
-            // PdfJsScanDecoder scanDecoder = default;
-            //
-            // scanDecoder.DecodeScan(
-            //     this.Frame,
-            //     this.InputStream,
-            //     this.dcHuffmanTables,
-            //     this.acHuffmanTables,
-            //     this.Frame.Components,
-            //     componentIndex,
-            //     selectorsCount,
-            //     this.resetInterval,
-            //     spectralStart,
-            //     spectralEnd,
-            //     successiveApproximation >> 4,
-            //     successiveApproximation & 15);
         }
 
         /// <summary>

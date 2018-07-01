@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats
 {
@@ -158,12 +157,10 @@ namespace SixLabors.ImageSharp.Formats
         public IImageDecoder FindDecoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
-            if (this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder))
-            {
-                return decoder;
-            }
 
-            return null;
+            return this.mimeTypeDecoders.TryGetValue(format, out IImageDecoder decoder)
+                ? decoder
+                : null;
         }
 
         /// <summary>
@@ -174,12 +171,10 @@ namespace SixLabors.ImageSharp.Formats
         public IImageEncoder FindEncoder(IImageFormat format)
         {
             Guard.NotNull(format, nameof(format));
-            if (this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder))
-            {
-                return encoder;
-            }
 
-            return null;
+            return this.mimeTypeEncoders.TryGetValue(format, out IImageEncoder encoder)
+                ? encoder
+                : null;
         }
 
         /// <summary>

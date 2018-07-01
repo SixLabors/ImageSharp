@@ -14,6 +14,9 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    using SixLabors.ImageSharp.Advanced;
+    using SixLabors.Memory;
+
     /// <summary>
     /// Various utility and extension methods.
     /// </summary>
@@ -61,36 +64,30 @@ namespace SixLabors.ImageSharp.Tests
             var rgb1 = default(Rgb24);
             var rgb2 = default(Rgb24);
 
-            using (PixelAccessor<TPixel> pixA = a.Lock())
+            Buffer2D<TPixel> pixA = a.GetRootFramePixelBuffer();
+            Buffer2D<TPixel> pixB = b.GetRootFramePixelBuffer();
+            for (int y = 0; y < a.Height; y++)
             {
-                using (PixelAccessor<TPixel> pixB = b.Lock())
+                for (int x = 0; x < a.Width; x++)
                 {
-                    for (int y = 0; y < a.Height; y++)
+                    TPixel ca = pixA[x, y];
+                    TPixel cb = pixB[x, y];
+
+                    if (compareAlpha)
                     {
-                        for (int x = 0; x < a.Width; x++)
+                        if (!ca.Equals(cb))
                         {
-                            TPixel ca = pixA[x, y];
-                            TPixel cb = pixB[x, y];
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        ca.ToRgb24(ref rgb1);
+                        cb.ToRgb24(ref rgb2);
 
-                            if (compareAlpha)
-                            {
-                                if (!ca.Equals(cb))
-                                {
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                ca.ToRgb24(ref rgb1);
-                                cb.ToRgb24(ref rgb2);
-
-                                if (rgb1.R != rgb2.R ||
-                                    rgb1.G != rgb2.G ||
-                                    rgb1.B != rgb2.B)
-                                {
-                                    return false;
-                                }
-                            }
+                        if (rgb1.R != rgb2.R || rgb1.G != rgb2.G || rgb1.B != rgb2.B)
+                        {
+                            return false;
                         }
                     }
                 }
@@ -112,8 +109,6 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="colorStructClrType"></param>
         /// <returns></returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
-
-
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
         {
@@ -163,11 +158,15 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="process">The image processing method to test. (As a delegate)</param>
         /// <param name="testOutputDetails">The value to append to the test output.</param>
         /// <param name="comparer">The custom image comparer to use</param>
+        /// <param name="appendPixelTypeToFileName"></param>
+        /// <param name="appendSourceFileOrDescription"></param>
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext<TPixel>> process,
             object testOutputDetails = null,
-            ImageComparer comparer = null)
+            ImageComparer comparer = null,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
             where TPixel : struct, IPixel<TPixel>
         {
             if (comparer == null)
@@ -178,12 +177,69 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(process);
-                image.DebugSave(provider, testOutputDetails);
+
+                image.DebugSave(
+                    provider,
+                    testOutputDetails,
+                    appendPixelTypeToFileName: appendPixelTypeToFileName,
+                    appendSourceFileOrDescription: appendSourceFileOrDescription);
 
                 // TODO: Investigate the cause of pixel inaccuracies under Linux
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
+                    image.CompareToReferenceOutput(
+                        comparer,
+                        provider,
+                        testOutputDetails,
+                        appendPixelTypeToFileName: appendPixelTypeToFileName,
+                        appendSourceFileOrDescription: appendSourceFileOrDescription);
+                }
+            }
+        }
+
+        public static void RunValidatingProcessorTestOnWrappedMemoryImage<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            Action<IImageProcessingContext<TPixel>> process,
+            object testOutputDetails = null,
+            ImageComparer comparer = null,
+            string useReferenceOutputFrom = null,
+            bool appendPixelTypeToFileName = true,
+            bool appendSourceFileOrDescription = true)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (comparer == null)
+            {
+                comparer = ImageComparer.TolerantPercentage(0.001f);
+            }
+
+            using (Image<TPixel> image0 = provider.GetImage())
+            {
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOfPixelData(image0.GetPixelSpan());
+
+                using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
+                {
+                    image1.Mutate(process);
+                    image1.DebugSave(
+                        provider,
+                        testOutputDetails,
+                        appendPixelTypeToFileName: appendPixelTypeToFileName,
+                        appendSourceFileOrDescription: appendSourceFileOrDescription);
+
+                    // TODO: Investigate the cause of pixel inaccuracies under Linux
+                    if (TestEnvironment.IsWindows)
+                    {
+                        if (useReferenceOutputFrom != null)
+                        {
+                            provider.Utility.TestName = useReferenceOutputFrom;
+                        }
+
+                        image1.CompareToReferenceOutput(
+                            comparer,
+                            provider,
+                            testOutputDetails,
+                            appendPixelTypeToFileName: appendPixelTypeToFileName,
+                            appendSourceFileOrDescription: appendSourceFileOrDescription);
+                    }
                 }
             }
         }

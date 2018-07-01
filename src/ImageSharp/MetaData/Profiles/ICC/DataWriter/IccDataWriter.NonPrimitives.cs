@@ -31,11 +31,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteVersionNumber(Version value)
+        public int WriteVersionNumber(in IccVersion value)
         {
             int major = value.Major.Clamp(0, byte.MaxValue);
             int minor = value.Minor.Clamp(0, 15);
-            int bugfix = value.Build.Clamp(0, 15);
+            int bugfix = value.Patch.Clamp(0, 15);
 
             // TODO: This is not used?
             byte mb = (byte)((minor << 4) | bugfix);
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteProfileId(IccProfileId value)
+        public int WriteProfileId(in IccProfileId value)
         {
             return this.WriteUInt32(value.Part1)
                  + this.WriteUInt32(value.Part2)
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WritePositionNumber(IccPositionNumber value)
+        public int WritePositionNumber(in IccPositionNumber value)
         {
             return this.WriteUInt32(value.Offset)
                  + this.WriteUInt32(value.Size);
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteResponseNumber(IccResponseNumber value)
+        public int WriteResponseNumber(in IccResponseNumber value)
         {
             return this.WriteUInt16(value.DeviceCode)
                  + this.WriteFix16(value.MeasurementValue);
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteNamedColor(IccNamedColor value)
+        public int WriteNamedColor(in IccNamedColor value)
         {
             return this.WriteAsciiString(value.Name, 32, true)
                  + this.WriteArray(value.PcsCoordinates)
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteProfileDescription(IccProfileDescription value)
+        public int WriteProfileDescription(in IccProfileDescription value)
         {
             return this.WriteUInt32(value.DeviceManufacturer)
                  + this.WriteUInt32(value.DeviceModel)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// </summary>
         /// <param name="value">The value to write</param>
         /// <returns>the number of bytes written</returns>
-        public int WriteScreeningChannel(IccScreeningChannel value)
+        public int WriteScreeningChannel(in IccScreeningChannel value)
         {
             return this.WriteFix16(value.Frequency)
                  + this.WriteFix16(value.Angle)

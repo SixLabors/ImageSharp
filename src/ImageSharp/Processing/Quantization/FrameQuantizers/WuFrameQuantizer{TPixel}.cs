@@ -7,8 +7,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 {
@@ -39,7 +39,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         // - Do we really need to ALWAYS allocate the whole table of size TableLength? (~ 2471625 * sizeof(long) * 5 bytes )
         // - Isn't an AOS ("array of structures") layout more efficient & more readable than SOA ("structure of arrays") for this particular use case?
         //   (T, R, G, B, A, M2) could be grouped together!
-        // - There are per-pixel virtual calls in InitialQuantizePixel, why not do it on a per-row basis?
         // - It's a frequently used class, we need tests! (So we can optimize safely.) There are tests in the original!!! We should just adopt them!
         //   https://github.com/JeremyAnsel/JeremyAnsel.ColorQuant/blob/master/JeremyAnsel.ColorQuant/JeremyAnsel.ColorQuant.Tests/WuColorQuantizerTests.cs
 
@@ -67,11 +66,6 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// The table length.
         /// </summary>
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
-
-        /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private readonly Dictionary<TPixel, byte> colorMap = new Dictionary<TPixel, byte>();
 
         /// <summary>
         /// Moment of <c>P(c)</c>.
@@ -141,17 +135,17 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         public override QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
         {
             Guard.NotNull(image, nameof(image));
-            MemoryManager memoryManager = image.MemoryManager;
+            MemoryAllocator memoryAllocator = image.MemoryAllocator;
 
             try
             {
-                this.vwt = memoryManager.AllocateClean<long>(TableLength);
-                this.vmr = memoryManager.AllocateClean<long>(TableLength);
-                this.vmg = memoryManager.AllocateClean<long>(TableLength);
-                this.vmb = memoryManager.AllocateClean<long>(TableLength);
-                this.vma = memoryManager.AllocateClean<long>(TableLength);
-                this.m2 = memoryManager.AllocateClean<float>(TableLength);
-                this.tag = memoryManager.AllocateClean<byte>(TableLength);
+                this.vwt = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vmr = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vmg = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vmb = memoryAllocator.AllocateClean<long>(TableLength);
+                this.vma = memoryAllocator.AllocateClean<long>(TableLength);
+                this.m2 = memoryAllocator.AllocateClean<float>(TableLength);
+                this.tag = memoryAllocator.AllocateClean<byte>(TableLength);
 
                 return base.QuantizeFrame(image);
             }
@@ -177,17 +171,17 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 {
                     this.Mark(ref this.colorCube[k], (byte)k);
 
-                    float weight = Volume(ref this.colorCube[k], this.vwt.Span);
+                    float weight = Volume(ref this.colorCube[k], this.vwt.GetSpan());
 
                     if (MathF.Abs(weight) > Constants.Epsilon)
                     {
-                        float r = Volume(ref this.colorCube[k], this.vmr.Span);
-                        float g = Volume(ref this.colorCube[k], this.vmg.Span);
-                        float b = Volume(ref this.colorCube[k], this.vmb.Span);
-                        float a = Volume(ref this.colorCube[k], this.vma.Span);
+                        float r = Volume(ref this.colorCube[k], this.vmr.GetSpan());
+                        float g = Volume(ref this.colorCube[k], this.vmg.GetSpan());
+                        float b = Volume(ref this.colorCube[k], this.vmb.GetSpan());
+                        float a = Volume(ref this.colorCube[k], this.vma.GetSpan());
 
                         ref TPixel color = ref this.palette[k];
-                        color.PackFromVector4(new Vector4(r, g, b, a) / weight / 255F);
+                        color.PackFromScaledVector4(new Vector4(r, g, b, a) / weight / 255F);
                     }
                 }
             }
@@ -209,12 +203,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
 
             int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
 
-            Span<long> vwtSpan = this.vwt.Span;
-            Span<long> vmrSpan = this.vmr.Span;
-            Span<long> vmgSpan = this.vmg.Span;
-            Span<long> vmbSpan = this.vmb.Span;
-            Span<long> vmaSpan = this.vma.Span;
-            Span<float> m2Span = this.m2.Span;
+            Span<long> vwtSpan = this.vwt.GetSpan();
+            Span<long> vmrSpan = this.vmr.GetSpan();
+            Span<long> vmgSpan = this.vmg.GetSpan();
+            Span<long> vmbSpan = this.vmb.GetSpan();
+            Span<long> vmaSpan = this.vma.GetSpan();
+            Span<float> m2Span = this.m2.GetSpan();
 
             vwtSpan[index]++;
             vmrSpan[index] += rgba.R;
@@ -237,7 +231,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
 
                 // And loop through each column
-                var rgba = default(Rgba32);
+                Rgba32 rgba = default;
                 for (int x = 0; x < width; x++)
                 {
                     ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
@@ -246,20 +240,19 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 }
             }
 
-            this.Get3DMoments(source.MemoryManager);
+            this.Get3DMoments(source.MemoryAllocator);
             this.BuildCube();
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, byte[] output, int width, int height)
+        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, ReadOnlySpan<TPixel> palette, int width, int height)
         {
             // Load up the values for the first pixel. We can use these to speed up the second
             // pass of the algorithm by avoiding transforming rows of identical color.
             TPixel sourcePixel = source[0, 0];
             TPixel previousPixel = sourcePixel;
-            byte pixelValue = this.QuantizePixel(sourcePixel);
-            TPixel[] colorPalette = this.GetPalette();
-            TPixel transformedPixel = colorPalette[pixelValue];
+            byte pixelValue = this.QuantizePixel(ref sourcePixel);
+            TPixel transformedPixel = palette[pixelValue];
 
             for (int y = 0; y < height; y++)
             {
@@ -276,14 +269,14 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                     if (!previousPixel.Equals(sourcePixel))
                     {
                         // Quantize the pixel
-                        pixelValue = this.QuantizePixel(sourcePixel);
+                        pixelValue = this.QuantizePixel(ref sourcePixel);
 
                         // And setup the previous pointer
                         previousPixel = sourcePixel;
 
                         if (this.Dither)
                         {
-                            transformedPixel = colorPalette[pixelValue];
+                            transformedPixel = palette[pixelValue];
                         }
                     }
 
@@ -464,42 +457,42 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <summary>
         /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
         /// </summary>
-        private void Get3DMoments(MemoryManager memoryManager)
+        /// <param name="memoryAllocator">The memory allocator used for allocating buffers.</param>
+        private void Get3DMoments(MemoryAllocator memoryAllocator)
         {
-            Span<long> vwtSpan = this.vwt.Span;
-            Span<long> vmrSpan = this.vmr.Span;
-            Span<long> vmgSpan = this.vmg.Span;
-            Span<long> vmbSpan = this.vmb.Span;
-            Span<long> vmaSpan = this.vma.Span;
-            Span<float> m2Span = this.m2.Span;
+            Span<long> vwtSpan = this.vwt.GetSpan();
+            Span<long> vmrSpan = this.vmr.GetSpan();
+            Span<long> vmgSpan = this.vmg.GetSpan();
+            Span<long> vmbSpan = this.vmb.GetSpan();
+            Span<long> vmaSpan = this.vma.GetSpan();
+            Span<float> m2Span = this.m2.GetSpan();
 
-            using (IBuffer<long> volume = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeR = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeG = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeB = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeA = memoryManager.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<float> volume2 = memoryManager.Allocate<float>(IndexCount * IndexAlphaCount))
-
-            using (IBuffer<long> area = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaR = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaG = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaB = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaA = memoryManager.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<float> area2 = memoryManager.Allocate<float>(IndexAlphaCount))
+            using (IBuffer<long> volume = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeR = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeG = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeB = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> volumeA = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IBuffer<float> volume2 = memoryAllocator.Allocate<float>(IndexCount * IndexAlphaCount))
+            using (IBuffer<long> area = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaR = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaG = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaB = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<long> areaA = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IBuffer<float> area2 = memoryAllocator.Allocate<float>(IndexAlphaCount))
             {
-                Span<long> volumeSpan = volume.Span;
-                Span<long> volumeRSpan = volumeR.Span;
-                Span<long> volumeGSpan = volumeG.Span;
-                Span<long> volumeBSpan = volumeB.Span;
-                Span<long> volumeASpan = volumeA.Span;
-                Span<float> volume2Span = volume2.Span;
+                Span<long> volumeSpan = volume.GetSpan();
+                Span<long> volumeRSpan = volumeR.GetSpan();
+                Span<long> volumeGSpan = volumeG.GetSpan();
+                Span<long> volumeBSpan = volumeB.GetSpan();
+                Span<long> volumeASpan = volumeA.GetSpan();
+                Span<float> volume2Span = volume2.GetSpan();
 
-                Span<long> areaSpan = area.Span;
-                Span<long> areaRSpan = areaR.Span;
-                Span<long> areaGSpan = areaG.Span;
-                Span<long> areaBSpan = areaB.Span;
-                Span<long> areaASpan = areaA.Span;
-                Span<float> area2Span = area2.Span;
+                Span<long> areaSpan = area.GetSpan();
+                Span<long> areaRSpan = areaR.GetSpan();
+                Span<long> areaGSpan = areaG.GetSpan();
+                Span<long> areaBSpan = areaB.GetSpan();
+                Span<long> areaASpan = areaA.GetSpan();
+                Span<float> area2Span = area2.GetSpan();
 
                 for (int r = 1; r < IndexCount; r++)
                 {
@@ -577,12 +570,12 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <returns>The <see cref="float"/>.</returns>
         private float Variance(ref Box cube)
         {
-            float dr = Volume(ref cube, this.vmr.Span);
-            float dg = Volume(ref cube, this.vmg.Span);
-            float db = Volume(ref cube, this.vmb.Span);
-            float da = Volume(ref cube, this.vma.Span);
+            float dr = Volume(ref cube, this.vmr.GetSpan());
+            float dg = Volume(ref cube, this.vmg.GetSpan());
+            float db = Volume(ref cube, this.vmb.GetSpan());
+            float da = Volume(ref cube, this.vma.GetSpan());
 
-            Span<float> m2Span = this.m2.Span;
+            Span<float> m2Span = this.m2.GetSpan();
 
             float xx =
                 m2Span[GetPaletteIndex(cube.R1, cube.G1, cube.B1, cube.A1)]
@@ -603,7 +596,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
                 + m2Span[GetPaletteIndex(cube.R0, cube.G0, cube.B0, cube.A0)];
 
             var vector = new Vector4(dr, dg, db, da);
-            return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.Span));
+            return xx - (Vector4.Dot(vector, vector) / Volume(ref cube, this.vwt.GetSpan()));
         }
 
         /// <summary>
@@ -626,22 +619,22 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <returns>The <see cref="float"/>.</returns>
         private float Maximize(ref Box cube, int direction, int first, int last, out int cut, float wholeR, float wholeG, float wholeB, float wholeA, float wholeW)
         {
-            long baseR = Bottom(ref cube, direction, this.vmr.Span);
-            long baseG = Bottom(ref cube, direction, this.vmg.Span);
-            long baseB = Bottom(ref cube, direction, this.vmb.Span);
-            long baseA = Bottom(ref cube, direction, this.vma.Span);
-            long baseW = Bottom(ref cube, direction, this.vwt.Span);
+            long baseR = Bottom(ref cube, direction, this.vmr.GetSpan());
+            long baseG = Bottom(ref cube, direction, this.vmg.GetSpan());
+            long baseB = Bottom(ref cube, direction, this.vmb.GetSpan());
+            long baseA = Bottom(ref cube, direction, this.vma.GetSpan());
+            long baseW = Bottom(ref cube, direction, this.vwt.GetSpan());
 
             float max = 0F;
             cut = -1;
 
             for (int i = first; i < last; i++)
             {
-                float halfR = baseR + Top(ref cube, direction, i, this.vmr.Span);
-                float halfG = baseG + Top(ref cube, direction, i, this.vmg.Span);
-                float halfB = baseB + Top(ref cube, direction, i, this.vmb.Span);
-                float halfA = baseA + Top(ref cube, direction, i, this.vma.Span);
-                float halfW = baseW + Top(ref cube, direction, i, this.vwt.Span);
+                float halfR = baseR + Top(ref cube, direction, i, this.vmr.GetSpan());
+                float halfG = baseG + Top(ref cube, direction, i, this.vmg.GetSpan());
+                float halfB = baseB + Top(ref cube, direction, i, this.vmb.GetSpan());
+                float halfA = baseA + Top(ref cube, direction, i, this.vma.GetSpan());
+                float halfW = baseW + Top(ref cube, direction, i, this.vwt.GetSpan());
 
                 if (MathF.Abs(halfW) < Constants.Epsilon)
                 {
@@ -685,11 +678,11 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <returns>Returns a value indicating whether the box has been split.</returns>
         private bool Cut(ref Box set1, ref Box set2)
         {
-            float wholeR = Volume(ref set1, this.vmr.Span);
-            float wholeG = Volume(ref set1, this.vmg.Span);
-            float wholeB = Volume(ref set1, this.vmb.Span);
-            float wholeA = Volume(ref set1, this.vma.Span);
-            float wholeW = Volume(ref set1, this.vwt.Span);
+            float wholeR = Volume(ref set1, this.vmr.GetSpan());
+            float wholeG = Volume(ref set1, this.vmg.GetSpan());
+            float wholeB = Volume(ref set1, this.vmb.GetSpan());
+            float wholeA = Volume(ref set1, this.vma.GetSpan());
+            float wholeW = Volume(ref set1, this.vwt.GetSpan());
 
             float maxr = this.Maximize(ref set1, 3, set1.R0 + 1, set1.R1, out int cutr, wholeR, wholeG, wholeB, wholeA, wholeW);
             float maxg = this.Maximize(ref set1, 2, set1.G0 + 1, set1.G1, out int cutg, wholeR, wholeG, wholeB, wholeA, wholeW);
@@ -773,7 +766,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// <param name="label">A label.</param>
         private void Mark(ref Box cube, byte label)
         {
-            Span<byte> tagSpan = this.tag.Span;
+            Span<byte> tagSpan = this.tag.GetSpan();
 
             for (int r = cube.R0 + 1; r <= cube.R1; r++)
             {
@@ -848,17 +841,17 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
         /// The quantized value
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(TPixel pixel)
+        private byte QuantizePixel(ref TPixel pixel)
         {
             if (this.Dither)
             {
-                // The colors have changed so we need to use Euclidean distance calculation to find the closest value.
-                // This palette can never be null here.
-                return this.GetClosestPixel(pixel, this.palette, this.colorMap);
+                // The colors have changed so we need to use Euclidean distance calculation to
+                // find the closest value.
+                return this.GetClosestPixel(ref pixel);
             }
 
             // Expected order r->g->b->a
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             pixel.ToRgba32(ref rgba);
 
             int r = rgba.R >> (8 - IndexBits);
@@ -866,7 +859,7 @@ namespace SixLabors.ImageSharp.Processing.Quantization.FrameQuantizers
             int b = rgba.B >> (8 - IndexBits);
             int a = rgba.A >> (8 - IndexAlphaBits);
 
-            Span<byte> tagSpan = this.tag.Span;
+            Span<byte> tagSpan = this.tag.GetSpan();
 
             return tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }

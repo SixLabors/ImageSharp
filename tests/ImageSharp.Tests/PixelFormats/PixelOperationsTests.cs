@@ -3,8 +3,9 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
@@ -43,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 TestOperation(
                     source,
                     expected,
-                    (s, d) => ImageSharp.PixelFormats.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.Span, 64)
+                    (s, d) => ImageSharp.PixelFormats.Rgba32.PixelOperations.ToVector4SimdAligned(s, d.GetSpan(), 64)
                 );
             }
 
@@ -56,14 +57,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (IBuffer<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryManager.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
-                using (IBuffer<Vector4> dest = Configuration.Default.MemoryManager.Allocate<Vector4>(count))
+                using (IBuffer<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryAllocator.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
+                using (IBuffer<Vector4> dest = Configuration.Default.MemoryAllocator.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
                         () =>
                             {
-                                PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance.ToVector4(source.Span, dest.Span, count);
+                                PixelOperations<ImageSharp.PixelFormats.Rgba32>.Instance.ToVector4(source.GetSpan(), dest.GetSpan(), count);
                             });
                 }
             }
@@ -133,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromVector4(s, d.Span, count)
+                (s, d) => Operations.PackFromVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -147,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromScaledVector4(s, d.Span, count)
+                (s, d) => Operations.PackFromScaledVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -183,7 +184,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToVector4(s, d.Span, count)
+                (s, d) => Operations.ToVector4(s, d.GetSpan(), count)
             );
         }
 
@@ -197,13 +198,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToScaledVector4(s, d.Span, count)
+                (s, d) => Operations.ToScaledVector4(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromXyzBytes(int count)
+        public void PackFromRgb24Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
             var expected = new TPixel[count];
@@ -218,13 +219,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgb24Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromRgb24Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void ToXyzBytes(int count)
+        public void ToRgb24Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 3];
@@ -242,13 +243,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgb24Bytes(s, d.Span, count)
+                (s, d) => Operations.ToRgb24Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromXyzwBytes(int count)
+        public void PackFromRgba32Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
             var expected = new TPixel[count];
@@ -263,13 +264,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromRgba32Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromRgba32Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void ToXyzwBytes(int count)
+        public void ToRgba32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 4];
@@ -288,13 +289,115 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToRgba32Bytes(s, d.Span, count)
+                (s, d) => Operations.ToRgba32Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromZyxBytes(int count)
+        public void PackFromRgb48Bytes(int count)
+        {
+            byte[] source = CreateByteTestData(count * 6);
+            Span<byte> sourceSpan = source.AsSpan();
+            var expected = new TPixel[count];
+
+            var rgba64 = new Rgba64(0, 0, 0, 65535);
+            for (int i = 0; i < count; i++)
+            {
+                int i6 = i * 6;
+                rgba64.Rgb = MemoryMarshal.Cast<byte, Rgb48>(sourceSpan.Slice(i6, 6))[0];
+                expected[i].PackFromRgba64(rgba64);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.PackFromRgb48Bytes(s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToRgb48Bytes(int count)
+        {
+            TPixel[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 6];
+            Rgb48 rgb = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                int i6 = i * 6;
+                source[i].ToRgb48(ref rgb);
+                Rgba64Bytes rgb48Bytes = Unsafe.As<Rgb48, Rgba64Bytes>(ref rgb);
+                expected[i6] = rgb48Bytes[0];
+                expected[i6 + 1] = rgb48Bytes[1];
+                expected[i6 + 2] = rgb48Bytes[2];
+                expected[i6 + 3] = rgb48Bytes[3];
+                expected[i6 + 4] = rgb48Bytes[4];
+                expected[i6 + 5] = rgb48Bytes[5];
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToRgb48Bytes(s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackFromRgba64Bytes(int count)
+        {
+            byte[] source = CreateByteTestData(count * 8);
+            Span<byte> sourceSpan = source.AsSpan();
+            var expected = new TPixel[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                int i8 = i * 8;
+                expected[i].PackFromRgba64(MemoryMarshal.Cast<byte, Rgba64>(sourceSpan.Slice(i8, 8))[0]);
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.PackFromRgba64Bytes(s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void ToRgba64Bytes(int count)
+        {
+            TPixel[] source = CreatePixelTestData(count);
+            byte[] expected = new byte[count * 8];
+            Rgba64 rgba = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                int i8 = i * 8;
+                source[i].ToRgba64(ref rgba);
+                Rgba64Bytes rgba64Bytes = Unsafe.As<Rgba64, Rgba64Bytes>(ref rgba);
+                expected[i8] = rgba64Bytes[0];
+                expected[i8 + 1] = rgba64Bytes[1];
+                expected[i8 + 2] = rgba64Bytes[2];
+                expected[i8 + 3] = rgba64Bytes[3];
+                expected[i8 + 4] = rgba64Bytes[4];
+                expected[i8 + 5] = rgba64Bytes[5];
+                expected[i8 + 6] = rgba64Bytes[6];
+                expected[i8 + 7] = rgba64Bytes[7];
+            }
+
+            TestOperation(
+                source,
+                expected,
+                (s, d) => Operations.ToRgba64Bytes(s, d.GetSpan(), count)
+            );
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackFromBgr24Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 3);
             var expected = new TPixel[count];
@@ -309,13 +412,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgr24Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromBgr24Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void ToZyxBytes(int count)
+        public void ToBgr24Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 3];
@@ -333,13 +436,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgr24Bytes(s, d.Span, count)
+                (s, d) => Operations.ToBgr24Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromZyxwBytes(int count)
+        public void PackFromBgra32Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
             var expected = new TPixel[count];
@@ -354,7 +457,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromBgra32Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromBgra32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -379,13 +482,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToBgra32Bytes(s, d.Span, count)
+                (s, d) => Operations.ToBgra32Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void PackFromWzyxBytes(int count)
+        public void PackFromArgb32Bytes(int count)
         {
             byte[] source = CreateByteTestData(count * 4);
             var expected = new TPixel[count];
@@ -400,13 +503,13 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.PackFromArgb32Bytes(s, d.Span, count)
+                (s, d) => Operations.PackFromArgb32Bytes(s, d.GetSpan(), count)
             );
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesData))]
-        public void ToWzyxBytes(int count)
+        public void ToArgb32Bytes(int count)
         {
             TPixel[] source = CreatePixelTestData(count);
             byte[] expected = new byte[count * 4];
@@ -425,7 +528,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.ToArgb32Bytes(s, d.Span, count)
+                (s, d) => Operations.ToArgb32Bytes(s, d.GetSpan(), count)
             );
         }
 
@@ -441,7 +544,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             {
                 this.SourceBuffer = source;
                 this.ExpectedDestBuffer = expectedDest;
-                this.ActualDestBuffer = Configuration.Default.MemoryManager.Allocate<TDest>(expectedDest.Length);
+                this.ActualDestBuffer = Configuration.Default.MemoryAllocator.Allocate<TDest>(expectedDest.Length);
             }
 
             public void Dispose()
@@ -459,7 +562,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 {
 
                     Span<Vector4> expected = MemoryMarshal.Cast<TDest, Vector4>(this.ExpectedDestBuffer.AsSpan());
-                    Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.Span);
+                    Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.GetSpan());
 
                     for (int i = 0; i < count; i++)
                     {
@@ -471,7 +574,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 else
                 {
                     Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
-                    Span<TDest> actual = this.ActualDestBuffer.Span;
+                    Span<TDest> actual = this.ActualDestBuffer.GetSpan();
                     for (int i = 0; i < count; i++)
                     {
                         Assert.Equal(expected[i], actual[i]);
@@ -556,6 +659,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 (float)rnd.NextDouble(),
                 (float)rnd.NextDouble()
             );
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private unsafe struct Rgba64Bytes
+        {
+            public fixed byte Data[8];
+
+            public byte this[int idx]
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get
+                {
+                    ref byte self = ref Unsafe.As<Rgba64Bytes, byte>(ref this);
+                    return Unsafe.Add(ref self, idx);
+                }
+            }
         }
     }
 }

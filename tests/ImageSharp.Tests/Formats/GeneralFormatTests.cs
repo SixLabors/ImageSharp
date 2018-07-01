@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests
     using System;
     using System.Reflection;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.Processing;
     using SixLabors.ImageSharp.Processing.Quantization;
 
@@ -77,52 +77,16 @@ namespace SixLabors.ImageSharp.Tests
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             IQuantizer quantizer = GetQuantizer(quantizerName);
 
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(c => c.Quantize(quantizer));
-                image.DebugSave(provider, new PngEncoder() { PngColorType = PngColorType.Palette }, testOutputDetails: quantizerName);
+                image.DebugSave(provider, new PngEncoder() { ColorType = PngColorType.Palette, Quantizer = quantizer }, testOutputDetails: quantizerName);
             }
 
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
-
-            //string path = TestEnvironment.CreateOutputDirectory("Quantize");
-
-            //foreach (TestFile file in Files)
-            //{
-            //    using (Image<Rgba32> srcImage = Image.Load<Rgba32>(file.Bytes, out IImageFormat mimeType))
-            //    {
-            //        using (Image<Rgba32> image = srcImage.Clone())
-            //        {
-            //            using (FileStream output = File.OpenWrite($"{path}/Octree-{file.FileName}"))
-            //            {
-            //                image.Mutate(x => x.Quantize(KnownQuantizers.Octree));
-            //                image.Save(output, mimeType);
-            //            }
-            //        }
-
-            //        using (Image<Rgba32> image = srcImage.Clone())
-            //        {
-            //            using (FileStream output = File.OpenWrite($"{path}/Wu-{file.FileName}"))
-            //            {
-            //                image.Mutate(x => x.Quantize(KnownQuantizers.Wu));
-            //                image.Save(output, mimeType);
-            //            }
-            //        }
-
-            //        using (Image<Rgba32> image = srcImage.Clone())
-            //        {
-            //            using (FileStream output = File.OpenWrite($"{path}/Palette-{file.FileName}"))
-            //            {
-            //                image.Mutate(x => x.Quantize(KnownQuantizers.Palette));
-            //                image.Save(output, mimeType);
-            //            }
-            //        }
-            //    }
-            //}
+            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
         }
 
         private static IQuantizer GetQuantizer(string name)

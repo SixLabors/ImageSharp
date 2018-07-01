@@ -179,10 +179,26 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = (byte)vector.W;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Byte4) && this.Equals((Byte4)obj);
+            return obj is Byte4 byte4 && this.Equals(byte4);
         }
 
         /// <inheritdoc />

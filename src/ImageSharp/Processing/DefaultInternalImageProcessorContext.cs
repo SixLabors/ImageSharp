@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc/>
-        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
+        public MemoryAllocator MemoryAllocator => this.source.GetConfiguration().MemoryAllocator;
 
         /// <inheritdoc/>
         public Image<TPixel> Apply()

@@ -1,17 +1,20 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Memory
+namespace SixLabors.Memory
 {
     /// <summary>
-    /// Exposes an array through the <see cref="IBuffer{T}"/> interface.
+    /// Wraps an array as an <see cref="IBuffer{T}"/> instance. In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
     /// </summary>
-    internal class BasicArrayBuffer<T> : IBuffer<T>
+    internal class BasicArrayBuffer<T> : ManagedBufferBase<T>
         where T : struct
     {
         public BasicArrayBuffer(T[] array, int length)
         {
-            DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
+            ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
             this.Array = array;
             this.Length = length;
         }
@@ -25,8 +28,6 @@ namespace SixLabors.ImageSharp.Memory
 
         public int Length { get; }
 
-        public Span<T> Span => this.Array.AsSpan(0, this.Length);
-
         /// <summary>
         /// Returns a reference to specified element of the buffer.
         /// </summary>
@@ -39,13 +40,20 @@ namespace SixLabors.ImageSharp.Memory
             {
                 DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
 
-                Span<T> span = this.Span;
+                Span<T> span = this.GetSpan();
                 return ref span[index];
             }
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
+        }
+
+        public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
+
+        protected override object GetPinnableObject()
+        {
+            return this.Array;
         }
     }
 }

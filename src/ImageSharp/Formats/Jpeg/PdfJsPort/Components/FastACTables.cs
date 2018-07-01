@@ -7,7 +7,7 @@ using SixLabors.Memory;
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     /// <summary>
-    /// The collection of tables used for fast AC entropy scan decoding.
+    /// The collection of lookup tables used for fast AC entropy scan decoding.
     /// </summary>
     internal sealed class FastACTables : IDisposable
     {

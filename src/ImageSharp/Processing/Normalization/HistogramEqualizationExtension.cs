@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Contrast
+namespace SixLabors.ImageSharp.Processing.Normalization
 {
     /// <summary>
     /// Adds extension that allows applying an HistogramEqualization to the image.

@@ -153,92 +153,124 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.componentsLength == 1)
             {
-                PdfJsFrameComponent component = this.components[this.componentIndex];
-
-                // Non-interleaved data, we just need to process one block at a time,
-                // in trivial scanline order
-                // number of blocks to do just depends on how many actual "pixels" this
-                // component has, independent of interleaved MCU blocking and such
-                int w = component.WidthInBlocks;
-                int h = component.HeightInBlocks;
-                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
-
-                int mcu = 0;
-                for (int j = 0; j < h; j++)
-                {
-                    for (int i = 0; i < w; i++)
-                    {
-                        if (this.eof)
-                        {
-                            return;
-                        }
-
-                        int blockRow = mcu / w;
-                        int blockCol = mcu % w;
-                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                        this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, ref fastACRef);
-
-                        // Every data block is an MCU, so countdown the restart interval
-                        mcu++;
-                        if (!this.ContinueOnMcuComplete())
-                        {
-                            return;
-                        }
-                    }
-                }
+                this.ParseBaselineDataNonInterleaved(dcHuffmanTables, acHuffmanTables, fastACTables);
             }
             else
             {
-                // Interleaved
-                int mcu = 0;
-                int mcusPerColumn = frame.McusPerColumn;
-                int mcusPerLine = frame.McusPerLine;
-                for (int j = 0; j < mcusPerColumn; j++)
+                this.ParseBaselineDataInterleaved(frame, dcHuffmanTables, acHuffmanTables, fastACTables);
+            }
+        }
+
+        private void ParseBaselineDataInterleaved(
+            PdfJsFrame frame,
+            PdfJsHuffmanTables dcHuffmanTables,
+            PdfJsHuffmanTables acHuffmanTables,
+            FastACTables fastACTables)
+        {
+            // Interleaved
+            int mcu = 0;
+            int mcusPerColumn = frame.McusPerColumn;
+            int mcusPerLine = frame.McusPerLine;
+            for (int j = 0; j < mcusPerColumn; j++)
+            {
+                for (int i = 0; i < mcusPerLine; i++)
                 {
-                    for (int i = 0; i < mcusPerLine; i++)
+                    // Scan an interleaved mcu... process components in order
+                    for (int k = 0; k < this.componentsLength; k++)
                     {
-                        // Scan an interleaved mcu... process components in order
-                        for (int k = 0; k < this.componentsLength; k++)
+                        PdfJsFrameComponent component = this.components[k];
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(
+                                                     MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                        ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                        ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+                        ref short fastACRef =
+                            ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
+
+                        // Scan out an mcu's worth of this component; that's just determined
+                        // by the basic H and V specified for the component
+                        for (int y = 0; y < v; y++)
                         {
-                            PdfJsFrameComponent component = this.components[k];
-                            ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
-                            int h = component.HorizontalSamplingFactor;
-                            int v = component.VerticalSamplingFactor;
-
-                            // Scan out an mcu's worth of this component; that's just determined
-                            // by the basic H and V specified for the component
-                            for (int y = 0; y < v; y++)
+                            for (int x = 0; x < h; x++)
                             {
-                                for (int x = 0; x < h; x++)
+                                if (this.eof)
                                 {
-                                    if (this.eof)
-                                    {
-                                        return;
-                                    }
-
-                                    int mcuRow = mcu / mcusPerLine;
-                                    int mcuCol = mcu % mcusPerLine;
-                                    int blockRow = (mcuRow * v) + y;
-                                    int blockCol = (mcuCol * h) + x;
-                                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                    this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, ref fastACRef);
+                                    return;
                                 }
+
+                                int mcuRow = mcu / mcusPerLine;
+                                int mcuCol = mcu % mcusPerLine;
+                                int blockRow = (mcuRow * v) + y;
+                                int blockCol = (mcuCol * h) + x;
+                                int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                this.DecodeBlockBaseline(
+                                    component,
+                                    ref Unsafe.Add(ref blockDataRef, offset),
+                                    ref dcHuffmanTable,
+                                    ref acHuffmanTable,
+                                    ref fastACRef);
                             }
                         }
+                    }
 
-                        // After all interleaved components, that's an interleaved MCU,
-                        // so now count down the restart interval
-                        mcu++;
-                        if (!this.ContinueOnMcuComplete())
-                        {
-                            return;
-                        }
+                    // After all interleaved components, that's an interleaved MCU,
+                    // so now count down the restart interval
+                    mcu++;
+                    if (!this.ContinueOnMcuComplete())
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Non-interleaved data, we just need to process one block at a ti
+        /// in trivial scanline order
+        /// number of blocks to do just depends on how many actual "pixels"
+        /// component has, independent of interleaved MCU blocking and such
+        /// </summary>
+        private void ParseBaselineDataNonInterleaved(
+            PdfJsHuffmanTables dcHuffmanTables,
+            PdfJsHuffmanTables acHuffmanTables,
+            FastACTables fastACTables)
+        {
+            PdfJsFrameComponent component = this.components[this.componentIndex];
+
+            int w = component.WidthInBlocks;
+            int h = component.HeightInBlocks;
+            ref short blockDataRef =
+                ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
+
+            int mcu = 0;
+            for (int j = 0; j < h; j++)
+            {
+                for (int i = 0; i < w; i++)
+                {
+                    if (this.eof)
+                    {
+                        return;
+                    }
+
+                    int blockRow = mcu / w;
+                    int blockCol = mcu % w;
+                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                    this.DecodeBlockBaseline(
+                        component,
+                        ref Unsafe.Add(ref blockDataRef, offset),
+                        ref dcHuffmanTable,
+                        ref acHuffmanTable,
+                        ref fastACRef);
+
+                    // Every data block is an MCU, so countdown the restart interval
+                    mcu++;
+                    if (!this.ContinueOnMcuComplete())
+                    {
+                        return;
                     }
                 }
             }
@@ -252,104 +284,127 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.componentsLength == 1)
             {
-                PdfJsFrameComponent component = this.components[this.componentIndex];
-
-                // Non-interleaved data, we just need to process one block at a time,
-                // in trivial scanline order
-                // number of blocks to do just depends on how many actual "pixels" this
-                // component has, independent of interleaved MCU blocking and such
-                int w = component.WidthInBlocks;
-                int h = component.HeightInBlocks;
-                ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
-
-                int mcu = 0;
-                for (int j = 0; j < h; j++)
-                {
-                    for (int i = 0; i < w; i++)
-                    {
-                        if (this.eof)
-                        {
-                            return;
-                        }
-
-                        int blockRow = mcu / w;
-                        int blockCol = mcu % w;
-                        int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-
-                        if (this.spectralStart == 0)
-                        {
-                            this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
-                        }
-                        else
-                        {
-                            this.DecodeBlockProgressiveAC(ref Unsafe.Add(ref blockDataRef, offset), ref acHuffmanTable, ref fastACRef);
-                        }
-
-                        // Every data block is an MCU, so countdown the restart interval
-                        mcu++;
-                        if (!this.ContinueOnMcuComplete())
-                        {
-                            return;
-                        }
-                    }
-                }
+                this.ParseProgressiveDataNonInterleaved(dcHuffmanTables, acHuffmanTables, fastACTables);
             }
             else
             {
-                // Interleaved
-                int mcu = 0;
-                int mcusPerColumn = frame.McusPerColumn;
-                int mcusPerLine = frame.McusPerLine;
-                for (int j = 0; j < mcusPerColumn; j++)
+                this.ParseProgressiveDataInterleaved(frame, dcHuffmanTables);
+            }
+        }
+
+        private void ParseProgressiveDataInterleaved(PdfJsFrame frame, PdfJsHuffmanTables dcHuffmanTables)
+        {
+            // Interleaved
+            int mcu = 0;
+            int mcusPerColumn = frame.McusPerColumn;
+            int mcusPerLine = frame.McusPerLine;
+            for (int j = 0; j < mcusPerColumn; j++)
+            {
+                for (int i = 0; i < mcusPerLine; i++)
                 {
-                    for (int i = 0; i < mcusPerLine; i++)
+                    // Scan an interleaved mcu... process components in order
+                    for (int k = 0; k < this.componentsLength; k++)
                     {
-                        // Scan an interleaved mcu... process components in order
-                        for (int k = 0; k < this.componentsLength; k++)
+                        PdfJsFrameComponent component = this.components[k];
+                        ref short blockDataRef = ref MemoryMarshal.GetReference(
+                                                     MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+                        ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                        int h = component.HorizontalSamplingFactor;
+                        int v = component.VerticalSamplingFactor;
+
+                        // Scan out an mcu's worth of this component; that's just determined
+                        // by the basic H and V specified for the component
+                        for (int y = 0; y < v; y++)
                         {
-                            PdfJsFrameComponent component = this.components[k];
-                            ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                            int h = component.HorizontalSamplingFactor;
-                            int v = component.VerticalSamplingFactor;
-
-                            // Scan out an mcu's worth of this component; that's just determined
-                            // by the basic H and V specified for the component
-                            for (int y = 0; y < v; y++)
+                            for (int x = 0; x < h; x++)
                             {
-                                for (int x = 0; x < h; x++)
+                                if (this.eof)
                                 {
-                                    if (this.eof)
-                                    {
-                                        return;
-                                    }
-
-                                    int mcuRow = mcu / mcusPerLine;
-                                    int mcuCol = mcu % mcusPerLine;
-                                    int blockRow = (mcuRow * v) + y;
-                                    int blockCol = (mcuCol * h) + x;
-                                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
-                                    this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
+                                    return;
                                 }
+
+                                int mcuRow = mcu / mcusPerLine;
+                                int mcuCol = mcu % mcusPerLine;
+                                int blockRow = (mcuRow * v) + y;
+                                int blockCol = (mcuCol * h) + x;
+                                int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+                                this.DecodeBlockProgressiveDC(
+                                    component,
+                                    ref Unsafe.Add(ref blockDataRef, offset),
+                                    ref dcHuffmanTable);
                             }
                         }
+                    }
 
-                        // After all interleaved components, that's an interleaved MCU,
-                        // so now count down the restart interval
-                        mcu++;
-                        if (!this.ContinueOnMcuComplete())
-                        {
-                            return;
-                        }
+                    // After all interleaved components, that's an interleaved MCU,
+                    // so now count down the restart interval
+                    mcu++;
+                    if (!this.ContinueOnMcuComplete())
+                    {
+                        return;
                     }
                 }
             }
         }
 
-        private void DecodeBlock(
+        /// <summary>
+        /// Non-interleaved data, we just need to process one block at a time,
+        /// in trivial scanline order
+        /// number of blocks to do just depends on how many actual "pixels" this
+        /// component has, independent of interleaved MCU blocking and such
+        /// </summary>
+        private void ParseProgressiveDataNonInterleaved(
+            PdfJsHuffmanTables dcHuffmanTables,
+            PdfJsHuffmanTables acHuffmanTables,
+            FastACTables fastACTables)
+        {
+            PdfJsFrameComponent component = this.components[this.componentIndex];
+
+            int w = component.WidthInBlocks;
+            int h = component.HeightInBlocks;
+            ref short blockDataRef =
+                ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
+            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
+
+            int mcu = 0;
+            for (int j = 0; j < h; j++)
+            {
+                for (int i = 0; i < w; i++)
+                {
+                    if (this.eof)
+                    {
+                        return;
+                    }
+
+                    int blockRow = mcu / w;
+                    int blockCol = mcu % w;
+                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+
+                    if (this.spectralStart == 0)
+                    {
+                        this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
+                    }
+                    else
+                    {
+                        this.DecodeBlockProgressiveAC(
+                            ref Unsafe.Add(ref blockDataRef, offset),
+                            ref acHuffmanTable,
+                            ref fastACRef);
+                    }
+
+                    // Every data block is an MCU, so countdown the restart interval
+                    mcu++;
+                    if (!this.ContinueOnMcuComplete())
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void DecodeBlockBaseline(
             PdfJsFrameComponent component,
             ref short blockDataRef,
             ref PdfJsHuffmanTable dcTable,

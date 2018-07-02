@@ -35,6 +35,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         /// <summary>
+        /// Gets a reference to the first element of the AC table indexed by <see cref="PdfJsFrameComponent.ACHuffmanTableId"/>
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref short GetAcTableReference(PdfJsFrameComponent component)
+        {
+            return ref this.tables.GetRowSpan(component.ACHuffmanTableId)[0];
+        }
+
+        /// <summary>
         /// Builds a lookup table for fast AC entropy scan decoding.
         /// </summary>
         /// <param name="index">The table index.</param>

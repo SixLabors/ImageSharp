@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Contrast
+namespace SixLabors.ImageSharp.Processing.Normalization
 {
     /// <summary>
     /// Applies a global histogram equalization to the image.

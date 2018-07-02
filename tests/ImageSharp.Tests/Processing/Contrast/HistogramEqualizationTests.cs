@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Contrast;
+using SixLabors.ImageSharp.Processing.Normalization;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Contrast
@@ -56,8 +56,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Contrast
                 for (int x = 0; x < 8; x++)
                 {
                     Rgba32 actual = image[x, y];
-                    int diff = expected[y * 8 + x] - actual.R;
-                    Assert.True(diff == 0);
+                    Assert.Equal(expected[y * 8 + x], actual.R);
+                    Assert.Equal(expected[y * 8 + x], actual.G);
+                    Assert.Equal(expected[y * 8 + x], actual.B);
                 }
             }
         }

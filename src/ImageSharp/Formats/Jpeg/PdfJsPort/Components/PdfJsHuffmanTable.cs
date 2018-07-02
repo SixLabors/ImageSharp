@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the value offset array
         /// </summary>
-        public FixedInt16Buffer18 ValOffset;
+        public FixedInt32Buffer18 ValOffset;
 
         /// <summary>
         /// Gets the huffman value array

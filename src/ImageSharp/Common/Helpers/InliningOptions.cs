@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Global inlining options. Helps temporally disable inling for better profiler output.
+    /// Global inlining options. Helps temporarily disable inling for better profiler output.
     /// </summary>
     internal static class InliningOptions
     {

@@ -4,10 +4,14 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
+    /// <summary>
+    /// Decodes the Huffman encoded spectral scan.
+    /// Originally ported from <see href="https://github.com/rds1983/StbSharp"/>
+    /// with additional fixes for both performance and common encoding errors.
+    /// </summary>
     internal class ScanDecoder
     {
         // The number of bits that can be read via a LUT.
@@ -157,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId));
+                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
 
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
@@ -173,24 +177,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         int blockCol = mcu % w;
                         int offset = component.GetBlockBufferOffset(blockRow, blockCol);
                         this.DecodeBlock(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable, ref acHuffmanTable, ref fastACRef);
-                        mcu++;
 
                         // Every data block is an MCU, so countdown the restart interval
-                        if (--this.todo <= 0)
+                        mcu++;
+                        if (!this.ContinueOnMcuComplete())
                         {
-                            if (this.codeBits < 24)
-                            {
-                                this.FillBuffer();
-                            }
-
-                            // If it's NOT a restart, then just bail, so we get corrupt data
-                            // rather than no data
-                            if (!this.ContinueOnRestart())
-                            {
-                                return;
-                            }
-
-                            this.Reset();
+                            return;
                         }
                     }
                 }
@@ -212,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                             ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                             ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId));
+                            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
                             int h = component.HorizontalSamplingFactor;
                             int v = component.VerticalSamplingFactor;
 
@@ -240,21 +232,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         // After all interleaved components, that's an interleaved MCU,
                         // so now count down the restart interval
                         mcu++;
-                        if (--this.todo <= 0)
+                        if (!this.ContinueOnMcuComplete())
                         {
-                            if (this.codeBits < 24)
-                            {
-                                this.FillBuffer();
-                            }
-
-                            // If it's NOT a restart, then just bail, so we get corrupt data
-                            // rather than no data
-                            if (!this.ContinueOnRestart())
-                            {
-                                return;
-                            }
-
-                            this.Reset();
+                            return;
                         }
                     }
                 }
@@ -283,7 +263,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                 ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                 ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId));
+                ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
 
                 int mcu = 0;
                 for (int j = 0; j < h; j++)
@@ -308,24 +288,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             this.DecodeBlockProgressiveAC(ref Unsafe.Add(ref blockDataRef, offset), ref acHuffmanTable, ref fastACRef);
                         }
 
-                        mcu++;
-
                         // Every data block is an MCU, so countdown the restart interval
-                        if (--this.todo <= 0)
+                        mcu++;
+                        if (!this.ContinueOnMcuComplete())
                         {
-                            if (this.codeBits < 24)
-                            {
-                                this.FillBuffer();
-                            }
-
-                            // If it's NOT a restart, then just bail, so we get corrupt data
-                            // rather than no data
-                            if (!this.ContinueOnRestart())
-                            {
-                                return;
-                            }
-
-                            this.Reset();
+                            return;
                         }
                     }
                 }
@@ -373,21 +340,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         // After all interleaved components, that's an interleaved MCU,
                         // so now count down the restart interval
                         mcu++;
-                        if (--this.todo <= 0)
+                        if (!this.ContinueOnMcuComplete())
                         {
-                            if (this.codeBits < 24)
-                            {
-                                this.FillBuffer();
-                            }
-
-                            // If it's NOT a restart, then just bail, so we get corrupt data
-                            // rather than no data
-                            if (!this.ContinueOnRestart())
-                            {
-                                return;
-                            }
-
-                            this.Reset();
+                            return;
                         }
                     }
                 }
@@ -887,14 +842,33 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private int PeekBits() => (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool ContinueOnRestart()
+        private bool ContinueOnMcuComplete()
         {
+            if (--this.todo > 0)
+            {
+                return true;
+            }
+
+            if (this.codeBits < 24)
+            {
+                this.FillBuffer();
+            }
+
+            // If it's NOT a restart, then just bail, so we get corrupt data rather than no data.
+            // Reset the stream to before any bad markers to ensure we can read sucessive segments.
             if (this.badMarker)
             {
                 this.stream.Position = this.markerPosition;
             }
 
-            return this.HasRestart();
+            if (!this.HasRestart())
+            {
+                return false;
+            }
+
+            this.Reset();
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -904,7 +878,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void Reset()
         {
             this.codeBits = 0;

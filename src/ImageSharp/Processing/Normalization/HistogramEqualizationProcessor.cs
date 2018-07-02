@@ -106,12 +106,12 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             if (is16bitPerChannel)
             {
                 sourcePixel.ToRgb48(ref rgb48);
-                luminance = (int)((.2126F * rgb48.R) + (.7152F * rgb48.G) + (.0722F * rgb48.B));
+                luminance = Convert.ToInt32((.2126F * rgb48.R) + (.7152F * rgb48.G) + (.0722F * rgb48.B));
             }
             else
             {
                 sourcePixel.ToRgb24(ref rgb24);
-                luminance = (int)((.2126F * rgb24.R) + (.7152F * rgb24.G) + (.0722F * rgb24.B));
+                luminance = Convert.ToInt32((.2126F * rgb24.R) + (.7152F * rgb24.G) + (.0722F * rgb24.B));
             }
 
             return luminance;

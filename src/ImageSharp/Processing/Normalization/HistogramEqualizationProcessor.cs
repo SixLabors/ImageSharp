@@ -5,6 +5,7 @@ using System;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Normalization
@@ -21,12 +22,13 @@ namespace SixLabors.ImageSharp.Processing.Normalization
         {
             var rgb48 = default(Rgb48);
             var rgb24 = default(Rgb24);
+            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
             bool is16bitPerChannel = typeof(TPixel) == typeof(Rgb48) || typeof(TPixel) == typeof(Rgba64);
 
             // build the histogram of the grayscale levels
             int luminanceLevels = is16bitPerChannel ? 65536 : 256;
-            int[] histogram = new int[luminanceLevels];
+            Span<int> histogram = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
             for (int y = 0; y < source.Height; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
@@ -39,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             }
 
             // calculate the cumulative distribution function (which will be the cumulative histogram)
-            int[] cdf = new int[luminanceLevels];
+            Span<int> cdf = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
             int histSum = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
@@ -47,6 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
                 cdf[i] = histSum;
             }
 
+            // get the first none zero value of the cumulative histogram
             int cdfMin = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
@@ -57,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
                 }
             }
 
-            int[] lut = new int[luminanceLevels];
+            Span<int> lut = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
             for (int i = 0; i < histogram.Length; i++)
             {
                 lut[i] = cdf[i] - cdfMin;

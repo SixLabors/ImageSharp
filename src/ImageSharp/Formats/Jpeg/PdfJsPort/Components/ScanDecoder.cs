@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         // LUT Bias[n] = (-1 << n) + 1
         private static readonly int[] Bias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
 
+        private readonly PdfJsFrame frame;
+        private readonly PdfJsHuffmanTables dcHuffmanTables;
+        private readonly PdfJsHuffmanTables acHuffmanTables;
+        private readonly FastACTables fastACTables;
+
         private readonly DoubleBufferedStreamReader stream;
         private readonly PdfJsFrameComponent[] components;
         private readonly ZigZag dctZigZag;
@@ -79,7 +84,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// Initializes a new instance of the <see cref="ScanDecoder"/> class.
         /// </summary>
         /// <param name="stream">The input stream.</param>
-        /// <param name="components">The scan components.</param>
+        /// <param name="frame">The image frame.</param>
+        /// <param name="dcHuffmanTables">The DC Huffman tables.</param>
+        /// <param name="acHuffmanTables">The AC Huffman tables.</param>
+        /// <param name="fastACTables">The fast AC decoding tables.</param>
         /// <param name="componentIndex">The component index within the array.</param>
         /// <param name="componentsLength">The length of the components. Different to the array length.</param>
         /// <param name="restartInterval">The reset interval.</param>
@@ -89,7 +97,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="successiveLow">The successive approximation bit low end.</param>
         public ScanDecoder(
             DoubleBufferedStreamReader stream,
-            PdfJsFrameComponent[] components,
+            PdfJsFrame frame,
+            PdfJsHuffmanTables dcHuffmanTables,
+            PdfJsHuffmanTables acHuffmanTables,
+            FastACTables fastACTables,
             int componentIndex,
             int componentsLength,
             int restartInterval,
@@ -100,7 +111,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
-            this.components = components;
+            this.frame = frame;
+            this.dcHuffmanTables = dcHuffmanTables;
+            this.acHuffmanTables = acHuffmanTables;
+            this.fastACTables = fastACTables;
+            this.components = frame.Components;
             this.marker = JpegConstants.Markers.XFF;
             this.markerPosition = 0;
             this.componentIndex = componentIndex;
@@ -115,25 +130,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Decodes the entropy coded data.
         /// </summary>
-        /// <param name="frame">The image frame.</param>
-        /// <param name="dcHuffmanTables">The DC Huffman tables.</param>
-        /// <param name="acHuffmanTables">The AC Huffman tables.</param>
-        /// <param name="fastACTables">The fast AC decoding tables.</param>
-        public void ParseEntropyCodedData(
-            PdfJsFrame frame,
-            PdfJsHuffmanTables dcHuffmanTables,
-            PdfJsHuffmanTables acHuffmanTables,
-            FastACTables fastACTables)
+        public void ParseEntropyCodedData()
         {
             this.Reset();
 
-            if (!frame.Progressive)
+            if (!this.frame.Progressive)
             {
-                this.ParseBaselineData(frame, dcHuffmanTables, acHuffmanTables, fastACTables);
+                this.ParseBaselineData();
             }
             else
             {
-                this.ParseProgressiveData(frame, dcHuffmanTables, acHuffmanTables, fastACTables);
+                this.ParseProgressiveData();
             }
 
             if (this.badMarker)
@@ -145,32 +152,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
 
-        private void ParseBaselineData(
-            PdfJsFrame frame,
-            PdfJsHuffmanTables dcHuffmanTables,
-            PdfJsHuffmanTables acHuffmanTables,
-            FastACTables fastACTables)
+        private void ParseBaselineData()
         {
             if (this.componentsLength == 1)
             {
-                this.ParseBaselineDataNonInterleaved(dcHuffmanTables, acHuffmanTables, fastACTables);
+                this.ParseBaselineDataNonInterleaved();
             }
             else
             {
-                this.ParseBaselineDataInterleaved(frame, dcHuffmanTables, acHuffmanTables, fastACTables);
+                this.ParseBaselineDataInterleaved();
             }
         }
 
-        private void ParseBaselineDataInterleaved(
-            PdfJsFrame frame,
-            PdfJsHuffmanTables dcHuffmanTables,
-            PdfJsHuffmanTables acHuffmanTables,
-            FastACTables fastACTables)
+        private void ParseBaselineDataInterleaved()
         {
             // Interleaved
             int mcu = 0;
-            int mcusPerColumn = frame.McusPerColumn;
-            int mcusPerLine = frame.McusPerLine;
+            int mcusPerColumn = this.frame.McusPerColumn;
+            int mcusPerLine = this.frame.McusPerLine;
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 for (int i = 0; i < mcusPerLine; i++)
@@ -180,10 +179,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         PdfJsFrameComponent component = this.components[k];
 
-                        ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                        ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                        ref short fastACRef =
-                            ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
+                        ref PdfJsHuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+                        ref PdfJsHuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+                        ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
@@ -231,19 +229,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// number of blocks to do just depends on how many actual "pixels"
         /// component has, independent of interleaved MCU blocking and such
         /// </summary>
-        private void ParseBaselineDataNonInterleaved(
-            PdfJsHuffmanTables dcHuffmanTables,
-            PdfJsHuffmanTables acHuffmanTables,
-            FastACTables fastACTables)
+        private void ParseBaselineDataNonInterleaved()
         {
             PdfJsFrameComponent component = this.components[this.componentIndex];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
 
-            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
+            ref PdfJsHuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+            ref PdfJsHuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+            ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
 
             int mcu = 0;
             for (int j = 0; j < h; j++)
@@ -276,28 +271,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        private void ParseProgressiveData(
-            PdfJsFrame frame,
-            PdfJsHuffmanTables dcHuffmanTables,
-            PdfJsHuffmanTables acHuffmanTables,
-            FastACTables fastACTables)
+        private void ParseProgressiveData()
         {
             if (this.componentsLength == 1)
             {
-                this.ParseProgressiveDataNonInterleaved(dcHuffmanTables, acHuffmanTables, fastACTables);
+                this.ParseProgressiveDataNonInterleaved();
             }
             else
             {
-                this.ParseProgressiveDataInterleaved(frame, dcHuffmanTables);
+                this.ParseProgressiveDataInterleaved();
             }
         }
 
-        private void ParseProgressiveDataInterleaved(PdfJsFrame frame, PdfJsHuffmanTables dcHuffmanTables)
+        private void ParseProgressiveDataInterleaved()
         {
             // Interleaved
             int mcu = 0;
-            int mcusPerColumn = frame.McusPerColumn;
-            int mcusPerLine = frame.McusPerLine;
+            int mcusPerColumn = this.frame.McusPerColumn;
+            int mcusPerLine = this.frame.McusPerLine;
             for (int j = 0; j < mcusPerColumn; j++)
             {
                 for (int i = 0; i < mcusPerLine; i++)
@@ -306,9 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int k = 0; k < this.componentsLength; k++)
                     {
                         PdfJsFrameComponent component = this.components[k];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(
-                                                     MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
-                        ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
+                        ref PdfJsHuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
 
@@ -327,7 +316,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 int mcuCol = mcu % mcusPerLine;
                                 int blockRow = (mcuRow * v) + y;
                                 int blockCol = (mcuCol * h) + x;
-                                int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+
                                 this.DecodeBlockProgressiveDC(
                                     component,
                                     blockRow,
@@ -354,19 +343,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// number of blocks to do just depends on how many actual "pixels" this
         /// component has, independent of interleaved MCU blocking and such
         /// </summary>
-        private void ParseProgressiveDataNonInterleaved(
-            PdfJsHuffmanTables dcHuffmanTables,
-            PdfJsHuffmanTables acHuffmanTables,
-            FastACTables fastACTables)
+        private void ParseProgressiveDataNonInterleaved()
         {
             PdfJsFrameComponent component = this.components[this.componentIndex];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
 
-            ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-            ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
+            ref PdfJsHuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
+            ref PdfJsHuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
+            ref short fastACRef = ref this.fastACTables.GetAcTableReference(component);
 
             int mcu = 0;
             for (int j = 0; j < h; j++)

@@ -842,6 +842,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
         }
 
+        /// <summary>
+        /// Post processes the pixels into the destination image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
@@ -853,18 +858,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             }
         }
 
+        /// <summary>
+        /// Builds a lookup table for fast AC entropy scan decoding.
+        /// </summary>
+        /// <param name="index">The table index.</param>
         private void BuildFastACTable(int index)
         {
             const int FastBits = ScanDecoder.FastBits;
-            Span<short> fastac = this.fastACTables.Tables.GetRowSpan(index);
+            Span<short> fastAC = this.fastACTables.GetTableSpan(index);
             ref PdfJsHuffmanTable huffman = ref this.acHuffmanTables[index];
 
             int i;
             for (i = 0; i < (1 << FastBits); i++)
             {
                 byte fast = huffman.Lookahead[i];
-                fastac[i] = 0;
-                if (fast < 255)
+                fastAC[i] = 0;
+                if (fast < byte.MaxValue)
                 {
                     int rs = huffman.Values[fast];
                     int run = (rs >> 4) & 15;
@@ -881,10 +890,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             k += (int)((~0U << magbits) + 1);
                         }
 
-                        // if the result is small enough, we can fit it in fastac table
+                        // if the result is small enough, we can fit it in fastAC table
                         if (k >= -128 && k <= 127)
                         {
-                            fastac[i] = (short)((k * 256) + (run * 16) + (len + magbits));
+                            fastAC[i] = (short)((k * 256) + (run * 16) + (len + magbits));
                         }
                     }
                 }

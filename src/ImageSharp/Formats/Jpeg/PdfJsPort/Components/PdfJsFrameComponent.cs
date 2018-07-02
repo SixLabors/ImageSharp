@@ -144,5 +144,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             return 64 * (((this.WidthInBlocks + 1) * row) + col);
         }
+
+        // TODO: we need consistence in (row, col) VS (col, row) ordering
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref short GetBlockDataReference(int row, int col)
+        {
+            ref Block8x8 blockRef = ref this.GetBlockReference(col, row);
+            return ref Unsafe.As<Block8x8, short>(ref blockRef);
+        }
     }
 }

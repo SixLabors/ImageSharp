@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         // The number of bits that can be read via a LUT.
         public const int FastBits = 9;
 
-        // LUT Bmask[n] = (1 << n) - 1
+        // LUT mask for n rightmost bits. Bmask[n] = (1 << n) - 1
         private static readonly uint[] Bmask = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
 
         // LUT Bias[n] = (-1 << n) + 1
@@ -22,8 +22,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private readonly DoubleBufferedStreamReader stream;
         private readonly PdfJsFrameComponent[] components;
         private readonly ZigZag dctZigZag;
+
+        // The restart interval.
         private readonly int restartInterval;
+
+        // The current component index.
         private readonly int componentIndex;
+
+        // The number of interleaved components.
         private readonly int componentsLength;
 
         // The spectral selection start.
@@ -53,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         // The current, if any, marker in the input stream.
         private byte marker;
 
-        // Whether we have a bad marker, ie. one that is not between RST0 and RST7
+        // Whether we have a bad marker, I.E. One that is not between RST0 and RST7
         private bool badMarker;
 
         // The opening position of an identified marker.
@@ -68,15 +74,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Initializes a new instance of the <see cref="ScanDecoder"/> class.
         /// </summary>
-        /// <param name="stream">The input stream</param>
-        /// <param name="components">The scan components</param>
-        /// <param name="componentIndex">The component index within the array</param>
-        /// <param name="componentsLength">The length of the components. Different to the array length</param>
-        /// <param name="restartInterval">The reset interval</param>
-        /// <param name="spectralStart">The spectral selection start</param>
-        /// <param name="spectralEnd">The spectral selection end</param>
-        /// <param name="successiveHigh">The successive approximation bit high end</param>
-        /// <param name="successiveLow">The successive approximation bit low end</param>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="components">The scan components.</param>
+        /// <param name="componentIndex">The component index within the array.</param>
+        /// <param name="componentsLength">The length of the components. Different to the array length.</param>
+        /// <param name="restartInterval">The reset interval.</param>
+        /// <param name="spectralStart">The spectral selection start.</param>
+        /// <param name="spectralEnd">The spectral selection end.</param>
+        /// <param name="successiveHigh">The successive approximation bit high end.</param>
+        /// <param name="successiveLow">The successive approximation bit low end.</param>
         public ScanDecoder(
             DoubleBufferedStreamReader stream,
             PdfJsFrameComponent[] components,
@@ -174,7 +180,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             if (this.codeBits < 24)
                             {
-                                this.GrowBufferUnsafe();
+                                this.FillBuffer();
                             }
 
                             // If it's NOT a restart, then just bail, so we get corrupt data
@@ -238,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             if (this.codeBits < 24)
                             {
-                                this.GrowBufferUnsafe();
+                                this.FillBuffer();
                             }
 
                             // If it's NOT a restart, then just bail, so we get corrupt data
@@ -309,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             if (this.codeBits < 24)
                             {
-                                this.GrowBufferUnsafe();
+                                this.FillBuffer();
                             }
 
                             // If it's NOT a restart, then just bail, so we get corrupt data
@@ -371,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                         {
                             if (this.codeBits < 24)
                             {
-                                this.GrowBufferUnsafe();
+                                this.FillBuffer();
                             }
 
                             // If it's NOT a restart, then just bail, so we get corrupt data
@@ -502,8 +508,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             ref PdfJsHuffmanTable acTable,
             ref short fastACRef)
         {
-            int k;
-
             if (this.spectralStart == 0)
             {
                 throw new ImageFormatException("Can't merge DC and AC.");
@@ -511,6 +515,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             if (this.successiveHigh == 0)
             {
+                // MCU decoding for AC initial scan (either spectral selection,
+                // or first pass of successive approximation).
                 int shift = this.successiveLow;
 
                 if (this.eobrun != 0)
@@ -519,7 +525,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     return;
                 }
 
-                k = this.spectralStart;
+                int k = this.spectralStart;
                 do
                 {
                     int zig;
@@ -582,14 +588,95 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             else
             {
                 // Refinement scan for these AC coefficients
-                short bit = (short)(1 << this.successiveLow);
+                this.DecodeBlockProgressiveACRefined(ref blockDataRef, ref acTable);
+            }
+        }
 
-                if (this.eobrun != 0)
+        private void DecodeBlockProgressiveACRefined(ref short blockDataRef, ref PdfJsHuffmanTable acTable)
+        {
+            int k;
+
+            // Refinement scan for these AC coefficients
+            short bit = (short)(1 << this.successiveLow);
+
+            if (this.eobrun != 0)
+            {
+                this.eobrun--;
+                for (k = this.spectralStart; k <= this.spectralEnd; k++)
                 {
-                    this.eobrun--;
-                    for (k = this.spectralStart; k <= this.spectralEnd; k++)
+                    ref short p = ref Unsafe.Add(ref blockDataRef, this.dctZigZag[k]);
+                    if (p != 0)
                     {
-                        ref short p = ref Unsafe.Add(ref blockDataRef, this.dctZigZag[k]);
+                        if (this.GetBit() != 0)
+                        {
+                            if ((p & bit) == 0)
+                            {
+                                if (p > 0)
+                                {
+                                    p += bit;
+                                }
+                                else
+                                {
+                                    p -= bit;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                k = this.spectralStart;
+                do
+                {
+                    int rs = this.DecodeHuffman(ref acTable);
+                    if (rs < 0)
+                    {
+                        throw new ImageFormatException("Bad Huffman code.");
+                    }
+
+                    int s = rs & 15;
+                    int r = rs >> 4;
+
+                    if (s == 0)
+                    {
+                        // r=15 s=0 should write 16 0s, so we just do
+                        // a run of 15 0s and then write s (which is 0),
+                        // so we don't have to do anything special here
+                        if (r < 15)
+                        {
+                            this.eobrun = (1 << r) - 1;
+
+                            if (r != 0)
+                            {
+                                this.eobrun += this.GetBits(r);
+                            }
+
+                            r = 64; // Force end of block
+                        }
+                    }
+                    else
+                    {
+                        if (s != 1)
+                        {
+                            throw new ImageFormatException("Bad Huffman code.");
+                        }
+
+                        // Sign bit
+                        if (this.GetBit() != 0)
+                        {
+                            s = bit;
+                        }
+                        else
+                        {
+                            s = -bit;
+                        }
+                    }
+
+                    // Advance by r
+                    while (k <= this.spectralEnd)
+                    {
+                        ref short p = ref Unsafe.Add(ref blockDataRef, this.dctZigZag[k++]);
                         if (p != 0)
                         {
                             if (this.GetBit() != 0)
@@ -607,92 +694,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 }
                             }
                         }
-                    }
-                }
-                else
-                {
-                    k = this.spectralStart;
-                    do
-                    {
-                        int rs = this.DecodeHuffman(ref acTable);
-                        if (rs < 0)
-                        {
-                            throw new ImageFormatException("Bad Huffman code.");
-                        }
-
-                        int s = rs & 15;
-                        int r = rs >> 4;
-
-                        if (s == 0)
-                        {
-                            // r=15 s=0 should write 16 0s, so we just do
-                            // a run of 15 0s and then write s (which is 0),
-                            // so we don't have to do anything special here
-                            if (r < 15)
-                            {
-                                this.eobrun = (1 << r) - 1;
-
-                                if (r != 0)
-                                {
-                                    this.eobrun += this.GetBits(r);
-                                }
-
-                                r = 64; // Force end of block
-                            }
-                        }
                         else
                         {
-                            if (s != 1)
+                            if (r == 0)
                             {
-                                throw new ImageFormatException("Bad Huffman code.");
+                                p = (short)s;
+                                break;
                             }
 
-                            // Sign bit
-                            if (this.GetBit() != 0)
-                            {
-                                s = bit;
-                            }
-                            else
-                            {
-                                s = -bit;
-                            }
-                        }
-
-                        // Advance by r
-                        while (k <= this.spectralEnd)
-                        {
-                            ref short p = ref Unsafe.Add(ref blockDataRef, this.dctZigZag[k++]);
-                            if (p != 0)
-                            {
-                                if (this.GetBit() != 0)
-                                {
-                                    if ((p & bit) == 0)
-                                    {
-                                        if (p > 0)
-                                        {
-                                            p += bit;
-                                        }
-                                        else
-                                        {
-                                            p -= bit;
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (r == 0)
-                                {
-                                    p = (short)s;
-                                    break;
-                                }
-
-                                r--;
-                            }
+                            r--;
                         }
                     }
-                    while (k <= this.spectralEnd);
                 }
+                while (k <= this.spectralEnd);
             }
         }
 
@@ -701,7 +715,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.codeBits < n)
             {
-                this.GrowBufferUnsafe();
+                this.FillBuffer();
             }
 
             uint k = LRot(this.codeBuffer, n);
@@ -716,7 +730,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.codeBits < 1)
             {
-                this.GrowBufferUnsafe();
+                this.FillBuffer();
             }
 
             uint k = this.codeBuffer;
@@ -727,18 +741,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private void GrowBufferUnsafe()
+        private void FillBuffer()
         {
+            // Attempt to load at least the minimum nbumber of required bits into the buffer.
+            // We fail to do so only if we hit a marker or reach the end of the input stream.
             do
             {
                 int b = this.nomore ? 0 : this.stream.ReadByte();
 
                 if (b == -1)
                 {
+                    // We've encountered the end of the file stream which means there's no EOI marker in the image
+                    // or the SOS marker has the wrong dimensions set.
                     this.eof = true;
                     b = 0;
                 }
 
+                // Found a marker.
                 if (b == JpegConstants.Markers.XFF)
                 {
                     this.markerPosition = this.stream.Position - 1;
@@ -844,7 +863,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.codeBits < n)
             {
-                this.GrowBufferUnsafe();
+                this.FillBuffer();
             }
 
             int sgn = (int)this.codeBuffer >> 31;
@@ -860,7 +879,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.codeBits < 16)
             {
-                this.GrowBufferUnsafe();
+                this.FillBuffer();
             }
         }
 

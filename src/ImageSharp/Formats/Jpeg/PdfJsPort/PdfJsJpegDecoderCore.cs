@@ -743,7 +743,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             if (huffmanTableSpec >> 4 != 0)
                             {
                                 // Build a table that decodes both magnitude and value of small ACs in one go.
-                                this.BuildFastACTable(huffmanTableSpec & 15);
+                                this.fastACTables.BuildACTableLut(huffmanTableSpec & 15, this.acHuffmanTables);
                             }
                         }
                     }
@@ -855,48 +855,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 var image = new Image<TPixel>(this.configuration, this.ImageWidth, this.ImageHeight, this.MetaData);
                 postProcessor.PostProcess(image.Frames.RootFrame);
                 return image;
-            }
-        }
-
-        /// <summary>
-        /// Builds a lookup table for fast AC entropy scan decoding.
-        /// </summary>
-        /// <param name="index">The table index.</param>
-        private void BuildFastACTable(int index)
-        {
-            const int FastBits = ScanDecoder.FastBits;
-            Span<short> fastAC = this.fastACTables.GetTableSpan(index);
-            ref PdfJsHuffmanTable huffman = ref this.acHuffmanTables[index];
-
-            int i;
-            for (i = 0; i < (1 << FastBits); i++)
-            {
-                byte fast = huffman.Lookahead[i];
-                fastAC[i] = 0;
-                if (fast < byte.MaxValue)
-                {
-                    int rs = huffman.Values[fast];
-                    int run = (rs >> 4) & 15;
-                    int magbits = rs & 15;
-                    int len = huffman.Sizes[fast];
-
-                    if (magbits > 0 && len + magbits <= FastBits)
-                    {
-                        // Magnitude code followed by receive_extend code
-                        int k = ((i << len) & ((1 << FastBits) - 1)) >> (FastBits - magbits);
-                        int m = 1 << (magbits - 1);
-                        if (k < m)
-                        {
-                            k += (int)((~0U << magbits) + 1);
-                        }
-
-                        // if the result is small enough, we can fit it in fastAC table
-                        if (k >= -128 && k <= 127)
-                        {
-                            fastAC[i] = (short)((k * 256) + (run * 16) + (len + magbits));
-                        }
-                    }
-                }
             }
         }
     }

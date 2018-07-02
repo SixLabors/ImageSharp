@@ -29,9 +29,52 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="index">The table index.</param>
         /// <returns><see cref="Span{Int16}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<short> GetTableSpan(int index)
+        public ReadOnlySpan<short> GetTableSpan(int index)
         {
             return this.tables.GetRowSpan(index);
+        }
+
+        /// <summary>
+        /// Builds a lookup table for fast AC entropy scan decoding.
+        /// </summary>
+        /// <param name="index">The table index.</param>
+        /// <param name="acHuffmanTables">The collection of AC Huffman tables.</param>
+        public void BuildACTableLut(int index, PdfJsHuffmanTables acHuffmanTables)
+        {
+            const int FastBits = ScanDecoder.FastBits;
+            Span<short> fastAC = this.tables.GetRowSpan(index);
+            ref PdfJsHuffmanTable huffman = ref acHuffmanTables[index];
+
+            int i;
+            for (i = 0; i < (1 << FastBits); i++)
+            {
+                byte fast = huffman.Lookahead[i];
+                fastAC[i] = 0;
+                if (fast < byte.MaxValue)
+                {
+                    int rs = huffman.Values[fast];
+                    int run = (rs >> 4) & 15;
+                    int magbits = rs & 15;
+                    int len = huffman.Sizes[fast];
+
+                    if (magbits > 0 && len + magbits <= FastBits)
+                    {
+                        // Magnitude code followed by receive_extend code
+                        int k = ((i << len) & ((1 << FastBits) - 1)) >> (FastBits - magbits);
+                        int m = 1 << (magbits - 1);
+                        if (k < m)
+                        {
+                            k += (int)((~0U << magbits) + 1);
+                        }
+
+                        // if the result is small enough, we can fit it in fastAC table
+                        if (k >= -128 && k <= 127)
+                        {
+                            fastAC[i] = (short)((k * 256) + (run * 16) + (len + magbits));
+                        }
+                    }
+                }
+            }
         }
 
         /// <inheritdoc />

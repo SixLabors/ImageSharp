@@ -20,8 +20,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     /// </remarks>
     internal static partial class PorterDuffFunctions
     {
-        #region color blenders
-
         /// <summary>
         /// Source over backdrop
         /// </summary>
@@ -150,10 +148,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return backdrop <= 0.5f ? (2 * backdrop * source) : 1 - ((2 * (1 - source)) * (1 - backdrop));
         }
 
-        #endregion
-
-        #region alpha composers
-
         /// <summary>
         /// General composition function for all modes, with a general solution for alpha channel
         /// </summary>
@@ -252,8 +246,5 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         {
             return Vector4.Lerp(backdrop, Vector4.Zero, source.W);
         }
-
-        #endregion
-
     }
 }

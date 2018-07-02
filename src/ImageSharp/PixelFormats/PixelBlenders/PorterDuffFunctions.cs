@@ -179,125 +179,78 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return xform;
         }
 
-
-
-
-
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Src(Vector4 backdrop, Vector4 source, Vector4 xform)
+        public static Vector4 Over(Vector4 dst, Vector4 src, Vector4 blend)
         {
             // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
+            float blendW = dst.W * src.W;
+            float dstW = dst.W - blendW;
+            float srcW = src.W - blendW;
 
             // calculate final alpha
-            float fw = (sw * 1) + (bw * 0) + (xw * 1);
+            float alpha = dstW + srcW + blendW;
 
-            // calculate final value
-            xform = ((xform * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
+            // calculate final color
+            Vector4 color = dst * dstW + src * srcW + blend * blendW;
 
-            return Vector4.Lerp(backdrop, xform, source.W);
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 SrcIn(Vector4 backdrop, Vector4 source, Vector4 xform)
-        {
-            // calculate weights
-            float xw = backdrop.W * source.W;
+            // unpremultiply
+            color /= MathF.Max(alpha, Constants.Epsilon);
+            color.W = alpha;
 
-            // calculate final value
-            xform.W = xw;
-
-            return Vector4.Lerp(backdrop, xform, source.W);
+            return color;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 SrcOut(Vector4 backdrop, Vector4 source, Vector4 xform)
+        public static Vector4 Atop(Vector4 dst, Vector4 src, Vector4 blend)
         {
             // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
+            float blendW = dst.W * src.W;
+            float dstW = dst.W - blendW;
 
             // calculate final alpha
-            float fw = sw;
+            float alpha = dstW + blendW;
 
-            // calculate final value
-            xform = source;
-            xform.W = fw;
+            // calculate final color
+            Vector4 color = dst * dstW + blend * blendW;
 
-            return Vector4.Lerp(backdrop, xform, source.W);
+            // unpremultiply
+            color /= MathF.Max(alpha, Constants.Epsilon);
+            color.W = alpha;
+
+            return color;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, Vector4 xform)
+        public static Vector4 In(Vector4 dst, Vector4 src, Vector4 blend)
         {
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
+            blend.W = dst.W * src.W;
 
+            return blend;
+        }
+
+        public static Vector4 Out(Vector4 dst, Vector4 src)
+        {
             // calculate final alpha
-            float fw = (sw * 1) + (bw * 0) + (xw * 1);
+            src.W = (1 - dst.W) * src.W;
 
-            // calculate final value
-            xform = ((backdrop * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, source.W);
+            return src;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestOver(Vector4 backdrop, Vector4 source, Vector4 xform)
+        public static Vector4 Xor(Vector4 dst, Vector4 src)
         {
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
+            float srcW = 1 - dst.W;
+            float dstW = 1 - src.W;
 
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 1) + (xw * 1);
+            float alpha = src.W * srcW + dst.W * dstW;
+            Vector4 color = src.W * src * srcW + dst.W * dst * dstW;
 
-            // calculate final value
-            xform = ((backdrop * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
+            // unpremultiply
+            color /= MathF.Max(alpha, Constants.Epsilon);
+            color.W = alpha;
 
-            return Vector4.Lerp(backdrop, xform, source.W);
+            return color;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestIn(Vector4 backdrop, Vector4 source, Vector4 xform)
+        private static Vector4 Clear(Vector4 backdrop, Vector4 source)
         {
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 0) + (xw * 1);
-
-            // calculate final value
-            xform = ((backdrop * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, source.W);
-        }
-
-        /// <summary>
-        /// General composition function for all modes, with a general solution for alpha channel
-        /// </summary>
-        /// <param name="backdrop">Original Backdrop color</param>
-        /// <param name="source">Original source color</param>
-        /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
-        /// <returns>The final color</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 Clear(Vector4 backdrop, Vector4 source, Vector4 xform)
-        {
-            return Vector4.Lerp(backdrop, Vector4.Zero, xform.W);
+            return Vector4.Lerp(backdrop, Vector4.Zero, source.W);
         }
 
         #endregion

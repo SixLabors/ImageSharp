@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets the max code array
         /// </summary>
-        public FixedInt64Buffer18 MaxCode;
+        public FixedUInt32Buffer18 MaxCode;
 
         /// <summary>
         /// Gets the value offset array

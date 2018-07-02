@@ -665,7 +665,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int GetBits(int n)
         {
             if (this.codeBits < n)
@@ -680,7 +680,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return (int)k;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int GetBit()
         {
             if (this.codeBits < 1)
@@ -695,7 +695,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return (int)(k & 0x80000000);
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(InliningOptions.ColdPath)]
         private void FillBuffer()
         {
             // Attempt to load at least the minimum nbumber of required bits into the buffer.
@@ -748,7 +748,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             while (this.codeBits <= 24);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int DecodeHuffman(ref PdfJsHuffmanTable table)
         {
             this.CheckBits();
@@ -773,7 +773,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return this.DecodeHuffmanSlow(ref table);
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(InliningOptions.ColdPath)]
         private int DecodeHuffmanSlow(ref PdfJsHuffmanTable table)
         {
             // Naive test is to shift the code_buffer down so k bits are
@@ -813,7 +813,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return table.Values[c];
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int ExtendReceive(int n)
         {
             if (this.codeBits < n)
@@ -829,7 +829,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return (int)(k + (Bias[n] & ~sgn));
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void CheckBits()
         {
             if (this.codeBits < 16)
@@ -838,10 +838,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int PeekBits() => (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private bool ContinueOnMcuComplete()
         {
             if (--this.todo > 0)
@@ -871,14 +871,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             return true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private bool HasRestart()
         {
             byte m = this.marker;
             return m >= JpegConstants.Markers.RST0 && m <= JpegConstants.Markers.RST7;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
         private void Reset()
         {
             this.codeBits = 0;

@@ -142,6 +142,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
+
         private void ParseBaselineData(
             PdfJsFrame frame,
             PdfJsHuffmanTables dcHuffmanTables,
@@ -240,9 +243,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 }
             }
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
 
         private void ParseProgressiveData(
             PdfJsFrame frame,

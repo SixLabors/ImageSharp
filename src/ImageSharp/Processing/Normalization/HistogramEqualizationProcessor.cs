@@ -60,10 +60,10 @@ namespace SixLabors.ImageSharp.Processing.Normalization
                 }
             }
 
-            Span<int> lut = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
+            // creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
             for (int i = 0; i < histogram.Length; i++)
             {
-                lut[i] = cdf[i] - cdfMin;
+                cdf[i] = cdf[i] - cdfMin;
             }
 
             // apply the cdf to each pixel of the image
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
                     TPixel sourcePixel = row[x];
 
                     int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
-                    double luminanceEqualized = (lut[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
+                    double luminanceEqualized = (cdf[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
                     luminanceEqualized = Math.Round(luminanceEqualized);
 
                     if (is16bitPerChannel)

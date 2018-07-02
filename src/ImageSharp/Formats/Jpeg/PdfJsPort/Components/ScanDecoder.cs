@@ -179,8 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     for (int k = 0; k < this.componentsLength; k++)
                     {
                         PdfJsFrameComponent component = this.components[k];
-                        ref short blockDataRef = ref MemoryMarshal.GetReference(
-                                                     MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+
                         ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
                         ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
                         ref short fastACRef =
@@ -203,10 +202,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 int mcuCol = mcu % mcusPerLine;
                                 int blockRow = (mcuRow * v) + y;
                                 int blockCol = (mcuCol * h) + x;
-                                int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+
                                 this.DecodeBlockBaseline(
                                     component,
-                                    ref Unsafe.Add(ref blockDataRef, offset),
+                                    blockRow,
+                                    blockCol,
                                     ref dcHuffmanTable,
                                     ref acHuffmanTable,
                                     ref fastACRef);
@@ -240,8 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
-            ref short blockDataRef =
-                ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+
             ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
             ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
             ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
@@ -258,10 +257,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                     int blockRow = mcu / w;
                     int blockCol = mcu % w;
-                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
+
                     this.DecodeBlockBaseline(
                         component,
-                        ref Unsafe.Add(ref blockDataRef, offset),
+                        blockRow,
+                        blockCol,
                         ref dcHuffmanTable,
                         ref acHuffmanTable,
                         ref fastACRef);
@@ -330,7 +330,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                                 int offset = component.GetBlockBufferOffset(blockRow, blockCol);
                                 this.DecodeBlockProgressiveDC(
                                     component,
-                                    ref Unsafe.Add(ref blockDataRef, offset),
+                                    blockRow,
+                                    blockCol,
                                     ref dcHuffmanTable);
                             }
                         }
@@ -362,8 +363,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
-            ref short blockDataRef =
-                ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
+
             ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
             ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
             ref short fastACRef = ref MemoryMarshal.GetReference(fastACTables.GetTableSpan(component.ACHuffmanTableId));
@@ -380,16 +380,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                     int blockRow = mcu / w;
                     int blockCol = mcu % w;
-                    int offset = component.GetBlockBufferOffset(blockRow, blockCol);
 
                     if (this.spectralStart == 0)
                     {
-                        this.DecodeBlockProgressiveDC(component, ref Unsafe.Add(ref blockDataRef, offset), ref dcHuffmanTable);
+                        this.DecodeBlockProgressiveDC(
+                            component,
+                            blockRow,
+                            blockCol,
+                            ref dcHuffmanTable);
                     }
                     else
                     {
                         this.DecodeBlockProgressiveAC(
-                            ref Unsafe.Add(ref blockDataRef, offset),
+                            component,
+                            blockRow,
+                            blockCol,
                             ref acHuffmanTable,
                             ref fastACRef);
                     }
@@ -406,7 +411,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         private void DecodeBlockBaseline(
             PdfJsFrameComponent component,
-            ref short blockDataRef,
+            int row,
+            int col,
             ref PdfJsHuffmanTable dcTable,
             ref PdfJsHuffmanTable acTable,
             ref short fastACRef)
@@ -418,6 +424,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             {
                 JpegThrowHelper.ThrowBadHuffmanCode();
             }
+
+            ref short blockDataRef = ref component.GetBlockDataReference(row, col);
 
             int diff = t != 0 ? this.ExtendReceive(t) : 0;
             int dc = component.DcPredictor + diff;
@@ -482,7 +490,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         private void DecodeBlockProgressiveDC(
             PdfJsFrameComponent component,
-            ref short blockDataRef,
+            int row,
+            int col,
             ref PdfJsHuffmanTable dcTable)
         {
             if (this.spectralEnd != 0)
@@ -491,6 +500,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             this.CheckBits();
+
+            ref short blockDataRef = ref component.GetBlockDataReference(row, col);
 
             if (this.successiveHigh == 0)
             {
@@ -514,7 +525,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         private void DecodeBlockProgressiveAC(
-            ref short blockDataRef,
+            PdfJsFrameComponent component,
+            int row,
+            int col,
             ref PdfJsHuffmanTable acTable,
             ref short fastACRef)
         {
@@ -522,6 +535,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             {
                 JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
             }
+
+            ref short blockDataRef = ref component.GetBlockDataReference(row, col);
 
             if (this.successiveHigh == 0)
             {

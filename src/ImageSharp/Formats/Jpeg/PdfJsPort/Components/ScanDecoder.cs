@@ -361,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             if (t < 0)
             {
-                throw new ImageFormatException("Bad Huffman code");
+                JpegThrowHelper.ThrowBadHuffmanCode();
             }
 
             int diff = t != 0 ? this.ExtendReceive(t) : 0;
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                     if (rs < 0)
                     {
-                        throw new ImageFormatException("Bad Huffman code");
+                        JpegThrowHelper.ThrowBadHuffmanCode();
                     }
 
                     s = rs & 15;
@@ -432,7 +432,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.spectralEnd != 0)
             {
-                throw new ImageFormatException("Can't merge DC and AC.");
+                JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
             }
 
             this.CheckBits();
@@ -465,7 +465,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             if (this.spectralStart == 0)
             {
-                throw new ImageFormatException("Can't merge DC and AC.");
+                JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
             }
 
             if (this.successiveHigh == 0)
@@ -508,7 +508,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
                         if (rs < 0)
                         {
-                            throw new ImageFormatException("Bad Huffman code.");
+                            JpegThrowHelper.ThrowBadHuffmanCode();
                         }
 
                         s = rs & 15;
@@ -587,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     int rs = this.DecodeHuffman(ref acTable);
                     if (rs < 0)
                     {
-                        throw new ImageFormatException("Bad Huffman code.");
+                        JpegThrowHelper.ThrowBadHuffmanCode();
                     }
 
                     int s = rs & 15;
@@ -614,7 +614,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                     {
                         if (s != 1)
                         {
-                            throw new ImageFormatException("Bad Huffman code.");
+                            JpegThrowHelper.ThrowBadHuffmanCode();
                         }
 
                         // Sign bit

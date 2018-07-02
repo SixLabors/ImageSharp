@@ -806,7 +806,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             var sd = new ScanDecoder(
                 this.InputStream,
-                this.Frame.Components,
+                this.Frame,
+                this.dcHuffmanTables,
+                this.acHuffmanTables,
+                this.fastACTables,
                 componentIndex,
                 selectorsCount,
                 this.resetInterval,
@@ -815,7 +818,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 successiveApproximation >> 4,
                 successiveApproximation & 15);
 
-            sd.ParseEntropyCodedData(this.Frame, this.dcHuffmanTables, this.acHuffmanTables, this.fastACTables);
+            sd.ParseEntropyCodedData();
         }
 
         /// <summary>

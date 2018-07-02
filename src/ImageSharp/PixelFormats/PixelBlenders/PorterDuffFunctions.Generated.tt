@@ -22,36 +22,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     internal static partial class PorterDuffFunctions
     {
 
-
-<# void GenerateVectorCompositor(string name, string sourceVar, string destVar, string blendVar)
-    {
-        int a_s = sourceVar == "Vector4.Zero" ? 0 : 1;
-        int a_b = destVar == "Vector4.Zero" ? 0 : 1;
-        int a_x = blendVar == "Vector4.Zero" ? 0 : 1;
-#>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 <#=name#>(Vector4 backdrop, Vector4 source, Vector4 xform)
-        {
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * <#=a_s#>) + (bw * <#=a_b#>) + (xw * <#=a_x#>);
-
-            // calculate final value
-            xform = ((<#=blendVar#> * xw) + (<#=destVar#> * bw) + (<#=sourceVar#> * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return xform;
-        }
-<# } #>
-
-
-
-
-
 <# void GeneratePixelBlenders(string blender) { #>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -60,7 +30,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return Src(backdrop, source, <#=blender#>(backdrop, source));
+            return source;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +39,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return SrcAtop(backdrop, source, <#=blender#>(backdrop, source));
+            return Atop(backdrop, source, <#=blender#>(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,7 +48,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return SrcOver(backdrop, source, <#=blender#>(backdrop, source));
+            return Over(backdrop, source, <#=blender#>(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return SrcIn(backdrop, source, <#=blender#>(backdrop, source));
+            return In(backdrop, source, <#=blender#>(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,16 +66,13 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return SrcOut(backdrop, source, <#=blender#>(backdrop, source));
+            return Out(backdrop, source);
         }
 
        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>_Dest(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;          
-
-            return Dest(backdrop, source, <#=blender#>(backdrop, source));
+            return backdrop;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return DestAtop(backdrop, source, <#=blender#>(backdrop, source));
+            return Atop(source, backdrop, <#=blender#>(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,7 +90,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return DestOver(backdrop, source, <#=blender#>(backdrop, source));
+            return Over(source, backdrop, <#=blender#>(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -132,7 +99,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return DestIn(backdrop, source, <#=blender#>(backdrop, source));
+            return In(source, backdrop, <#=blender#>(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -141,16 +108,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return DestOut(backdrop, source, <#=blender#>(backdrop, source));
+            return Out(source, backdrop);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 <#=blender#>_Clear(Vector4 backdrop, Vector4 source, float opacity)
-        {
-            opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;          
-
-            return Clear(backdrop, source, source);
-        }             
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>_Xor(Vector4 backdrop, Vector4 source, float opacity)
@@ -158,9 +117,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             opacity = opacity.Clamp(0, 1);
             source.W *= opacity;          
 
-            return Xor(backdrop, source, source);
+            return Xor(backdrop, source);
         }   
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 <#=blender#>_Clear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
 <# } #>
 
 
@@ -179,19 +146,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
         #region Blenders
 <#
-
-// GenerateVectorCompositor("Src",      "source",       "Vector4.Zero", "xform");
-GenerateVectorCompositor("SrcAtop",     "Vector4.Zero", "backdrop",     "xform");
-GenerateVectorCompositor("SrcOver",     "source",       "backdrop",     "xform");
-// GenerateVectorCompositor("SrcIn",       "Vector4.Zero", "Vector4.Zero", "xform");
-// GenerateVectorCompositor("SrcOut",      "source",       "Vector4.Zero", "Vector4.Zero");
-GenerateVectorCompositor("Dest",     "Vector4.Zero", "backdrop",     "backdrop");
-// GenerateVectorCompositor("DestAtop", "source",       "Vector4.Zero", "backdrop");
-// GenerateVectorCompositor("DestOver", "source",       "backdrop",     "backdrop");
-// GenerateVectorCompositor("DestIn",   "Vector4.Zero", "Vector4.Zero", "backdrop");
-GenerateVectorCompositor("DestOut",  "Vector4.Zero", "backdrop",     "Vector4.Zero");
-// GenerateVectorCompositor("Clear",    "Vector4.Zero", "Vector4.Zero", "Vector4.Zero");
-GenerateVectorCompositor("Xor", "source", "backdrop", "Vector4.Zero");
 
 string[] composers = new []{         
     "Src"      ,

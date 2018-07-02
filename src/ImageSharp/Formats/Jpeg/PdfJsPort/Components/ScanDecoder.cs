@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -11,12 +10,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     internal class ScanDecoder
     {
+        // The number of bits that can be read via a LUT.
         public const int FastBits = 9;
 
-        // bmask[n] = (1 << n) - 1
+        // LUT Bmask[n] = (1 << n) - 1
         private static readonly uint[] Bmask = { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
 
-        // bias[n] = (-1 << n) + 1
+        // LUT Bias[n] = (-1 << n) + 1
         private static readonly int[] Bias = { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
 
         private readonly DoubleBufferedStreamReader stream;
@@ -25,19 +25,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         private readonly int restartInterval;
         private readonly int componentIndex;
         private readonly int componentsLength;
+
+        // The spectral selection start.
         private readonly int spectralStart;
+
+        // The spectral selection end.
         private readonly int spectralEnd;
+
+        // The successive approximation high bit end.
         private readonly int successiveHigh;
+
+        // The successive approximation low bit end.
         private readonly int successiveLow;
 
+        // The number of valid bits left to read in the buffer.
         private int codeBits;
+
+        // The entropy encoded code buffer.
         private uint codeBuffer;
+
+        // Whether there is more data to pull from the stream for the current mcu.
         private bool nomore;
+
+        // Whether we have prematurely reached the end of the file.
         private bool eof;
+
+        // The current, if any, marker in the input stream.
         private byte marker;
+
+        // Whether we have a bad marker, ie. one that is not between RST0 and RST7
         private bool badMarker;
+
+        // The opening position of an identified marker.
         private long markerPosition;
+
+        // How many mcu's are left to do.
         private int todo;
+
+        // The End-Of-Block countdown for ending the sequence prematurely when the remaining coefficients are zero.
         private int eobrun;
 
         /// <summary>
@@ -230,6 +255,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
+
         private void ParseProgressiveData(
             PdfJsFrame frame,
             PdfJsHuffmanTables dcHuffmanTables,
@@ -312,8 +340,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                             PdfJsFrameComponent component = this.components[k];
                             ref short blockDataRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Block8x8, short>(component.SpectralBlocks.Span));
                             ref PdfJsHuffmanTable dcHuffmanTable = ref dcHuffmanTables[component.DCHuffmanTableId];
-                            ref PdfJsHuffmanTable acHuffmanTable = ref acHuffmanTables[component.ACHuffmanTableId];
-                            ReadOnlySpan<short> fastAC = fastACTables.Tables.GetRowSpan(component.ACHuffmanTableId);
                             int h = component.HorizontalSamplingFactor;
                             int v = component.VerticalSamplingFactor;
 
@@ -678,7 +704,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.GrowBufferUnsafe();
             }
 
-            uint k = this.LRot(this.codeBuffer, n);
+            uint k = LRot(this.codeBuffer, n);
             this.codeBuffer = k & ~Bmask[n];
             k &= Bmask[n];
             this.codeBits -= n;
@@ -822,7 +848,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
 
             int sgn = (int)this.codeBuffer >> 31;
-            uint k = this.LRot(this.codeBuffer, n);
+            uint k = LRot(this.codeBuffer, n);
             this.codeBuffer = k & ~Bmask[n];
             k &= Bmask[n];
             this.codeBits -= n;
@@ -840,9 +866,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int PeekBits() => (int)((this.codeBuffer >> (32 - FastBits)) & ((1 << FastBits) - 1));
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint LRot(uint x, int y) => (x << y) | (x >> (32 - y));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool ContinueOnRestart()

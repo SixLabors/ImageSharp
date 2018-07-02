@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Normalization;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Contrast
+namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
     public class HistogramEqualizationTests
     {

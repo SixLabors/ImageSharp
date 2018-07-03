@@ -167,11 +167,22 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>True if the profile is valid; False otherwise</returns>
         public bool CheckIsValid()
         {
-            return Enum.IsDefined(typeof(IccColorSpaceType), this.Header.DataColorSpace) &&
+            const int minSize = 128;
+            const int maxSize = 50_000_000; // it's unlikely there is a profile bigger than 50MB
+
+            bool arrayValid = true;
+            if (this.data != null)
+            {
+                arrayValid = this.data.Length >= minSize &&
+                             this.data.Length >= this.Header.Size;
+            }
+
+            return arrayValid &&
+                   Enum.IsDefined(typeof(IccColorSpaceType), this.Header.DataColorSpace) &&
                    Enum.IsDefined(typeof(IccColorSpaceType), this.Header.ProfileConnectionSpace) &&
                    Enum.IsDefined(typeof(IccRenderingIntent), this.Header.RenderingIntent) &&
-                   this.Header.Size >= 128 &&
-                   this.Header.Size < 50_000_000; // it's unlikely there is a profile bigger than 50MB
+                   this.Header.Size >= minSize &&
+                   this.Header.Size < maxSize;
         }
 
         /// <summary>

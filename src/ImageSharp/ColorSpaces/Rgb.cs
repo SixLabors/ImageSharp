@@ -125,11 +125,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -159,7 +155,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Rgb left, Rgb right)
         {
             return left.Equals(right);
@@ -177,7 +172,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Rgb left, Rgb right)
         {
             return !left.Equals(right);
@@ -201,7 +195,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             return obj is Rgb other && this.Equals(other);

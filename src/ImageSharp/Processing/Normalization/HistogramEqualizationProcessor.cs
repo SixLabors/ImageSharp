@@ -26,19 +26,57 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             int numberOfPixels = source.Width * source.Height;
             bool is16bitPerChannel = typeof(TPixel) == typeof(Rgb48) || typeof(TPixel) == typeof(Rgba64);
 
+            Span<TPixel> pixels = source.GetPixelSpan();
+
             // build the histogram of the grayscale levels
             int luminanceLevels = is16bitPerChannel ? 65536 : 256;
-            Span<int> histogram = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
-            Span<TPixel> pixels = source.GetPixelSpan();
-            for (int i = 0; i < pixels.Length; i++)
+            using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(luminanceLevels))
+            using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(luminanceLevels))
             {
-                TPixel sourcePixel = pixels[i];
-                int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
-                histogram[luminance]++;
-            }
+                Span<int> histogram = histogramBuffer.GetSpan();
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    TPixel sourcePixel = pixels[i];
+                    int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
+                    histogram[luminance]++;
+                }
 
-            // calculate the cumulative distribution function (which will be the cumulative histogram)
-            Span<int> cdf = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
+                // calculate the cumulative distribution function, which will map each input pixel to a new value
+                Span<int> cdf = cdfBuffer.GetSpan();
+                int cdfMin = this.CaluclateCdf(cdf, histogram);
+
+                // apply the cdf to each pixel of the image
+                double numberOfPixelsMinusCdfMin = (double)(numberOfPixels - cdfMin);
+                int luminanceLevelsMinusOne = luminanceLevels - 1;
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    TPixel sourcePixel = pixels[i];
+
+                    int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
+                    double luminanceEqualized = (cdf[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
+                    luminanceEqualized = Math.Round(luminanceEqualized);
+
+                    if (is16bitPerChannel)
+                    {
+                        pixels[i].PackFromRgb48(new Rgb48((ushort)luminanceEqualized, (ushort)luminanceEqualized, (ushort)luminanceEqualized));
+                    }
+                    else
+                    {
+                        pixels[i].PackFromRgba32(new Rgba32((byte)luminanceEqualized, (byte)luminanceEqualized, (byte)luminanceEqualized));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculate the cumulative distribution function
+        /// </summary>
+        /// <param name="cdf">The array holding the cdf</param>
+        /// <param name="histogram">The histogram of the input image</param>
+        /// <returns>The first none zero value of the cdf</returns>
+        private int CaluclateCdf(Span<int> cdf, Span<int> histogram)
+        {
+            // calculate the cumulative histogram
             int histSum = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
@@ -50,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             int cdfMin = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
-                if (histogram[i] != 0)
+                if (cdf[i] != 0)
                 {
                     cdfMin = cdf[i];
                     break;
@@ -60,29 +98,10 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             // creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
             for (int i = 0; i < histogram.Length; i++)
             {
-                cdf[i] = cdf[i] - cdfMin;
+                cdf[i] = Math.Max(0, cdf[i] - cdfMin);
             }
 
-            // apply the cdf to each pixel of the image
-            double numberOfPixelsMinusCdfMin = (double)(numberOfPixels - cdfMin);
-            int luminanceLevelsMinusOne = luminanceLevels - 1;
-            for (int i = 0; i < pixels.Length; i++)
-            {
-                TPixel sourcePixel = pixels[i];
-
-                int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
-                double luminanceEqualized = (cdf[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
-                luminanceEqualized = Math.Round(luminanceEqualized);
-
-                if (is16bitPerChannel)
-                {
-                    pixels[i].PackFromRgb48(new Rgb48((ushort)luminanceEqualized, (ushort)luminanceEqualized, (ushort)luminanceEqualized));
-                }
-                else
-                {
-                    pixels[i].PackFromRgba32(new Rgba32((byte)luminanceEqualized, (byte)luminanceEqualized, (byte)luminanceEqualized));
-                }
-            }
+            return cdfMin;
         }
 
         /// <summary>

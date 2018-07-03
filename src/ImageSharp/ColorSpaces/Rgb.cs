@@ -16,11 +16,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {
         /// <summary>
-        /// Represents a <see cref="Rgb"/> that has R, G, and B values set to zero.
-        /// </summary>
-        public static readonly Rgb Empty = default;
-
-        /// <summary>
         /// The default rgb working space
         /// </summary>
         public static readonly IRgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
@@ -112,17 +107,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
-        public IRgbWorkingSpace WorkingSpace
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Rgb"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
+        public IRgbWorkingSpace WorkingSpace { get; }
 
         /// <inheritdoc />
         public Vector3 Vector => this.backingVector;
@@ -186,12 +171,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Rgb [ Empty ]";
-            }
-
-            return $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
+            return this.Equals(default)
+                ? "Rgb [ Empty ]"
+                : $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
         }
 
         /// <inheritdoc/>

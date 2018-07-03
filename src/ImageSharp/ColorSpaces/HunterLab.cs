@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.C;
 
         /// <summary>
-        /// Represents a <see cref="HunterLab"/> that has L, A, B values set to zero.
-        /// </summary>
-        public static readonly HunterLab Empty = default;
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -115,12 +110,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="HunterLab"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
         public Vector3 Vector => this.backingVector;
 
@@ -167,7 +156,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.IsEmpty
+            return this.Equals(default)
                 ? "HunterLab [Empty]"
                 : $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
         }

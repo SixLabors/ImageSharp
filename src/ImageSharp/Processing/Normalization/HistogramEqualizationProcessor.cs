@@ -29,15 +29,12 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             // build the histogram of the grayscale levels
             int luminanceLevels = is16bitPerChannel ? 65536 : 256;
             Span<int> histogram = memoryAllocator.Allocate<int>(luminanceLevels, clear: true).GetSpan();
-            for (int y = 0; y < source.Height; y++)
+            Span<TPixel> pixels = source.GetPixelSpan();
+            for (int i = 0; i < pixels.Length; i++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                for (int x = 0; x < source.Width; x++)
-                {
-                    TPixel sourcePixel = row[x];
-                    int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
-                    histogram[luminance]++;
-                }
+                TPixel sourcePixel = pixels[i];
+                int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
+                histogram[luminance]++;
             }
 
             // calculate the cumulative distribution function (which will be the cumulative histogram)
@@ -69,25 +66,21 @@ namespace SixLabors.ImageSharp.Processing.Normalization
             // apply the cdf to each pixel of the image
             double numberOfPixelsMinusCdfMin = (double)(numberOfPixels - cdfMin);
             int luminanceLevelsMinusOne = luminanceLevels - 1;
-            for (int y = 0; y < source.Height; y++)
+            for (int i = 0; i < pixels.Length; i++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                for (int x = 0; x < source.Width; x++)
+                TPixel sourcePixel = pixels[i];
+
+                int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
+                double luminanceEqualized = (cdf[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
+                luminanceEqualized = Math.Round(luminanceEqualized);
+
+                if (is16bitPerChannel)
                 {
-                    TPixel sourcePixel = row[x];
-
-                    int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
-                    double luminanceEqualized = (cdf[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
-                    luminanceEqualized = Math.Round(luminanceEqualized);
-
-                    if (is16bitPerChannel)
-                    {
-                        row[x].PackFromRgb48(new Rgb48((ushort)luminanceEqualized, (ushort)luminanceEqualized, (ushort)luminanceEqualized));
-                    }
-                    else
-                    {
-                        row[x].PackFromRgba32(new Rgba32((byte)luminanceEqualized, (byte)luminanceEqualized, (byte)luminanceEqualized));
-                    }
+                    pixels[i].PackFromRgb48(new Rgb48((ushort)luminanceEqualized, (ushort)luminanceEqualized, (ushort)luminanceEqualized));
+                }
+                else
+                {
+                    pixels[i].PackFromRgba32(new Rgba32((byte)luminanceEqualized, (byte)luminanceEqualized, (byte)luminanceEqualized));
                 }
             }
         }

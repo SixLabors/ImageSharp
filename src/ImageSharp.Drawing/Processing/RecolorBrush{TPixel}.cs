@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public class RecolorBrush<TPixel> : IBrush<TPixel>
-    where TPixel : struct, IPixel<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RecolorBrush{TPixel}" /> class.

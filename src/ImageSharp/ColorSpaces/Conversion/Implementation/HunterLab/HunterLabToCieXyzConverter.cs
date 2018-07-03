@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(HunterLab input)
+        public CieXyz Convert(in HunterLab input)
         {
             // Conversion algorithm described here: http://en.wikipedia.org/wiki/Lab_color_space#Hunter_Lab
             float l = input.L, a = input.A, b = input.B;

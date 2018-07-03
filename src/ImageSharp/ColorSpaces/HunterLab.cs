@@ -142,12 +142,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(HunterLab left, HunterLab right)
         {
             return !left.Equals(right);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());

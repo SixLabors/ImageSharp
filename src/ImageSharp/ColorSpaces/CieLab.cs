@@ -129,6 +129,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(CieLab left, CieLab right)
         {
             return left.Equals(right);
@@ -146,6 +147,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(CieLab left, CieLab right)
         {
             return !left.Equals(right);

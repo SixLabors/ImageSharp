@@ -11,7 +11,6 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Overlays;
 using CoreRectangle = SixLabors.Primitives.Rectangle;
 using CoreSize = SixLabors.Primitives.Size;
 

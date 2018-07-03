@@ -6,13 +6,9 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using BenchmarkDotNet.Attributes;
-using System.IO;
-using System.Numerics;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Text;
-using SixLabors.ImageSharp.Processing.Overlays;
 using SixLabors.ImageSharp.Processing.Drawing;
 using System.Linq;
 

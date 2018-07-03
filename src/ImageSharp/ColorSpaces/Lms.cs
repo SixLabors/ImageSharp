@@ -16,11 +16,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Lms : IColorVector, IEquatable<Lms>, IAlmostEquatable<Lms, float>
     {
         /// <summary>
-        /// Represents a <see cref="Lms"/> that has L, M, and S values set to zero.
-        /// </summary>
-        public static readonly Lms Empty = default;
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -79,12 +74,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Lms"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
         public Vector3 Vector => this.backingVector;
 
@@ -131,12 +120,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Lms [ Empty ]";
-            }
-
-            return $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
+            return this.Equals(default)
+                ? "Lms [ Empty ]"
+                : $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
         }
 
         /// <inheritdoc/>

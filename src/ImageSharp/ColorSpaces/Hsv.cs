@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Hsv : IColorVector, IEquatable<Hsv>, IAlmostEquatable<Hsv, float>
     {
         /// <summary>
-        /// Max range used for clamping
+        /// Max range used for clamping.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
 

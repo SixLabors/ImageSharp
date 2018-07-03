@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -20,8 +21,6 @@ namespace SixLabors.ImageSharp.Processing.Normalization
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            var rgb48 = default(Rgb48);
-            var rgb24 = default(Rgb24);
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
             bool is16bitPerChannel = typeof(TPixel) == typeof(Rgb48) || typeof(TPixel) == typeof(Rgba64);
@@ -37,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     TPixel sourcePixel = pixels[i];
-                    int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
+                    int luminance = this.GetLuminance(sourcePixel, luminanceLevels);
                     histogram[luminance]++;
                 }
 
@@ -47,23 +46,14 @@ namespace SixLabors.ImageSharp.Processing.Normalization
 
                 // apply the cdf to each pixel of the image
                 double numberOfPixelsMinusCdfMin = (double)(numberOfPixels - cdfMin);
-                int luminanceLevelsMinusOne = luminanceLevels - 1;
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     TPixel sourcePixel = pixels[i];
 
-                    int luminance = this.GetLuminance(sourcePixel, is16bitPerChannel, ref rgb24, ref rgb48);
-                    double luminanceEqualized = (cdf[luminance] / numberOfPixelsMinusCdfMin) * luminanceLevelsMinusOne;
-                    luminanceEqualized = Math.Round(luminanceEqualized);
+                    int luminance = this.GetLuminance(sourcePixel, luminanceLevels);
+                    double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
 
-                    if (is16bitPerChannel)
-                    {
-                        pixels[i].PackFromRgb48(new Rgb48((ushort)luminanceEqualized, (ushort)luminanceEqualized, (ushort)luminanceEqualized));
-                    }
-                    else
-                    {
-                        pixels[i].PackFromRgba32(new Rgba32((byte)luminanceEqualized, (byte)luminanceEqualized, (byte)luminanceEqualized));
-                    }
+                    pixels[i].PackFromVector4(new Vector4((float)luminanceEqualized));
                 }
             }
         }
@@ -108,23 +98,12 @@ namespace SixLabors.ImageSharp.Processing.Normalization
         /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
         /// </summary>
         /// <param name="sourcePixel">The pixel to get the luminance from</param>
-        /// <param name="is16bitPerChannel">Flag indicates, if its 16 bits per channel, otherwise its 8</param>
-        /// <param name="rgb24">Will store the pixel values in case of 8 bit per channel</param>
-        /// <param name="rgb48">Will store the pixel values in case of 16 bit per channel</param>
-        private int GetLuminance(TPixel sourcePixel, bool is16bitPerChannel, ref Rgb24 rgb24, ref Rgb48 rgb48)
+        /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
+        private int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             // Convert to grayscale using ITU-R Recommendation BT.709
-            int luminance;
-            if (is16bitPerChannel)
-            {
-                sourcePixel.ToRgb48(ref rgb48);
-                luminance = Convert.ToInt32((.2126F * rgb48.R) + (.7152F * rgb48.G) + (.0722F * rgb48.B));
-            }
-            else
-            {
-                sourcePixel.ToRgb24(ref rgb24);
-                luminance = Convert.ToInt32((.2126F * rgb24.R) + (.7152F * rgb24.G) + (.0722F * rgb24.B));
-            }
+            var vector = sourcePixel.ToVector4();
+            int luminance = Convert.ToInt32(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * luminanceLevels);
 
             return luminance;
         }

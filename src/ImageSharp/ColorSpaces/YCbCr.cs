@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct YCbCr : IColorVector, IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
     {
         /// <summary>
-        /// Vector which is used in clamping to the max value
+        /// Vector which is used in clamping to the max value.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(255F);
 

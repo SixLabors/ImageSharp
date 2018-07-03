@@ -14,11 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
-        /// Represents a <see cref="Hsl"/> that has H, S, and L values set to zero.
-        /// </summary>
-        public static readonly Hsl Empty = default;
-
-        /// <summary>
         /// Max range used for clamping
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
@@ -80,12 +75,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Hsl"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc/>
         public Vector3 Vector => this.backingVector;
 
@@ -132,12 +121,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Hsl [ Empty ]";
-            }
-
-            return $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
+            return this.Equals(default)
+                ? "Hsl [ Empty ]"
+                : $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
         }
 
         /// <inheritdoc/>

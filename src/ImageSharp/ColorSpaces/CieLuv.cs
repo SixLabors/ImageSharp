@@ -23,11 +23,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
 
         /// <summary>
-        /// Represents a <see cref="CieLuv"/> that has L, U, and V values set to zero.
-        /// </summary>
-        public static readonly CieLuv Empty = default;
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -117,12 +112,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="CieLuv"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
         public Vector3 Vector
         {
@@ -173,7 +162,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.IsEmpty
+            return this.Equals(default)
                 ? "CieLuv [ Empty ]"
                 : $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
         }

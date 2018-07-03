@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// Gets or sets the table at the given index.
         /// </summary>
         /// <param name="index">The index</param>
-        /// <returns>The <see cref="List{HuffmanBranch}"/></returns>
+        /// <returns>The <see cref="PdfJsHuffmanTable"/></returns>
         public ref PdfJsHuffmanTable this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

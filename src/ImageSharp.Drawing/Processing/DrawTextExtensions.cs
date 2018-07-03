@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Adds extensions that allow the drawing of text to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static partial class DrawTextExtensions
+    public static class DrawTextExtensions
     {
         /// <summary>
         /// Draws the text onto the the image filled via the brush.

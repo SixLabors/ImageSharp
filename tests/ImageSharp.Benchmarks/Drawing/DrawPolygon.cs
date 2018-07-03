@@ -12,12 +12,9 @@ using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Overlays;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-
-
     public class DrawPolygon : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Draw Polygon")]

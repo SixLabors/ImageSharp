@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, true);
+            this.SpectralBlocks = this.memoryAllocator.AllocateClean2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,6 +143,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public int GetBlockBufferOffset(int row, int col)
         {
             return 64 * (((this.WidthInBlocks + 1) * row) + col);
+        }
+
+        // TODO: we need consistence in (row, col) VS (col, row) ordering
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref short GetBlockDataReference(int row, int col)
+        {
+            ref Block8x8 blockRef = ref this.GetBlockReference(col, row);
+            return ref Unsafe.As<Block8x8, short>(ref blockRef);
         }
     }
 }

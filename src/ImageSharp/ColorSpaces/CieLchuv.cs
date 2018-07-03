@@ -152,6 +152,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
@@ -172,6 +173,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieLchuv other)
         {
             return this.backingVector.Equals(other.backingVector)

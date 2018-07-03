@@ -94,12 +94,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
         {
             return !left.Equals(right);
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -120,6 +122,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyChromaticityCoordinates other)
         {
             // The memberwise comparison here is a workaround for https://github.com/dotnet/coreclr/issues/16443

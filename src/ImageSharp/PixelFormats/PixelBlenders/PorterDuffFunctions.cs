@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
         private static Vector4 Clear(Vector4 backdrop, Vector4 source)
         {
-            return Vector4.Lerp(backdrop, Vector4.Zero, source.W);
+            return Vector4.Zero;
         }
     }
 }

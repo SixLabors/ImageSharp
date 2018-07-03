@@ -87,11 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc/>
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="Hsl"/> objects for equality.
@@ -105,7 +101,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Hsl left, Hsl right)
         {
             return left.Equals(right);
@@ -123,7 +118,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Hsl left, Hsl right)
         {
             return !left.Equals(right);
@@ -147,7 +141,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             return obj is Hsl other && this.Equals(other);

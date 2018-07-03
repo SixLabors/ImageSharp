@@ -40,7 +40,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the x, y, z components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz(Vector3 vector)
             : this()
         {
@@ -103,7 +102,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(CieXyz left, CieXyz right)
         {
             return left.Equals(right);
@@ -121,7 +119,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(CieXyz left, CieXyz right)
         {
             return !left.Equals(right);
@@ -145,7 +142,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             return obj is CieXyz other && this.Equals(other);

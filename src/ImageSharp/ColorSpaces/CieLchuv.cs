@@ -165,23 +165,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.WhitePoint.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.backingVector.GetHashCode();
-                return hashCode;
-            }
+            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "CieLchuv [Empty]";
-            }
-
-            return $"CieLchuv [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
+            return this.IsEmpty
+                ? "CieLchuv [Empty]"
+                : $"CieLchuv [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}";
         }
 
         /// <inheritdoc/>
@@ -191,7 +183,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieLchuv other)
         {
             return this.backingVector.Equals(other.backingVector)

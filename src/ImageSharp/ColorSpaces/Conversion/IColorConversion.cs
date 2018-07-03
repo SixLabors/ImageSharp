@@ -8,13 +8,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// </summary>
     /// <typeparam name="T">The input color type.</typeparam>
     /// <typeparam name="TResult">The result color type.</typeparam>
-    internal interface IColorConversion<in T, out TResult>
+    internal interface IColorConversion<T, TResult>
+        where T : struct
+        where TResult : struct
     {
         /// <summary>
         /// Performs the conversion from the input to an instance of the output type.
         /// </summary>
         /// <param name="input">The input color instance.</param>
         /// <returns>The converted result</returns>
-        TResult Convert(T input);
+        TResult Convert(in T input);
     }
 }

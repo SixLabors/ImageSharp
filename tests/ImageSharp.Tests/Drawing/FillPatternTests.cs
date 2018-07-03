@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Processing.Drawing.Brushes;
-using SixLabors.ImageSharp.Processing.Transforms;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing

@@ -5,15 +5,13 @@ using System.Collections.Generic;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 {
-    using SixLabors.ImageSharp.Processing.Convolution;
-    using SixLabors.ImageSharp.Processing.Convolution.Processors;
-
     public class DetectEdgesTest : BaseImageOperationsExtensionTest
     {
 

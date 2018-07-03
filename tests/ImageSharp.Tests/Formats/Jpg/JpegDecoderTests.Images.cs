@@ -38,6 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.NoEoiProgressive517,
                 TestImages.Jpeg.Issues.BadRstProgressive518,
                 TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
+                TestImages.Jpeg.Issues.DhtHasWrongLength624,
             };
 
         /// <summary>

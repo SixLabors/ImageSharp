@@ -12,7 +12,6 @@ using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
@@ -36,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 using (Graphics graphics = Graphics.FromImage(destination))
                 {
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    graphics.FillPolygon(Brushes.HotPink,
+                    graphics.FillPolygon(System.Drawing.Brushes.HotPink,
                     new[]
                         {
                         new Point(10, 10),

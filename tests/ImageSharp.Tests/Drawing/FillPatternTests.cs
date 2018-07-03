@@ -5,14 +5,11 @@ using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
+using SixLabors.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.Memory;
-
     public class FillPatternBrushTests : FileTestBase
     {
         private void Test(string name, Rgba32 background, IBrush<Rgba32> brush, Rgba32[,] expectedPattern)

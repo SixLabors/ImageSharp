@@ -7,16 +7,16 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct FixedInt16Buffer256
+    internal unsafe struct FixedInt16Buffer257
     {
-        public fixed short Data[256];
+        public fixed short Data[257];
 
         public short this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                ref short self = ref Unsafe.As<FixedInt16Buffer256, short>(ref this);
+                ref short self = ref Unsafe.As<FixedInt16Buffer257, short>(ref this);
                 return Unsafe.Add(ref self, idx);
             }
         }

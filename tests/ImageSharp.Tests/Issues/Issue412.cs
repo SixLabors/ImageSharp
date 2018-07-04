@@ -2,12 +2,10 @@
 
 using Xunit;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.Issues
 {
-    using SixLabors.ImageSharp.Processing;
-
     public class Issue412
     {
         [Theory]

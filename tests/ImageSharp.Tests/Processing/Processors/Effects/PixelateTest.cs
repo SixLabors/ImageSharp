@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using SixLabors.Primitives;
@@ -9,9 +10,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Effects;
-
     public class PixelateTest : FileTestBase
     {
         public static readonly TheoryData<int> PixelateValues

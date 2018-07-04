@@ -3,9 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.Shapes;
 using Xunit;
 // ReSharper disable InconsistentNaming

@@ -12,7 +12,6 @@ namespace SixLabors.ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Convolution;
 
     using CoreImage = ImageSharp.Image;
 

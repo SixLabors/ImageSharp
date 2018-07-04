@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="int"/>
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetBitsNeededForColorDepth(int colors) => (int)Math.Ceiling(Math.Log(colors, 2));
+        public static int GetBitsNeededForColorDepth(int colors) => Math.Max(1, (int)Math.Ceiling(Math.Log(colors, 2)));
 
         /// <summary>
         /// Implementation of 1D Gaussian G(x) function
@@ -161,8 +161,8 @@ namespace SixLabors.ImageSharp
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
-            var topLeft = default(Point);
-            var bottomRight = default(Point);
+            Point topLeft = default;
+            Point bottomRight = default;
 
             Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc;
 

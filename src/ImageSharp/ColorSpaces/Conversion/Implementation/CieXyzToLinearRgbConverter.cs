@@ -46,8 +46,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LinearRgb Convert(CieXyz input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             Matrix4x4.Invert(this.conversionMatrix, out Matrix4x4 inverted);
             var vector = Vector3.Transform(input.Vector, inverted);
             return new LinearRgb(vector, this.TargetWorkingSpace);

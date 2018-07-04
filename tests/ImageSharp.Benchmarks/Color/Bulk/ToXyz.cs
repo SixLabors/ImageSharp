@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class ToXyz<TPixel>
@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.source = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
-            this.destination = Configuration.Default.MemoryManager.Allocate<byte>(this.Count * 3);
+            this.source = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.destination = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 3);
         }
 
         [GlobalCleanup]
@@ -36,8 +36,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Span<TPixel> s = this.source.Span;
-            Span<byte> d = this.destination.Span;
+            Span<TPixel> s = this.source.GetSpan();
+            Span<byte> d = this.destination.GetSpan();
 
             var rgb = default(Rgb24);
 
@@ -55,13 +55,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().ToRgb24Bytes(this.source.Span, this.destination.Span, this.Count);
+            new PixelOperations<TPixel>().ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.Span, this.destination.Span, this.Count);
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

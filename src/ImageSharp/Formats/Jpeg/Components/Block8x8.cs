@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         public Block8x8F AsFloatBlock()
         {
-            var result = default(Block8x8F);
+            Block8x8F result = default;
             result.LoadFrom(ref this);
             return result;
         }

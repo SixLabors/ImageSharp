@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -25,5 +25,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the quantizer used to generate the color palette.
         /// </summary>
         IQuantizer Quantizer { get; }
+
+        /// <summary>
+        /// Gets the color table mode: Global or local.
+        /// </summary>
+        GifColorTableMode ColorTableMode { get; }
     }
 }

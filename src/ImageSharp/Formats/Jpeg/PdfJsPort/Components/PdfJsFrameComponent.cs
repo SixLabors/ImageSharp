@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
@@ -17,11 +17,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
     /// </summary>
     internal class PdfJsFrameComponent : IDisposable, IJpegComponent
     {
-        private readonly MemoryManager memoryManager;
+        private readonly MemoryAllocator memoryAllocator;
 
-        public PdfJsFrameComponent(MemoryManager memoryManager, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+        public PdfJsFrameComponent(MemoryAllocator memoryAllocator, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
-            this.memoryManager = memoryManager;
+            this.memoryAllocator = memoryAllocator;
             this.Frame = frame;
             this.Id = id;
             this.HorizontalSamplingFactor = horizontalFactor;
@@ -129,20 +129,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryManager.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, true);
+            this.SpectralBlocks = this.memoryAllocator.AllocateClean2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref Block8x8 GetBlockReference(int column, int row)
         {
             int offset = ((this.WidthInBlocks + 1) * row) + column;
-            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.Span), offset);
+            return ref Unsafe.Add(ref MemoryMarshal.GetReference(this.SpectralBlocks.GetSpan()), offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetBlockBufferOffset(int row, int col)
         {
             return 64 * (((this.WidthInBlocks + 1) * row) + col);
+        }
+
+        // TODO: we need consistence in (row, col) VS (col, row) ordering
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref short GetBlockDataReference(int row, int col)
+        {
+            ref Block8x8 blockRef = ref this.GetBlockReference(col, row);
+            return ref Unsafe.As<Block8x8, short>(ref blockRef);
         }
     }
 }

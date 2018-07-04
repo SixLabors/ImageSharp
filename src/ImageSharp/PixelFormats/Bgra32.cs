@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.R = r;
             this.G = g;
             this.B = b;
-            this.A = 255;
+            this.A = byte.MaxValue;
         }
 
         /// <summary>
@@ -113,14 +113,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.B;
-                hashCode = (hashCode * 397) ^ this.G;
-                hashCode = (hashCode * 397) ^ this.R;
-                hashCode = (hashCode * 397) ^ this.A;
-                return hashCode;
-            }
+            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
+            return HashHelpers.Combine(hash, this.A.GetHashCode());
         }
 
         /// <summary>
@@ -219,17 +214,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgr24(ref Bgr24 dest)
-        {
-            dest = Unsafe.As<Bgra32, Bgr24>(ref this);
-        }
+        public void ToBgr24(ref Bgr24 dest) => dest = Unsafe.As<Bgra32, Bgr24>(ref this);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBgra32(ref Bgra32 dest)
-        {
-            dest = this;
-        }
+        public void ToBgra32(ref Bgra32 dest) => dest = this;
 
         /// <summary>
         /// Converts the pixel to <see cref="Rgba32"/> format.
@@ -252,12 +241,41 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Bgra32 ToBgra32() => this;
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+            this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+            this.A = (byte)(((source.A * 255) + 32895) >> 16);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.
         /// </summary>
         /// <param name="vector">The vector containing the values to pack.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Pack(ref Vector4 vector) {
+        private void Pack(ref Vector4 vector)
+        {
             vector *= MaxBytes;
             vector += Half;
             vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);

@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             if (!CustomToleranceValues.TryGetValue(file, out float tolerance))
             {
-                bool baseline = file.ToLower().Contains("baseline");
+                bool baseline = file.IndexOf("baseline", StringComparison.OrdinalIgnoreCase) >= 0;
                 tolerance = baseline ? BaselineTolerance : ProgressiveTolerance;
             }
 
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             // For 32 bit test enviroments:
-            provider.Configuration.MemoryManager = ArrayPoolMemoryManager.CreateWithModeratePooling();
+            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
             IImageDecoder decoder = useOldDecoder ? (IImageDecoder)GolangJpegDecoder : PdfJsJpegDecoder;
             using (Image<TPixel> image = provider.GetImage(decoder))
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance), provider, appendPixelTypeToFileName: false);
             }
 
-            provider.Configuration.MemoryManager.ReleaseRetainedResources();
+            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
         }
 
         private string GetDifferenceInPercentageString<TPixel>(Image<TPixel> image, TestImageProvider<TPixel> provider)

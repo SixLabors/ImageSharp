@@ -15,19 +15,10 @@
     <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="4.5.0-preview1-26216-02" />
-    <PackageReference Include="System.Memory" Version="4.5.0-preview1-26216-02" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-preview1-26216-02" />
-    <PackageReference Include="BenchmarkDotNet" Version="0.10.13" />
-    <PackageReference Include="Colourful" Version="1.2.1" />
-    <PackageReference Include="System.Memory" Version="4.5.0-preview2-26406-04" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0-preview2-26406-04" />
-    <PackageReference Include="BenchmarkDotNet" Version="0.10.12" />
-    <PackageReference Include="Colourful" Version="1.1.2" />
-    <PackageReference Include="System.Drawing.Common" Version="4.5.0-rc1" />
+  <ItemGroup>    
     <PackageReference Include="BenchmarkDotNet" Version="0.10.14" />
     <PackageReference Include="Colourful" Version="1.2.2" />
+    <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-dev000081" />
     <PackageReference Include="System.Drawing.Common" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>

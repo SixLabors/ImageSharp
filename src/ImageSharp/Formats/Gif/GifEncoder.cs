@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Defaults to the <see cref="OctreeQuantizer"/>
         /// </summary>
         public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
+
+        /// <summary>
+        /// Gets or sets the color table mode: Global or local.
+        /// </summary>
+        public GifColorTableMode ColorTableMode { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

@@ -6,15 +6,10 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using BenchmarkDotNet.Attributes;
-using System.IO;
-using System.Numerics;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Text;
-using SixLabors.ImageSharp.Processing.Overlays;
-using SixLabors.ImageSharp.Processing.Drawing;
 using System.Linq;
+using SixLabors.ImageSharp.Processing.Processors.Text;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
@@ -24,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     {
 
         [Params(10, 100)]
-        public int TextIterations{ get; set; }
+        public int TextIterations { get; set; }
         public string TextPhrase { get; set; } = "Hello World";
         public string TextToRender => string.Join(" ", Enumerable.Repeat(TextPhrase, TextIterations));
 
@@ -54,7 +49,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 var font = SixLabors.Fonts.SystemFonts.CreateFont("Arial", 12);
-                image.Mutate(x => x.ApplyProcessor(new SixLabors.ImageSharp.Processing.Text.Processors.DrawTextProcessor<Rgba32>(new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, null, SixLabors.ImageSharp.Processing.Drawing.Pens.Pens.Solid(Rgba32.HotPink, 10), new SixLabors.Primitives.PointF(10, 10))));
+                image.Mutate(x => x.ApplyProcessor(new DrawTextProcessor<Rgba32>(new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, null, Processing.Pens.Solid(Rgba32.HotPink, 10), new SixLabors.Primitives.PointF(10, 10))));
             }
         }
 
@@ -64,10 +59,10 @@ namespace SixLabors.ImageSharp.Benchmarks
             using (Image<Rgba32> image = new Image<Rgba32>(800, 800))
             {
                 var font = SixLabors.Fonts.SystemFonts.CreateFont("Arial", 12);
-                image.Mutate(x => DrawTextOldVersion(x, new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, null, SixLabors.ImageSharp.Processing.Drawing.Pens.Pens.Solid(Rgba32.HotPink, 10), new SixLabors.Primitives.PointF(10, 10)));
+                image.Mutate(x => DrawTextOldVersion(x, new TextGraphicsOptions(true) { WrapTextWidth = 780 }, TextToRender, font, null, Processing.Pens.Solid(Rgba32.HotPink, 10), new SixLabors.Primitives.PointF(10, 10)));
             }
 
-            IImageProcessingContext<TPixel> DrawTextOldVersion<TPixel>(IImageProcessingContext<TPixel> source, TextGraphicsOptions options, string text, SixLabors.Fonts.Font font, SixLabors.ImageSharp.Processing.Drawing.Brushes.IBrush<TPixel> brush, SixLabors.ImageSharp.Processing.Drawing.Pens.IPen<TPixel> pen, SixLabors.Primitives.PointF location)
+            IImageProcessingContext<TPixel> DrawTextOldVersion<TPixel>(IImageProcessingContext<TPixel> source, TextGraphicsOptions options, string text, SixLabors.Fonts.Font font, IBrush<TPixel> brush, IPen<TPixel> pen, SixLabors.Primitives.PointF location)
                 where TPixel : struct, IPixel<TPixel>
             {
                 var style = new SixLabors.Fonts.RendererOptions(font, options.DpiX, options.DpiY, location)

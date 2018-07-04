@@ -5,8 +5,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Dithering;
-using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
-using SixLabors.ImageSharp.Processing.Dithering.Ordered;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.Primitives;
 using Xunit;
 
@@ -39,7 +38,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             { "StevensonArce", KnownDiffusers.StevensonArce },
             { "Stucki", KnownDiffusers.Stucki },
         };
-
 
         private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 

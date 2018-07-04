@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -85,11 +85,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets a value indicating whether to Write Gamma
         /// </summary>
         private readonly bool writeGamma;
-
-        /// <summary>
-        /// Contains the raw pixel data from an indexed image.
-        /// </summary>
-        private byte[] palettePixelData;
 
         /// <summary>
         /// The image width.
@@ -188,11 +183,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
 
             QuantizedFrame<TPixel> quantized = null;
+            ReadOnlySpan<byte> quantizedPixelsSpan = default;
             if (this.pngColorType == PngColorType.Palette)
             {
                 // Create quantized frame returning the palette and set the bit depth.
                 quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(image.Frames.RootFrame);
-                this.palettePixelData = quantized.Pixels;
+                quantizedPixelsSpan = quantized.GetPixelSpan();
                 byte bits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk
@@ -233,9 +229,11 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
-            this.WriteDataChunks(image.Frames.RootFrame, stream);
+            this.WriteDataChunks(image.Frames.RootFrame, quantizedPixelsSpan, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
+
+            quantized?.Dispose();
         }
 
         /// <inheritdoc />
@@ -384,9 +382,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
+        /// <param name="quantizedPixelsSpan">The span of quantized pixels. Can be null.</param>
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="IManagedByteBuffer"/></returns>
-        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, int row)
+        private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, ReadOnlySpan<byte> quantizedPixelsSpan, int row)
             where TPixel : struct, IPixel<TPixel>
         {
             switch (this.pngColorType)
@@ -394,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 case PngColorType.Palette:
 
                     int stride = this.rawScanline.Length();
-                    this.palettePixelData.AsSpan(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
+                    quantizedPixelsSpan.Slice(row * stride, stride).CopyTo(this.rawScanline.GetSpan());
 
                     break;
                 case PngColorType.Grayscale:
@@ -555,10 +554,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 Span<byte> colorTableSpan = colorTable.GetSpan();
                 Span<byte> alphaTableSpan = alphaTable.GetSpan();
+                Span<byte> quantizedSpan = quantized.GetPixelSpan();
 
                 for (byte i = 0; i < pixelCount; i++)
                 {
-                    if (quantized.Pixels.Contains(i))
+                    if (quantizedSpan.IndexOf(i) > -1)
                     {
                         int offset = i * 3;
                         palette[i].ToRgba32(ref rgba);
@@ -571,10 +571,10 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                         if (alpha > this.threshold)
                         {
-                            alpha = 255;
+                            alpha = byte.MaxValue;
                         }
 
-                        anyAlpha = anyAlpha || alpha < 255;
+                        anyAlpha = anyAlpha || alpha < byte.MaxValue;
                         alphaTableSpan[i] = alpha;
                     }
                 }
@@ -635,8 +635,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The image.</param>
+        /// <param name="quantizedPixelsSpan">The span of quantized pixel data. Can be null.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, Stream stream)
+        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, ReadOnlySpan<byte> quantizedPixelsSpan, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             this.bytesPerScanline = this.width * this.bytesPerPixel;
@@ -688,7 +689,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 {
                     for (int y = 0; y < this.height; y++)
                     {
-                        IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), y);
+                        IManagedByteBuffer r = this.EncodePixelRow((ReadOnlySpan<TPixel>)pixels.GetPixelRowSpan(y), quantizedPixelsSpan, y);
                         deflateStream.Write(r.Array, 0, resultLength);
 
                         IManagedByteBuffer temp = this.rawScanline;

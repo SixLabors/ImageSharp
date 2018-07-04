@@ -10,8 +10,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 {
     public class HistogramEqualizationTests
     {
-        [Fact]
-        public void HistogramEqualizationTest()
+        [Theory]
+        [InlineData(256)]
+        [InlineData(65536)]
+        public void HistogramEqualizationTest(int luminanceLevels)
         {
             // arrange
             byte[] pixels = new byte[]
@@ -48,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
             };
 
             // act
-            image.Mutate(x => x.HistogramEqualization());
+            image.Mutate(x => x.HistogramEqualization(luminanceLevels));
 
             // assert
             for (int y = 0; y < 8; y++)

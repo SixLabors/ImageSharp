@@ -12,7 +12,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void Rgba64_PackedValues()
         {
+            Assert.Equal((ulong)0x73334CCC2666147B, new Rgba64(5243, 9830, 19660, 29491).PackedValue);
             Assert.Equal((ulong)0x73334CCC2666147B, new Rgba64(0.08f, 0.15f, 0.30f, 0.45f).PackedValue);
+            var rgba = new Rgba64(0x73334CCC2666147B);
+            Assert.Equal(5243, rgba.R);
+            Assert.Equal(9830, rgba.G);
+            Assert.Equal(19660, rgba.B);
+            Assert.Equal(29491, rgba.A);
+
             // Test the limits.
             Assert.Equal((ulong)0x0, new Rgba64(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFFFFFFFFFF, new Rgba64(Vector4.One).PackedValue);
@@ -50,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var pixel = default(Rgba64);
             var short4 = new Rgba64(Vector4.One);
-            ulong expected = 0xFFFFFFFFFFFFFFFF;
+            const ulong expected = 0xFFFFFFFFFFFFFFFF;
 
             // act 
             Vector4 scaled = short4.ToScaledVector4();
@@ -99,6 +106,21 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         }
 
         [Fact]
+        public void Rgba64_ToArgb32()
+        {
+            // arrange
+            var rgba64 = new Rgba64(0.08f, 0.15f, 0.30f, 0.45f);
+            var actual = default(Argb32);
+            var expected = new Argb32(20, 38, 76, 115);
+
+            // act
+            rgba64.ToArgb32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Rgba64_ToBgr24()
         {
             // arrange
@@ -139,6 +161,38 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // act 
             rgba64.PackFromRgba32(expected);
             rgba64.ToRgba32(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgb48_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var input = default(Rgba64);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(65535, 0, 65535);
+
+            // act
+            input.PackFromRgb48(expected);
+            input.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgba64_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var input = default(Rgba64);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(65535, 0, 65535, 0);
+
+            // act
+            input.PackFromRgba64(expected);
+            input.ToRgba64(ref actual);
 
             // assert
             Assert.Equal(expected, actual);

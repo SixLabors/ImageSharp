@@ -43,8 +43,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLuv Convert(CieXyz input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Luv.html
             float yr = input.Y / this.LuvWhitePoint.Y;
             float up = ComputeUp(input);

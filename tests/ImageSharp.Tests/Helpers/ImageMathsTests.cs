@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         public void Pow2ResultMatchesMath()
         {
             const float X = -33;
-            float expected = MathF.Pow(X, 2);
+            float expected = (float)Math.Pow(X, 2);
 
             Assert.Equal(expected, ImageMaths.Pow2(X));
         }
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         public void Pow3ResultMatchesMath()
         {
             const float X = -33;
-            float expected = MathF.Pow(X, 3);
+            float expected = (float)Math.Pow(X, 3);
 
             Assert.Equal(expected, ImageMaths.Pow3(X));
         }

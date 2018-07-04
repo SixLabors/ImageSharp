@@ -19,8 +19,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(YCbCr input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             float y = input.Y;
             float cb = input.Cb - 128F;
             float cr = input.Cr - 128F;
@@ -36,8 +34,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public YCbCr Convert(Rgb input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             Vector3 rgb = input.Vector * MaxBytes;
             float r = rgb.X;
             float g = rgb.Y;

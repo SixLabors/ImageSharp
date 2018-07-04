@@ -21,10 +21,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieXyz Adapt(CieXyz color, CieXyz sourceWhitePoint)
         {
-            Guard.NotNull(color, nameof(color));
-            Guard.NotNull(sourceWhitePoint, nameof(sourceWhitePoint));
             this.CheckChromaticAdaptation();
-
             return this.ChromaticAdaptation.Transform(color, sourceWhitePoint, this.WhitePoint);
         }
 
@@ -35,7 +32,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLab Adapt(CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
             this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
@@ -54,7 +50,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLch Adapt(CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
             this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
@@ -73,7 +68,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLchuv Adapt(CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
             this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLabWhitePoint))
@@ -92,7 +86,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public CieLuv Adapt(CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
             this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetLuvWhitePoint))
@@ -111,7 +104,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public HunterLab Adapt(HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
             this.CheckChromaticAdaptation();
 
             if (color.WhitePoint.Equals(this.TargetHunterLabWhitePoint))
@@ -130,7 +122,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public LinearRgb Adapt(LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
             this.CheckChromaticAdaptation();
 
             if (color.WorkingSpace.Equals(this.TargetRgbWorkingSpace))
@@ -157,8 +148,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The adapted color</returns>
         public Rgb Adapt(Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var linearInput = this.ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);
             return this.ToRgb(linearOutput);

@@ -48,56 +48,6 @@ namespace SixLabors.ImageSharp.Tests
             this.Image = new Image<Rgba32>(config, 1, 1);
         }
 
-        [Theory]
-        [WithTestPatternImages(13, 19, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-        public void SavePixelData_ToPixelStructArray<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var buffer = new TPixel[image.Width * image.Height];
-                image.SavePixelData(buffer);
-
-                image.ComparePixelBufferTo(buffer);
-
-                // TODO: We need a separate test-case somewhere ensuring that image pixels are stored in row-major order!
-            }
-        }
-
-        [Theory]
-        [WithTestPatternImages(19, 13, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-        public void SavePixelData_ToByteArray<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                byte[] buffer = new byte[image.Width * image.Height * Unsafe.SizeOf<TPixel>()];
-
-                image.SavePixelData(buffer);
-
-                image.ComparePixelBufferTo(MemoryMarshal.Cast<byte, TPixel>(buffer.AsSpan()));
-            }
-        }
-
-        [Fact]
-        public void SavePixelData_Rgba32_WhenBufferIsTooSmall_Throws()
-        {
-            using (var img = new Image<Rgba32>(2, 2))
-            {
-                img[0, 0] = Rgba32.White;
-                img[1, 0] = Rgba32.Black;
-
-                img[0, 1] = Rgba32.Red;
-                img[1, 1] = Rgba32.Blue;
-                byte[] buffer = new byte[2 * 2]; // width * height * bytes per pixel
-
-                Assert.Throws<ArgumentOutOfRangeException>(() =>
-                {
-                    img.SavePixelData(buffer);
-                });
-            }
-        }
-
         [Fact]
         public void SavePath()
         {

@@ -16,8 +16,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(Hsl input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             float rangedH = input.H / 360F;
             float r = 0;
             float g = 0;
@@ -49,8 +47,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Hsl Convert(Rgb input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             float r = input.R;
             float g = input.G;
             float b = input.B;

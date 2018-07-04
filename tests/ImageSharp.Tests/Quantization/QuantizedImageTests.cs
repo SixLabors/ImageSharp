@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 using Xunit;
 
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
                     QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
                 }
             }
         }
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                     QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
                 }
             }
         }
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests
                     QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
                 }
             }
         }

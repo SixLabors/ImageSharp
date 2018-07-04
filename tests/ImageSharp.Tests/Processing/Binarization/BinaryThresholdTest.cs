@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Binarization;
-using SixLabors.ImageSharp.Processing.Binarization.Processors;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Binarization;
 
 using Xunit;
 

@@ -19,8 +19,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -33,8 +31,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -47,8 +43,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -61,8 +55,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -75,8 +67,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
             return CieXyzAndCieXyyConverter.Convert(color);
         }
 
@@ -87,8 +77,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -101,8 +89,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -115,8 +101,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -129,8 +113,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(HunterLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -143,8 +125,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -157,8 +137,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(Lms color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -171,8 +149,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);
@@ -185,8 +161,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieXyy"/></returns>
         public CieXyy ToCieXyy(YCbCr color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
 
             return this.ToCieXyy(xyzColor);

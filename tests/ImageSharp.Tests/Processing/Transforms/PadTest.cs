@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Transforms;
-    using SixLabors.ImageSharp.Processing.Transforms.Processors;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
     public class PadTest : BaseImageOperationsExtensionTest
     {

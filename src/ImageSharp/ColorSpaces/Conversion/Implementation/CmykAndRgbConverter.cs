@@ -16,8 +16,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(Cmyk input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             Vector3 rgb = (Vector3.One - new Vector3(input.C, input.M, input.Y)) * (Vector3.One - new Vector3(input.K));
             return new Rgb(rgb);
         }
@@ -26,8 +24,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Cmyk Convert(Rgb input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // To CMYK
             Vector3 cmy = Vector3.One - input.Vector;
 

@@ -36,9 +36,9 @@ namespace SixLabors.ImageSharp.Tests
             throw new InvalidOperationException();
         }
 
-        public bool Equals(Vector4 a, Vector4 b)
+        public bool Equals(Vector4 x, Vector4 y)
         {
-            return this.Equals(a.X, b.X) && this.Equals(a.Y, b.Y) && this.Equals(a.Z, b.Z) && this.Equals(a.W, b.W);
+            return this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y) && this.Equals(x.Z, y.Z) && this.Equals(x.W, y.W);
         }
 
         public int GetHashCode(Vector4 obj)

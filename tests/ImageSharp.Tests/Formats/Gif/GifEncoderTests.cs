@@ -5,7 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -115,6 +115,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                         Assert.Equal(255, output.MetaData.Properties[0].Value.Length);
                     }
                 }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32)]
+        public void EncodeGlobalPaletteReturnsSmallerFile<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var encoder = new GifEncoder
+                {
+                    ColorTableMode = GifColorTableMode.Global,
+                    Quantizer = new OctreeQuantizer(false)
+                };
+
+                // Always save as we need to compare the encoded output.
+                provider.Utility.SaveTestOutputFile(image, "gif", encoder, "global");
+
+                encoder.ColorTableMode = GifColorTableMode.Local;
+                provider.Utility.SaveTestOutputFile(image, "gif", encoder, "local");
+
+                var fileInfoGlobal = new FileInfo(provider.Utility.GetTestOutputFileName("gif", "global"));
+                var fileInfoLocal = new FileInfo(provider.Utility.GetTestOutputFileName("gif", "local"));
+
+                Assert.True(fileInfoGlobal.Length < fileInfoLocal.Length);
             }
         }
     }

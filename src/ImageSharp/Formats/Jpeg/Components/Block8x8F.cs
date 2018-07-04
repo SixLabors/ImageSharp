@@ -134,14 +134,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public static Block8x8F Load(Span<float> data)
         {
-            var result = default(Block8x8F);
+            Block8x8F result = default;
             result.LoadFrom(data);
             return result;
         }
 
         public static Block8x8F Load(Span<int> data)
         {
-            var result = default(Block8x8F);
+            Block8x8F result = default;
             result.LoadFrom(data);
             return result;
         }
@@ -461,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public Block8x8 RoundAsInt16Block()
         {
-            var result = default(Block8x8);
+            Block8x8 result = default;
             this.RoundInto(ref result);
             return result;
         }

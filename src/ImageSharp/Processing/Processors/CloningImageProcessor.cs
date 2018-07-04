@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
                     throw new ImageProcessingException($"An error occurred when processing the image using {this.GetType().Name}. The processor changed the number of frames.");
                 }
 
-                source.SwapPixelsBuffers(cloned);
+                source.SwapOrCopyPixelsBuffersFrom(cloned);
             }
         }
 

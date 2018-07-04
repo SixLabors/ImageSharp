@@ -3,7 +3,7 @@
 
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder

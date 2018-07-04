@@ -178,6 +178,22 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = (byte)vector.W;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
@@ -222,10 +238,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static ushort Pack(float x, float y, float z, float w)
         {
             return (ushort)(
-                   (((int)Math.Round(x.Clamp(0, 1) * 31F) & 0x1F) << 10) |
-                   (((int)Math.Round(y.Clamp(0, 1) * 31F) & 0x1F) << 5) |
-                   (((int)Math.Round(z.Clamp(0, 1) * 31F) & 0x1F) << 0) |
-                   (((int)Math.Round(w.Clamp(0, 1)) & 0x1) << 15));
+                   (((int)Math.Round(x.Clamp(0, 1) * 31F) & 0x1F) << 10)
+                   | (((int)Math.Round(y.Clamp(0, 1) * 31F) & 0x1F) << 5)
+                   | (((int)Math.Round(z.Clamp(0, 1) * 31F) & 0x1F) << 0)
+                   | (((int)Math.Round(w.Clamp(0, 1)) & 0x1) << 15));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

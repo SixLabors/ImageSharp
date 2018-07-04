@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="T">The value type of the buffer</typeparam>
         /// <param name="fromInclusive">The start index, inclusive.</param>
         /// <param name="toExclusive">The end index, exclusive.</param>
-        /// <param name="configuration">The <see cref="Configuration"/> used for getting the <see cref="MemoryManager"/> and <see cref="ParallelOptions"/></param>
+        /// <param name="configuration">The <see cref="Configuration"/> used for getting the <see cref="MemoryAllocator"/> and <see cref="ParallelOptions"/></param>
         /// <param name="bufferLength">The length of the requested parallel buffer</param>
         /// <param name="body">The delegate that is invoked once per iteration.</param>
         public static void WithTemporaryBuffer<T>(
@@ -35,12 +35,12 @@ namespace SixLabors.ImageSharp
             Action<int, IBuffer<T>> body)
             where T : struct
         {
-            MemoryManager memoryManager = configuration.MemoryManager;
+            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             ParallelOptions parallelOptions = configuration.ParallelOptions;
 
             IBuffer<T> InitBuffer()
             {
-                return memoryManager.Allocate<T>(bufferLength);
+                return memoryAllocator.Allocate<T>(bufferLength);
             }
 
             void CleanUpBuffer(IBuffer<T> buffer)

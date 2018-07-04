@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
     using BenchmarkDotNet.Attributes;
 
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
     using SixLabors.ImageSharp.PixelFormats;
 
     public abstract class PackFromXyzw<TPixel>
@@ -21,8 +21,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [GlobalSetup]
         public void Setup()
         {
-            this.destination = Configuration.Default.MemoryManager.Allocate<TPixel>(this.Count);
-            this.source = Configuration.Default.MemoryManager.Allocate<byte>(this.Count * 4);
+            this.destination = Configuration.Default.MemoryAllocator.Allocate<TPixel>(this.Count);
+            this.source = Configuration.Default.MemoryAllocator.Allocate<byte>(this.Count * 4);
         }
 
         [GlobalCleanup]
@@ -35,8 +35,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark(Baseline = true)]
         public void PerElement()
         {
-            Span<byte> s = this.source.Span;
-            Span<TPixel> d = this.destination.Span;
+            Span<byte> s = this.source.GetSpan();
+            Span<TPixel> d = this.destination.GetSpan();
             
             for (int i = 0; i < this.Count; i++)
             {
@@ -50,13 +50,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void CommonBulk()
         {
-            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
+            new PixelOperations<TPixel>().PackFromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
 
         [Benchmark]
         public void OptimizedBulk()
         {
-           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source.Span, this.destination.Span, this.Count);
+           PixelOperations<TPixel>.Instance.PackFromRgba32Bytes(this.source.GetSpan(), this.destination.GetSpan(), this.Count);
         }
     }
 

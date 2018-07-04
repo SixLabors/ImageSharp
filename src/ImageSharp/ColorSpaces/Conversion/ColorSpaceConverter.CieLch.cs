@@ -192,8 +192,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLch"/></returns>
         public CieLch ToCieLch(Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLch(xyzColor);
         }

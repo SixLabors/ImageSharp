@@ -8,8 +8,8 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
-    using SixLabors.ImageSharp.Processing.Filters;
-    using SixLabors.ImageSharp.Processing.Filters.Processors;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Processors.Filters;
 
     public class FilterTest : BaseImageOperationsExtensionTest
     {

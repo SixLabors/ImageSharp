@@ -18,25 +18,39 @@ namespace SixLabors.ImageSharp.Processing.Normalization
     internal class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
+        /// or 65536 for 16-bit grayscale images.Defaults to 65536.</param>
+        public HistogramEqualizationProcessor(int luminanceLevels = 65536)
+        {
+            Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
+
+            this.LuminanceLevels = luminanceLevels;
+        }
+
+        /// <summary>
+        /// Gets the luminance levels.
+        /// </summary>
+        public int LuminanceLevels { get; }
+
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
-            bool is16bitPerChannel = typeof(TPixel) == typeof(Rgb48) || typeof(TPixel) == typeof(Rgba64);
-
             Span<TPixel> pixels = source.GetPixelSpan();
 
             // build the histogram of the grayscale levels
-            int luminanceLevels = is16bitPerChannel ? 65536 : 256;
-            using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(luminanceLevels))
-            using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(luminanceLevels))
+            using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+            using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             {
                 Span<int> histogram = histogramBuffer.GetSpan();
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     TPixel sourcePixel = pixels[i];
-                    int luminance = this.GetLuminance(sourcePixel, luminanceLevels);
+                    int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
                     histogram[luminance]++;
                 }
 
@@ -50,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
                 {
                     TPixel sourcePixel = pixels[i];
 
-                    int luminance = this.GetLuminance(sourcePixel, luminanceLevels);
+                    int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
                     double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
 
                     pixels[i].PackFromVector4(new Vector4((float)luminanceEqualized));

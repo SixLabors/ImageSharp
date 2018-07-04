@@ -7,7 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Transforms;
+    using SixLabors.ImageSharp.Processing;
 
     public class RotateFlipTests : FileTestBase
     {

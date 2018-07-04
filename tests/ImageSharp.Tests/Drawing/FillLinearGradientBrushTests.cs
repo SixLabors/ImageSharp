@@ -8,8 +8,6 @@ using System.Text;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes.GradientBrushes;
 
 using Xunit;
 // ReSharper disable InconsistentNaming

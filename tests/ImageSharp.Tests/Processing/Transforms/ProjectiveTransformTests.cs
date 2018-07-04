@@ -6,16 +6,14 @@ using System.Numerics;
 using System.Reflection;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Transforms;
-using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
+using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using Xunit.Abstractions;
-
     public class ProjectiveTransformTests
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.03f, 3);

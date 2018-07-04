@@ -5,8 +5,8 @@ using System;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Overlays;
-using SixLabors.ImageSharp.Processing.Overlays.Processors;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Overlays;
 using SixLabors.Primitives;
 using Xunit;
 

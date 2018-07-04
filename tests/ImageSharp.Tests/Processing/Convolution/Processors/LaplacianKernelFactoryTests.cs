@@ -3,10 +3,10 @@
 
 using System;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Convolution.Processors;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Processing.Convolution.Processors
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     public class LaplacianKernelFactoryTests
     {

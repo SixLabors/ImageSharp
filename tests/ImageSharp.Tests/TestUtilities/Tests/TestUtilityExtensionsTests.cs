@@ -7,15 +7,14 @@ using System.Linq;
 using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Memory;
 
 using Xunit;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Processing.Effects;
-    using SixLabors.Memory;
-
     public class TestUtilityExtensionsTests
     {
         public TestUtilityExtensionsTests(ITestOutputHelper output)
@@ -55,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
             where TPixel : struct, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
-            Image<TPixel> b = provider.GetImage(x=>x.OilPaint(3, 2));
+            Image<TPixel> b = provider.GetImage(x => x.OilPaint(3, 2));
 
             Assert.False(a.IsEquivalentTo(b, compareAlpha));
         }

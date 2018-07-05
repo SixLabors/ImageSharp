@@ -412,6 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             {
                 this.MetaData.HorizontalResolution = this.jFif.XDensity;
                 this.MetaData.VerticalResolution = this.jFif.YDensity;
+                this.MetaData.ResolutionUnits = this.jFif.DensityUnits;
             }
             else if (this.isExif)
             {
@@ -423,10 +424,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     ? ((Rational)verticalTag.Value).ToDouble()
                     : 0;
 
+                byte units = this.MetaData.ExifProfile.TryGetValue(ExifTag.ResolutionUnit, out ExifValue resolutionTag)
+                    ? (byte)(((ushort)resolutionTag.Value) - 1) // EXIF is 1,2,3
+                    : byte.MinValue;
+
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
+                    this.MetaData.ResolutionUnits = (ResolutionUnits)units;
                 }
             }
 

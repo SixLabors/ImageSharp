@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-
+using SixLabors.ImageSharp.MetaData;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.True(isJFif);
             Assert.Equal(1, marker.MajorVersion);
             Assert.Equal(1, marker.MinorVersion);
-            Assert.Equal(1, marker.DensityUnits);
+            Assert.Equal(ResolutionUnits.PixelsPerInch, marker.DensityUnits);
             Assert.Equal(96, marker.XDensity);
             Assert.Equal(96, marker.YDensity);
         }

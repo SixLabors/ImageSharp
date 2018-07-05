@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats
+namespace SixLabors.ImageSharp.MetaData
 {
     /// <summary>
     /// Provides enumeration of available pixel density units.
     /// </summary>
-    public enum DensityUnits : byte
+    public enum ResolutionUnits : byte
     {
         /// <summary>
         /// No units; width:height pixel aspect ratio = Ydensity:Xdensity

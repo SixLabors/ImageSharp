@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.MetaData;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.MajorVersion = majorVersion;
             this.MinorVersion = minorVersion;
-            this.DensityUnits = densityUnits;
+            this.DensityUnits = (ResolutionUnits)densityUnits;
             this.XDensity = xDensity;
             this.YDensity = yDensity;
         }
@@ -52,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         ///  01 : Pixels per inch (2.54 cm)
         ///  02 : Pixels per centimeter
         /// </summary>
-        public byte DensityUnits { get; }
+        public ResolutionUnits DensityUnits { get; }
 
         /// <summary>
         /// Gets the horizontal pixel density. Must not be zero.

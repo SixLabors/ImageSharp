@@ -214,17 +214,24 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
         public static Vector4 In(Vector4 dst, Vector4 src, Vector4 blend)
         {
-            blend.W = dst.W * src.W;
+            float alpha = dst.W * src.W;
 
-            return blend;
+            Vector4 color = src * alpha;                    // premultiply
+            color /= MathF.Max(alpha, Constants.Epsilon);   // unpremultiply
+            color.W = alpha;
+
+            return color;
         }
 
         public static Vector4 Out(Vector4 dst, Vector4 src)
         {
-            // calculate final alpha
-            src.W = (1 - dst.W) * src.W;
+            float alpha = (1 - dst.W) * src.W;
 
-            return src;
+            Vector4 color = src * alpha;                    // premultiply
+            color /= MathF.Max(alpha, Constants.Epsilon);   // unpremultiply
+            color.W = alpha;
+
+            return color;
         }
 
         public static Vector4 Xor(Vector4 dst, Vector4 src)

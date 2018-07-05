@@ -450,8 +450,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 {
                     int index = Unsafe.Add(ref indicesRef, i);
 
-                    if (this.graphicsControlExtension.TransparencyFlag == false ||
-                        this.graphicsControlExtension.TransparencyIndex != index)
+                    if (!this.graphicsControlExtension.TransparencyFlag
+                        || this.graphicsControlExtension.TransparencyIndex != index)
                     {
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         rgba.Rgb = colorTable[index];
@@ -516,13 +516,41 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="stream">The stream containing image data. </param>
         private void ReadLogicalScreenDescriptorAndGlobalColorTable(Stream stream)
         {
-            this.metaData = new ImageMetaData();
-
             this.stream = stream;
 
             // Skip the identifier
             this.stream.Skip(6);
             this.ReadLogicalScreenDescriptor();
+
+            var meta = new ImageMetaData();
+
+            // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
+            // width over its height.  The value range in this field allows
+            // specification of the widest pixel of 4:1 to the tallest pixel of
+            // 1:4 in increments of 1/64th.
+            //
+            // Values :        0 -   No aspect ratio information is given.
+            //            1..255 -   Value used in the computation.
+            //
+            // Aspect Ratio = (Pixel Aspect Ratio + 15) / 64
+            if (this.logicalScreenDescriptor.PixelAspectRatio > 0)
+            {
+                meta.ResolutionUnits = ResolutionUnits.AspectRatio;
+                float ratio = (this.logicalScreenDescriptor.PixelAspectRatio + 15) / 64F;
+
+                if (ratio > 1)
+                {
+                    meta.HorizontalResolution = ratio;
+                    meta.VerticalResolution = 1;
+                }
+                else
+                {
+                    meta.VerticalResolution = 1 / ratio;
+                    meta.HorizontalResolution = 1;
+                }
+            }
+
+            this.metaData = meta;
 
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {

@@ -47,6 +47,7 @@ namespace SixLabors.ImageSharp.MetaData
         {
             this.HorizontalResolution = other.HorizontalResolution;
             this.VerticalResolution = other.VerticalResolution;
+            this.ResolutionUnits = other.ResolutionUnits;
             this.RepeatCount = other.RepeatCount;
 
             foreach (ImageProperty property in other.Properties)
@@ -98,6 +99,11 @@ namespace SixLabors.ImageSharp.MetaData
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets unit of measure used when reporting resolution.
+        /// </summary>
+        public ResolutionUnits ResolutionUnits { get; set; } = ResolutionUnits.PixelsPerInch;
 
         /// <summary>
         /// Gets or sets the Exif profile.

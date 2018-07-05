@@ -210,7 +210,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader((short)image.MetaData.HorizontalResolution, (short)image.MetaData.VerticalResolution);
+            this.WriteApplicationHeader(
+                (byte)image.MetaData.ResolutionUnits,
+                (short)image.MetaData.HorizontalResolution,
+                (short)image.MetaData.VerticalResolution);
 
             this.WriteProfiles(image);
 
@@ -425,9 +428,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the application header containing the JFIF identifier plus extra data.
         /// </summary>
+        /// <param name="resolutionUnits">The resolution unit of measurement.</param>
         /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
         /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
-        private void WriteApplicationHeader(short horizontalResolution, short verticalResolution)
+        private void WriteApplicationHeader(byte resolutionUnits, short horizontalResolution, short verticalResolution)
         {
             // Write the start of image marker. Markers are always prefixed with with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -445,7 +449,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[10] = 0x00; // = "JFIF",'\0'
             this.buffer[11] = 0x01; // versionhi
             this.buffer[12] = 0x01; // versionlo
-            this.buffer[13] = 0x01; // xyunits as dpi
+            this.buffer[13] = resolutionUnits; // xyunits
 
             // Resolution. Big Endian
             this.buffer[14] = (byte)(horizontalResolution >> 8);

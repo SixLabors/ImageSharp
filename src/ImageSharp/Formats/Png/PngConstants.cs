@@ -41,5 +41,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The header bytes as a big endian coded ulong.
         /// </summary>
         public const ulong HeaderValue = 0x89504E470D0A1A0AUL;
+
+        /// <summary>
+        /// The number of inches in a meter. Used for converting PPM to PPI in <see cref="PngChunkType.Physical"/>.
+        ///  One inch is equal to exactly 0.0254 meters.
+        /// </summary>
+        public const double InchesInMeter = 1 / 0.0254D;
     }
 }

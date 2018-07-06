@@ -8,6 +8,7 @@ using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.Memory;
@@ -598,19 +599,46 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WritePhysicalChunk<TPixel>(Stream stream, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (image.MetaData.HorizontalResolution > 0 && image.MetaData.VerticalResolution > 0)
+            // The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image. It contains:
+            // Pixels per unit, X axis: 4 bytes (unsigned integer)
+            // Pixels per unit, Y axis: 4 bytes (unsigned integer)
+            // Unit specifier:          1 byte
+            //
+            // The following values are legal for the unit specifier:
+            //   0: unit is unknown
+            //   1: unit is the meter
+            //
+            // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
+            // Conversion note: one inch is equal to exactly 0.0254 meters.
+            ImageMetaData meta = image.MetaData;
+            Span<byte> hResolution = this.chunkDataBuffer.AsSpan(0, 4);
+            Span<byte> vResolution = this.chunkDataBuffer.AsSpan(4, 4);
+            switch (meta.ResolutionUnits)
             {
-                // 39.3700787 = inches in a meter.
-                int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
-                int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
+                case ResolutionUnits.AspectRatio:
 
-                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), dpmX);
-                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(4, 4), dpmY);
+                    this.chunkDataBuffer[8] = 0;
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.HorizontalResolution));
+                    break;
 
-                this.chunkDataBuffer[8] = 1;
+                case ResolutionUnits.PixelsPerCentimeter:
 
-                this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
+                    this.chunkDataBuffer[8] = 1;
+                    const int CmInMeter = 100;
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution * CmInMeter));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.HorizontalResolution * CmInMeter));
+                    break;
+
+                default:
+
+                    this.chunkDataBuffer[8] = 1;
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution * PngConstants.InchesInMeter));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.HorizontalResolution * PngConstants.InchesInMeter));
+                    break;
             }
+
+            this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
         }
 
         /// <summary>

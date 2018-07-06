@@ -425,7 +425,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     : 0;
 
                 byte units = this.MetaData.ExifProfile.TryGetValue(ExifTag.ResolutionUnit, out ExifValue resolutionTag)
-                    ? (byte)(((ushort)resolutionTag.Value) - 1) // EXIF is 1,2,3
+                    ? (byte)(((ushort)resolutionTag.Value) - 1) // ExifTag.ResolutionUnit values are 1, 2, 3
                     : byte.MinValue;
 
                 if (horizontalValue > 0 && verticalValue > 0)

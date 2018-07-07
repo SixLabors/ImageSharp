@@ -29,10 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             Guard.MustBeGreaterThan(xDensity, 0, nameof(xDensity));
             Guard.MustBeGreaterThan(yDensity, 0, nameof(yDensity));
+            Guard.MustBeBetweenOrEqualTo(densityUnits, 0, 2, nameof(densityUnits));
 
             this.MajorVersion = majorVersion;
             this.MinorVersion = minorVersion;
-            this.DensityUnits = (ResolutionUnits)densityUnits;
+            this.DensityUnits = (PixelResolutionUnit)densityUnits;
             this.XDensity = xDensity;
             this.YDensity = yDensity;
         }
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         ///  01 : Pixels per inch (2.54 cm)
         ///  02 : Pixels per centimeter
         /// </summary>
-        public ResolutionUnits DensityUnits { get; }
+        public PixelResolutionUnit DensityUnits { get; }
 
         /// <summary>
         /// Gets the horizontal pixel density. Must not be zero.

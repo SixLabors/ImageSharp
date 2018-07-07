@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.MetaData
         /// <summary>
         /// Gets or sets unit of measure used when reporting resolution.
         /// </summary>
-        public ResolutionUnits ResolutionUnits { get; set; } = ResolutionUnits.PixelsPerInch;
+        public PixelResolutionUnit ResolutionUnits { get; set; } = PixelResolutionUnit.PixelsPerInch;
 
         /// <summary>
         /// Gets or sets the Exif profile.

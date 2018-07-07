@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -210,10 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int componentCount = 3;
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader(
-                (byte)image.MetaData.ResolutionUnits,
-                (short)image.MetaData.HorizontalResolution,
-                (short)image.MetaData.VerticalResolution);
+            this.WriteApplicationHeader(image.MetaData);
 
             this.WriteProfiles(image);
 
@@ -428,10 +427,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the application header containing the JFIF identifier plus extra data.
         /// </summary>
-        /// <param name="resolutionUnits">The resolution unit of measurement.</param>
-        /// <param name="horizontalResolution">The resolution of the image in the x- direction.</param>
-        /// <param name="verticalResolution">The resolution of the image in the y- direction.</param>
-        private void WriteApplicationHeader(byte resolutionUnits, short horizontalResolution, short verticalResolution)
+        /// <param name="meta">The image meta data.</param>
+        private void WriteApplicationHeader(ImageMetaData meta)
         {
             // Write the start of image marker. Markers are always prefixed with with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -449,13 +446,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[10] = 0x00; // = "JFIF",'\0'
             this.buffer[11] = 0x01; // versionhi
             this.buffer[12] = 0x01; // versionlo
-            this.buffer[13] = resolutionUnits; // xyunits
 
             // Resolution. Big Endian
-            this.buffer[14] = (byte)(horizontalResolution >> 8);
-            this.buffer[15] = (byte)horizontalResolution;
-            this.buffer[16] = (byte)(verticalResolution >> 8);
-            this.buffer[17] = (byte)verticalResolution;
+            this.buffer[13] = (byte)meta.ResolutionUnits; // xyunits
+            Span<byte> hResolution = this.buffer.AsSpan(14, 2);
+            Span<byte> vResolution = this.buffer.AsSpan(16, 2);
+            BinaryPrimitives.WriteInt16BigEndian(hResolution, (short)Math.Round(meta.HorizontalResolution));
+            BinaryPrimitives.WriteInt16BigEndian(vResolution, (short)Math.Round(meta.VerticalResolution));
 
             // No thumbnail
             this.buffer[18] = 0x00; // Thumbnail width

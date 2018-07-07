@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ImageMetaData meta = image.MetaData;
             byte ratio = 0;
 
-            if (meta.ResolutionUnits == ResolutionUnits.AspectRatio)
+            if (meta.ResolutionUnits == PixelResolutionUnit.AspectRatio)
             {
                 double hr = meta.HorizontalResolution;
                 double vr = meta.VerticalResolution;

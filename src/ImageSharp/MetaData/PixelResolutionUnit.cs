@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.MetaData
     /// <summary>
     /// Provides enumeration of available pixel density units.
     /// </summary>
-    public enum ResolutionUnits : byte
+    public enum PixelResolutionUnit : byte
     {
         /// <summary>
         /// No units; width:height pixel aspect ratio = Ydensity:Xdensity

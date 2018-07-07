@@ -28,11 +28,12 @@ namespace SixLabors.ImageSharp.Tests
         private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>()
         {
             { ExifTag.Software, "Software" },
-            { ExifTag.Model, "Model" },
             { ExifTag.Copyright, "Copyright" },
             { ExifTag.Orientation, (ushort)5 },
             { ExifTag.ShutterSpeedValue, new SignedRational(75.55) },
+            { ExifTag.ImageDescription, "ImageDescription" },
             { ExifTag.ExposureTime, new Rational(1.0 / 1600.0) },
+            { ExifTag.Model, "Model" },
         };
 
         [Theory]
@@ -272,22 +273,36 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(170, thumbnail.Height);
         }
 
-        [Fact]
-        public void WriteTooLargeProfile()
+        [Theory]
+        [InlineData(ExifTag.Software)]
+        [InlineData(ExifTag.Copyright)]
+        [InlineData(ExifTag.Model)]
+        [InlineData(ExifTag.ImageDescription)]
+        public void ReadWriteLargeProfileJpg(ExifTag exifValueToChange)
         {
+            // arrange
             var junk = new StringBuilder();
-            for (int i = 0; i < 65500; i++)
+            for (int i = 0; i < 65600; i++)
             {
-                junk.Append("I");
+                junk.Append("a");
             }
-
             var image = new Image<Rgba32>(100, 100);
-            image.MetaData.ExifProfile = new ExifProfile();
-            image.MetaData.ExifProfile.SetValue(ExifTag.ImageDescription, junk.ToString());
+            ExifProfile expectedProfile = CreateExifProfile();
+            var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
+            expectedProfile.SetValue(exifValueToChange, junk.ToString());
+            image.MetaData.ExifProfile = expectedProfile;
 
-            using (var memStream = new MemoryStream())
+            // act
+            Image<Rgba32> reloadedImage = WriteAndRead(image, TestImageWriteFormat.Jpeg);
+
+            // assert
+            ExifProfile actualProfile = reloadedImage.MetaData.ExifProfile;
+            Assert.NotNull(actualProfile);
+            foreach (ExifTag expectedProfileTag in expectedProfileTags)
             {
-                Assert.Throws<ImageFormatException>(() => image.SaveAsJpeg(memStream));
+                ExifValue actualProfileValue = actualProfile.GetValue(expectedProfileTag);
+                ExifValue expectedProfileValue = expectedProfile.GetValue(expectedProfileTag);
+                Assert.Equal(expectedProfileValue.Value, actualProfileValue.Value);
             }
         }
 
@@ -331,7 +346,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
-        public void TestWritingImagePreservesExifProfile(TestImageWriteFormat imageFormat)
+        public void WritingImagePreservesExifProfile(TestImageWriteFormat imageFormat)
         {
             // arrange
             var image = new Image<Rgba32>(1, 1);
@@ -355,26 +370,34 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void TestProfileToByteArrayWorks(bool includeExifIdCode)
+        public void ProfileToByteArray(bool includeExifIdCode)
         {
             // arrange
             byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray(); 
             byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
-            ExifProfile profile = CreateExifProfile();
+            ExifProfile expectedProfile = CreateExifProfile();
+            var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
 
             // act
-            byte[] actual = profile.ToByteArray(includeExifIdCode ? ProfileResolver.ExifMarker : default(ReadOnlySpan<byte>));
+            byte[] actualBytes = expectedProfile.ToByteArray(includeExifIdCode ? ProfileResolver.ExifMarker : default(ReadOnlySpan<byte>));
+            var actualProfile = new ExifProfile(actualBytes);
 
             // assert
-            Assert.NotNull(actual);
-            Assert.NotEmpty(actual);
+            Assert.NotNull(actualBytes);
+            Assert.NotEmpty(actualBytes);
             if (includeExifIdCode)
             {
-                Assert.Equal(exifBytesWithExifCode, actual.Take(exifBytesWithExifCode.Length).ToArray());
+                Assert.Equal(exifBytesWithExifCode, actualBytes.Take(exifBytesWithExifCode.Length).ToArray());
             }
             else
             {
-                Assert.Equal(exifBytesWithoutExifCode, actual.Take(exifBytesWithoutExifCode.Length).ToArray());
+                Assert.Equal(exifBytesWithoutExifCode, actualBytes.Take(exifBytesWithoutExifCode.Length).ToArray());
+            }
+            foreach(ExifTag expectedProfileTag in expectedProfileTags)
+            {
+                ExifValue actualProfileValue = actualProfile.GetValue(expectedProfileTag);
+                ExifValue expectedProfileValue = expectedProfile.GetValue(expectedProfileTag);
+                Assert.Equal(expectedProfileValue.Value, actualProfileValue.Value);
             }
         }
 

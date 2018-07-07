@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.MetaData;
@@ -406,7 +407,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             //   1: unit is the meter
             //
             // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
-            // Conversion note: one inch is equal to exactly 0.0254 meters.
             int hResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4));
             int vResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4));
             byte unit = data[8];
@@ -415,15 +415,14 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 metadata.HorizontalResolution = hResolution;
                 metadata.VerticalResolution = vResolution;
-                metadata.ResolutionUnits = ResolutionUnits.AspectRatio;
+                metadata.ResolutionUnits = PixelResolutionUnit.AspectRatio;
                 return;
             }
 
-            // Use PPI for its commonality.
-            const double inchesInMeter = PngConstants.InchesInMeter;
-            metadata.HorizontalResolution = hResolution / inchesInMeter;
-            metadata.VerticalResolution = vResolution / inchesInMeter;
-            metadata.ResolutionUnits = ResolutionUnits.PixelsPerInch;
+            // Use PPC since original is in meters.
+            metadata.HorizontalResolution = UnitConverter.MeterToCm(hResolution);
+            metadata.VerticalResolution = UnitConverter.MeterToCm(vResolution);
+            metadata.ResolutionUnits = PixelResolutionUnit.PixelsPerCentimeter;
         }
 
         /// <summary>

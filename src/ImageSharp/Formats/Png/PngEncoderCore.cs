@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.MetaData;
@@ -609,32 +610,31 @@ namespace SixLabors.ImageSharp.Formats.Png
             //   1: unit is the meter
             //
             // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
-            // Conversion note: one inch is equal to exactly 0.0254 meters.
             ImageMetaData meta = image.MetaData;
             Span<byte> hResolution = this.chunkDataBuffer.AsSpan(0, 4);
             Span<byte> vResolution = this.chunkDataBuffer.AsSpan(4, 4);
+
             switch (meta.ResolutionUnits)
             {
-                case ResolutionUnits.AspectRatio:
+                case PixelResolutionUnit.AspectRatio:
 
                     this.chunkDataBuffer[8] = 0;
                     BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution));
-                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.HorizontalResolution));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.VerticalResolution));
                     break;
 
-                case ResolutionUnits.PixelsPerCentimeter:
+                case PixelResolutionUnit.PixelsPerCentimeter:
 
-                    this.chunkDataBuffer[8] = 1;
-                    const int CmInMeter = 100;
-                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution * CmInMeter));
-                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.HorizontalResolution * CmInMeter));
+                    this.chunkDataBuffer[8] = 1; // Per meter
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution)));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution)));
                     break;
 
                 default:
 
-                    this.chunkDataBuffer[8] = 1;
-                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution * PngConstants.InchesInMeter));
-                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.HorizontalResolution * PngConstants.InchesInMeter));
+                    this.chunkDataBuffer[8] = 1; // Per meter
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution)));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution)));
                     break;
             }
 

@@ -472,7 +472,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
-                this.MetaData.ExifProfile = new ExifProfile(profile);
+                if (this.MetaData.ExifProfile == null)
+                {
+                    this.MetaData.ExifProfile = new ExifProfile(profile);
+                }
+                else
+                {
+                    // if the exif information exceeds 64K, it will be split over multiple APP1 marker
+                    this.MetaData.ExifProfile.Extend(profile);
+                }
             }
         }
 

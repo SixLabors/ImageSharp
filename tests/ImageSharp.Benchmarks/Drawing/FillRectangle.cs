@@ -10,8 +10,6 @@ using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Overlays;
 using CoreRectangle = SixLabors.Primitives.Rectangle;
 using CoreSize = SixLabors.Primitives.Size;
 
@@ -31,7 +29,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 {
                     graphics.InterpolationMode = InterpolationMode.Default;
                     graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    graphics.FillRectangle(Brushes.HotPink, new Rectangle(10, 10, 190, 140));
+                    graphics.FillRectangle(System.Drawing.Brushes.HotPink, new Rectangle(10, 10, 190, 140));
                 }
                 return destination.Size;
             }

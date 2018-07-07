@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;

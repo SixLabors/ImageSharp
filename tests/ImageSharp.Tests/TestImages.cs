@@ -144,6 +144,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string NoEoiProgressive517 = "Jpg/issues/Issue517-No-EOI-Progressive.jpg";
                 public const string BadRstProgressive518 = "Jpg/issues/Issue518-Bad-RST-Progressive.jpg";
                 public const string InvalidCast520 = "Jpg/issues/Issue520-InvalidCast.jpg";
+                public const string DhtHasWrongLength624 = "Jpg/issues/Issue624-DhtHasWrongLength-Progressive-N.jpg";
             }
 
             public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();

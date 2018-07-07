@@ -5,13 +5,11 @@ using System;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-    using SixLabors.ImageSharp.Processing.Transforms;
-
     public class AutoOrientTests : FileTestBase
     {
         public static readonly string[] FlipFiles = { TestImages.Bmp.F };

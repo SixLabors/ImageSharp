@@ -59,6 +59,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private PdfJsHuffmanTables acHuffmanTables;
 
         /// <summary>
+        /// The fast AC tables used for entropy decoding
+        /// </summary>
+        private FastACTables fastACTables;
+
+        /// <summary>
         /// The reset interval determined by RST markers
         /// </summary>
         private ushort resetInterval;
@@ -239,6 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 this.QuantizationTables = new Block8x8F[4];
                 this.dcHuffmanTables = new PdfJsHuffmanTables();
                 this.acHuffmanTables = new PdfJsHuffmanTables();
+                this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
             }
 
             while (fileMarker.Marker != JpegConstants.Markers.EOI)
@@ -353,12 +359,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         {
             this.InputStream?.Dispose();
             this.Frame?.Dispose();
+            this.fastACTables?.Dispose();
 
             // Set large fields to null.
             this.InputStream = null;
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
+            this.fastACTables = null;
         }
 
         /// <summary>
@@ -731,11 +739,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
                             i += 17 + codeLengthSum;
 
+                            int tableType = huffmanTableSpec >> 4;
+                            int tableIndex = huffmanTableSpec & 15;
+
                             this.BuildHuffmanTable(
-                                huffmanTableSpec >> 4 == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
-                                huffmanTableSpec & 15,
+                                tableType == 0 ? this.dcHuffmanTables : this.acHuffmanTables,
+                                tableIndex,
                                 codeLengths.GetSpan(),
                                 huffmanValues.GetSpan());
+
+                            if (huffmanTableSpec >> 4 != 0)
+                            {
+                                // Build a table that decodes both magnitude and value of small ACs in one go.
+                                this.fastACTables.BuildACTableLut(huffmanTableSpec & 15, this.acHuffmanTables);
+                            }
                         }
                     }
                 }
@@ -794,21 +811,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
-            PdfJsScanDecoder scanDecoder = default;
 
-            scanDecoder.DecodeScan(
-                 this.Frame,
-                 this.InputStream,
-                 this.dcHuffmanTables,
-                 this.acHuffmanTables,
-                 this.Frame.Components,
-                 componentIndex,
-                 selectorsCount,
-                 this.resetInterval,
-                 spectralStart,
-                 spectralEnd,
-                 successiveApproximation >> 4,
-                 successiveApproximation & 15);
+            var sd = new ScanDecoder(
+                this.InputStream,
+                this.Frame,
+                this.dcHuffmanTables,
+                this.acHuffmanTables,
+                this.fastACTables,
+                componentIndex,
+                selectorsCount,
+                this.resetInterval,
+                spectralStart,
+                spectralEnd,
+                successiveApproximation >> 4,
+                successiveApproximation & 15);
+
+            sd.ParseEntropyCodedData();
         }
 
         /// <summary>
@@ -835,6 +853,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
         }
 
+        /// <summary>
+        /// Post processes the pixels into the destination image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private Image<TPixel> PostProcessIntoImage<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {

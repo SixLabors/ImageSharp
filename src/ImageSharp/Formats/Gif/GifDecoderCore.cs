@@ -535,7 +535,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             // Aspect Ratio = (Pixel Aspect Ratio + 15) / 64
             if (this.logicalScreenDescriptor.PixelAspectRatio > 0)
             {
-                meta.ResolutionUnits = ResolutionUnits.AspectRatio;
+                meta.ResolutionUnits = PixelResolutionUnit.AspectRatio;
                 float ratio = (this.logicalScreenDescriptor.PixelAspectRatio + 15) / 64F;
 
                 if (ratio > 1)

@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.True(isJFif);
             Assert.Equal(1, marker.MajorVersion);
             Assert.Equal(1, marker.MinorVersion);
-            Assert.Equal(ResolutionUnits.PixelsPerInch, marker.DensityUnits);
+            Assert.Equal(PixelResolutionUnit.PixelsPerInch, marker.DensityUnits);
             Assert.Equal(96, marker.XDensity);
             Assert.Equal(96, marker.YDensity);
         }

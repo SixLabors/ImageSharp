@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
@@ -424,15 +424,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     ? ((Rational)verticalTag.Value).ToDouble()
                     : 0;
 
-                byte units = this.MetaData.ExifProfile.TryGetValue(ExifTag.ResolutionUnit, out ExifValue resolutionTag)
-                    ? (byte)(((ushort)resolutionTag.Value) - 1) // ExifTag.ResolutionUnit values are 1, 2, 3
-                    : byte.MinValue;
-
                 if (horizontalValue > 0 && verticalValue > 0)
                 {
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
-                    this.MetaData.ResolutionUnits = (ResolutionUnits)units;
+                    this.MetaData.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.MetaData.ExifProfile);
                 }
             }
 

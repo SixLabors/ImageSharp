@@ -9,18 +9,23 @@ namespace SixLabors.ImageSharp.MetaData
     public enum PixelResolutionUnit : byte
     {
         /// <summary>
-        /// No units; width:height pixel aspect ratio = Ydensity:Xdensity
+        /// No units; width:height pixel aspect ratio.
         /// </summary>
         AspectRatio = 0,
 
         /// <summary>
-        /// Pixels per inch (2.54 cm)
+        /// Pixels per inch (2.54 cm).
         /// </summary>
-        PixelsPerInch = 1, // Other image formats would default to this.
+        PixelsPerInch = 1,
 
         /// <summary>
         /// Pixels per centimeter.
         /// </summary>
-        PixelsPerCentimeter = 2
+        PixelsPerCentimeter = 2,
+
+        /// <summary>
+        /// Pixels per meter (100 cm).
+        /// </summary>
+        PixelsPerMeter = 3
     }
 }

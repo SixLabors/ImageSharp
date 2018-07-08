@@ -623,6 +623,13 @@ namespace SixLabors.ImageSharp.Formats.Png
                     BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.VerticalResolution));
                     break;
 
+                case PixelResolutionUnit.PixelsPerInch:
+
+                    this.chunkDataBuffer[8] = 1; // Per meter
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution)));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution)));
+                    break;
+
                 case PixelResolutionUnit.PixelsPerCentimeter:
 
                     this.chunkDataBuffer[8] = 1; // Per meter
@@ -633,8 +640,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 default:
 
                     this.chunkDataBuffer[8] = 1; // Per meter
-                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution)));
-                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution)));
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.VerticalResolution));
                     break;
             }
 

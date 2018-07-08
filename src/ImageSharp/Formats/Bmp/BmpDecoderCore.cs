@@ -60,6 +60,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private Stream stream;
 
         /// <summary>
+        /// The metadata
+        /// </summary>
+        private ImageMetaData metaData;
+
+        /// <summary>
         /// The file header containing general information.
         /// TODO: Why is this not used? We advance the stream but do not use the values parsed.
         /// </summary>
@@ -103,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height);
+                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metaData);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -157,7 +162,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public IImageInfo Identify(Stream stream)
         {
             this.ReadImageHeaders(stream, out _, out _);
-            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, new ImageMetaData());
+            return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metaData);
         }
 
         /// <summary>
@@ -517,6 +522,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 throw new NotSupportedException($"ImageSharp does not support this BMP file. HeaderSize: {headerSize}.");
             }
+
+            // Resolution is stored in PPM.
+            ImageMetaData meta = new ImageMetaData();
+            if (this.infoHeader.XPelsPerMeter > 0 && this.infoHeader.YPelsPerMeter > 0)
+            {
+                meta.ResolutionUnits = PixelResolutionUnit.PixelsPerMeter;
+                meta.HorizontalResolution = this.infoHeader.XPelsPerMeter;
+                meta.VerticalResolution = this.infoHeader.YPelsPerMeter;
+            }
+
+            this.metaData = meta;
 
             // skip the remaining header because we can't read those parts
             this.stream.Skip(skipAmount);

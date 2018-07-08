@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.MetaData;
@@ -448,11 +448,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.buffer[12] = 0x01; // versionlo
 
             // Resolution. Big Endian
-            this.buffer[13] = (byte)meta.ResolutionUnits; // xyunits
             Span<byte> hResolution = this.buffer.AsSpan(14, 2);
             Span<byte> vResolution = this.buffer.AsSpan(16, 2);
-            BinaryPrimitives.WriteInt16BigEndian(hResolution, (short)Math.Round(meta.HorizontalResolution));
-            BinaryPrimitives.WriteInt16BigEndian(vResolution, (short)Math.Round(meta.VerticalResolution));
+
+            if (meta.ResolutionUnits == PixelResolutionUnit.PixelsPerMeter)
+            {
+                // Scale down to PPI
+                this.buffer[13] = (byte)PixelResolutionUnit.PixelsPerInch; // xyunits
+                BinaryPrimitives.WriteInt16BigEndian(hResolution, (short)Math.Round(UnitConverter.MeterToInch(meta.HorizontalResolution)));
+                BinaryPrimitives.WriteInt16BigEndian(vResolution, (short)Math.Round(UnitConverter.MeterToInch(meta.VerticalResolution)));
+            }
+            else
+            {
+                // We can simply pass the value.
+                this.buffer[13] = (byte)meta.ResolutionUnits; // xyunits
+                BinaryPrimitives.WriteInt16BigEndian(hResolution, (short)Math.Round(meta.HorizontalResolution));
+                BinaryPrimitives.WriteInt16BigEndian(vResolution, (short)Math.Round(meta.VerticalResolution));
+            }
 
             // No thumbnail
             this.buffer[18] = 0x00; // Thumbnail width

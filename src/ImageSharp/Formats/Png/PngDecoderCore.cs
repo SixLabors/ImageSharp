@@ -411,18 +411,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             int vResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4));
             byte unit = data[8];
 
-            if (unit == byte.MinValue)
-            {
-                metadata.HorizontalResolution = hResolution;
-                metadata.VerticalResolution = vResolution;
-                metadata.ResolutionUnits = PixelResolutionUnit.AspectRatio;
-                return;
-            }
+            metadata.ResolutionUnits = unit == byte.MinValue
+                ? PixelResolutionUnit.AspectRatio
+                : PixelResolutionUnit.PixelsPerMeter;
 
-            // Use PPC since original is in meters.
-            metadata.HorizontalResolution = UnitConverter.MeterToCm(hResolution);
-            metadata.VerticalResolution = UnitConverter.MeterToCm(vResolution);
-            metadata.ResolutionUnits = PixelResolutionUnit.PixelsPerCentimeter;
+            metadata.HorizontalResolution = hResolution;
+            metadata.VerticalResolution = vResolution;
         }
 
         /// <summary>

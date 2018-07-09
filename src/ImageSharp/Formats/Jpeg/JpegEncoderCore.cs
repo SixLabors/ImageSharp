@@ -621,7 +621,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
             int app1Length = bytesToWrite + 2;
 
-            // write the app1 header
             this.WriteApp1Header(app1Length);
 
             // write the exif data
@@ -634,7 +633,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
                 app1Length = bytesToWrite + 2 + 6;
 
-                // write the app1 header
                 this.WriteApp1Header(app1Length);
 
                 // write Exif00 marker
@@ -671,7 +669,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIccProfile(IccProfile iccProfile)
         {
-            // Just in-case someone set the value to null by accident.
             if (iccProfile == null)
             {
                 return;

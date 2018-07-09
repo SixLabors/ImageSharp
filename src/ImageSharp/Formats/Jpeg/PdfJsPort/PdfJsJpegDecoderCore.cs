@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -482,7 +483,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 this.isExif = true;
                 if (this.MetaData.ExifProfile == null)
                 {
-                    this.MetaData.ExifProfile = new ExifProfile(profile);
+                    // the first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
+                    this.MetaData.ExifProfile = new ExifProfile(profile.Skip(6).ToArray());
                 }
                 else
                 {

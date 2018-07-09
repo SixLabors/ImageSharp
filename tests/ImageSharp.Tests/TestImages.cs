@@ -65,6 +65,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Banner7Adam7InterlaceMode = "Png/banner7-adam.png";
             public const string Banner8Index = "Png/banner8-index.png";
 
+            public const string Ratio1x4 = "Png/ratio-1x4.png";
+            public const string Ratio4x1 = "Png/ratio-4x1.png";
+
             public static class Bad
             {
                 // Odd chunk lengths

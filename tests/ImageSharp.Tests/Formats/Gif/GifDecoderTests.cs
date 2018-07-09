@@ -4,7 +4,6 @@
 using System.Text;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 using Xunit;
 using System.IO;
 using SixLabors.ImageSharp.Advanced;

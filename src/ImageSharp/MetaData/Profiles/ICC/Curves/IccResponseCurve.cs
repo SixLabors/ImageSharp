@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
 
             return this.CurveType == other.CurveType
-                && this.XyzValues.SequenceEqual(other.XyzValues)
+                && this.XyzValues.AsSpan().SequenceEqual(other.XyzValues)
                 && this.EqualsResponseArray(other);
         }
 

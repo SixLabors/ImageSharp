@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
@@ -20,6 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="sourceWhitePoint">The source white point.</param>
         /// <param name="targetWhitePoint">The target white point.</param>
         /// <returns>The <see cref="CieXyz"/></returns>
-        CieXyz Transform(CieXyz sourceColor, CieXyz sourceWhitePoint, CieXyz targetWhitePoint);
+        CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint);
     }
 }

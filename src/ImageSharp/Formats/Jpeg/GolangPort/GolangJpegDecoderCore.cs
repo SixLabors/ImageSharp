@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using System.IO;
-
+using System.Linq;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
@@ -500,7 +500,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
-                this.MetaData.ExifProfile = new ExifProfile(profile);
+                this.MetaData.ExifProfile = new ExifProfile(profile.Skip(6).ToArray());
             }
         }
 

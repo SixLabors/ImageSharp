@@ -176,6 +176,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Cheers = "Gif/cheers.gif";
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
+            public const string Ratio4x1 = "Gif/base_4x1.gif";
+            public const string Ratio1x4 = "Gif/base_1x4.gif";
+
 
             public class Issues
             {
@@ -184,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
             }
 
-            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin };
+            public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Ratio4x1, Ratio1x4 };
         }
     }
 }

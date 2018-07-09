@@ -7,6 +7,7 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -59,6 +60,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public static readonly TheoryData<int> PaletteLargeOnly = new TheoryData<int>
         {
             80, 100, 120, 230
+        };
+
+        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
+        new TheoryData<string, int, int, PixelResolutionUnit>
+        {
+            { TestImages.Png.Splash, 11810, 11810 , PixelResolutionUnit.PixelsPerMeter},
+            { TestImages.Png.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
 
         [Theory]
@@ -254,6 +263,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 };
 
                 Assert.Equal(expected, data);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var options = new PngEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        ImageMetaData meta = output.MetaData;
+                        Assert.Equal(xResolution, meta.HorizontalResolution);
+                        Assert.Equal(yResolution, meta.VerticalResolution);
+                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                    }
+                }
             }
         }
     }

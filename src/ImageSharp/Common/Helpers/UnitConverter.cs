@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
@@ -18,6 +17,12 @@ namespace SixLabors.ImageSharp.Common.Helpers
         /// 1 cm is equal to exactly 0.01 meters.
         /// </summary>
         private const double CmsInMeter = 1 / 0.01D;
+
+        /// <summary>
+        /// The number of centimeters in an inch.
+        /// 1 inch is equal to exactly 2.54 centimeters.
+        /// </summary>
+        private const double CmsInInch = 2.54D;
 
         /// <summary>
         /// The number of inches in a meter.
@@ -56,6 +61,22 @@ namespace SixLabors.ImageSharp.Common.Helpers
         /// <returns>The <see cref="double"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static double InchToMeter(double x) => x * InchesInMeter;
+
+        /// <summary>
+        /// Scales the value from centimeters to inches.
+        /// </summary>
+        /// <param name="x">The value to scale.</param>
+        /// <returns>The <see cref="double"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static double CmToInch(double x) => x / CmsInInch;
+
+        /// <summary>
+        /// Scales the value from inches to centimeters.
+        /// </summary>
+        /// <param name="x">The value to scale.</param>
+        /// <returns>The <see cref="double"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static double InchToCm(double x) => x * CmsInInch;
 
         /// <summary>
         /// Converts an <see cref="ExifTag.ResolutionUnit"/> to a <see cref="PixelResolutionUnit"/>.

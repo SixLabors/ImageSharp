@@ -12,12 +12,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal interface IRgbWorkingSpace : IEquatable<IRgbWorkingSpace>
     {
         /// <summary>
-        /// Gets the reference white of the color space
+        /// Gets the reference white of the color space.
         /// </summary>
         CieXyz WhitePoint { get; }
 
         /// <summary>
-        /// Gets the chromaticity coordinates of the primaries
+        /// Gets the chromaticity coordinates of the primaries.
         /// </summary>
         RgbPrimariesChromaticityCoordinates ChromaticityCoordinates { get; }
 

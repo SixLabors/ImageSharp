@@ -20,8 +20,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
 
-
-
         public static readonly string[] CommonTestImages =
         {
             TestImages.Png.Splash,

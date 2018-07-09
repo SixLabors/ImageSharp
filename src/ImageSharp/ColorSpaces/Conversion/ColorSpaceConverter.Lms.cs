@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieLab color)
+        public Lms ToLms(in CieLab color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieLch color)
+        public Lms ToLms(in CieLch color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieLchuv color)
+        public Lms ToLms(in CieLchuv color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieLuv color)
+        public Lms ToLms(in CieLuv color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieXyy color)
+        public Lms ToLms(in CieXyy color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(CieXyz color)
+        public Lms ToLms(in CieXyz color)
         {
             return this.cachedCieXyzAndLmsConverter.Convert(color);
         }
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(Cmyk color)
+        public Lms ToLms(in Cmyk color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(Hsl color)
+        public Lms ToLms(in Hsl color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(Hsv color)
+        public Lms ToLms(in Hsv color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(HunterLab color)
+        public Lms ToLms(in HunterLab color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(LinearRgb color)
+        public Lms ToLms(in LinearRgb color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(Rgb color)
+        public Lms ToLms(in Rgb color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Lms"/></returns>
-        public Lms ToLms(YCbCr color)
+        public Lms ToLms(in YCbCr color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToLms(xyzColor);

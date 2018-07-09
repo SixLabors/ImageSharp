@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return this.BreakPoints.SequenceEqual(other.BreakPoints)
+            return this.BreakPoints.AsSpan().SequenceEqual(other.BreakPoints)
                 && this.Segments.SequenceEqual(other.Segments);
         }
     }

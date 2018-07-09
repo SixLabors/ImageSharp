@@ -34,15 +34,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         /// <summary>
         /// Gets the target reference whitepoint. When not set, <see cref="CieLuv.DefaultWhitePoint"/> is used.
         /// </summary>
-        public CieXyz LuvWhitePoint
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
+        public CieXyz LuvWhitePoint { get; }
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLuv Convert(CieXyz input)
+        public CieLuv Convert(in CieXyz input)
         {
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_Luv.html
             float yr = input.Y / this.LuvWhitePoint.Y;
@@ -80,7 +76,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float ComputeUp(CieXyz input)
+        private static float ComputeUp(in CieXyz input)
         {
             return (4 * input.X) / (input.X + (15 * input.Y) + (3 * input.Z));
         }
@@ -90,7 +86,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         /// </summary>
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
-        private static float ComputeVp(CieXyz input)
+        private static float ComputeVp(in CieXyz input)
         {
             return (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));
         }

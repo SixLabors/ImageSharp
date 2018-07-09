@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(CieLab color)
+        public Hsl ToHsl(in CieLab color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(CieLch color)
+        public Hsl ToHsl(in CieLch color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(CieLchuv color)
+        public Hsl ToHsl(in CieLchuv color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(CieLuv color)
+        public Hsl ToHsl(in CieLuv color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(CieXyy color)
+        public Hsl ToHsl(in CieXyy color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(CieXyz color)
+        public Hsl ToHsl(in CieXyz color)
         {
             var rgb = this.ToRgb(color);
 
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(Cmyk color)
+        public Hsl ToHsl(in Cmyk color)
         {
             var rgb = this.ToRgb(color);
 
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(Hsv color)
+        public Hsl ToHsl(in Hsv color)
         {
             var rgb = this.ToRgb(color);
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(HunterLab color)
+        public Hsl ToHsl(in HunterLab color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(LinearRgb color)
+        public Hsl ToHsl(in LinearRgb color)
         {
             var rgb = this.ToRgb(color);
 
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(Rgb color)
+        public Hsl ToHsl(in Rgb color)
         {
             return HslAndRgbConverter.Convert(color);
         }
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Hsl"/></returns>
-        public Hsl ToHsl(YCbCr color)
+        public Hsl ToHsl(in YCbCr color)
         {
             var rgb = this.ToRgb(color);
 

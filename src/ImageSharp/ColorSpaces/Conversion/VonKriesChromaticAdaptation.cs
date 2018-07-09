@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <inheritdoc/>
-        public CieXyz Transform(CieXyz sourceColor, CieXyz sourceWhitePoint, CieXyz targetWhitePoint)
+        public CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint)
         {
             if (sourceWhitePoint.Equals(targetWhitePoint))
             {

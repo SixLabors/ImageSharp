@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(CieLab color)
+        public CieLuv ToCieLuv(in CieLab color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(CieLch color)
+        public CieLuv ToCieLuv(in CieLch color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLab"/></returns>
-        public CieLuv ToCieLuv(CieLchuv color)
+        public CieLuv ToCieLuv(in CieLchuv color)
         {
             // Conversion (perserving white point)
             CieLuv unadapted = CieLchuvToCieLuvConverter.Convert(color);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(CieXyy color)
+        public CieLuv ToCieLuv(in CieXyy color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(CieXyz color)
+        public CieLuv ToCieLuv(in CieXyz color)
         {
             // Adaptation
             CieXyz adapted = !this.WhitePoint.Equals(this.TargetLabWhitePoint) && this.IsChromaticAdaptationPerformed
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(Cmyk color)
+        public CieLuv ToCieLuv(in Cmyk color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(Hsl color)
+        public CieLuv ToCieLuv(in Hsl color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(Hsv color)
+        public CieLuv ToCieLuv(in Hsv color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(HunterLab color)
+        public CieLuv ToCieLuv(in HunterLab color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(Lms color)
+        public CieLuv ToCieLuv(in Lms color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(LinearRgb color)
+        public CieLuv ToCieLuv(in LinearRgb color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(Rgb color)
+        public CieLuv ToCieLuv(in Rgb color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLuv"/></returns>
-        public CieLuv ToCieLuv(YCbCr color)
+        public CieLuv ToCieLuv(in YCbCr color)
         {
             var xyzColor = this.ToCieXyz(color);
             return this.ToCieLuv(xyzColor);

@@ -41,15 +41,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Returns the EXIF data.
         /// </summary>
-        /// <param name="exifIdCode">The Exif Id Code is part of the JPEG APP1 segment (Exif00). Those bytes will be written at
-        /// the beginning of the array. This Exif ID code should not be included in case of PNG's.</param>
         /// <returns>
         /// The <see cref="T:byte[]"/>.
         /// </returns>
-        public byte[] GetData(ReadOnlySpan<byte> exifIdCode)
+        public byte[] GetData()
         {
-            uint exifIdCodeLength = exifIdCode.IsEmpty ? 0 : (uint)exifIdCode.Length;
-            uint startIndex = exifIdCodeLength;
+            uint startIndex = 0;
             uint length;
             int exifIndex = -1;
             int gpsIndex = -1;
@@ -85,8 +82,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return null;
             }
 
-            length += exifIdCodeLength;
-
             // two bytes for the byte Order marker 'II', followed by the number 42 (0x2A) and a 0, making 4 bytes total
             length += (uint)ExifConstants.LittleEndianByteOrderMarker.Length;
 
@@ -95,11 +90,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             byte[] result = new byte[length];
 
             int i = 0;
-            if (!exifIdCode.IsEmpty)
-            {
-                exifIdCode.CopyTo(result); // 0-5
-                i += exifIdCode.Length;
-            }
 
             // the byte order marker for little-endian, followed by the number 42 and a 0
             ExifConstants.LittleEndianByteOrderMarker.AsSpan().CopyTo(result.AsSpan(start: i));

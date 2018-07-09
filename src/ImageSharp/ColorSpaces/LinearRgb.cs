@@ -14,12 +14,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct LinearRgb : IColorVector, IEquatable<LinearRgb>, IAlmostEquatable<LinearRgb, float>
     {
         /// <summary>
-        /// Represents a <see cref="LinearRgb"/> that has R, G, and B values set to zero.
-        /// </summary>
-        public static readonly LinearRgb Empty = default;
-
-        /// <summary>
-        /// The default LinearRgb working space
+        /// The default LinearRgb working space.
         /// </summary>
         public static readonly IRgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
@@ -112,18 +107,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         public IRgbWorkingSpace WorkingSpace { get; }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="LinearRgb"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="LinearRgb"/> objects for equality.
@@ -162,6 +147,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -170,16 +156,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "LinearRgb [ Empty ]";
-            }
-
-            return $"LinearRgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
+            return this.Equals(default)
+                ? "LinearRgb [ Empty ]"
+                : $"LinearRgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             return obj is LinearRgb other && this.Equals(other);

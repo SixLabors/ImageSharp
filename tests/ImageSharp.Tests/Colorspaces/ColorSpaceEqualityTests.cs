@@ -19,18 +19,18 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         internal static readonly Dictionary<string, IColorVector> EmptyDataLookup =
             new Dictionary<string, IColorVector>
                 {
-                    {nameof( CieLab), CieLab.Empty },
-                    {nameof( CieLch), CieLch.Empty },
-                    {nameof( CieLchuv), CieLchuv.Empty },
-                    {nameof( CieLuv), CieLuv.Empty },
-                    {nameof( CieXyz), CieXyz.Empty },
-                    {nameof( CieXyy), CieXyy.Empty },
-                    {nameof( Hsl), Hsl.Empty },
-                    {nameof( HunterLab), HunterLab.Empty },
-                    {nameof( Lms), Lms.Empty },
-                    {nameof( LinearRgb), LinearRgb.Empty },
-                    {nameof( Rgb), Rgb.Empty },
-                    {nameof( YCbCr), YCbCr.Empty }
+                    {nameof( CieLab), default(CieLab) },
+                    {nameof( CieLch), default(CieLch) },
+                    {nameof( CieLchuv), default(CieLchuv) },
+                    {nameof( CieLuv), default(CieLuv) },
+                    {nameof( CieXyz), default(CieXyz) },
+                    {nameof( CieXyy), default(CieXyy) },
+                    {nameof( Hsl), default(Hsl) },
+                    {nameof( HunterLab), default(HunterLab) },
+                    {nameof( Lms), default(Lms) },
+                    {nameof( LinearRgb), default(LinearRgb) },
+                    {nameof( Rgb), default(Rgb) },
+                    {nameof( YCbCr), default(YCbCr) }
                 };
 
         public static readonly IEnumerable<object[]> EmptyData = EmptyDataLookup.Select(x => new [] { x.Key });

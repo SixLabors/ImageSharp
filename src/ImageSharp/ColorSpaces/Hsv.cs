@@ -16,12 +16,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Hsv : IColorVector, IEquatable<Hsv>, IAlmostEquatable<Hsv, float>
     {
         /// <summary>
-        /// Represents a <see cref="Hsv"/> that has H, S, and V values set to zero.
-        /// </summary>
-        public static readonly Hsv Empty = default;
-
-        /// <summary>
-        /// Max range used for clamping
+        /// Max range used for clamping.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
 
@@ -81,12 +76,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.backingVector.Z;
         }
-
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Hsv"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
 
         /// <inheritdoc/>
         public Vector3 Vector
@@ -182,6 +171,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -190,16 +180,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Hsv [ Empty ]";
-            }
-
-            return $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
+            return this.Equals(default)
+                ? "Hsv [ Empty ]"
+                : $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             return obj is Hsv other && this.Equals(other);

@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Lms Convert(CieXyz input)
+        public Lms Convert(in CieXyz input)
         {
             var vector = Vector3.Transform(input.Vector, this.transformationMatrix);
 
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(Lms input)
+        public CieXyz Convert(in Lms input)
         {
             var vector = Vector3.Transform(input.Vector, this.inverseTransformationMatrix);
 

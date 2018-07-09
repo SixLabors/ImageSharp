@@ -18,6 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="sourceWhitePoint">The source white point.</param>
         /// <param name="targetWhitePoint">The target white point.</param>
         /// <returns>The <see cref="CieXyz"/></returns>
-        CieXyz Transform(CieXyz sourceColor, CieXyz sourceWhitePoint, CieXyz targetWhitePoint);
+        CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint);
     }
 }

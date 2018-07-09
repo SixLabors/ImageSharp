@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <param name="color">The color to adapt</param>
         /// <param name="sourceWhitePoint">The white point to adapt for</param>
         /// <returns>The adapted color</returns>
-        public CieXyz Adapt(CieXyz color, CieXyz sourceWhitePoint)
+        public CieXyz Adapt(in CieXyz color, in CieXyz sourceWhitePoint)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public CieLab Adapt(CieLab color)
+        public CieLab Adapt(in CieLab color)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public CieLch Adapt(CieLch color)
+        public CieLch Adapt(in CieLch color)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public CieLchuv Adapt(CieLchuv color)
+        public CieLchuv Adapt(in CieLchuv color)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public CieLuv Adapt(CieLuv color)
+        public CieLuv Adapt(in CieLuv color)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public HunterLab Adapt(HunterLab color)
+        public HunterLab Adapt(in HunterLab color)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public LinearRgb Adapt(LinearRgb color)
+        public LinearRgb Adapt(in LinearRgb color)
         {
             if (!this.IsChromaticAdaptationPerformed)
             {
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to adapt</param>
         /// <returns>The adapted color</returns>
-        public Rgb Adapt(Rgb color)
+        public Rgb Adapt(in Rgb color)
         {
             LinearRgb linearInput = this.ToLinearRgb(color);
             LinearRgb linearOutput = this.Adapt(linearInput);

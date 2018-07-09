@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(CieLab color)
+        public YCbCr ToYCbCr(in CieLab color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(CieLch color)
+        public YCbCr ToYCbCr(in CieLch color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(CieLchuv color)
+        public YCbCr ToYCbCr(in CieLchuv color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(CieLuv color)
+        public YCbCr ToYCbCr(in CieLuv color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(CieXyy color)
+        public YCbCr ToYCbCr(in CieXyy color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(CieXyz color)
+        public YCbCr ToYCbCr(in CieXyz color)
         {
             var rgb = this.ToRgb(color);
 
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(Cmyk color)
+        public YCbCr ToYCbCr(in Cmyk color)
         {
             var rgb = this.ToRgb(color);
 
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(Hsl color)
+        public YCbCr ToYCbCr(in Hsl color)
         {
             var rgb = this.ToRgb(color);
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(Hsv color)
+        public YCbCr ToYCbCr(in Hsv color)
         {
             var rgb = this.ToRgb(color);
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(HunterLab color)
+        public YCbCr ToYCbCr(in HunterLab color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(LinearRgb color)
+        public YCbCr ToYCbCr(in LinearRgb color)
         {
             var rgb = this.ToRgb(color);
 
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(Lms color)
+        public YCbCr ToYCbCr(in Lms color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="YCbCr"/></returns>
-        public YCbCr ToYCbCr(Rgb color)
+        public YCbCr ToYCbCr(in Rgb color)
         {
             return YCbCrAndRgbConverter.Convert(color);
         }

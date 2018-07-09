@@ -6,10 +6,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Trivial implementation of <see cref="IRgbWorkingSpace"/>
     /// </summary>
-    internal readonly struct RgbWorkingSpace : IRgbWorkingSpace
+    internal class RgbWorkingSpace : IRgbWorkingSpace
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> struct.
+        /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> class.
         /// </summary>
         /// <param name="referenceWhite">The reference white point.</param>
         /// <param name="companding">The function pair for converting to <see cref="CieXyz"/> and back.</param>

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(CieLab color)
+        public Cmyk ToCmyk(in CieLab color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(CieLch color)
+        public Cmyk ToCmyk(in CieLch color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(CieLchuv color)
+        public Cmyk ToCmyk(in CieLchuv color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(CieLuv color)
+        public Cmyk ToCmyk(in CieLuv color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(CieXyy color)
+        public Cmyk ToCmyk(in CieXyy color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(CieXyz color)
+        public Cmyk ToCmyk(in CieXyz color)
         {
             var rgb = this.ToRgb(color);
 
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(Hsl color)
+        public Cmyk ToCmyk(in Hsl color)
         {
             var rgb = this.ToRgb(color);
 
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(Hsv color)
+        public Cmyk ToCmyk(in Hsv color)
         {
             var rgb = this.ToRgb(color);
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(HunterLab color)
+        public Cmyk ToCmyk(in HunterLab color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(LinearRgb color)
+        public Cmyk ToCmyk(in LinearRgb color)
         {
             var rgb = this.ToRgb(color);
 
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(Lms color)
+        public Cmyk ToCmyk(in Lms color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(Rgb color)
+        public Cmyk ToCmyk(in Rgb color)
         {
             return CmykAndRgbConverter.Convert(color);
         }
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="Cmyk"/></returns>
-        public Cmyk ToCmyk(YCbCr color)
+        public Cmyk ToCmyk(in YCbCr color)
         {
             var rgb = this.ToRgb(color);
 

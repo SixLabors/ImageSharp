@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         public IRgbWorkingSpace TargetWorkingSpace { get; }
 
         /// <inheritdoc/>
-        public LinearRgb Convert(CieXyz input)
+        public LinearRgb Convert(in CieXyz input)
         {
             Matrix4x4.Invert(this.conversionMatrix, out Matrix4x4 inverted);
             Vector3 vector = Vector3.Transform(input.Vector, inverted);

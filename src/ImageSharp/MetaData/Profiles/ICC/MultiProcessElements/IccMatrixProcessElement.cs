@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 using SixLabors.ImageSharp.Primitives;
 
@@ -47,7 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             if (base.Equals(other) && other is IccMatrixProcessElement element)
             {
                 return this.EqualsMatrix(element)
-                    && this.MatrixOx1.SequenceEqual(element.MatrixOx1);
+                    && this.MatrixOx1.AsSpan().SequenceEqual(element.MatrixOx1);
             }
 
             return false;

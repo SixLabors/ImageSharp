@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests
                 Powerpoint, SplashInterlaced, Interlaced,
                 Filter0, Filter1, Filter2, Filter3, Filter4,
                 FilterVar, VimImage1, VimImage2, VersioningImage1,
-                VersioningImage2
+                VersioningImage2, Ratio4x1, Ratio1x4
             };
         }
 
@@ -127,13 +127,14 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Jpeg420Small = "Jpg/baseline/jpeg420small.jpg";
                 public const string Testorig420 = "Jpg/baseline/testorig.jpg";
                 public const string MultiScanBaselineCMYK = "Jpg/baseline/MultiScanBaselineCMYK.jpg";
+                public const string Ratio1x1 = "Jpg/baseline/ratio-1x1.jpg";
 
                 public static readonly string[] All =
-                    {
-                        Cmyk, Ycck, Exif, Floorplan,
-                        Calliphora, Turtle, GammaDalaiLamaGray,
-                        Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
-                    };
+                {
+                    Cmyk, Ycck, Exif, Floorplan,
+                    Calliphora, Turtle, GammaDalaiLamaGray,
+                    Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444, Ratio1x1
+                };
             }
 
             public static class Issues
@@ -182,8 +183,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Ratio4x1 = "Gif/base_4x1.gif";
             public const string Ratio1x4 = "Gif/base_1x4.gif";
 
-
-            public class Issues
+            public static class Issues
             {
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";

@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -524,12 +525,18 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             // Resolution is stored in PPM.
-            ImageMetaData meta = new ImageMetaData();
+            var meta = new ImageMetaData();
+            meta.ResolutionUnits = PixelResolutionUnit.PixelsPerMeter;
             if (this.infoHeader.XPelsPerMeter > 0 && this.infoHeader.YPelsPerMeter > 0)
             {
-                meta.ResolutionUnits = PixelResolutionUnit.PixelsPerMeter;
                 meta.HorizontalResolution = this.infoHeader.XPelsPerMeter;
                 meta.VerticalResolution = this.infoHeader.YPelsPerMeter;
+            }
+            else
+            {
+                // Convert default metadata values to PPM.
+                meta.HorizontalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetaData.DefaultHorizontalResolution));
+                meta.VerticalResolution = Math.Round(UnitConverter.InchToMeter(ImageMetaData.DefaultVerticalResolution));
             }
 
             this.metaData = meta;

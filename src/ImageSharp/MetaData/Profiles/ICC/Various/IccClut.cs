@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 && this.DataType == other.DataType
                 && this.InputChannelCount == other.InputChannelCount
                 && this.OutputChannelCount == other.OutputChannelCount
-                && this.GridPointCount.SequenceEqual(other.GridPointCount);
+                && this.GridPointCount.AsSpan().SequenceEqual(other.GridPointCount);
         }
 
         /// <inheritdoc/>
@@ -162,7 +162,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             for (int i = 0; i < this.Values.Length; i++)
             {
-                if (!this.Values[i].SequenceEqual(other.Values[i]))
+                if (!this.Values[i].AsSpan().SequenceEqual(other.Values[i]))
                 {
                     return false;
                 }

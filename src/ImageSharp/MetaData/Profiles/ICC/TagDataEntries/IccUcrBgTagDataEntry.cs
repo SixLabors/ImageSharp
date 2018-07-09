@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -77,8 +76,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
 
             return base.Equals(other)
-                && this.UcrCurve.SequenceEqual(other.UcrCurve)
-                && this.BgCurve.SequenceEqual(other.BgCurve)
+                && this.UcrCurve.AsSpan().SequenceEqual(other.UcrCurve)
+                && this.BgCurve.AsSpan().SequenceEqual(other.BgCurve)
                 && string.Equals(this.Description, other.Description);
         }
 

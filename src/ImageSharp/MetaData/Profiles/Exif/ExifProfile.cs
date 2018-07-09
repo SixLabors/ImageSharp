@@ -245,10 +245,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
-        /// <param name="exifIdCode">The Exif Id Code is part of the JPEG APP1 segment (Exif00). Those bytes will be written at
-        /// the beginning of the array. This Exif ID code should not be included in case of PNG's.</param>
         /// <returns>The <see cref="T:byte[]"/></returns>
-        public byte[] ToByteArray(ReadOnlySpan<byte> exifIdCode = default)
+        public byte[] ToByteArray()
         {
             if (this.values == null)
             {
@@ -261,7 +259,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             var writer = new ExifWriter(this.values, this.Parts);
-            return writer.GetData(exifIdCode);
+            return writer.GetData();
         }
 
         /// <summary>

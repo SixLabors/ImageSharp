@@ -33,7 +33,6 @@ namespace SixLabors.ImageSharp.Tests
             ImageMetaData clone = metaData.Clone();
 
             Assert.Equal(exifProfile.ToByteArray(), clone.ExifProfile.ToByteArray());
-            Assert.Equal(exifProfile.ToByteArray(ProfileResolver.ExifMarker), clone.ExifProfile.ToByteArray(ProfileResolver.ExifMarker));
             Assert.Equal(4, clone.HorizontalResolution);
             Assert.Equal(2, clone.VerticalResolution);
             Assert.Equal(imageProperty, clone.Properties[0]);

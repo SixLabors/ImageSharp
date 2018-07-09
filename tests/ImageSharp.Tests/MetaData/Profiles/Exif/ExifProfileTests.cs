@@ -339,8 +339,8 @@ namespace SixLabors.ImageSharp.Tests
             // Force parsing of the profile.
             Assert.Equal(24, profile.Values.Count);
 
-            byte[] bytes = profile.ToByteArray(ProfileResolver.ExifMarker);
-            Assert.Equal(495, bytes.Length);
+            byte[] bytes = profile.ToByteArray();
+            Assert.Equal(489, bytes.Length);
         }
 
         [Theory]
@@ -367,10 +367,8 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void ProfileToByteArray(bool includeExifIdCode)
+        [Fact]
+        public void ProfileToByteArray()
         {
             // arrange
             byte[] exifBytesWithExifCode = ProfileResolver.ExifMarker.Concat(ExifConstants.LittleEndianByteOrderMarker).ToArray(); 
@@ -379,20 +377,13 @@ namespace SixLabors.ImageSharp.Tests
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
 
             // act
-            byte[] actualBytes = expectedProfile.ToByteArray(includeExifIdCode ? ProfileResolver.ExifMarker : default(ReadOnlySpan<byte>));
+            byte[] actualBytes = expectedProfile.ToByteArray();
             var actualProfile = new ExifProfile(actualBytes);
 
             // assert
             Assert.NotNull(actualBytes);
             Assert.NotEmpty(actualBytes);
-            if (includeExifIdCode)
-            {
-                Assert.Equal(exifBytesWithExifCode, actualBytes.Take(exifBytesWithExifCode.Length).ToArray());
-            }
-            else
-            {
-                Assert.Equal(exifBytesWithoutExifCode, actualBytes.Take(exifBytesWithoutExifCode.Length).ToArray());
-            }
+            Assert.Equal(exifBytesWithoutExifCode, actualBytes.Take(exifBytesWithoutExifCode.Length).ToArray());
             foreach(ExifTag expectedProfileTag in expectedProfileTags)
             {
                 ExifValue actualProfileValue = actualProfile.GetValue(expectedProfileTag);

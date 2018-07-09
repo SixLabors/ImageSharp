@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -611,11 +612,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             const int MaxBytesApp1 = 65533;
             const int MaxBytesWithExifId = 65527;
-            byte[] data = exifProfile?.ToByteArray(ProfileResolver.ExifMarker);
+
+            byte[] data = exifProfile?.ToByteArray();
+
             if (data == null || data.Length == 0)
             {
                 return;
             }
+
+            data = ProfileResolver.ExifMarker.Concat(data).ToArray();
 
             int remaining = data.Length;
             int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;

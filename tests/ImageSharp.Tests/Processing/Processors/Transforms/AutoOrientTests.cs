@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var profile = new ExifProfile();
             profile.SetValue(ExifTag.JPEGTables, orientation);
 
-            byte[] bytes = profile.ToByteArray(ProfileResolver.ExifMarker);
+            byte[] bytes = profile.ToByteArray();
             // Change the tag into ExifTag.Orientation
             bytes[16] = 18;
             bytes[17] = 1;

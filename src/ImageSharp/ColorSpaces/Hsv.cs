@@ -78,11 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a

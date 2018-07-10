@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Gets or sets the target working space used *when creating* RGB colors. (RGB colors on the input already contain the working space information)
         /// Defaults to: <see cref="Rgb.DefaultWorkingSpace"/>.
         /// </summary>
-        public IRgbWorkingSpace TargetRgbWorkingSpace { get; set; }
+        public RgbWorkingSpace TargetRgbWorkingSpace { get; set; }
 
         /// <summary>
         /// Gets or sets the chromatic adaptation method used. When null, no adaptation will be performed.

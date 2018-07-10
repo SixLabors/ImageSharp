@@ -174,16 +174,10 @@ namespace SixLabors.ImageSharp
         public TPixel this[int x, int y]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.PixelBuffer[x, y];
-            }
+            get => this.PixelBuffer[x, y];
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.PixelBuffer[x, y] = value;
-            }
+            set => this.PixelBuffer[x, y] = value;
         }
 
         /// <summary>

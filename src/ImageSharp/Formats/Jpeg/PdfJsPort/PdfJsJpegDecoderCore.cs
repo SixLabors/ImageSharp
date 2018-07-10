@@ -489,7 +489,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 else
                 {
                     // if the exif information exceeds 64K, it will be split over multiple APP1 marker
-                    this.MetaData.ExifProfile.Extend(profile);
+                    this.MetaData.ExifProfile.Extend(profile.Skip(6).ToArray());
                 }
             }
         }

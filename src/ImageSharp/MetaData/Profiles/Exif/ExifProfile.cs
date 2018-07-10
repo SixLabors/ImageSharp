@@ -237,9 +237,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             int currentLength = this.data.Length;
 
-            // the first 6 bytes are Exif00 and will be skipped
-            Array.Resize(ref this.data, currentLength + bytes.Length - 6);
-            Buffer.BlockCopy(bytes, 6, this.data, currentLength, bytes.Length - 6);
+            Array.Resize(ref this.data, currentLength + bytes.Length);
+            Buffer.BlockCopy(bytes, 0, this.data, currentLength, bytes.Length);
         }
 
         /// <summary>

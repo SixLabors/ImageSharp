@@ -57,9 +57,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.stream = stream;
 
-            this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, true);
-            this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, true);
-            this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, true);
+            this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+            this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+            this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
         }
 
         /// <summary>

@@ -126,18 +126,18 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void CleaningRequests_AreControlledByAllocationParameter_Clean(bool clean)
+        [InlineData(AllocationOptions.None)]
+        [InlineData(AllocationOptions.Clean)]
+        public void CleaningRequests_AreControlledByAllocationParameter_Clean(AllocationOptions options)
         {
             using (IBuffer<int> firstAlloc = this.MemoryAllocator.Allocate<int>(42))
             {
                 firstAlloc.GetSpan().Fill(666);
             }
 
-            using (IBuffer<int> secondAlloc = this.MemoryAllocator.Allocate<int>(42, clean))
+            using (IBuffer<int> secondAlloc = this.MemoryAllocator.Allocate<int>(42, options))
             {
-                int expected = clean ? 0 : 666;
+                int expected = options == AllocationOptions.Clean ? 0 : 666;
                 Assert.Equal(expected, secondAlloc.GetSpan()[0]);
             }
         }

@@ -168,8 +168,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public LzwEncoder(MemoryAllocator memoryAllocator, int colorDepth)
         {
             this.initialCodeSize = Math.Max(2, colorDepth);
-            this.hashTable = memoryAllocator.Allocate<int>(HashSize, true);
-            this.codeTable = memoryAllocator.Allocate<int>(HashSize, true);
+            this.hashTable = memoryAllocator.Allocate<int>(HashSize, AllocationOptions.Clean);
+            this.codeTable = memoryAllocator.Allocate<int>(HashSize, AllocationOptions.Clean);
         }
 
         /// <summary>

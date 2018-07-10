@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             TPixel color = default;
             var rgba = new Rgba32(0, 0, 0, 255);
 
-            using (Buffer2D<byte> buffer = this.memoryAllocator.AllocateClean2D<byte>(width, height))
+            using (Buffer2D<byte> buffer = this.memoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean))
             {
                 this.UncompressRle8(width, buffer.GetSpan());
 
@@ -348,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 padding = 4 - padding;
             }
 
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocateCleanManagedByteBuffer(arrayWidth + padding))
+            using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(arrayWidth + padding, AllocationOptions.Clean))
             {
                 TPixel color = default;
                 var rgba = new Rgba32(0, 0, 0, 255);

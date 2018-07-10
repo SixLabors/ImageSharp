@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
                 }
 
                 // take the path inside the path builder, scan thing and generate a Buffer2d representing the glyph and cache it.
-                Buffer2D<float> fullBuffer = this.MemoryAllocator.Allocate2D<float>(size.Width + 1, size.Height + 1, true);
+                Buffer2D<float> fullBuffer = this.MemoryAllocator.Allocate2D<float>(size.Width + 1, size.Height + 1, AllocationOptions.Clean);
 
                 using (IBuffer<float> bufferBacking = this.MemoryAllocator.Allocate<float>(path.MaxIntersections))
                 using (IBuffer<PointF> rowIntersectionBuffer = this.MemoryAllocator.Allocate<PointF>(size.Width))

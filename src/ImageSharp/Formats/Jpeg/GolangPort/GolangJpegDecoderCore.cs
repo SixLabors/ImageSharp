@@ -500,7 +500,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
-                this.MetaData.ExifProfile = new ExifProfile(profile.Skip(6).ToArray());
+                if (this.MetaData.ExifProfile == null)
+                {
+                    // the first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
+                    this.MetaData.ExifProfile = new ExifProfile(profile.Skip(6).ToArray());
+                }
+                else
+                {
+                    // if the exif information exceeds 64K, it will be split over multiple APP1 marker
+                    this.MetaData.ExifProfile.Extend(profile.Skip(6).ToArray());
+                }
             }
         }
 

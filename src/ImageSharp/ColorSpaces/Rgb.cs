@@ -2,23 +2,22 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents an RGB color with specified <see cref="IRgbWorkingSpace"/> working space
+    /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
     internal readonly struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {
         /// <summary>
         /// The default rgb working space
         /// </summary>
-        public static readonly IRgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+        public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -45,7 +44,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb(float r, float g, float b, IRgbWorkingSpace workingSpace)
+        public Rgb(float r, float g, float b, RgbWorkingSpace workingSpace)
             : this(new Vector3(r, g, b), workingSpace)
         {
         }
@@ -66,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="vector">The vector representing the r, g, b components.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb(Vector3 vector, IRgbWorkingSpace workingSpace)
+        public Rgb(Vector3 vector, RgbWorkingSpace workingSpace)
             : this()
         {
             // Clamp to 0-1 range.
@@ -107,7 +106,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
-        public IRgbWorkingSpace WorkingSpace { get; }
+        public RgbWorkingSpace WorkingSpace { get; }
 
         /// <inheritdoc />
         public Vector3 Vector => this.backingVector;

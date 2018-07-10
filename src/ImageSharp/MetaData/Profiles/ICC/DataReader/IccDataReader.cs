@@ -35,10 +35,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Gets the length in bytes of the raw data
         /// </summary>
-        public int DataLength
-        {
-            get { return this.data.Length; }
-        }
+        public int DataLength => this.data.Length;
 
         /// <summary>
         /// Sets the reading position to the given value

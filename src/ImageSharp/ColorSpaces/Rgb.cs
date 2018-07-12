@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {
         /// <summary>
-        /// The default rgb working space
+        /// The default rgb working space.
         /// </summary>
         public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 

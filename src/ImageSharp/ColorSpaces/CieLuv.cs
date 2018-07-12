@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
-        /// Gets the reference white point of this color
+        /// Gets the reference white point of this color.
         /// </summary>
         public CieXyz WhitePoint { get; }
 

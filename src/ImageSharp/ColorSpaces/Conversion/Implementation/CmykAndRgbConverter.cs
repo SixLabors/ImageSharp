@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         public Cmyk Convert(in Rgb input)
         {
             // To CMYK
-            Vector3 cmy = Vector3.One - input.Vector;
+            Vector3 cmy = Vector3.One - input.ToVector3();
 
             // To CMYK
             var k = new Vector3(MathF.Min(cmy.X, MathF.Min(cmy.Y, cmy.Z)));

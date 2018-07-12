@@ -12,12 +12,25 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an CIE XYZ 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#Definition_of_the_CIE_XYZ_color_space"/>
     /// </summary>
-    internal readonly struct CieXyz : IColorVector, IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
+    internal readonly struct CieXyz : IEquatable<CieXyz>
     {
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        private readonly Vector3 backingVector;
+        public readonly float X;
+
+        /// <summary>
+        /// Gets the Y luminance component.
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Y;
+
+        /// <summary>
+        /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response
+        /// <remarks>A value usually ranging between 0 and 1.</remarks>
+        /// </summary>
+        public readonly float Z;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
@@ -29,6 +42,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public CieXyz(float x, float y, float z)
             : this(new Vector3(x, y, z))
         {
+            // Not clamping as documentation about this space seems to indicate "usual" ranges
+            this.X = x;
+            this.Y = y;
+            this.Z = z;
         }
 
         /// <summary>
@@ -39,51 +56,16 @@ namespace SixLabors.ImageSharp.ColorSpaces
             : this()
         {
             // Not clamping as documentation about this space seems to indicate "usual" ranges
-            this.backingVector = vector;
+            this.X = vector.X;
+            this.Y = vector.Y;
+            this.Z = vector.Z;
         }
-
-        /// <summary>
-        /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float X
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
-
-        /// <summary>
-        /// Gets the Y luminance component.
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float Y
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
-
-        /// <summary>
-        /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response
-        /// <remarks>A value usually ranging between 0 and 1.</remarks>
-        /// </summary>
-        public float Z
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
-
-        /// <inheritdoc />
-        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="CieXyz"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="CieXyz"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="CieXyz"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="CieXyz"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -96,12 +78,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for inequality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="CieXyz"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="CieXyz"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="CieXyz"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="CieXyz"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -111,11 +89,19 @@ namespace SixLabors.ImageSharp.ColorSpaces
             return !left.Equals(right);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns a new <see cref="Vector3"/> representing this instance.
+        /// </summary>
+        /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 ToVector3() => new Vector3(this.X, this.Y, this.Z);
+
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.backingVector.GetHashCode();
+            int hash = this.X.GetHashCode();
+            hash = HashHelpers.Combine(hash, this.Y.GetHashCode());
+            return HashHelpers.Combine(hash, this.Z.GetHashCode());
         }
 
         /// <inheritdoc/>
@@ -127,27 +113,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is CieXyz other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is CieXyz other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyz other)
         {
-            return this.backingVector.Equals(other.backingVector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(CieXyz other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision;
+            return this.X.Equals(other.X)
+                && this.Y.Equals(other.Y)
+                && this.Z.Equals(other.Z);
         }
     }
 }

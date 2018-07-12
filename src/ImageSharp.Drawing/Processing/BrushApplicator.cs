@@ -24,9 +24,7 @@ namespace SixLabors.ImageSharp.Processing
         internal BrushApplicator(ImageFrame<TPixel> target, GraphicsOptions options)
         {
             this.Target = target;
-
             this.Options = options;
-
             this.Blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
         }
 

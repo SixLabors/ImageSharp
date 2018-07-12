@@ -3,7 +3,7 @@
     /// <summary>
     /// Implements <see cref="MemoryAllocator"/> by newing up arrays by the GC on every allocation requests.
     /// </summary>
-    public class SimpleGcMemoryAllocator : MemoryAllocator
+    public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     {
         /// <inheritdoc />
         internal override IBuffer<T> Allocate<T>(int length, bool clear)

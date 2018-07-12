@@ -4,9 +4,9 @@
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Trivial implementation of <see cref="IRgbWorkingSpace"/>
+    /// Trivial implementation of <see cref="RgbWorkingSpace"/>
     /// </summary>
-    internal class RgbWorkingSpace : IRgbWorkingSpace
+    internal class RgbWorkingSpace
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> class.
@@ -70,14 +70,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return !Equals(left, right);
         }
 
-        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return obj is RgbWorkingSpace other && this.Equals(other);
         }
 
-        /// <inheritdoc/>
-        public bool Equals(IRgbWorkingSpace other)
+        public bool Equals(RgbWorkingSpace other)
         {
             // TODO: Object.Equals for ICompanding will be slow.
             return this.WhitePoint.Equals(other.WhitePoint)

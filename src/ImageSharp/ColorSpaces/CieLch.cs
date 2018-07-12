@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents the CIE L*C*h°, cylindrical form of the CIE L*a*b* 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space#Cylindrical_representation:_CIELCh_or_CIEHLC"/>
     /// </summary>
-    internal readonly struct CieLch : IColorVector, IEquatable<CieLch>, IAlmostEquatable<CieLch, float>
+    internal readonly struct CieLch : IEquatable<CieLch>
     {
         /// <summary>
         /// D50 standard illuminant.
@@ -21,9 +20,27 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
 
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Gets the lightness dimension.
+        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
         /// </summary>
-        private readonly Vector3 backingVector;
+        public readonly float L;
+
+        /// <summary>
+        /// Gets the a chroma component.
+        /// <remarks>A value ranging from 0 to 100.</remarks>
+        /// </summary>
+        public readonly float C;
+
+        /// <summary>
+        /// Gets the h° hue component in degrees.
+        /// <remarks>A value ranging from 0 to 360.</remarks>
+        /// </summary>
+        public readonly float H;
+
+        /// <summary>
+        /// Gets the reference white point of this color
+        /// </summary>
+        public readonly CieXyz WhitePoint;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieLch"/> struct.
@@ -34,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLch(float l, float c, float h)
-            : this(new Vector3(l, c, h), DefaultWhitePoint)
+            : this(l, c, h, DefaultWhitePoint)
         {
         }
 
@@ -47,8 +64,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLch(float l, float c, float h, CieXyz whitePoint)
-            : this(new Vector3(l, c, h), whitePoint)
         {
+            this.L = l;
+            this.C = c;
+            this.H = h;
+            this.WhitePoint = whitePoint;
         }
 
         /// <summary>
@@ -69,59 +89,18 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLch(Vector3 vector, CieXyz whitePoint)
-            : this()
         {
-            this.backingVector = vector;
+            this.L = vector.X;
+            this.C = vector.Y;
+            this.H = vector.Z;
             this.WhitePoint = whitePoint;
         }
 
         /// <summary>
-        /// Gets the reference white point of this color
-        /// </summary>
-        public CieXyz WhitePoint { get; }
-
-        /// <summary>
-        /// Gets the lightness dimension.
-        /// <remarks>A value ranging between 0 (black), 100 (diffuse white) or higher (specular white).</remarks>
-        /// </summary>
-        public float L
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
-
-        /// <summary>
-        /// Gets the a chroma component.
-        /// <remarks>A value ranging from 0 to 100.</remarks>
-        /// </summary>
-        public float C
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
-
-        /// <summary>
-        /// Gets the h° hue component in degrees.
-        /// <remarks>A value ranging from 0 to 360.</remarks>
-        /// </summary>
-        public float H
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
-
-        /// <inheritdoc />
-        public Vector3 Vector => this.backingVector;
-
-        /// <summary>
         /// Compares two <see cref="CieLch"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="CieLch"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="CieLch"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="CieLch"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="CieLch"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -134,25 +113,21 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Compares two <see cref="CieLch"/> objects for inequality
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="CieLch"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="CieLch"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="CieLch"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="CieLch"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(CieLch left, CieLch right)
-        {
-            return !left.Equals(right);
-        }
+        public static bool operator !=(CieLch left, CieLch right) => !left.Equals(right);
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
+            int hash = this.L.GetHashCode();
+            hash = HashHelpers.Combine(hash, this.C.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.H.GetHashCode());
+            return HashHelpers.Combine(hash, this.WhitePoint.GetHashCode());
         }
 
         /// <inheritdoc/>
@@ -165,29 +140,16 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object obj)
-        {
-            return obj is CieLch other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is CieLch other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieLch other)
         {
-            return this.backingVector.Equals(other.backingVector)
+            return this.L.Equals(other.L)
+                && this.C.Equals(other.C)
+                && this.H.Equals(other.H)
                 && this.WhitePoint.Equals(other.WhitePoint);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(CieLch other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return this.WhitePoint.Equals(other.WhitePoint)
-                   && result.X <= precision
-                   && result.Y <= precision
-                   && result.Z <= precision;
         }
 
         /// <summary>

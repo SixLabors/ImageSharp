@@ -73,11 +73,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for equality.

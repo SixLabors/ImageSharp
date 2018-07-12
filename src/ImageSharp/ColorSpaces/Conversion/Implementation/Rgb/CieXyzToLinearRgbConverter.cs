@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
     /// <summary>
     /// Color converter between CieXyz and LinearRgb
     /// </summary>
-    internal class CieXyzToLinearRgbConverter : LinearRgbAndCieXyzConverterBase, IColorConversion<CieXyz, LinearRgb>
+    internal sealed class CieXyzToLinearRgbConverter : LinearRgbAndCieXyzConverterBase, IColorConversion<CieXyz, LinearRgb>
     {
         private readonly Matrix4x4 conversionMatrix;
 
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// Initializes a new instance of the <see cref="CieXyzToLinearRgbConverter"/> class.
         /// </summary>
         /// <param name="workingSpace">The target working space.</param>
-        public CieXyzToLinearRgbConverter(IRgbWorkingSpace workingSpace)
+        public CieXyzToLinearRgbConverter(RgbWorkingSpace workingSpace)
         {
             this.TargetWorkingSpace = workingSpace;
             this.conversionMatrix = GetRgbToCieXyzMatrix(workingSpace);
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <summary>
         /// Gets the target working space
         /// </summary>
-        public IRgbWorkingSpace TargetWorkingSpace { get; }
+        public RgbWorkingSpace TargetWorkingSpace { get; }
 
         /// <inheritdoc/>
         public LinearRgb Convert(in CieXyz input)

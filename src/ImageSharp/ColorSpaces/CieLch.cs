@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -156,12 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "CieLch [Empty]"
-                : $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
-        }
+        public override string ToString() => $"CieLch({this.L:#0.##},{this.C:#0.##},{this.H:#0.##})";
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -164,31 +164,17 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "Rgb [ Empty ]"
-                : $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
-        }
+        public override string ToString() => $"Rgb({this.R:#0.##},{this.G:#0.##},{this.B:#0.##})";
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return obj is Rgb other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is Rgb other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rgb other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
+        public bool Equals(Rgb other) => this.backingVector.Equals(other.backingVector);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

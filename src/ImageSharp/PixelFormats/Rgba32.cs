@@ -430,10 +430,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"({this.R},{this.G},{this.B},{this.A})";
-        }
+        public override string ToString() => $"Rgba32({this.R},{this.G},{this.B},{this.A})";
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

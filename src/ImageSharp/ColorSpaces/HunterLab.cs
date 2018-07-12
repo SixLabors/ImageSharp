@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -156,12 +155,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "HunterLab [Empty]"
-                : $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
-        }
+        public override string ToString() => $"HunterLab({this.L:#0.##},{this.A:#0.##},{this.B:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
@@ -171,11 +165,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(HunterLab other)
-        {
-            return this.backingVector.Equals(other.backingVector)
-                && this.WhitePoint.Equals(other.WhitePoint);
-        }
+        public bool Equals(HunterLab other) =>
+            this.backingVector.Equals(other.backingVector) &&
+            this.WhitePoint.Equals(other.WhitePoint);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

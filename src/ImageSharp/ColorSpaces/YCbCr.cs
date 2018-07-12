@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -117,18 +116,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "YCbCr [ Empty ]"
-                : $"YCbCr [ Y={this.Y}, Cb={this.Cb}, Cr={this.Cr} ]";
-        }
+        public override string ToString() => $"YCbCr({this.Y},{this.Cb},{this.Cr})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

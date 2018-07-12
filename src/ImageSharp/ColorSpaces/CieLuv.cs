@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -158,12 +157,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "CieLuv [ Empty ]"
-                : $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
-        }
+        public override string ToString() => $"CieLuv({this.L:#0.##},{this.U:#0.##},{this.V:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
@@ -173,11 +167,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(CieLuv other)
-        {
-            return this.backingVector.Equals(other.backingVector)
-                   && this.WhitePoint.Equals(other.WhitePoint);
-        }
+        public bool Equals(CieLuv other) =>
+            this.backingVector.Equals(other.backingVector) &&
+            this.WhitePoint.Equals(other.WhitePoint);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

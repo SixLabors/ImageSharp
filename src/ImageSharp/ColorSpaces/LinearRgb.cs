@@ -148,18 +148,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.backingVector.GetHashCode();
-        }
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return this.Equals(default)
-                ? "LinearRgb [ Empty ]"
-                : $"LinearRgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
-        }
+        public override string ToString() => $"LinearRgb({this.R:#0.##},{this.G:#0.##},{this.B:#0.##})";
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

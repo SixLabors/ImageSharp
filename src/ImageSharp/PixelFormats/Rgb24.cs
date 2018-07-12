@@ -193,9 +193,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"({this.R},{this.G},{this.B})";
-        }
+        public override string ToString() => $"Rgb24({this.R},{this.G},{this.B})";
     }
 }

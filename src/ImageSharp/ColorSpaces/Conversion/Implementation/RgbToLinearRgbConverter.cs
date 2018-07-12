@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public LinearRgb Convert(in Rgb input)
         {
-            Vector3 vector = input.Vector;
+            Vector3 vector = input.ToVector3();
             vector.X = input.WorkingSpace.Companding.Expand(vector.X);
             vector.Y = input.WorkingSpace.Companding.Expand(vector.Y);
             vector.Z = input.WorkingSpace.Companding.Expand(vector.Z);

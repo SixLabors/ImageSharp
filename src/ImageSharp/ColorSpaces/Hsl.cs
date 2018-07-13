@@ -74,9 +74,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <inheritdoc/>
-        public Vector3 Vector => this.backingVector;
-
         /// <summary>
         /// Compares two <see cref="Hsl"/> objects for equality.
         /// </summary>

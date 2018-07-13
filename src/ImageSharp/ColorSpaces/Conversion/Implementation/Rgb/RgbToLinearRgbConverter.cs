@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
-
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
     /// <summary>
@@ -13,12 +11,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
         /// <inheritdoc/>
         public LinearRgb Convert(in Rgb input)
         {
-            Vector3 vector = input.Vector;
-            vector.X = input.WorkingSpace.Companding.Expand(vector.X);
-            vector.Y = input.WorkingSpace.Companding.Expand(vector.Y);
-            vector.Z = input.WorkingSpace.Companding.Expand(vector.Z);
+            float r = input.WorkingSpace.Companding.Expand(input.R);
+            float g = input.WorkingSpace.Companding.Expand(input.G);
+            float b = input.WorkingSpace.Companding.Expand(input.B);
 
-            return new LinearRgb(vector, input.WorkingSpace);
+            return new LinearRgb(r, g, b, input.WorkingSpace);
         }
     }
 }

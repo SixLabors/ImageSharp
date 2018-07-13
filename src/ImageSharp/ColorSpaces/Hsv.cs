@@ -76,6 +76,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
+        /// <inheritdoc/>
+        public Vector3 Vector => this.backingVector;
+
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
         /// <see cref="Hsv"/>.

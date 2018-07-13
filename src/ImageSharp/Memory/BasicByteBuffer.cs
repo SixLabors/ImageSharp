@@ -3,7 +3,7 @@
 
 namespace SixLabors.Memory
 {
-    internal class BasicByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
+    internal sealed class BasicByteBuffer : BasicArrayBuffer<byte>, IManagedByteBuffer
     {
         internal BasicByteBuffer(byte[] array)
             : base(array)

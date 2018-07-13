@@ -75,6 +75,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private bool isExif;
 
         /// <summary>
+        /// Contains exif data
+        /// </summary>
+        private byte[] exifData;
+
+        /// <summary>
         /// Contains information about the JFIF marker
         /// </summary>
         private JFifMarker jFif;
@@ -202,6 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             where TPixel : struct, IPixel<TPixel>
         {
             this.ParseStream(stream);
+            this.InitExifProfile();
             this.InitDerivedMetaDataProperties();
             return this.PostProcessIntoImage<TPixel>();
         }
@@ -213,6 +219,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
+            this.InitExifProfile();
             this.InitDerivedMetaDataProperties();
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
@@ -405,6 +412,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         }
 
         /// <summary>
+        /// Initializes the exif profile.
+        /// </summary>
+        private void InitExifProfile()
+        {
+            if (this.isExif)
+            {
+                this.MetaData.ExifProfile = new ExifProfile(this.exifData);
+            }
+        }
+
+        /// <summary>
         /// Assigns derived metadata properties to <see cref="MetaData"/>, eg. horizontal and vertical resolution if it has a JFIF header.
         /// </summary>
         private void InitDerivedMetaDataProperties()
@@ -481,17 +499,29 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
-                if (this.MetaData.ExifProfile == null)
+                if (this.exifData == null)
                 {
                     // the first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
-                    this.MetaData.ExifProfile = new ExifProfile(profile.Skip(6).ToArray());
+                    this.exifData = profile.Skip(6).ToArray();
                 }
                 else
                 {
-                    // if the exif information exceeds 64K, it will be split over multiple APP1 marker
-                    this.MetaData.ExifProfile.Extend(profile.Skip(6).ToArray());
+                    // if the exif information exceeds 64K, it will be split over multiple APP1 markers
+                    this.ExtendExif(profile.Skip(6).ToArray());
                 }
             }
+        }
+
+        /// <summary>
+        /// Extends the exif profile with additional data.
+        /// </summary>
+        /// <param name="bytes">The array containing addition profile data.</param>
+        private void ExtendExif(byte[] bytes)
+        {
+            int currentLength = this.exifData.Length;
+
+            Array.Resize(ref this.exifData, currentLength + bytes.Length);
+            Buffer.BlockCopy(bytes, 0, this.exifData, currentLength, bytes.Length);
         }
 
         /// <summary>

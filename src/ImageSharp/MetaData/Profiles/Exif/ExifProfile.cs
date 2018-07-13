@@ -230,18 +230,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         }
 
         /// <summary>
-        /// Extends the profile with additional data.
-        /// </summary>
-        /// <param name="bytes">The array containing addition profile data.</param>
-        public void Extend(byte[] bytes)
-        {
-            int currentLength = this.data.Length;
-
-            Array.Resize(ref this.data, currentLength + bytes.Length);
-            Buffer.BlockCopy(bytes, 0, this.data, currentLength, bytes.Length);
-        }
-
-        /// <summary>
         /// Converts this instance to a byte array.
         /// </summary>
         /// <returns>The <see cref="T:byte[]"/></returns>

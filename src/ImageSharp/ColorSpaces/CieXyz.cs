@@ -14,9 +14,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct CieXyz : IEquatable<CieXyz>
     {
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Initializes a new instance of the <see cref="CieXyz"/> struct.
         /// </summary>
-        private readonly Vector3 backingVector;
+        /// <param name="vector">The vector representing the x, y, z components.</param>
+        /// <remarks>This colorspace is not clamped.</remarks>
+        public CieXyz(Vector3 vector)
+            : this(vector.X, vector.Y, vector.Z)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyz"/> struct.
@@ -24,57 +29,30 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="x">X is a mix (a linear combination) of cone response curves chosen to be nonnegative</param>
         /// <param name="y">The y luminance component.</param>
         /// <param name="z">Z is quasi-equal to blue stimulation, or the S cone of the human eye.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz(float x, float y, float z)
-            : this(new Vector3(x, y, z))
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CieXyz"/> struct.
-        /// </summary>
-        /// <param name="vector">The vector representing the x, y, z components.</param>
-        public CieXyz(Vector3 vector)
-            : this()
-        {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
-            this.backingVector = vector;
+            this.X = x;
+            this.Y = y;
+            this.Z = z;
         }
 
         /// <summary>
         /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float X
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float X { get; }
 
         /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float Y
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float Y { get; }
 
         /// <summary>
         /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float Z
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
-
-        /// <summary>
-        /// Gets the backingVector.
-        /// </summary>
-        public Vector3 Vector => this.backingVector;
+        public float Z { get; }
 
         /// <summary>
         /// Compares two <see cref="CieXyz"/> objects for equality.
@@ -112,9 +90,16 @@ namespace SixLabors.ImageSharp.ColorSpaces
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Returns a new <see cref="Vector3"/> representing this instance.
+        /// </summary>
+        /// <returns>The <see cref="Vector3"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 ToVector3() => new Vector3(this.X, this.Y, this.Z);
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => this.backingVector.GetHashCode();
+        public override int GetHashCode() => (this.X, this.Y, this.Z).GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"CieXyz({this.X:#0.##},{this.Y:#0.##},{this.Z:#0.##})";
@@ -127,9 +112,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(CieXyz other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
+        public bool Equals(CieXyz other) =>
+            this.X == other.X &&
+            this.Y == other.Y &&
+            this.Z == other.Z;
     }
 }

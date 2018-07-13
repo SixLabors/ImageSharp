@@ -15,9 +15,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Lms : IEquatable<Lms>
     {
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
-        private readonly Vector3 backingVector;
+        /// <param name="vector">The vector representing the l, m, s components.</param>
+        /// <remarks>This colorspace is not clamped</remarks>
+        public Lms(Vector3 vector)
+            : this(vector.X, vector.Y, vector.Z)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Lms"/> struct.
@@ -25,67 +30,36 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="l">L represents the responsivity at long wavelengths.</param>
         /// <param name="m">M represents the responsivity at medium wavelengths.</param>
         /// <param name="s">S represents the responsivity at short wavelengths.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Lms(float l, float m, float s)
-            : this(new Vector3(l, m, s))
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Lms"/> struct.
-        /// </summary>
-        /// <param name="vector">The vector representing the l, m, s components.</param>
-        public Lms(Vector3 vector)
-            : this()
-        {
-            // Not clamping as documentation about this space seems to indicate "usual" ranges
-            this.backingVector = vector;
+            this.L = l;
+            this.M = m;
+            this.S = s;
         }
 
         /// <summary>
         /// Gets the L long component.
         /// <remarks>A value usually ranging between -1 and 1.</remarks>
         /// </summary>
-        public float L
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float L { get; }
 
         /// <summary>
         /// Gets the M medium component.
         /// <remarks>A value usually ranging between -1 and 1.</remarks>
         /// </summary>
-        public float M
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float M { get; }
 
         /// <summary>
         /// Gets the S short component.
         /// <remarks>A value usually ranging between -1 and 1.</remarks>
         /// </summary>
-        public float S
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
-
-        /// <summary>
-        /// Gets the backingVector.
-        /// </summary>
-        public Vector3 Vector => this.backingVector;
+        public float S { get; }
 
         /// <summary>
         /// Compares two <see cref="Lms"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Lms"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Lms"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Lms"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Lms"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -113,8 +87,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
             return !left.Equals(right);
         }
 
+        /// <summary>
+        /// Returns a new <see cref="Vector3"/> representing this instance.
+        /// </summary>
+        /// <returns>The <see cref="Vector3"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 ToVector3() => new Vector3(this.L, this.M, this.S);
+
         /// <inheritdoc/>
-        public override int GetHashCode() => this.backingVector.GetHashCode();
+        public override int GetHashCode() => (this.L, this.M, this.S).GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"Lms({this.L:#0.##},{this.M:#0.##},{this.S:#0.##})";
@@ -127,9 +108,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Lms other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
+        public bool Equals(Lms other) =>
+            this.L == other.L &&
+            this.M == other.M &&
+            this.S == other.S;
     }
 }

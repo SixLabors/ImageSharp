@@ -19,11 +19,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private readonly Vector3 backingVector;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="LinearRgb"/> struct.
         /// </summary>
         /// <param name="r">The red component ranging between 0 and 1.</param>
@@ -68,7 +63,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
             : this()
         {
             // Clamp to 0-1 range.
-            this.backingVector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+            vector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+
+            this.R = vector.X;
+            this.G = vector.Y;
+            this.B = vector.Z;
             this.WorkingSpace = workingSpace;
         }
 
@@ -76,31 +75,19 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Gets the red component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float R
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float R { get; }
 
         /// <summary>
         /// Gets the green component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float G
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float G { get; }
 
         /// <summary>
         /// Gets the blue component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float B
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
+        public float B { get; }
 
         /// <summary>
         /// Gets the LinearRgb color space <seealso cref="RgbWorkingSpaces"/>
@@ -108,9 +95,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public RgbWorkingSpace WorkingSpace { get; }
 
         /// <summary>
-        /// Gets the backingVector.
+        /// Returns a new <see cref="Vector3"/> representing this instance.
         /// </summary>
-        public Vector3 Vector => this.backingVector;
+        /// <returns>The <see cref="Vector3"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3 ToVector3() => new Vector3(this.R, this.G, this.B);
 
         /// <summary>
         /// Compares two <see cref="LinearRgb"/> objects for equality.
@@ -150,7 +139,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => this.backingVector.GetHashCode();
+        public override int GetHashCode() => (this.R, this.G, this.B).GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"LinearRgb({this.R:#0.##},{this.G:#0.##},{this.B:#0.##})";
@@ -163,9 +152,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(LinearRgb other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
+        public bool Equals(LinearRgb other) =>
+            this.R == other.R &&
+            this.G == other.G &&
+            this.B == other.B;
     }
 }

@@ -62,7 +62,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Lms Convert(in CieXyz input)
         {
-            Vector3 vector = Vector3.Transform(input.Vector, this.transformationMatrix);
+            Vector3 vector = Vector3.Transform(input.ToVector3(), this.transformationMatrix);
+
             return new Lms(vector);
         }
 
@@ -70,7 +71,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(in Lms input)
         {
-            Vector3 vector = Vector3.Transform(input.Vector, this.inverseTransformationMatrix);
+            Vector3 vector = Vector3.Transform(input.ToVector3(), this.inverseTransformationMatrix);
+
             return new CieXyz(vector);
         }
     }

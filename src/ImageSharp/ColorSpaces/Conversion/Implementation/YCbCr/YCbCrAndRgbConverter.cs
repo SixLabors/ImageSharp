@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorS
     /// </summary>
     internal class YCbCrAndRgbConverter : IColorConversion<YCbCr, Rgb>, IColorConversion<Rgb, YCbCr>
     {
-        private static readonly Vector3 MaxBytes = new Vector3(255F);
+        private const float MaxBytes = 255F;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -34,10 +34,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public YCbCr Convert(in Rgb input)
         {
-            Vector3 rgb = input.Vector * MaxBytes;
-            float r = rgb.X;
-            float g = rgb.Y;
-            float b = rgb.Z;
+            float r = input.R * MaxBytes;
+            float g = input.G * MaxBytes;
+            float b = input.B * MaxBytes;
 
             float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
             float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));

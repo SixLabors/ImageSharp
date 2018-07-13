@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space
+    /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space.
     /// </summary>
     internal readonly struct Rgb : IEquatable<Rgb>
     {
@@ -18,11 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// The default rgb working space.
         /// </summary>
         public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
-
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private readonly Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Rgb"/> struct.
@@ -69,7 +64,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
             : this()
         {
             // Clamp to 0-1 range.
-            this.backingVector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+            vector = Vector3.Clamp(vector, Vector3.Zero, Vector3.One);
+
+            this.R = vector.X;
+            this.G = vector.Y;
+            this.B = vector.Z;
             this.WorkingSpace = workingSpace;
         }
 
@@ -77,42 +76,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Gets the red component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float R
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float R { get; }
 
         /// <summary>
         /// Gets the green component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float G
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float G { get; }
 
         /// <summary>
         /// Gets the blue component.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
-        public float B
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
+        public float B { get; }
 
         /// <summary>
         /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
         public RgbWorkingSpace WorkingSpace { get; }
-
-
-        /// <summary>
-        /// Gets the backingVector.
-        /// </summary>
-        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -167,7 +148,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.backingVector.GetHashCode();
+        public override int GetHashCode() => (this.R, this.G, this.B).GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"Rgb({this.R:#0.##},{this.G:#0.##},{this.B:#0.##})";
@@ -177,23 +158,23 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Rgb other) => this.backingVector.Equals(other.backingVector);
-
+        public bool Equals(Rgb other) =>
+            this.R == other.R &&
+            this.G == other.G &&
+            this.B == other.B;
 
         /// <summary>
         /// Returns whether the instance is almost equal to another instance.
         /// </summary>
         /// <param name="other">The other Rgb instance.</param>
         /// <param name="precision">The allowed tolerance.</param>
-        /// <returns></returns>
+        /// <returns>The result of the check.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Rgb other, float precision)
         {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision;
+            return MathF.Abs(other.R) <= precision
+                && MathF.Abs(other.G) <= precision
+                && MathF.Abs(other.B) <= precision;
         }
     }
 }

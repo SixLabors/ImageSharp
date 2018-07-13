@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an linear Rgb color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
-    internal readonly struct LinearRgb : IEquatable<LinearRgb>
+    internal readonly struct LinearRgb : IEquatable<LinearRgb>, IAlmostEquatable<LinearRgb, float>
     {
         /// <summary>
         /// The default LinearRgb working space.
@@ -107,9 +107,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         public RgbWorkingSpace WorkingSpace { get; }
 
-        /// <summary>
-        /// Gets the backingVector.
-        /// </summary>
+        /// <inheritdoc />
         public Vector3 Vector => this.backingVector;
 
         /// <summary>
@@ -166,6 +164,17 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public bool Equals(LinearRgb other)
         {
             return this.backingVector.Equals(other.backingVector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool AlmostEquals(LinearRgb other, float precision)
+        {
+            var result = Vector3.Abs(this.backingVector - other.backingVector);
+
+            return result.X <= precision
+                && result.Y <= precision
+                && result.Z <= precision;
         }
     }
 }

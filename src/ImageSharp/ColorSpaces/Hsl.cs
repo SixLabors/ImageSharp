@@ -107,8 +107,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Hsl other) =>
-            this.H == other.H &&
-            this.S == other.S &&
-            this.L == other.L;
+            this.H.Equals(other.H) &&
+            this.S.Equals(other.S) &&
+            this.L.Equals(other.L);
     }
 }

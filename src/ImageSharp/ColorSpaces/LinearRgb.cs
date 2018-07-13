@@ -153,8 +153,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(LinearRgb other) =>
-            this.R == other.R &&
-            this.G == other.G &&
-            this.B == other.B;
+            this.R.Equals(other.R) &&
+            this.G.Equals(other.G) &&
+            this.B.Equals(other.B);
     }
 }

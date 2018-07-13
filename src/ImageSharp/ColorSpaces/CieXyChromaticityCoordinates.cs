@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieXyChromaticityCoordinates other)
         {
-            return this.X.Equals(other.X) && this.Y.Equals(other.Y);
+            return this.X == other.X && this.Y == other.Y;
         }
     }
 }

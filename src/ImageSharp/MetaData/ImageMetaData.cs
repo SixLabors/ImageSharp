@@ -14,13 +14,13 @@ namespace SixLabors.ImageSharp.MetaData
     {
         /// <summary>
         /// The default horizontal resolution value (dots per inch) in x direction.
-        /// <remarks>The default value is 96 dots per inch.</remarks>
+        /// <remarks>The default value is 96 <see cref="PixelResolutionUnit.PixelsPerInch"/>.</remarks>
         /// </summary>
         public const double DefaultHorizontalResolution = 96;
 
         /// <summary>
         /// The default vertical resolution value (dots per inch) in y direction.
-        /// <remarks>The default value is 96 dots per inch.</remarks>
+        /// <remarks>The default value is 96 <see cref="PixelResolutionUnit.PixelsPerInch"/>.</remarks>
         /// </summary>
         public const double DefaultVerticalResolution = 96;
 
@@ -102,6 +102,10 @@ namespace SixLabors.ImageSharp.MetaData
 
         /// <summary>
         /// Gets or sets unit of measure used when reporting resolution.
+        ///  00 : No units; width:height pixel aspect ratio = Ydensity:Xdensity
+        ///  01 : Pixels per inch (2.54 cm)
+        ///  02 : Pixels per centimeter
+        ///  03 : Pixels per meter
         /// </summary>
         public PixelResolutionUnit ResolutionUnits { get; set; } = PixelResolutionUnit.PixelsPerInch;
 

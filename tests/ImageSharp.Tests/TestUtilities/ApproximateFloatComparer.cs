@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests
         IEqualityComparer<CieXyChromaticityCoordinates>,
         IEqualityComparer<RgbPrimariesChromaticityCoordinates>,
         IEqualityComparer<CieXyz>,
-        IEqualityComparer<IRgbWorkingSpace>
+        IEqualityComparer<RgbWorkingSpace>
     {
         private readonly float Eps;
 
@@ -76,9 +76,9 @@ namespace SixLabors.ImageSharp.Tests
             throw new NotImplementedException();
         }
 
-        public bool Equals(IRgbWorkingSpace x, IRgbWorkingSpace y)
+        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
         {
-            if (x is IRgbWorkingSpace g1 && y is IRgbWorkingSpace g2)
+            if (x is RgbWorkingSpace g1 && y is RgbWorkingSpace g2)
             {
                 return this.Equals(g1.WhitePoint, g2.WhitePoint)
                     && this.Equals(g1.ChromaticityCoordinates, g2.ChromaticityCoordinates);
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
                 && this.Equals(x.ChromaticityCoordinates, y.ChromaticityCoordinates);
         }
 
-        public int GetHashCode(IRgbWorkingSpace obj)
+        public int GetHashCode(RgbWorkingSpace obj)
         {
             throw new NotImplementedException();
         }

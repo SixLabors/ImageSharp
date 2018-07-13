@@ -4,16 +4,19 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct Cmyk : IEquatable<Cmyk>
+    internal readonly struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
     {
+        /// <summary>
+        /// The backing vector for SIMD support.
+        /// </summary>
+        private readonly Vector4 backingVector;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
         /// </summary>
@@ -35,43 +38,58 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public Cmyk(Vector4 vector)
             : this()
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
-
-            this.C = vector.X;
-            this.M = vector.Y;
-            this.Y = vector.Z;
-            this.K = vector.W;
+            this.backingVector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
         }
 
         /// <summary>
         /// Gets the cyan color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float C { get; }
+        public float C
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.X;
+        }
 
         /// <summary>
         /// Gets the magenta color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float M { get; }
+        public float M
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Y;
+        }
 
         /// <summary>
         /// Gets the yellow color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float Y { get; }
+        public float Y
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.Z;
+        }
 
         /// <summary>
         /// Gets the keyline black color component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float K { get; }
+        public float K
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.backingVector.W;
+        }
 
         /// <summary>
         /// Compares two <see cref="Cmyk"/> objects for equality.
         /// </summary>
-        /// <param name="left">The <see cref="Cmyk"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Cmyk"/> on the right side of the operand.</param>
+        /// <param name="left">
+        /// The <see cref="Cmyk"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Cmyk"/> on the right side of the operand.
+        /// </param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -84,8 +102,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Compares two <see cref="Cmyk"/> objects for inequality
         /// </summary>
-        /// <param name="left">The <see cref="Cmyk"/> on the left side of the operand.</param>
-        /// <param name="right">The <see cref="Cmyk"/> on the right side of the operand.</param>
+        /// <param name="left">
+        /// The <see cref="Cmyk"/> on the left side of the operand.
+        /// </param>
+        /// <param name="right">
+        /// The <see cref="Cmyk"/> on the right side of the operand.
+        /// </param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -97,7 +119,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => (this.C, this.M, this.Y, this.K).GetHashCode();
+        public override int GetHashCode() => this.backingVector.GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"Cmyk({this.C:#0.##},{this.M:#0.##},{this.Y:#0.##},{this.K:#0.##})";
@@ -110,10 +132,21 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Cmyk other) =>
-            this.C == other.C &&
-            this.M == other.M &&
-            this.Y == other.Y &&
-            this.K == other.K;
+        public bool Equals(Cmyk other)
+        {
+            return this.backingVector.Equals(other.backingVector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool AlmostEquals(Cmyk other, float precision)
+        {
+            var result = Vector4.Abs(this.backingVector - other.backingVector);
+
+            return result.X <= precision
+                && result.Y <= precision
+                && result.Z <= precision
+                && result.W <= precision;
+        }
     }
 }

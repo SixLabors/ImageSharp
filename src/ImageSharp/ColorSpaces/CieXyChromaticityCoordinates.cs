@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal readonly struct CieXyChromaticityCoordinates
-        : IEquatable<CieXyChromaticityCoordinates>
+        : IEquatable<CieXyChromaticityCoordinates>, IAlmostEquatable<CieXyChromaticityCoordinates, float>
     {
         // NOTE: We don't implement a backing vector on this class to avoid runtime bugs.
         // SEE: https://github.com/dotnet/coreclr/issues/16443
@@ -100,6 +100,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public bool Equals(CieXyChromaticityCoordinates other)
         {
             return this.X == other.X && this.Y == other.Y;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool AlmostEquals(CieXyChromaticityCoordinates other, float precision)
+        {
+            return MathF.Abs(this.X) <= precision
+                && Math.Abs(this.Y) <= precision;
         }
     }
 }

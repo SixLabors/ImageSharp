@@ -12,17 +12,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
     /// </summary>
-    internal readonly struct YCbCr : IEquatable<YCbCr>, IAlmostEquatable<YCbCr, float>
+    internal readonly struct YCbCr : IEquatable<YCbCr>
     {
         /// <summary>
         /// Vector which is used in clamping to the max value.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(255F);
-
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private readonly Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
@@ -43,38 +38,30 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public YCbCr(Vector3 vector)
         {
-            this.backingVector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
+            vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
+
+            this.Y = vector.X;
+            this.Cb = vector.Y;
+            this.Cr = vector.Z;
         }
 
         /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Y
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float Y { get; }
 
         /// <summary>
         /// Gets the Cb chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cb
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float Cb { get; }
 
         /// <summary>
         /// Gets the Cr chroma component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>
-        public float Cr
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
+        public float Cr { get; }
 
         /// <summary>
         /// Compares two <see cref="YCbCr"/> objects for equality.
@@ -113,7 +100,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => this.backingVector.GetHashCode();
+        public override int GetHashCode() => (this.Y, this.Cb, this.Cr).GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"YCbCr({this.Y},{this.Cb},{this.Cr})";
@@ -126,20 +113,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(YCbCr other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(YCbCr other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                   && result.Y <= precision
-                   && result.Z <= precision;
-        }
+        public bool Equals(YCbCr other) =>
+            this.Y == other.Y &&
+            this.Cb == other.Cb &&
+            this.Cr == other.Cr;
     }
 }

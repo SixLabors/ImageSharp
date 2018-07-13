@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// attempted perceptual uniformity
     /// <see href="https://en.wikipedia.org/wiki/CIELUV"/>
     /// </summary>
-    internal readonly struct CieLuv : IEquatable<CieLuv>, IAlmostEquatable<CieLuv, float>
+    internal readonly struct CieLuv : IEquatable<CieLuv>
     {
         /// <summary>
         /// D65 standard illuminant.
@@ -22,9 +22,26 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
 
         /// <summary>
-        /// The backing vector for SIMD support.
+        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
         /// </summary>
-        private readonly Vector3 backingVector;
+        /// <param name="vector">The vector representing the l, u, v components.</param>
+        /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CieLuv(Vector3 vector)
+            : this(vector.X, vector.Y, vector.Z, DefaultWhitePoint)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
+        /// </summary>
+        /// <param name="vector">The vector representing the l, u, v components.</param>
+        /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CieLuv(Vector3 vector, CieXyz whitePoint)
+            : this(vector.X, vector.Y, vector.Z, whitePoint)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CieLuv"/> struct.
@@ -35,7 +52,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLuv(float l, float u, float v)
-            : this(new Vector3(l, u, v), DefaultWhitePoint)
+            : this(l, u, v, DefaultWhitePoint)
         {
         }
 
@@ -48,31 +65,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLuv(float l, float u, float v, CieXyz whitePoint)
-            : this(new Vector3(l, u, v), whitePoint)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
-        /// </summary>
-        /// <param name="vector">The vector representing the l, u, v components.</param>
-        /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLuv(Vector3 vector)
-            : this(vector, DefaultWhitePoint)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CieLuv"/> struct.
-        /// </summary>
-        /// <param name="vector">The vector representing the l, u, v components.</param>
-        /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieLuv(Vector3 vector, CieXyz whitePoint)
-            : this()
-        {
-            this.backingVector = vector;
+            this.L = l;
+            this.U = u;
+            this.V = v;
             this.WhitePoint = whitePoint;
         }
 
@@ -85,31 +81,19 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Gets the lightness dimension
         /// <remarks>A value usually ranging between 0 and 100.</remarks>
         /// </summary>
-        public float L
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float L { get; }
 
         /// <summary>
         /// Gets the blue-yellow chromaticity coordinate of the given whitepoint.
         /// <remarks>A value usually ranging between -100 and 100.</remarks>
         /// </summary>
-        public float U
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float U { get; }
 
         /// <summary>
         /// Gets the red-green chromaticity coordinate of the given whitepoint.
         /// <remarks>A value usually ranging between -100 and 100.</remarks>
         /// </summary>
-        public float V
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
+        public float V { get; }
 
         /// <summary>
         /// Compares two <see cref="CieLuv"/> objects for equality.
@@ -150,7 +134,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
+            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), (this.L, this.U, this.V).GetHashCode());
         }
 
         /// <inheritdoc/>
@@ -165,19 +149,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(CieLuv other) =>
-            this.backingVector.Equals(other.backingVector) &&
+            this.L == other.L &&
+            this.U == other.U &&
+            this.V == other.V &&
             this.WhitePoint.Equals(other.WhitePoint);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(CieLuv other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return this.WhitePoint.Equals(other.WhitePoint)
-                   && result.X <= precision
-                   && result.Y <= precision
-                   && result.Z <= precision;
-        }
     }
 }

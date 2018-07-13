@@ -12,17 +12,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
     /// </summary>
-    internal readonly struct Hsv : IEquatable<Hsv>, IAlmostEquatable<Hsv, float>
+    internal readonly struct Hsv : IEquatable<Hsv>
     {
         /// <summary>
         /// Max range used for clamping.
         /// </summary>
         private static readonly Vector3 VectorMax = new Vector3(360, 1, 1);
-
-        /// <summary>
-        /// The backing vector for SIMD support.
-        /// </summary>
-        private readonly Vector3 backingVector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Hsv"/> struct.
@@ -43,38 +38,30 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Hsv(Vector3 vector)
         {
-            this.backingVector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
+            vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
+
+            this.H = vector.X;
+            this.S = vector.Y;
+            this.V = vector.Z;
         }
 
         /// <summary>
         /// Gets the hue component.
         /// <remarks>A value ranging between 0 and 360.</remarks>
         /// </summary>
-        public float H
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.X;
-        }
+        public float H { get; }
 
         /// <summary>
         /// Gets the saturation component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float S
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Y;
-        }
+        public float S { get; }
 
         /// <summary>
         /// Gets the value (brightness) component.
         /// <remarks>A value ranging between 0 and 1.</remarks>
         /// </summary>
-        public float V
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector.Z;
-        }
+        public float V { get; }
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -164,7 +151,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => this.backingVector.GetHashCode();
+        public override int GetHashCode() => (this.H, this.S, this.V).GetHashCode();
 
         /// <inheritdoc/>
         public override string ToString() => $"Hsv({this.H:#0.##},{this.S:#0.##},{this.V:#0.##})";
@@ -177,20 +164,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Hsv other)
-        {
-            return this.backingVector.Equals(other.backingVector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(Hsv other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision;
-        }
+        public bool Equals(Hsv other) =>
+            this.H == other.H &&
+            this.S == other.S &&
+            this.V == other.V;
     }
 }

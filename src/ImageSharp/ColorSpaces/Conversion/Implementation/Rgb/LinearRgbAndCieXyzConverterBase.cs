@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
 
             Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
 
-            Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.ToVector3(), inverseXyzMatrix);
+            Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.Vector, inverseXyzMatrix);
 
             // Use transposed Rows/Columns
             // TODO: Is there a built in method for this multiplication?

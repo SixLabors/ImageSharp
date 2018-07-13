@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             Lms targetWhitePointLms = this.converter.Convert(targetWhitePoint);
 
             var vector = new Vector3(targetWhitePointLms.L / sourceWhitePointLms.L, targetWhitePointLms.M / sourceWhitePointLms.M, targetWhitePointLms.S / sourceWhitePointLms.S);
-            var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.ToVector3()));
+            var targetColorLms = new Lms(Vector3.Multiply(vector, sourceColorLms.Vector));
 
             return this.converter.Convert(targetColorLms);
         }

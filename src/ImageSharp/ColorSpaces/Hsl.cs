@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents a Hsl (hue, saturation, lightness) color.
     /// </summary>
-    internal readonly struct Hsl : IColorVector, IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
+    internal readonly struct Hsl : IEquatable<Hsl>, IAlmostEquatable<Hsl, float>
     {
         /// <summary>
         /// Max range used for clamping.

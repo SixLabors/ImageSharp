@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
-    internal readonly struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
+    internal readonly struct Rgb : IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {
         /// <summary>
         /// The default rgb working space.

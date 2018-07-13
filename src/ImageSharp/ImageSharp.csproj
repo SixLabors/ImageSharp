@@ -29,7 +29,7 @@
     <DebugType Condition="$(codecov) == ''">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
     <Features>IOperation</Features>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\*.cs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />

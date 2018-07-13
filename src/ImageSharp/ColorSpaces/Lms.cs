@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// named after their responsivity (sensitivity) at long, medium and short wavelengths.
     /// <see href="https://en.wikipedia.org/wiki/LMS_color_space"/>
     /// </summary>
-    internal readonly struct Lms : IEquatable<Lms>, IAlmostEquatable<Lms, float>
+    internal readonly struct Lms : IEquatable<Lms>
     {
         /// <summary>
         /// The backing vector for SIMD support.
@@ -35,7 +35,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the l, m, s components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Lms(Vector3 vector)
             : this()
         {
@@ -73,7 +72,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the backingVector.
+        /// </summary>
         public Vector3 Vector => this.backingVector;
 
         /// <summary>
@@ -129,17 +130,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public bool Equals(Lms other)
         {
             return this.backingVector.Equals(other.backingVector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(Lms other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision;
         }
     }
 }

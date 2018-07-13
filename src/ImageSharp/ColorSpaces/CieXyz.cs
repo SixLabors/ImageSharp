@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an CIE XYZ 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#Definition_of_the_CIE_XYZ_color_space"/>
     /// </summary>
-    internal readonly struct CieXyz : IEquatable<CieXyz>, IAlmostEquatable<CieXyz, float>
+    internal readonly struct CieXyz : IEquatable<CieXyz>
     {
         /// <summary>
         /// The backing vector for SIMD support.
@@ -71,7 +71,9 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the backingVector.
+        /// </summary>
         public Vector3 Vector => this.backingVector;
 
         /// <summary>
@@ -128,17 +130,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public bool Equals(CieXyz other)
         {
             return this.backingVector.Equals(other.backingVector);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool AlmostEquals(CieXyz other, float precision)
-        {
-            var result = Vector3.Abs(this.backingVector - other.backingVector);
-
-            return result.X <= precision
-                && result.Y <= precision
-                && result.Z <= precision;
         }
     }
 }

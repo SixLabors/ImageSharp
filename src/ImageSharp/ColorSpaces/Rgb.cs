@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
-    internal readonly struct Rgb : IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
+    internal readonly struct Rgb : IEquatable<Rgb>
     {
         /// <summary>
         /// The default rgb working space.
@@ -108,7 +108,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         public RgbWorkingSpace WorkingSpace { get; }
 
-        /// <inheritdoc />
+
+        /// <summary>
+        /// Gets the backingVector.
+        /// </summary>
         public Vector3 Vector => this.backingVector;
 
         /// <summary>
@@ -176,7 +179,13 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Rgb other) => this.backingVector.Equals(other.backingVector);
 
-        /// <inheritdoc/>
+
+        /// <summary>
+        /// Returns whether the instance is almost equal to another instance.
+        /// </summary>
+        /// <param name="other">The other Rgb instance.</param>
+        /// <param name="precision">The allowed tolerance.</param>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AlmostEquals(Rgb other, float precision)
         {

@@ -12,7 +12,7 @@ namespace SixLabors.Memory
     /// interpreted as a 2D region of <see cref="Width"/> x <see cref="Height"/> elements.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
-    internal class Buffer2D<T> : IDisposable
+    internal sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
         /// <summary>

@@ -9,7 +9,7 @@ namespace SixLabors.Memory
     /// <summary>
     /// Implements <see cref="MemoryAllocator"/> by allocating memory from <see cref="ArrayPool{T}"/>.
     /// </summary>
-    public partial class ArrayPoolMemoryAllocator : MemoryAllocator
+    public sealed partial class ArrayPoolMemoryAllocator : MemoryAllocator
     {
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.

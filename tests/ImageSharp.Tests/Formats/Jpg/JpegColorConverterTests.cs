@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+using SixLabors.ImageSharp.Tests.Colorspaces;
 using SixLabors.Memory;
 
 using Xunit;
@@ -17,7 +18,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class JpegColorConverterTests
     {
-        private const float Precision = 0.1f / 255;
+        private const float Precision = 0.1F / 255;
+
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(Precision);
 
         public static readonly TheoryData<int, int, int> CommonConversionData =
             new TheoryData<int, int, int>
@@ -59,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
             var expected = ColorSpaceConverter.ToRgb(ycbcr);
 
-            Assert.True(actual.AlmostEquals(expected, Precision), $"{actual} != {expected}");
+            Assert.Equal(expected, actual, ColorSpaceComparer);
             Assert.Equal(1, rgba.W);
         }
 
@@ -182,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(v.X, v.Y, v.Z);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -204,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(y / 255F, y / 255F, y / 255F);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -228,7 +231,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(r / 255F, g / 255F, b / 255F);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }
@@ -266,7 +269,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(v.X, v.Y, v.Z);
 
-                Assert.True(actual.AlmostEquals(expected, Precision));
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }

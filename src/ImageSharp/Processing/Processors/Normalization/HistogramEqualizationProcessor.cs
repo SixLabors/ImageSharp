@@ -5,11 +5,10 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Processing.Normalization
+namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
     /// <summary>
     /// Applies a global histogram equalization to the image.
@@ -22,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
         /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-        /// or 65536 for 16-bit grayscale images.Defaults to 65536.</param>
+        /// or 65536 for 16-bit grayscale images. Defaults to 65536.</param>
         public HistogramEqualizationProcessor(int luminanceLevels = 65536)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
@@ -117,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Normalization
         {
             // Convert to grayscale using ITU-R Recommendation BT.709
             var vector = sourcePixel.ToVector4();
-            int luminance = Convert.ToInt32(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * luminanceLevels);
+            int luminance = Convert.ToInt32(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (luminanceLevels - 1));
 
             return luminance;
         }

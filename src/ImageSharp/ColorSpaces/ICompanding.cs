@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
+
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Pair of companding functions for <see cref="IRgbWorkingSpace"/>.
+    /// Pair of companding functions for <see cref="RgbWorkingSpace"/>.
     /// Used for conversion to <see cref="CieXyz"/> and backwards.
-    /// See also: <seealso cref="IRgbWorkingSpace.Companding"/>
+    /// See also: <seealso cref="RgbWorkingSpace.Companding"/>
     /// </summary>
     internal interface ICompanding
     {

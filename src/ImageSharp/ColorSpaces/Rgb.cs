@@ -64,9 +64,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb(float r, float g, float b, RgbWorkingSpace workingSpace)
         {
-            this.R = r;
-            this.G = g;
-            this.B = b;
+            // Clamp to 0-1 range.
+            this.R = r.Clamp(0, 1F);
+            this.G = g.Clamp(0, 1F);
+            this.B = b.Clamp(0, 1F);
             this.WorkingSpace = workingSpace;
         }
 

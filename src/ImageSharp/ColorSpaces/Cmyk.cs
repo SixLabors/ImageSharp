@@ -58,8 +58,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
             this.C = vector.X;
-            this.Y = vector.Y;
-            this.M = vector.Z;
+            this.M = vector.Y;
+            this.Y = vector.Z;
             this.K = vector.W;
         }
 

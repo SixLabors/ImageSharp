@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
@@ -412,6 +412,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             {
                 this.MetaData.HorizontalResolution = this.jFif.XDensity;
                 this.MetaData.VerticalResolution = this.jFif.YDensity;
+                this.MetaData.ResolutionUnits = this.jFif.DensityUnits;
             }
             else if (this.isExif)
             {
@@ -427,6 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 {
                     this.MetaData.HorizontalResolution = horizontalValue;
                     this.MetaData.VerticalResolution = verticalValue;
+                    this.MetaData.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.MetaData.ExifProfile);
                 }
             }
 

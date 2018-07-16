@@ -3,6 +3,8 @@
 
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -50,6 +52,38 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (image.Width * (int)this.bitsPerPixel);
 
+            // Set Resolution.
+            ImageMetaData meta = image.MetaData;
+            int hResolution = 0;
+            int vResolution = 0;
+
+            if (meta.ResolutionUnits != PixelResolutionUnit.AspectRatio)
+            {
+                if (meta.HorizontalResolution > 0 && meta.VerticalResolution > 0)
+                {
+                    switch (meta.ResolutionUnits)
+                    {
+                        case PixelResolutionUnit.PixelsPerInch:
+
+                            hResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution));
+                            break;
+
+                        case PixelResolutionUnit.PixelsPerCentimeter:
+
+                            hResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution));
+                            vResolution = (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution));
+                            break;
+
+                        case PixelResolutionUnit.PixelsPerMeter:
+                            hResolution = (int)Math.Round(meta.HorizontalResolution);
+                            vResolution = (int)Math.Round(meta.VerticalResolution);
+
+                            break;
+                    }
+                }
+            }
+
             var infoHeader = new BmpInfoHeader(
                 headerSize: BmpInfoHeader.Size,
                 height: image.Height,
@@ -58,7 +92,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 planes: 1,
                 imageSize: image.Height * bytesPerLine,
                 clrUsed: 0,
-                clrImportant: 0);
+                clrImportant: 0,
+                xPelsPerMeter: hResolution,
+                yPelsPerMeter: vResolution);
 
             var fileHeader = new BmpFileHeader(
                 type: 19778, // BM

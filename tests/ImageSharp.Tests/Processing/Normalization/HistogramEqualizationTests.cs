@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [InlineData(65536)]
         public void HistogramEqualizationTest(int luminanceLevels)
         {
-            // arrange
+            // Arrange
             byte[] pixels = new byte[]
             {
                 52,  55,  61,  59,  70,  61,  76,  61,
@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 69,  85,  64,  58,  55,  61,  65,  83,
                 70,  87,  69,  68,  65,  73,  78,  90
             };
+
             var image = new Image<Rgba32>(8, 8);
             for (int y = 0; y < 8; y++)
             {
@@ -48,10 +49,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                 146, 206,  130,  117,   85,  166,  182,  215
             };
 
-            // act
+            // Act
             image.Mutate(x => x.HistogramEqualization(luminanceLevels));
 
-            // assert
+            // Assert
             for (int y = 0; y < 8; y++)
             {
                 for (int x = 0; x < 8; x++)

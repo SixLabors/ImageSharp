@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -21,8 +22,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
-        /// or 65536 for 16-bit grayscale images. Defaults to 65536.</param>
-        public HistogramEqualizationProcessor(int luminanceLevels = 65536)
+        /// or 65536 for 16-bit grayscale images.</param>
+        public HistogramEqualizationProcessor(int luminanceLevels)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
 
@@ -30,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         }
 
         /// <summary>
-        /// Gets the luminance levels.
+        /// Gets the number of luminance levels.
         /// </summary>
         public int LuminanceLevels { get; }
 
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
-            // build the histogram of the grayscale levels
+            // Build the histogram of the grayscale levels.
             using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             {
@@ -53,33 +54,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     histogram[luminance]++;
                 }
 
-                // calculate the cumulative distribution function, which will map each input pixel to a new value
+                // Calculate the cumulative distribution function, which will map each input pixel to a new value.
                 Span<int> cdf = cdfBuffer.GetSpan();
-                int cdfMin = this.CaluclateCdf(cdf, histogram);
+                int cdfMin = this.CalculateCdf(cdf, histogram);
 
-                // apply the cdf to each pixel of the image
-                double numberOfPixelsMinusCdfMin = (double)(numberOfPixels - cdfMin);
+                // Apply the cdf to each pixel of the image
+                float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     TPixel sourcePixel = pixels[i];
 
                     int luminance = this.GetLuminance(sourcePixel, this.LuminanceLevels);
-                    double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
+                    float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
 
-                    pixels[i].PackFromVector4(new Vector4((float)luminanceEqualized));
+                    pixels[i].PackFromVector4(new Vector4(luminanceEqualized));
                 }
             }
         }
 
         /// <summary>
-        /// Calculate the cumulative distribution function
+        /// Calculates the cumulative distribution function.
         /// </summary>
-        /// <param name="cdf">The array holding the cdf</param>
-        /// <param name="histogram">The histogram of the input image</param>
-        /// <returns>The first none zero value of the cdf</returns>
-        private int CaluclateCdf(Span<int> cdf, Span<int> histogram)
+        /// <param name="cdf">The array holding the cdf.</param>
+        /// <param name="histogram">The histogram of the input image.</param>
+        /// <returns>The first none zero value of the cdf.</returns>
+        private int CalculateCdf(Span<int> cdf, Span<int> histogram)
         {
-            // calculate the cumulative histogram
+            // Calculate the cumulative histogram
             int histSum = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
@@ -87,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 cdf[i] = histSum;
             }
 
-            // get the first none zero value of the cumulative histogram
+            // Get the first none zero value of the cumulative histogram
             int cdfMin = 0;
             for (int i = 0; i < histogram.Length; i++)
             {
@@ -98,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
             }
 
-            // creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
+            // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
             for (int i = 0; i < histogram.Length; i++)
             {
                 cdf[i] = Math.Max(0, cdf[i] - cdfMin);
@@ -112,6 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         /// <param name="sourcePixel">The pixel to get the luminance from</param>
         /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             // Convert to grayscale using ITU-R Recommendation BT.709

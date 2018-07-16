@@ -3,6 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -14,16 +15,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public class JpegEncoderTests
     {
         public static readonly TheoryData<JpegSubsample, int> BitsPerPixel_Quality =
-            new TheoryData<JpegSubsample, int>
-                {
-                    { JpegSubsample.Ratio420, 40 },
-                    { JpegSubsample.Ratio420, 60 },
-                    { JpegSubsample.Ratio420, 100 },
+        new TheoryData<JpegSubsample, int>
+        {
+            { JpegSubsample.Ratio420, 40 },
+            { JpegSubsample.Ratio420, 60 },
+            { JpegSubsample.Ratio420, 100 },
 
-                    { JpegSubsample.Ratio444, 40 },
-                    { JpegSubsample.Ratio444, 60 },
-                    { JpegSubsample.Ratio444, 100 },
-                };
+            { JpegSubsample.Ratio444, 40 },
+            { JpegSubsample.Ratio444, 60 },
+            { JpegSubsample.Ratio444, 100 },
+        };
+
+        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
+        new TheoryData<string, int, int, PixelResolutionUnit>
+        {
+            { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Jpeg.Baseline.Snake, 300, 300 , PixelResolutionUnit.PixelsPerInch},
+            { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
+        };
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(BitsPerPixel_Quality), PixelTypes.Rgba32)]
@@ -82,10 +91,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.Mutate(c => c.MakeOpaque());
 
                 var encoder = new JpegEncoder()
-                                  {
-                                      Subsample = subsample,
-                                      Quality = quality
-                                  };
+                {
+                    Subsample = subsample,
+                    Quality = quality
+                };
                 string info = $"{subsample}-Q{quality}";
                 ImageComparer comparer = GetComparer(quality, subsample);
 
@@ -93,7 +102,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
             }
         }
-        
 
         [Theory]
         [InlineData(false)]
@@ -104,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 IgnoreMetadata = ignoreMetaData
             };
-            
+
             using (Image<Rgba32> input = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateImage())
             {
                 using (var memStream = new MemoryStream())
@@ -126,7 +134,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 }
             }
         }
-        
+
         [Fact]
         public void Quality_0_And_1_Are_Identical()
         {
@@ -170,6 +178,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 input.SaveAsJpeg(memStream1, options);
 
                 Assert.NotEqual(memStream0.ToArray(), memStream1.ToArray());
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var options = new JpegEncoder();
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        ImageMetaData meta = output.MetaData;
+                        Assert.Equal(xResolution, meta.HorizontalResolution);
+                        Assert.Equal(yResolution, meta.VerticalResolution);
+                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                    }
+                }
             }
         }
     }

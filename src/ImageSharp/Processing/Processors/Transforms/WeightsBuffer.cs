@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="destinationSize">The size of the destination window</param>
         public WeightsBuffer(MemoryAllocator memoryAllocator, int sourceSize, int destinationSize)
         {
-            this.dataBuffer = memoryAllocator.Allocate2D<float>(sourceSize, destinationSize, true);
+            this.dataBuffer = memoryAllocator.Allocate2D<float>(sourceSize, destinationSize, AllocationOptions.Clean);
             this.Weights = new WeightsWindow[destinationSize];
         }
 

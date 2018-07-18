@@ -749,7 +749,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessDefineHuffmanTablesMarker(int remaining)
         {
-            using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
+            using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
@@ -757,7 +757,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
                     this.InputStream.Read(huffmanData.Array, 0, 16);
 
-                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(17))
+                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
                     {
                         ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
                         int codeLengthSum = 0;
@@ -767,7 +767,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                             codeLengthSum += Unsafe.Add(ref codeLengthsRef, j) = Unsafe.Add(ref huffmanDataRef, j - 1);
                         }
 
-                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(256))
+                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
                         {
                             this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
 

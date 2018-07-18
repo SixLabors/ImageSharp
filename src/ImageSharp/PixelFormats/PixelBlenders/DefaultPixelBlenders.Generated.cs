@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -395,7 +395,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -434,7 +434,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -473,7 +473,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -512,7 +512,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -551,7 +551,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -590,7 +590,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -629,7 +629,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -668,7 +668,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -707,7 +707,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -746,7 +746,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -785,7 +785,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -824,7 +824,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                     Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
                     Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3, false))
+                    using (IBuffer<Vector4> buffer = memoryManager.Allocate<Vector4>(destination.Length * 3))
                     {
                         Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                         Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);

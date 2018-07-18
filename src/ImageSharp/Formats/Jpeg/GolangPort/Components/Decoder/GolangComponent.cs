@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = memoryAllocator.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, true);
+            this.SpectralBlocks = memoryAllocator.Allocate2D<Block8x8>(this.SizeInBlocks.Width, this.SizeInBlocks.Height, AllocationOptions.Clean);
         }
 
         /// <summary>

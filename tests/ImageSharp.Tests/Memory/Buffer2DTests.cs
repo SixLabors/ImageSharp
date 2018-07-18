@@ -34,11 +34,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         private class MockMemoryAllocator : MemoryAllocator
         {
-            internal override IBuffer<T> Allocate<T>(int length, bool clear)
+            internal override IBuffer<T> Allocate<T>(int length, AllocationOptions options)
             {
                 var array = new T[length + 42];
 
-                if (!clear)
+                if (options == AllocationOptions.None)
                 {
                     Span<byte> data = MemoryMarshal.Cast<T, byte>(array.AsSpan());
                     for (int i = 0; i < data.Length; i++)
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 return new BasicArrayBuffer<T>(array, length);
             }
 
-            internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
+            internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options)
             {
                 throw new NotImplementedException();
             }
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void CreateClean()
         {
-            using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, true))
+            using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean))
             {
                 Span<int> span = buffer.GetSpan();
                 for (int j = 0; j < span.Length; j++)

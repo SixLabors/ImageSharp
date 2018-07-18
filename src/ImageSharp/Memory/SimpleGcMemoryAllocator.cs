@@ -6,12 +6,12 @@
     public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     {
         /// <inheritdoc />
-        internal override IBuffer<T> Allocate<T>(int length, bool clear)
+        internal override IBuffer<T> Allocate<T>(int length, AllocationOptions options)
         {
             return new BasicArrayBuffer<T>(new T[length]);
         }
 
-        internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
+        internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options)
         {
             return new BasicByteBuffer(new byte[length]);
         }

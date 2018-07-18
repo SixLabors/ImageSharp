@@ -124,12 +124,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
             this.TestCanAllocateCleanBuffer<CustomStruct>(desiredLength);
         }
 
-        private IBuffer<T> Allocate<T>(int desiredLength, bool clean, bool managedByteBuffer)
+        private IBuffer<T> Allocate<T>(int desiredLength, AllocationOptions options, bool managedByteBuffer)
             where T : struct
         {
             if (managedByteBuffer)
             {
-                if (!(this.MemoryAllocator.AllocateManagedByteBuffer(desiredLength, clean) is IBuffer<T> buffer))
+                if (!(this.MemoryAllocator.AllocateManagedByteBuffer(desiredLength, options) is IBuffer<T> buffer))
                 {
                     throw new InvalidOperationException("typeof(T) != typeof(byte)");
                 }
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 return buffer;
             }
 
-            return this.MemoryAllocator.Allocate<T>(desiredLength, clean);
+            return this.MemoryAllocator.Allocate<T>(desiredLength, options);
         }
 
         private void TestCanAllocateCleanBuffer<T>(int desiredLength, bool testManagedByteBuffer = false)
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             for (int i = 0; i < 10; i++)
             {
-                using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, true, testManagedByteBuffer))
+                using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.Clean, testManagedByteBuffer))
                 {
                     Assert.True(buffer.GetSpan().SequenceEqual(expected));
                 }
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         private void TestSpanPropertyIsAlwaysTheSame<T>(int desiredLength, bool testManagedByteBuffer = false)
             where T : struct
         {
-            using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, false, testManagedByteBuffer))
+            using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
             {
                 ref T a = ref MemoryMarshal.GetReference(buffer.GetSpan());
                 ref T b = ref MemoryMarshal.GetReference(buffer.GetSpan());
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         private void TestWriteAndReadElements<T>(int desiredLength, Func<int, T> getExpectedValue, bool testManagedByteBuffer = false)
             where T : struct
         {
-            using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, false, testManagedByteBuffer))
+            using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
             {
                 T[] expectedVals = new T[buffer.Length()];
 
@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             var dummy = default(T);
 
-            using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, false, testManagedByteBuffer))
+            using (IBuffer<T> buffer = this.Allocate<T>(desiredLength, AllocationOptions.None, testManagedByteBuffer))
             {
                 Assert.ThrowsAny<Exception>(
                     () =>

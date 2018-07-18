@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="memoryAllocator">The memory allocator used to allocate memory for image processing operations.</param>
         public FastACTables(MemoryAllocator memoryAllocator)
         {
-            this.tables = memoryAllocator.AllocateClean2D<short>(512, 4);
+            this.tables = memoryAllocator.Allocate2D<short>(512, 4, AllocationOptions.Clean);
         }
 
         /// <summary>

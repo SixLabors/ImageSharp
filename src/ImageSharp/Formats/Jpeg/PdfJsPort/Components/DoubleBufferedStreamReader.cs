@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             this.stream = stream;
             this.length = (int)stream.Length;
-            this.managedBuffer = memoryAllocator.AllocateCleanManagedByteBuffer(ChunkLength);
+            this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength, AllocationOptions.Clean);
             this.bufferChunk = this.managedBuffer.Array;
         }
 

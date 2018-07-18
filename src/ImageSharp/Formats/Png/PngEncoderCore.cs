@@ -6,8 +6,10 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.Memory;
@@ -598,19 +600,52 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WritePhysicalChunk<TPixel>(Stream stream, Image<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (image.MetaData.HorizontalResolution > 0 && image.MetaData.VerticalResolution > 0)
+            // The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image. It contains:
+            // Pixels per unit, X axis: 4 bytes (unsigned integer)
+            // Pixels per unit, Y axis: 4 bytes (unsigned integer)
+            // Unit specifier:          1 byte
+            //
+            // The following values are legal for the unit specifier:
+            //   0: unit is unknown
+            //   1: unit is the meter
+            //
+            // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
+            ImageMetaData meta = image.MetaData;
+            Span<byte> hResolution = this.chunkDataBuffer.AsSpan(0, 4);
+            Span<byte> vResolution = this.chunkDataBuffer.AsSpan(4, 4);
+
+            switch (meta.ResolutionUnits)
             {
-                // 39.3700787 = inches in a meter.
-                int dpmX = (int)Math.Round(image.MetaData.HorizontalResolution * 39.3700787D);
-                int dpmY = (int)Math.Round(image.MetaData.VerticalResolution * 39.3700787D);
+                case PixelResolutionUnit.AspectRatio:
 
-                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(0, 4), dpmX);
-                BinaryPrimitives.WriteInt32BigEndian(this.chunkDataBuffer.AsSpan(4, 4), dpmY);
+                    this.chunkDataBuffer[8] = 0;
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.VerticalResolution));
+                    break;
 
-                this.chunkDataBuffer[8] = 1;
+                case PixelResolutionUnit.PixelsPerInch:
 
-                this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
+                    this.chunkDataBuffer[8] = 1; // Per meter
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.HorizontalResolution)));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(UnitConverter.InchToMeter(meta.VerticalResolution)));
+                    break;
+
+                case PixelResolutionUnit.PixelsPerCentimeter:
+
+                    this.chunkDataBuffer[8] = 1; // Per meter
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(UnitConverter.CmToMeter(meta.HorizontalResolution)));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(UnitConverter.CmToMeter(meta.VerticalResolution)));
+                    break;
+
+                default:
+
+                    this.chunkDataBuffer[8] = 1; // Per meter
+                    BinaryPrimitives.WriteInt32BigEndian(hResolution, (int)Math.Round(meta.HorizontalResolution));
+                    BinaryPrimitives.WriteInt32BigEndian(vResolution, (int)Math.Round(meta.VerticalResolution));
+                    break;
             }
+
+            this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, 9);
         }
 
         /// <summary>
@@ -643,9 +678,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.rawScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.result = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+            this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.rawScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.result = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
 
             switch (this.pngFilterMethod)
             {
@@ -654,29 +689,29 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngFilterMethod.Sub:
 
-                    this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.sub = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
 
                 case PngFilterMethod.Up:
 
-                    this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.up = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
 
                 case PngFilterMethod.Average:
 
-                    this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.average = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
 
                 case PngFilterMethod.Paeth:
 
-                    this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.paeth = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
                 case PngFilterMethod.Adaptive:
 
-                    this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                    this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                    this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                    this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.sub = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
+                    this.up = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
+                    this.average = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
+                    this.paeth = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
             }
 

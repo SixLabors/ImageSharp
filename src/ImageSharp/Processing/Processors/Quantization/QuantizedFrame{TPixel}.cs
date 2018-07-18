@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Width = width;
             this.Height = height;
             this.Palette = palette;
-            this.pixels = memoryAllocator.AllocateCleanManagedByteBuffer(width * height);
+            this.pixels = memoryAllocator.AllocateManagedByteBuffer(width * height, AllocationOptions.Clean);
         }
 
         /// <summary>

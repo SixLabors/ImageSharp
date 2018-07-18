@@ -14,7 +14,7 @@ namespace SixLabors.Memory
         None,
 
         /// <summary>
-        /// Indicates that the allocated buffer should be cleaned.
+        /// Indicates that the allocated buffer should be cleaned following allocation.
         /// </summary>
         Clean
     }

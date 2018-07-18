@@ -139,13 +139,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             try
             {
-                this.vwt = memoryAllocator.AllocateClean<long>(TableLength);
-                this.vmr = memoryAllocator.AllocateClean<long>(TableLength);
-                this.vmg = memoryAllocator.AllocateClean<long>(TableLength);
-                this.vmb = memoryAllocator.AllocateClean<long>(TableLength);
-                this.vma = memoryAllocator.AllocateClean<long>(TableLength);
-                this.m2 = memoryAllocator.AllocateClean<float>(TableLength);
-                this.tag = memoryAllocator.AllocateClean<byte>(TableLength);
+                this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+                this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+                this.vmg = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+                this.vmb = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+                this.vma = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+                this.m2 = memoryAllocator.Allocate<float>(TableLength, AllocationOptions.Clean);
+                this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
 
                 return base.QuantizeFrame(image);
             }

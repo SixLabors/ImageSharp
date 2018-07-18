@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryAllocator.AllocateClean2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1);
+            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, AllocationOptions.Clean);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

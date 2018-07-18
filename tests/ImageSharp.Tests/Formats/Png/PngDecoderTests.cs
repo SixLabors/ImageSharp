@@ -8,6 +8,7 @@ using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -18,8 +19,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
     public partial class PngDecoderTests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
-        
-        
 
         public static readonly string[] CommonTestImages =
         {
@@ -65,6 +64,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             TestImages.Png.GrayAlpha16Bit,
             TestImages.Png.GrayTrns16BitInterlaced
+        };
+
+        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
+        new TheoryData<string, int, int, PixelResolutionUnit>
+        {
+            { TestImages.Png.Splash, 11810, 11810 , PixelResolutionUnit.PixelsPerMeter},
+            { TestImages.Png.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
 
         [Theory]
@@ -216,6 +223,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
                 Assert.Equal(expectedPixelSize, Image.Identify(stream)?.PixelType?.BitsPerPixel);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var decoder = new PngDecoder();
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                {
+                    ImageMetaData meta = image.MetaData;
+                    Assert.Equal(xResolution, meta.HorizontalResolution);
+                    Assert.Equal(yResolution, meta.VerticalResolution);
+                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var decoder = new PngDecoder();
+                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                ImageMetaData meta = image.MetaData;
+                Assert.Equal(xResolution, meta.HorizontalResolution);
+                Assert.Equal(yResolution, meta.VerticalResolution);
+                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
             }
         }
     }

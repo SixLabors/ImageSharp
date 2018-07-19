@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="cdf">The array holding the cdf.</param>
         /// <param name="histogram">The histogram of the input image.</param>
         /// <returns>The first none zero value of the cdf.</returns>
-        private int CalculateCdf(Span<int> cdf, Span<int> histogram)
+        protected int CalculateCdf(Span<int> cdf, Span<int> histogram)
         {
             // Calculate the cumulative histogram
             int histSum = 0;
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="sourcePixel">The pixel to get the luminance from</param>
         /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetLuminance(TPixel sourcePixel, int luminanceLevels)
+        protected int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             // Convert to grayscale using ITU-R Recommendation BT.709
             var vector = sourcePixel.ToVector4();

@@ -7,18 +7,16 @@ namespace SixLabors.ImageSharp.Tests
     using SixLabors.ImageSharp.PixelFormats;
 
     class TestMemoryManager<T> : MemoryManager<T>
-        where T : struct, IPixel<T>
+        where T : struct
     {
         public TestMemoryManager(T[] pixelArray)
         {
             this.PixelArray = pixelArray;
         }
 
-        public T[] PixelArray { get; }
+        public T[] PixelArray { get; private set; }
 
-        protected override void Dispose(bool disposing)
-        {
-        }
+        public bool IsDisposed { get; private set; }
 
         public override Span<T> GetSpan()
         {
@@ -35,16 +33,17 @@ namespace SixLabors.ImageSharp.Tests
             throw new NotImplementedException();
         }
 
-        public static TestMemoryManager<T> CreateAsCopyOfPixelData(Span<T> pixelData)
+        public static TestMemoryManager<T> CreateAsCopyOf(Span<T> copyThisBuffer)
         {
-            var pixelArray = new T[pixelData.Length];
-            pixelData.CopyTo(pixelArray);
+            var pixelArray = new T[copyThisBuffer.Length];
+            copyThisBuffer.CopyTo(pixelArray);
             return new TestMemoryManager<T>(pixelArray);
         }
 
-        public static TestMemoryManager<T> CreateAsCopyOfPixelData(Image<T> image)
+        protected override void Dispose(bool disposing)
         {
-            return CreateAsCopyOfPixelData(image.GetPixelSpan());
+            this.IsDisposed = true;
+            this.PixelArray = null;
         }
     }
 }

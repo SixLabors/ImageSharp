@@ -19,14 +19,14 @@ namespace SixLabors.Memory
         where T : struct
     {
         /// <summary>
-        /// Gets the <see cref="Memory{T}"/> ownerd/consumed by this buffer.
-        /// </summary>
-        Memory<T> Memory { get; }
-
-        /// <summary>
         /// Gets a value indicating whether this instance is owning the <see cref="Memory"/>.
         /// </summary>
         bool IsMemoryOwner { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Memory{T}"/> ownerd/consumed by this buffer.
+        /// </summary>
+        Memory<T> Memory { get; }
 
         /// <summary>
         /// Gets the span to the memory "promised" by this buffer when it's OWNED (1).

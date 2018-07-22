@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> image0 = provider.GetImage())
             {
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOfPixelData(image0.GetPixelSpan());
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
 
                 using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
                 {

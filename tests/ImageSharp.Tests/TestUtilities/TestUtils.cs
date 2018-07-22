@@ -228,6 +228,8 @@ namespace SixLabors.ImageSharp.Tests
                     // TODO: Investigate the cause of pixel inaccuracies under Linux
                     if (TestEnvironment.IsWindows)
                     {
+                        string testNameBackup = provider.Utility.TestName;
+
                         if (useReferenceOutputFrom != null)
                         {
                             provider.Utility.TestName = useReferenceOutputFrom;
@@ -239,6 +241,8 @@ namespace SixLabors.ImageSharp.Tests
                             testOutputDetails,
                             appendPixelTypeToFileName: appendPixelTypeToFileName,
                             appendSourceFileOrDescription: appendSourceFileOrDescription);
+
+                        provider.Utility.TestName = testNameBackup;
                     }
                 }
             }

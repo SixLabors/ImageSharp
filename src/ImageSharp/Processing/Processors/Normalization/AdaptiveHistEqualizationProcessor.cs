@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
@@ -8,9 +11,18 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 {
+    /// <summary>
+    /// Applies an adaptive histogram equalization to the image.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class AdaptiveHistEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AdaptiveHistEqualizationProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
+        /// or 65536 for 16-bit grayscale images.</param>
         public AdaptiveHistEqualizationProcessor(int luminanceLevels)
             : base(luminanceLevels)
         {
@@ -24,59 +36,46 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             Span<TPixel> pixels = source.GetPixelSpan();
 
             int gridSize = 64;
+            int contrastLimit = 5;
             int halfGridSize = gridSize / 2;
             int[] histogram = new int[this.LuminanceLevels];
             int[] histogramCopy = new int[this.LuminanceLevels];
             int[] cdf = new int[this.LuminanceLevels];
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
-                for (int y = halfGridSize; y < source.Height - halfGridSize; y++)
+                for (int x = halfGridSize; x < source.Width - halfGridSize; x++)
                 {
-                    var pixelsGrid = new List<TPixel>();
-                    int x = halfGridSize;
-                    for (int dy = y - halfGridSize; dy < (y + halfGridSize); dy++)
-                    {
-                        Span<TPixel> rowSpan = source.GetPixelRowSpan(dy);
-                        for (int dx = x - halfGridSize; dx < (x + halfGridSize); dx++)
-                        {
-                            pixelsGrid.Add(rowSpan[dx]);
-                        }
-                    }
-
                     this.CleanArray(histogram);
                     this.CleanArray(cdf);
+
+                    var pixelsGrid = new List<TPixel>();
+                    for (int dy = 0; dy < gridSize; dy++)
+                    {
+                        Span<TPixel> rowSpan = source.GetPixelRowSpan(dy).Slice(start: x - halfGridSize, length: gridSize);
+                        pixelsGrid.AddRange(rowSpan.ToArray());
+                    }
+
                     this.CalcHistogram(pixelsGrid, histogram, this.LuminanceLevels);
 
-                    for (x = halfGridSize + 1; x < source.Width - halfGridSize; x++)
+                    for (int y = halfGridSize + 1; y < source.Height - halfGridSize; y++)
                     {
-                        // remove left most column from the histogram
-                        var leftMostColumnPixels = new List<TPixel>();
-                        int dx = x - halfGridSize - 1;
-                        for (int dy = y - halfGridSize; dy < (y + halfGridSize); dy++)
-                        {
-                            leftMostColumnPixels.Add(pixels[(dy * source.Width) + dx]);
-                        }
+                        // Remove top most row from the histogram
+                        Span<TPixel> rowSpan = source.GetPixelRowSpan(y - halfGridSize - 1).Slice(start: x - halfGridSize, length: gridSize);
+                        this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
 
-                        this.RemovePixelsFromHistogram(leftMostColumnPixels, histogram, this.LuminanceLevels);
+                        // Add new bottom row to the histogram
+                        rowSpan = source.GetPixelRowSpan(y + halfGridSize - 1).Slice(start: x - halfGridSize, length: gridSize);
+                        this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
 
-                        // add right column from the histogram
-                        dx = x + halfGridSize - 1;
-                        var rightMostColumnPixels = new List<TPixel>();
-                        for (int dy = y - halfGridSize; dy < (y + halfGridSize); dy++)
-                        {
-                            rightMostColumnPixels.Add(pixels[(dy * source.Width) + dx]);
-                        }
-
-                        this.AddPixelsTooHistogram(rightMostColumnPixels, histogram, this.LuminanceLevels);
-
+                        // Clipping the histogram, but doing it on a copy to keep the original un-clipped values
                         histogram.AsSpan().CopyTo(histogramCopy);
-                        this.ClipHistogram(histogramCopy, 5, gridSize);
+                        this.ClipHistogram(histogramCopy, gridSize, contrastLimit);
                         int cdfMin = this.CalculateCdf(cdf, histogramCopy);
                         double numberOfPixelsMinusCdfMin = (double)(pixelsGrid.Count - cdfMin);
 
+                        // Map the current pixel to the new equalized value
                         int luminance = this.GetLuminance(pixels[(y * source.Width) + x], this.LuminanceLevels);
                         double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-
                         targetPixels[x, y].PackFromVector4(new Vector4((float)luminanceEqualized));
 
                         this.CleanArray(cdf);
@@ -87,7 +86,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
         }
 
-        private void ClipHistogram(Span<int> histogram, int contrastLimit, int gridSize)
+        /// <summary>
+        /// AHE tends to over amplify the contrast in near-constant regions of the image, since the histogram in such regions is highly concentrated.
+        /// Clipping the histogram is meant to reduce this effect, by cutting of histogram bin's which exceed a certain amount and redistribute 
+        /// the values over the clip limit to all other bins equally.
+        /// </summary>
+        /// <param name="histogram">The histogram to apply the clipping</param>
+        /// <param name="gridSize">The grid size of the AHE</param>
+        /// <param name="contrastLimit">The contrast limit. Defaults to 5.</param>
+        /// <returns>The number of pixels redistributed to all other bins</returns>
+        private int ClipHistogram(Span<int> histogram, int gridSize, int contrastLimit = 5)
         {
             int clipLimit = (contrastLimit * (gridSize * gridSize)) / this.LuminanceLevels;
 
@@ -106,20 +114,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             {
                 histogram[i] += addToEachBin;
             }
+
+            // The redistribution will push some bins over the clip limit again.
+            // Re-Applying the clipping until this effect no longer occurs.
+            while (addToEachBin > 1)
+            {
+                addToEachBin = this.ClipHistogram(histogram, gridSize, contrastLimit);
+            }
+
+            return addToEachBin;
         }
 
-        private void AddPixelsTooHistogram(List<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
+        private void AddPixelsTooHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
         {
-            for (int i = 0; i < greyValues.Count; i++)
+            for (int i = 0; i < greyValues.Length; i++)
             {
                 int luminance = this.GetLuminance(greyValues[i], luminanceLevels);
                 histogram[luminance]++;
             }
         }
 
-        private void RemovePixelsFromHistogram(List<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
+        private void RemovePixelsFromHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
         {
-            for (int i = 0; i < greyValues.Count; i++)
+            for (int i = 0; i < greyValues.Length; i++)
             {
                 int luminance = this.GetLuminance(greyValues[i], luminanceLevels);
                 histogram[luminance]--;

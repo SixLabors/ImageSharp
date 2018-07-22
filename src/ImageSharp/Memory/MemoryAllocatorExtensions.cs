@@ -1,4 +1,6 @@
-﻿using SixLabors.Primitives;
+﻿using System.Buffers;
+
+using SixLabors.Primitives;
 
 namespace SixLabors.Memory
 {
@@ -14,7 +16,7 @@ namespace SixLabors.Memory
             AllocationOptions options = AllocationOptions.None)
             where T : struct
         {
-            IBuffer<T> buffer = memoryAllocator.Allocate<T>(width * height, options);
+            IMemoryOwner<T> buffer = memoryAllocator.Allocate<T>(width * height, options);
 
             return new Buffer2D<T>(buffer, width, height);
         }

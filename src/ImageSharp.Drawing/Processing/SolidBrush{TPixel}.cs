@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -65,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing
             /// <summary>
             /// Gets the colors.
             /// </summary>
-            protected IBuffer<TPixel> Colors { get; }
+            protected IMemoryOwner<TPixel> Colors { get; }
 
             /// <summary>
             /// Gets the color for a single pixel.
@@ -96,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing
                 }
                 else
                 {
-                    using (IBuffer<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
+                    using (IMemoryOwner<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
                     {
                         Span<float> amountSpan = amountBuffer.GetSpan();
 

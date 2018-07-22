@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 
 using SixLabors.Memory;
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         /// </summary>
         public byte DirtyValue { get; }
 
-        internal override IBuffer<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
+        internal override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             T[] array = this.AllocateArray<T>(length, options);
 

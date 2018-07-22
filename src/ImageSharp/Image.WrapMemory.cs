@@ -34,8 +34,7 @@ namespace SixLabors.ImageSharp
             ImageMetaData metaData)
             where TPixel : struct, IPixel<TPixel>
         {
-            var buffer = new ConsumedBuffer<TPixel>(pixelMemory);
-            return new Image<TPixel>(config, buffer, width, height, metaData);
+            return new Image<TPixel>(config, pixelMemory, width, height, metaData);
         }
 
         /// <summary>

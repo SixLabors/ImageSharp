@@ -3,9 +3,6 @@ using System.Buffers;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.ImageSharp.PixelFormats;
-
     class TestMemoryManager<T> : MemoryManager<T>
         where T : struct
     {

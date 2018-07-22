@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -65,8 +66,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
             int width = maxX - minX;
 
-            using (IBuffer<TPixel> colors = source.MemoryAllocator.Allocate<TPixel>(width))
-            using (IBuffer<float> amount = source.MemoryAllocator.Allocate<float>(width))
+            using (IMemoryOwner<TPixel> colors = source.MemoryAllocator.Allocate<TPixel>(width))
+            using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
             {
                 // Be careful! Do not capture colorSpan & amountSpan in the lambda below!
                 Span<TPixel> colorSpan = colors.GetSpan();

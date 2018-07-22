@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         // ReSharper disable once ClassNeverInstantiated.Local
         private class Assert : Xunit.Assert
         {
-            public static void SpanPointsTo<T>(Span<T> span, IBuffer<T> buffer, int bufferOffset = 0)
+            public static void SpanPointsTo<T>(Span<T> span, IMemoryOwner<T> buffer, int bufferOffset = 0)
                 where T : struct
             {
                 ref T actual = ref MemoryMarshal.GetReference(span);
@@ -41,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.Buffer.Length());
+                Assert.Equal(width * height, buffer.Memory.Length);
             }
         }
 
@@ -70,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 // Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
-                Assert.SpanPointsTo(span, buffer.Buffer, width * y);
+                Assert.SpanPointsTo(span, buffer.Buffer.MemoryOwner, width * y);
             }
         }
 
@@ -86,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 // Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
-                Assert.SpanPointsTo(span, buffer.Buffer, width * y + x);
+                Assert.SpanPointsTo(span, buffer.Buffer.MemoryOwner, width * y + x);
             }
         }
 
@@ -107,92 +108,24 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }
         }
-        
-        public class SwapOrCopyContent
+
+        [Fact]
+        public void SwapOrCopyContent()
         {
-            private MemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
-            
-            [Fact]
-            public void WhenBothBuffersAreMemoryOwners_ShouldSwap()
+            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
+            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
             {
-                using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
-                using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
-                {
-                    IBuffer<int> aa = a.Buffer;
-                    IBuffer<int> bb = b.Buffer;
+                IMemoryOwner<int> aa = a.Buffer.MemoryOwner;
+                IMemoryOwner<int> bb = b.Buffer.MemoryOwner;
 
-                    Buffer2D<int>.SwapOrCopyContent(a, b);
+                Buffer2D<int>.SwapOrCopyContent(a, b);
 
-                    Assert.Equal(bb, a.Buffer);
-                    Assert.Equal(aa, b.Buffer);
-                      
-                    Assert.Equal(new Size(3, 7), a.Size());
-                    Assert.Equal(new Size(10, 5), b.Size());
-                }
+                Assert.Equal(bb, a.Buffer.MemoryOwner);
+                Assert.Equal(aa, b.Buffer.MemoryOwner);
+
+                Assert.Equal(new Size(3, 7), a.Size());
+                Assert.Equal(new Size(10, 5), b.Size());
             }
-
-            [Fact]
-            public void WhenDestIsNotMemoryOwner_SameSize_ShouldCopy()
-            {
-                var data = new Rgba32[3 * 7];
-                var color = new Rgba32(1, 2, 3, 4);
-                
-                var mmg = new TestMemoryManager<Rgba32>(data);
-                var aBuff = new ConsumedBuffer<Rgba32>(mmg.Memory);
-
-                using (Buffer2D<Rgba32> a = new Buffer2D<Rgba32>(aBuff, 3, 7))
-                {
-                    IBuffer<Rgba32> aa = a.Buffer;
-
-                    // Precondition:
-                    Assert.Equal(aBuff, aa);
-
-                    using (Buffer2D<Rgba32> b = this.MemoryAllocator.Allocate2D<Rgba32>(3, 7))
-                    {
-                        IBuffer<Rgba32> bb = b.Buffer;
-                        bb.GetSpan()[10] = color;
-
-                        // Act:
-                        Buffer2D<Rgba32>.SwapOrCopyContent(a, b);
-
-                        // Assert:
-                        Assert.Equal(aBuff, a.Buffer);
-                        Assert.Equal(bb, b.Buffer);
-                    }
-
-                    // Assert:
-                    Assert.Equal(color, a.Buffer.GetSpan()[10]);
-                }
-            }
-
-            [Fact]
-            public void WhenDestIsNotMemoryOwner_DifferentSize_Throws()
-            {
-                var data = new Rgba32[3 * 7];
-                var color = new Rgba32(1, 2, 3, 4);
-                data[10] = color;
-
-                var mmg = new TestMemoryManager<Rgba32>(data);
-                var aBuff = new ConsumedBuffer<Rgba32>(mmg.Memory);
-
-                using (Buffer2D<Rgba32> a = new Buffer2D<Rgba32>(aBuff, 3, 7))
-                {
-                    IBuffer<Rgba32> aa = a.Buffer;
-                    using (Buffer2D<Rgba32> b = this.MemoryAllocator.Allocate2D<Rgba32>(3, 8))
-                    {
-                        IBuffer<Rgba32> bb = b.Buffer;
-
-                        Assert.ThrowsAny<InvalidOperationException>(
-                            () =>
-                                {
-                                    Buffer2D<Rgba32>.SwapOrCopyContent(a, b);
-                                });
-                    }
-
-                    Assert.Equal(color, a.Buffer.GetSpan()[10]);
-                }
-            }
-
         }
     }
 }

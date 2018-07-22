@@ -11,6 +11,11 @@ namespace SixLabors.Memory
     /// Implements content transfer logic in  <see cref="SwapOrCopyContent"/> that depends on the ownership status.
     /// This is needed to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="SixLabors.ImageSharp.ImageFrame{T}.PixelBuffer"/>
     /// </summary>
+    /// <remarks>
+    /// For a deeper understanding of the owner/consumer model, check out the following docs: <br/>
+    /// https://gist.github.com/GrabYourPitchforks/4c3e1935fd4d9fa2831dbfcab35dffc6
+    /// https://www.codemag.com/Article/1807051/Introducing-.NET-Core-2.1-Flagship-Types-Span-T-and-Memory-T
+    /// </remarks>
     internal struct BufferManager<T> : IDisposable
     {
         public BufferManager(IMemoryOwner<T> memoryOwner)
@@ -30,6 +35,10 @@ namespace SixLabors.Memory
         public Memory<T> Memory { get; private set; }
 
         public bool OwnsMemory => this.MemoryOwner != null;
+
+        public Span<T> GetSpan() => this.Memory.Span;
+
+        public void Clear() => this.Memory.Span.Clear();
 
         /// <summary>
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -70,37 +71,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Moment of <c>P(c)</c>.
         /// </summary>
-        private IBuffer<long> vwt;
+        private IMemoryOwner<long> vwt;
 
         /// <summary>
         /// Moment of <c>r*P(c)</c>.
         /// </summary>
-        private IBuffer<long> vmr;
+        private IMemoryOwner<long> vmr;
 
         /// <summary>
         /// Moment of <c>g*P(c)</c>.
         /// </summary>
-        private IBuffer<long> vmg;
+        private IMemoryOwner<long> vmg;
 
         /// <summary>
         /// Moment of <c>b*P(c)</c>.
         /// </summary>
-        private IBuffer<long> vmb;
+        private IMemoryOwner<long> vmb;
 
         /// <summary>
         /// Moment of <c>a*P(c)</c>.
         /// </summary>
-        private IBuffer<long> vma;
+        private IMemoryOwner<long> vma;
 
         /// <summary>
         /// Moment of <c>c^2*P(c)</c>.
         /// </summary>
-        private IBuffer<float> m2;
+        private IMemoryOwner<float> m2;
 
         /// <summary>
         /// Color space tag.
         /// </summary>
-        private IBuffer<byte> tag;
+        private IMemoryOwner<byte> tag;
 
         /// <summary>
         /// Maximum allowed color depth
@@ -467,18 +468,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<long> vmaSpan = this.vma.GetSpan();
             Span<float> m2Span = this.m2.GetSpan();
 
-            using (IBuffer<long> volume = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeR = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeG = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeB = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> volumeA = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
-            using (IBuffer<float> volume2 = memoryAllocator.Allocate<float>(IndexCount * IndexAlphaCount))
-            using (IBuffer<long> area = memoryAllocator.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaR = memoryAllocator.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaG = memoryAllocator.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaB = memoryAllocator.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<long> areaA = memoryAllocator.Allocate<long>(IndexAlphaCount))
-            using (IBuffer<float> area2 = memoryAllocator.Allocate<float>(IndexAlphaCount))
+            using (IMemoryOwner<long> volume = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<long> volumeR = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<long> volumeG = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<long> volumeB = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<long> volumeA = memoryAllocator.Allocate<long>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<float> volume2 = memoryAllocator.Allocate<float>(IndexCount * IndexAlphaCount))
+            using (IMemoryOwner<long> area = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IMemoryOwner<long> areaR = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IMemoryOwner<long> areaG = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IMemoryOwner<long> areaB = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IMemoryOwner<long> areaA = memoryAllocator.Allocate<long>(IndexAlphaCount))
+            using (IMemoryOwner<float> area2 = memoryAllocator.Allocate<float>(IndexAlphaCount))
             {
                 Span<long> volumeSpan = volume.GetSpan();
                 Span<long> volumeRSpan = volumeR.GetSpan();
@@ -791,7 +792,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.colorCube = new Box[this.colors];
             float[] vv = new float[this.colors];
 
-            ref var cube = ref this.colorCube[0];
+            ref Box cube = ref this.colorCube[0];
             cube.R0 = cube.G0 = cube.B0 = cube.A0 = 0;
             cube.R1 = cube.G1 = cube.B1 = IndexCount - 1;
             cube.A1 = IndexAlphaCount - 1;
@@ -800,8 +801,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int i = 1; i < this.colors; i++)
             {
-                ref var nextCube = ref this.colorCube[next];
-                ref var currentCube = ref this.colorCube[i];
+                ref Box nextCube = ref this.colorCube[next];
+                ref Box currentCube = ref this.colorCube[i];
                 if (this.Cut(ref nextCube, ref currentCube))
                 {
                     vv[next] = nextCube.Volume > 1 ? this.Variance(ref nextCube) : 0F;

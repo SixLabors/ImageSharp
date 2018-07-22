@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -303,7 +304,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     sourceRectangle.Bottom,
                     configuration,
                     source.Width,
-                    (int y, IBuffer<Vector4> tempRowBuffer) =>
+                    (int y, IMemoryOwner<Vector4> tempRowBuffer) =>
                         {
                             ref Vector4 firstPassRow = ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

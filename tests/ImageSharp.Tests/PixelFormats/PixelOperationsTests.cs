@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -57,8 +58,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 int times = 200000;
                 int count = 1024;
 
-                using (IBuffer<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryAllocator.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
-                using (IBuffer<Vector4> dest = Configuration.Default.MemoryAllocator.Allocate<Vector4>(count))
+                using (IMemoryOwner<ImageSharp.PixelFormats.Rgba32> source = Configuration.Default.MemoryAllocator.Allocate<ImageSharp.PixelFormats.Rgba32>(count))
+                using (IMemoryOwner<Vector4> dest = Configuration.Default.MemoryAllocator.Allocate<Vector4>(count))
                 {
                     this.Measure(
                         times,
@@ -537,7 +538,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             where TDest : struct
         {
             public TSource[] SourceBuffer { get; }
-            public IBuffer<TDest> ActualDestBuffer { get; }
+            public IMemoryOwner<TDest> ActualDestBuffer { get; }
             public TDest[] ExpectedDestBuffer { get; }
 
             public TestBuffers(TSource[] source, TDest[] expectedDest)
@@ -586,7 +587,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<TSource[], IBuffer<TDest>> action)
+            Action<TSource[], IMemoryOwner<TDest>> action)
             where TSource : struct
             where TDest : struct
         {

@@ -7,7 +7,11 @@ namespace SixLabors.Memory
     /// </summary>
     internal static class MemoryAllocatorExtensions
     {
-        public static Buffer2D<T> Allocate2D<T>(this MemoryAllocator memoryAllocator, int width, int height, AllocationOptions options = AllocationOptions.None)
+        public static Buffer2D<T> Allocate2D<T>(
+            this MemoryAllocator memoryAllocator,
+            int width,
+            int height,
+            AllocationOptions options = AllocationOptions.None)
             where T : struct
         {
             IBuffer<T> buffer = memoryAllocator.Allocate<T>(width * height, options);
@@ -15,7 +19,10 @@ namespace SixLabors.Memory
             return new Buffer2D<T>(buffer, width, height);
         }
 
-        public static Buffer2D<T> Allocate2D<T>(this MemoryAllocator memoryAllocator, Size size, AllocationOptions options = AllocationOptions.None)
+        public static Buffer2D<T> Allocate2D<T>(
+            this MemoryAllocator memoryAllocator,
+            Size size,
+            AllocationOptions options = AllocationOptions.None)
             where T : struct =>
             Allocate2D<T>(memoryAllocator, size.Width, size.Height, options);
 

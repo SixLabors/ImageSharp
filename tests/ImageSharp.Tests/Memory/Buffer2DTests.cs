@@ -1,20 +1,20 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
+using SixLabors.Primitives;
+
+using Xunit;
+
 // ReSharper disable InconsistentNaming
+
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.Memory;
-    using SixLabors.ImageSharp.Tests.Common;
-    using SixLabors.Primitives;
-
-    using Xunit;
-
     public class Buffer2DTests
     {
         // ReSharper disable once ClassNeverInstantiated.Local
@@ -30,31 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
-        private MemoryAllocator MemoryAllocator { get; } = new MockMemoryAllocator();
-
-        private class MockMemoryAllocator : MemoryAllocator
-        {
-            internal override IBuffer<T> Allocate<T>(int length, AllocationOptions options)
-            {
-                var array = new T[length + 42];
-
-                if (options == AllocationOptions.None)
-                {
-                    Span<byte> data = MemoryMarshal.Cast<T, byte>(array.AsSpan());
-                    for (int i = 0; i < data.Length; i++)
-                    {
-                        data[i] = 42;
-                    }
-                }
-
-                return new BasicArrayBuffer<T>(array, length);
-            }
-
-            internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options)
-            {
-                throw new NotImplementedException();
-            }
-        }
+        private MemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
 
         [Theory]
         [InlineData(7, 42)]
@@ -134,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         
         public class SwapOrCopyContent
         {
-            private MemoryAllocator MemoryAllocator { get; } = new MockMemoryAllocator();
+            private MemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
             
             [Fact]
             public void WhenBothBuffersAreMemoryOwners_ShouldSwap()

@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.Memory
 {
     /// <summary>
-    /// Wraps an array as an <see cref="IBuffer{T}"/> instance. In this implementation <see cref="IBuffer{T}.Memory"/> is owned.
+    /// Wraps an array as an <see cref="IManagedByteBuffer"/> instance.
     /// </summary>
     internal class BasicArrayBuffer<T> : ManagedBufferBase<T>
         where T : struct

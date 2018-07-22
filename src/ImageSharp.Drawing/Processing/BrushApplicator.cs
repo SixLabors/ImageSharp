@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -65,8 +67,8 @@ namespace SixLabors.ImageSharp.Processing
         {
             MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
 
-            using (IBuffer<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
-            using (IBuffer<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
+            using (IMemoryOwner<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
+            using (IMemoryOwner<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
             {
                 Span<float> amountSpan = amountBuffer.GetSpan();
                 Span<TPixel> overlaySpan = overlay.GetSpan();

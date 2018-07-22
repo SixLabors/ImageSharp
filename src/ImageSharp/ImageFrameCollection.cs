@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp
             this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
         }
 
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, IBuffer<TPixel> consumedBuffer)
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, Memory<TPixel> consumedBuffer)
         {
             Guard.NotNull(parent, nameof(parent));
 

@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the memory image</param>
         /// <param name="metaData">The <see cref="ImageMetaData"/></param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
-        internal static Image<TPixel> WrapMemory<TPixel>(
+        public static Image<TPixel> WrapMemory<TPixel>(
             Configuration config,
             Memory<TPixel> pixelMemory,
             int width,
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the memory image</param>
         /// <param name="height">The height of the memory image</param>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
-        internal static Image<TPixel> WrapMemory<TPixel>(
+        public static Image<TPixel> WrapMemory<TPixel>(
             Memory<TPixel> pixelMemory,
             int width,
             int height)

@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// The buffer containing the weights values.
         /// </summary>
-        private readonly BufferManager<float> buffer;
+        private readonly MemorySource<float> buffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             this.flatStartIndex = (index * buffer.Width) + left;
             this.Left = left;
-            this.buffer = buffer.Buffer;
+            this.buffer = buffer.MemorySource;
             this.Length = length;
         }
 

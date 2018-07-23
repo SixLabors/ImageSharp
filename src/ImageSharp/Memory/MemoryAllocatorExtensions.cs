@@ -17,8 +17,9 @@ namespace SixLabors.Memory
             where T : struct
         {
             IMemoryOwner<T> buffer = memoryAllocator.Allocate<T>(width * height, options);
+            var memorySource = new MemorySource<T>(buffer, true);
 
-            return new Buffer2D<T>(buffer, width, height);
+            return new Buffer2D<T>(memorySource, width, height);
         }
 
         public static Buffer2D<T> Allocate2D<T>(

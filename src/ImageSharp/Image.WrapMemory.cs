@@ -13,8 +13,6 @@ namespace SixLabors.ImageSharp
     /// </content>
     public static partial class Image
     {
-        // TODO: This is a WIP API, should be public when finished.
-
         /// <summary>
         /// Wraps an existing contigous memory area of 'width'x'height' pixels,
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
@@ -34,7 +32,8 @@ namespace SixLabors.ImageSharp
             ImageMetaData metaData)
             where TPixel : struct, IPixel<TPixel>
         {
-            return new Image<TPixel>(config, pixelMemory, width, height, metaData);
+            var memorySource = new MemorySource<TPixel>(pixelMemory);
+            return new Image<TPixel>(config, memorySource, width, height, metaData);
         }
 
         /// <summary>

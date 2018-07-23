@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
             using (Buffer2D<Vector4> firstPassPixels = source.MemoryAllocator.Allocate2D<Vector4>(width, source.Height))
             {
-                firstPassPixels.Buffer.Clear();
+                firstPassPixels.MemorySource.Clear();
 
                 ParallelFor.WithTemporaryBuffer(
                     0,

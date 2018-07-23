@@ -12,21 +12,23 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    public class BufferManagerTests
+    public class MemorySourceTests
     {
         public class Construction
         {
-            [Fact]
-            public void InitializeAsOwner_MemoryOwner_IsPresent()
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void InitializeAsOwner(bool isInternalMemorySource)
             {
                 var data = new Rgba32[21];
                 var mmg = new TestMemoryManager<Rgba32>(data);
 
-                var a = new BufferManager<Rgba32>(mmg);
+                var a = new MemorySource<Rgba32>(mmg, isInternalMemorySource);
 
                 Assert.Equal(mmg, a.MemoryOwner);
                 Assert.Equal(mmg.Memory, a.Memory);
-                Assert.True(a.OwnsMemory);
+                Assert.Equal(isInternalMemorySource, a.HasSwappableContents);
             }
 
             [Fact]
@@ -35,21 +37,23 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 var data = new Rgba32[21];
                 var mmg = new TestMemoryManager<Rgba32>(data);
 
-                var a = new BufferManager<Rgba32>(mmg.Memory);
+                var a = new MemorySource<Rgba32>(mmg.Memory);
 
                 Assert.Null(a.MemoryOwner);
                 Assert.Equal(mmg.Memory, a.Memory);
-                Assert.False(a.OwnsMemory);
+                Assert.False(a.HasSwappableContents);
             }
         }
 
         public class Dispose
         {
-            [Fact]
-            public void WhenOwnershipIsTransfered_ShouldDisposeMemoryOwner()
+            [Theory]
+            [InlineData(false)]
+            [InlineData(true)]
+            public void WhenOwnershipIsTransfered_ShouldDisposeMemoryOwner(bool isInternalMemorySource)
             {
                 var mmg = new TestMemoryManager<int>(new int[10]);
-                var bmg = new BufferManager<int>(mmg);
+                var bmg = new MemorySource<int>(mmg, isInternalMemorySource);
                 
                 bmg.Dispose();
                 Assert.True(mmg.IsDisposed);
@@ -59,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public void WhenMemoryObserver_ShouldNotDisposeAnything()
             {
                 var mmg = new TestMemoryManager<int>(new int[10]);
-                var bmg = new BufferManager<int>(mmg.Memory);
+                var bmg = new MemorySource<int>(mmg.Memory);
 
                 bmg.Dispose();
                 Assert.False(mmg.IsDisposed);
@@ -70,18 +74,18 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             private MemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
 
-            private BufferManager<T> AllocateBufferManager<T>(int length, AllocationOptions options = AllocationOptions.None)
+            private MemorySource<T> AllocateMemorySource<T>(int length, AllocationOptions options = AllocationOptions.None)
                 where T : struct
             {
-                var owner = (IMemoryOwner<T>)this.MemoryAllocator.Allocate<T>(length, options);
-                return new BufferManager<T>(owner);
+                IMemoryOwner<T> owner = this.MemoryAllocator.Allocate<T>(length, options);
+                return new MemorySource<T>(owner, true);
             }
 
             [Fact]
             public void WhenBothAreMemoryOwners_ShouldSwap()
             {
-                BufferManager<int> a = this.AllocateBufferManager<int>(13);
-                BufferManager<int> b = this.AllocateBufferManager<int>(17);
+                MemorySource<int> a = this.AllocateMemorySource<int>(13);
+                MemorySource<int> b = this.AllocateMemorySource<int>(17);
 
                 IMemoryOwner<int> aa = a.MemoryOwner;
                 IMemoryOwner<int> bb = b.MemoryOwner;
@@ -89,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Memory<int> aaa = a.Memory;
                 Memory<int> bbb = b.Memory;
 
-                BufferManager<int>.SwapOrCopyContent(ref a, ref b);
+                MemorySource<int>.SwapOrCopyContent(ref a, ref b);
 
                 Assert.Equal(bb, a.MemoryOwner);
                 Assert.Equal(aa, b.MemoryOwner);
@@ -100,26 +104,27 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
 
             [Theory]
-            [InlineData(false)]
-            [InlineData(true)]
-            public void WhenDestIsNotMemoryOwner_SameSize_ShouldCopy(bool sourceIsOwner)
+            [InlineData(false, false)]
+            [InlineData(true, true)]
+            [InlineData(true, false)]
+            public void WhenDestIsNotMemoryOwner_SameSize_ShouldCopy(bool sourceIsOwner, bool isInternalMemorySource)
             {
                 var data = new Rgba32[21];
                 var color = new Rgba32(1, 2, 3, 4);
 
                 var destOwner = new TestMemoryManager<Rgba32>(data);
-                var dest = new BufferManager<Rgba32>(destOwner.Memory);
+                var dest = new MemorySource<Rgba32>(destOwner.Memory);
 
-                var sourceOwner = (IMemoryOwner<Rgba32>)this.MemoryAllocator.Allocate<Rgba32>(21);
+                IMemoryOwner<Rgba32> sourceOwner = this.MemoryAllocator.Allocate<Rgba32>(21);
 
-                BufferManager<Rgba32> source = sourceIsOwner
-                                                   ? new BufferManager<Rgba32>(sourceOwner)
-                                                   : new BufferManager<Rgba32>(sourceOwner.Memory);
+                MemorySource<Rgba32> source = sourceIsOwner
+                                                   ? new MemorySource<Rgba32>(sourceOwner, isInternalMemorySource)
+                                                   : new MemorySource<Rgba32>(sourceOwner.Memory);
                 
                 sourceOwner.Memory.Span[10] = color;
 
                 // Act:
-                BufferManager<Rgba32>.SwapOrCopyContent(ref dest, ref source);
+                MemorySource<Rgba32>.SwapOrCopyContent(ref dest, ref source);
 
                 // Assert:
                 Assert.Equal(color, dest.Memory.Span[10]);
@@ -136,18 +141,18 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 var color = new Rgba32(1, 2, 3, 4);
 
                 var destOwner = new TestMemoryManager<Rgba32>(data);
-                var dest = new BufferManager<Rgba32>(destOwner.Memory);
+                var dest = new MemorySource<Rgba32>(destOwner.Memory);
 
-                var sourceOwner = (IMemoryOwner<Rgba32>)this.MemoryAllocator.Allocate<Rgba32>(22);
+                IMemoryOwner<Rgba32> sourceOwner = this.MemoryAllocator.Allocate<Rgba32>(22);
 
-                BufferManager<Rgba32> source = sourceIsOwner
-                                                   ? new BufferManager<Rgba32>(sourceOwner)
-                                                   : new BufferManager<Rgba32>(sourceOwner.Memory);
+                MemorySource<Rgba32> source = sourceIsOwner
+                                                   ? new MemorySource<Rgba32>(sourceOwner, true)
+                                                   : new MemorySource<Rgba32>(sourceOwner.Memory);
                 sourceOwner.Memory.Span[10] = color;
 
                 // Act:
                 Assert.ThrowsAny<InvalidOperationException>(
-                    () => BufferManager<Rgba32>.SwapOrCopyContent(ref dest, ref source)
+                    () => MemorySource<Rgba32>.SwapOrCopyContent(ref dest, ref source)
                 );
                 
                 Assert.Equal(color, source.Memory.Span[10]);

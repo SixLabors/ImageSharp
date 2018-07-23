@@ -16,29 +16,19 @@ namespace SixLabors.Memory
     internal sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
-        private BufferManager<T> buffer;
+        private MemorySource<T> memorySource;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
-        /// <param name="wrappedBuffer">The buffer to wrap</param>
+        /// <param name="memorySource">The buffer to wrap</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(BufferManager<T> wrappedBuffer, int width, int height)
+        public Buffer2D(MemorySource<T> memorySource, int width, int height)
         {
-            this.buffer = wrappedBuffer;
+            this.memorySource = memorySource;
             this.Width = width;
             this.Height = height;
-        }
-
-        public Buffer2D(IMemoryOwner<T> ownedMemory, int width, int height)
-            : this(new BufferManager<T>(ownedMemory), width, height)
-        {
-        }
-
-        public Buffer2D(Memory<T> observedMemory, int width, int height)
-            : this(new BufferManager<T>(observedMemory), width, height)
-        {
         }
 
         /// <summary>
@@ -52,11 +42,11 @@ namespace SixLabors.Memory
         public int Height { get; private set; }
 
         /// <summary>
-        /// Gets the backing <see cref="BufferManager{T}"/>
+        /// Gets the backing <see cref="MemorySource{T}"/>
         /// </summary>
-        public BufferManager<T> Buffer => this.buffer;
+        public MemorySource<T> MemorySource => this.memorySource;
 
-        public Memory<T> Memory => this.Buffer.Memory;
+        public Memory<T> Memory => this.MemorySource.Memory;
 
         public Span<T> Span => this.Memory.Span;
 
@@ -83,7 +73,7 @@ namespace SixLabors.Memory
         /// </summary>
         public void Dispose()
         {
-            this.Buffer.Dispose();
+            this.MemorySource.Dispose();
         }
 
         /// <summary>
@@ -92,7 +82,7 @@ namespace SixLabors.Memory
         /// </summary>
         public static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            BufferManager<T>.SwapOrCopyContent(ref destination.buffer, ref source.buffer);
+            MemorySource<T>.SwapOrCopyContent(ref destination.memorySource, ref source.memorySource);
             SwapDimensionData(destination, source);
         }
 

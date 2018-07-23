@@ -5,9 +5,11 @@ using System;
 using System.Buffers;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Runtime.CompilerServices;
 
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 using SixLabors.Shapes;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
@@ -19,13 +21,17 @@ namespace SixLabors.ImageSharp.Tests
     {
         public class WrapMemory
         {
+            /// <summary>
+            /// A <see cref="MemoryManager{T}"/> exposing the locked pixel memory of a <see cref="Bitmap"/> instance.
+            /// TODO: This should be an example in https://github.com/SixLabors/Samples
+            /// </summary>
             class BitmapMemoryManager : MemoryManager<Bgra32>
             {
-                private System.Drawing.Bitmap bitmap;
+                private readonly Bitmap bitmap;
 
-                private BitmapData bmpData;
+                private readonly BitmapData bmpData;
 
-                private int length;
+                private readonly int length;
 
                 public BitmapMemoryManager(Bitmap bitmap)
                 {
@@ -40,9 +46,21 @@ namespace SixLabors.ImageSharp.Tests
                     this.length = bitmap.Width * bitmap.Height;
                 }
 
+                public bool IsDisposed { get; private set; }
+
                 protected override void Dispose(bool disposing)
                 {
-                    this.bitmap.UnlockBits(this.bmpData);
+                    if (this.IsDisposed)
+                    {
+                        return;
+                    }
+
+                    if (disposing)
+                    {
+                        this.bitmap.UnlockBits(this.bmpData);
+                    }
+                    
+                    this.IsDisposed = true;
                 }
 
                 public override unsafe Span<Bgra32> GetSpan()
@@ -63,7 +81,26 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public void WrapSystemDrawingBitmap()
+            public void WrapMemory_CreatedImageIsCorrect()
+            {
+                Configuration cfg = Configuration.Default.ShallowCopy();
+                var metaData = new ImageMetaData();
+
+                var array = new Rgba32[25];
+                var memory = new Memory<Rgba32>(array);
+
+                using (var image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
+                {
+                    ref Rgba32 pixel0 = ref image.GetPixelSpan()[0];
+                    Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
+
+                    Assert.Equal(cfg, image.GetConfiguration());
+                    Assert.Equal(metaData, image.MetaData);
+                }
+            }
+
+            [Fact]
+            public void WrapSystemDrawingBitmap_WhenObserved()
             {
                 using (var bmp = new Bitmap(51, 23))
                 {
@@ -75,13 +112,41 @@ namespace SixLabors.ImageSharp.Tests
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
+                            Assert.Equal(memory, image.GetPixelMemory());
                             image.Mutate(c => c.Fill(bg).Fill(fg, new RectangularPolygon(10, 10, 10, 10)));
                         }
+
+                        Assert.False(memoryManager.IsDisposed);
                     }
 
                     string fn = System.IO.Path.Combine(
                         TestEnvironment.ActualOutputDirectoryFullPath,
-                        "WrapSystemDrawingBitmap.bmp");
+                        $"{nameof(this.WrapSystemDrawingBitmap_WhenObserved)}.bmp");
+
+                    bmp.Save(fn, ImageFormat.Bmp);
+                }
+            }
+
+            [Fact]
+            public void WrapSystemDrawingBitmap_WhenOwned()
+            {
+                using (var bmp = new Bitmap(51, 23))
+                {
+                    var memoryManager = new BitmapMemoryManager(bmp);
+                    Bgra32 bg = NamedColors<Bgra32>.Red;
+                    Bgra32 fg = NamedColors<Bgra32>.Green;
+
+                    using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
+                    {
+                        Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
+                        image.Mutate(c => c.Fill(bg).Fill(fg, new RectangularPolygon(10, 10, 10, 10)));
+                    }
+
+                    Assert.True(memoryManager.IsDisposed);
+
+                    string fn = System.IO.Path.Combine(
+                        TestEnvironment.ActualOutputDirectoryFullPath,
+                        $"{nameof(this.WrapSystemDrawingBitmap_WhenOwned)}.bmp");
 
                     bmp.Save(fn, ImageFormat.Bmp);
                 }

@@ -8,6 +8,7 @@ namespace SixLabors.Memory
 {
     /// <summary>
     /// Holds a <see cref="System.Memory{T}"/> that is either OWNED or CONSUMED.
+    /// When the memory is being owned, the <see cref="IMemoryOwner{T}"/> instance is also known.
     /// Implements content transfer logic in  <see cref="SwapOrCopyContent"/> that depends on the ownership status.
     /// This is needed to transfer the contents of a temporary <see cref="Buffer2D{T}"/>
     /// to a persistent <see cref="SixLabors.ImageSharp.ImageFrame{T}.PixelBuffer"/> without copying the buffer.

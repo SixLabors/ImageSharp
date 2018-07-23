@@ -21,7 +21,7 @@ namespace SixLabors.Memory
     internal struct MemorySource<T> : IDisposable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="MemorySource{T}"/> struct 
+        /// Initializes a new instance of the <see cref="MemorySource{T}"/> struct
         /// by wrapping an existing <see cref="IMemoryOwner{T}"/>.
         /// </summary>
         /// <param name="memoryOwner">The <see cref="IMemoryOwner{T}"/> to wrap</param>

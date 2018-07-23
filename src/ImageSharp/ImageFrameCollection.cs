@@ -30,14 +30,14 @@ namespace SixLabors.ImageSharp
             this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
         }
 
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, Memory<TPixel> consumedMemory)
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemorySource<TPixel> memorySource)
         {
             Guard.NotNull(parent, nameof(parent));
 
             this.parent = parent;
 
             // Frames are already cloned within the caller
-            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, consumedMemory));
+            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, memorySource));
         }
 
         internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)

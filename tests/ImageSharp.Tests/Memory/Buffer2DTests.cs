@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 // Assert.Equal(width * y, span.Start);
                 Assert.Equal(width, span.Length);
-                Assert.SpanPointsTo(span, buffer.Buffer.MemoryOwner, width * y);
+                Assert.SpanPointsTo(span, buffer.MemorySource.MemoryOwner, width * y);
             }
         }
 
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 // Assert.Equal(width * y + x, span.Start);
                 Assert.Equal(width - x, span.Length);
-                Assert.SpanPointsTo(span, buffer.Buffer.MemoryOwner, width * y + x);
+                Assert.SpanPointsTo(span, buffer.MemorySource.MemoryOwner, width * y + x);
             }
         }
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.Buffer.GetSpan();
+                Span<TestStructs.Foo> span = buffer.MemorySource.GetSpan();
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 
@@ -115,13 +115,13 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
             using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
             {
-                IMemoryOwner<int> aa = a.Buffer.MemoryOwner;
-                IMemoryOwner<int> bb = b.Buffer.MemoryOwner;
+                IMemoryOwner<int> aa = a.MemorySource.MemoryOwner;
+                IMemoryOwner<int> bb = b.MemorySource.MemoryOwner;
 
                 Buffer2D<int>.SwapOrCopyContent(a, b);
 
-                Assert.Equal(bb, a.Buffer.MemoryOwner);
-                Assert.Equal(aa, b.Buffer.MemoryOwner);
+                Assert.Equal(bb, a.MemorySource.MemoryOwner);
+                Assert.Equal(aa, b.MemorySource.MemoryOwner);
 
                 Assert.Equal(new Size(3, 7), a.Size());
                 Assert.Equal(new Size(10, 5), b.Size());

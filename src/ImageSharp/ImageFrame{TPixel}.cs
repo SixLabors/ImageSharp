@@ -95,8 +95,8 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class wrapping an existing buffer.
         /// </summary>
-        internal ImageFrame(Configuration configuration, int width, int height, Memory<TPixel> consumedMemory)
-            : this(configuration, width, height, consumedMemory, new ImageFrameMetaData())
+        internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource)
+            : this(configuration, width, height, memorySource, new ImageFrameMetaData())
         {
         }
 
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp
             Configuration configuration,
             int width,
             int height,
-            Memory<TPixel> consumedMemory,
+            MemorySource<TPixel> memorySource,
             ImageFrameMetaData metaData)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp
 
             this.configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
-            this.PixelBuffer = new Buffer2D<TPixel>(consumedMemory, width, height);
+            this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
             this.MetaData = metaData;
         }
 

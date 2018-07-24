@@ -33,13 +33,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     appendPixelTypeToFileName: false);
             }
         }
-
-        [Theory(Skip = "Debug only, enable manually!")]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
-        public void CompareJpegDecoders_Progressive<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            this.CompareJpegDecodersImpl(provider, DecodeProgressiveJpegOutputName);
-        }
     }
 }

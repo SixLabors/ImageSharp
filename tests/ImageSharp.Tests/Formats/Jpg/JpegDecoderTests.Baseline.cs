@@ -42,13 +42,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             // TODO: We need a public ImageDecoderException class in ImageSharp!
             Assert.ThrowsAny<Exception>(() => provider.GetImage(JpegDecoder));
         }
-
-        [Theory(Skip = "Debug only, enable manually!")]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void CompareJpegDecoders_Baseline<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            this.CompareJpegDecodersImpl(provider, DecodeBaselineJpegOutputName);
-        }
     }
 }

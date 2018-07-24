@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static JpegDecoder JpegDecoder => new JpegDecoder();
 
         [Fact]
-        public void ParseStream_BasicPropertiesAreCorrect1_PdfJs()
+        public void ParseStream_BasicPropertiesAreCorrect()
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using (var ms = new MemoryStream(bytes))
@@ -122,20 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             return "0%";
         }
-
-        private void CompareJpegDecodersImpl<TPixel>(TestImageProvider<TPixel> provider, string testName)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            this.Output.WriteLine(provider.SourceFileOrDescription);
-            provider.Utility.TestName = testName;
-
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                string d = this.GetDifferenceInPercentageString(image, provider);
-                this.Output.WriteLine($"Difference using decoder: {d}");
-            }
-        }
-
+        
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"

@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> image0 = provider.GetImage())
             {
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOfPixelData(image0.GetPixelSpan());
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
 
                 using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
                 {
@@ -228,6 +228,8 @@ namespace SixLabors.ImageSharp.Tests
                     // TODO: Investigate the cause of pixel inaccuracies under Linux
                     if (TestEnvironment.IsWindows)
                     {
+                        string testNameBackup = provider.Utility.TestName;
+
                         if (useReferenceOutputFrom != null)
                         {
                             provider.Utility.TestName = useReferenceOutputFrom;
@@ -239,6 +241,8 @@ namespace SixLabors.ImageSharp.Tests
                             testOutputDetails,
                             appendPixelTypeToFileName: appendPixelTypeToFileName,
                             appendSourceFileOrDescription: appendSourceFileOrDescription);
+
+                        provider.Utility.TestName = testNameBackup;
                     }
                 }
             }

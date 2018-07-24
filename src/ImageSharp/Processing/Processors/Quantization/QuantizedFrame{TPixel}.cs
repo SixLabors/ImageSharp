@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -15,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public class QuantizedFrame<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
-        private IBuffer<byte> pixels;
+        private IMemoryOwner<byte> pixels;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="QuantizedFrame{TPixel}"/> class.

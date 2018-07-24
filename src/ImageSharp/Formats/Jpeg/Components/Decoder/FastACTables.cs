@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Gets a reference to the first element of the AC table indexed by <see cref="JpegFrameComponent.ACHuffmanTableId"/>       /// </summary>
+        /// Gets a reference to the first element of the AC table indexed by <see cref="JpegComponent.ACHuffmanTableId"/>       /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref short GetAcTableReference(JpegFrameComponent component)
+        public ref short GetAcTableReference(JpegComponent component)
         {
             return ref this.tables.GetRowSpan(component.ACHuffmanTableId)[0];
         }

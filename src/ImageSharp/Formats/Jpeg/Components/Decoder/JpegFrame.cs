@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets the frame component collection
         /// </summary>
-        public JpegFrameComponent[] Components { get; set; }
+        public JpegComponent[] Components { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum horizontal sampling factor
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                JpegFrameComponent component = this.Components[i];
+                JpegComponent component = this.Components[i];
                 component.Init();
             }
         }

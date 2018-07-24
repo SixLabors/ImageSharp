@@ -16,10 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="marker">The marker</param>
         /// <param name="position">The position within the stream</param>
         public JpegFileMarker(byte marker, long position)
+            : this(marker, position, false)
         {
-            this.Marker = marker;
-            this.Position = position;
-            this.Invalid = false;
         }
 
         /// <summary>

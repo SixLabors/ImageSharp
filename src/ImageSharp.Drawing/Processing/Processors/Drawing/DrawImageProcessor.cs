@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -134,7 +135,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             MemoryAllocator memoryAllocator = this.Image.GetConfiguration().MemoryAllocator;
 
-            using (IBuffer<float> amount = memoryAllocator.Allocate<float>(width))
+            using (IMemoryOwner<float> amount = memoryAllocator.Allocate<float>(width))
             {
                 amount.GetSpan().Fill(this.Opacity);
 

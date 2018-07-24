@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -32,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// The buffer containing the weights values.
         /// </summary>
-        private readonly IBuffer<float> buffer;
+        private readonly MemorySource<float> buffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WeightsWindow"/> struct.
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             this.flatStartIndex = (index * buffer.Width) + left;
             this.Left = left;
-            this.buffer = buffer.Buffer;
+            this.buffer = buffer.MemorySource;
             this.Length = length;
         }
 
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<float> GetWindowSpan() => this.buffer.Slice(this.flatStartIndex, this.Length);
+        public Span<float> GetWindowSpan() => this.buffer.GetSpan().Slice(this.flatStartIndex, this.Length);
 
         /// <summary>
         /// Computes the sum of vectors in 'rowSpan' weighted by weight values, pointed by this <see cref="WeightsWindow"/> instance.

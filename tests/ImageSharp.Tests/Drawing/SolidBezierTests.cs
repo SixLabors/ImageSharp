@@ -38,6 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             }
         }
 
+
         [Theory]
         [WithBlankImages(500, 500, PixelTypes.Rgba32)]
         public void OverlayByFilledPolygonOpacity<TPixel>(TestImageProvider<TPixel> provider)

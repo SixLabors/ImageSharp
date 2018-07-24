@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
@@ -111,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             }
 
             int width = maxX - minX;
-            using (IBuffer<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
+            using (IMemoryOwner<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
             {
                 // Be careful! Do not capture rowColorsSpan in the lambda below!
                 Span<TPixel> rowColorsSpan = rowColors.GetSpan();
@@ -127,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                     configuration.ParallelOptions,
                     y =>
                     {
-                        using (IBuffer<float> amounts = source.MemoryAllocator.Allocate<float>(width))
+                        using (IMemoryOwner<float> amounts = source.MemoryAllocator.Allocate<float>(width))
                         {
                             Span<float> amountsSpan = amounts.GetSpan();
                             int offsetY = y - startY;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.Memory;
 
@@ -32,23 +33,23 @@ namespace SixLabors.ImageSharp
             int toExclusive,
             Configuration configuration,
             int bufferLength,
-            Action<int, IBuffer<T>> body)
+            Action<int, IMemoryOwner<T>> body)
             where T : struct
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
             ParallelOptions parallelOptions = configuration.ParallelOptions;
 
-            IBuffer<T> InitBuffer()
+            IMemoryOwner<T> InitBuffer()
             {
                 return memoryAllocator.Allocate<T>(bufferLength);
             }
 
-            void CleanUpBuffer(IBuffer<T> buffer)
+            void CleanUpBuffer(IMemoryOwner<T> buffer)
             {
                 buffer.Dispose();
             }
 
-            IBuffer<T> BodyFunc(int i, ParallelLoopState state, IBuffer<T> buffer)
+            IMemoryOwner<T> BodyFunc(int i, ParallelLoopState state, IMemoryOwner<T> buffer)
             {
                 body(i, buffer);
                 return buffer;

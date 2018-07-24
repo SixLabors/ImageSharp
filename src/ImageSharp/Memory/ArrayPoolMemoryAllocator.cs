@@ -89,7 +89,7 @@ namespace SixLabors.Memory
         }
 
         /// <inheritdoc />
-        internal override IBuffer<T> Allocate<T>(int length, AllocationOptions options)
+        internal override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;

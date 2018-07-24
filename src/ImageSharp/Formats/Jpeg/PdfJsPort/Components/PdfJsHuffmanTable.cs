@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.Memory;
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public PdfJsHuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
         {
             const int Length = 257;
-            using (IBuffer<short> huffcode = memoryAllocator.Allocate<short>(Length))
+            using (IMemoryOwner<short> huffcode = memoryAllocator.Allocate<short>(Length))
             {
                 ref short huffcodeRef = ref MemoryMarshal.GetReference(huffcode.GetSpan());
 

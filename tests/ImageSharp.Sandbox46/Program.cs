@@ -3,6 +3,10 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Sandbox46
 {
     using System;
@@ -41,7 +45,20 @@ namespace SixLabors.ImageSharp.Sandbox46
         /// </param>
         public static void Main(string[] args)
         {
-            RunJpegColorProfilingTests();
+            Console.WriteLine("Start:");
+            PrintMemory();
+            Console.ReadLine();
+            Console.WriteLine("AllocateGiantMemoryMappedFile:");
+            AllocateGiantMemoryMappedFile();
+            
+            GC.Collect();
+            Console.ReadLine();
+            Console.WriteLine("After GC.Collect:");
+            PrintMemory();
+
+            Console.WriteLine("AllocateGiantArray:");
+            AllocateGiantArray();
+            //RunJpegColorProfilingTests();
 
             // RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
@@ -77,6 +94,73 @@ namespace SixLabors.ImageSharp.Sandbox46
                 string fileName = (string)data[0];
                 benchmarks.DecodeJpeg_Original(fileName);
             }
+        }
+
+        const long GiantSizeInBytes = 512 * 1024 * 1024;
+
+        private static byte[] data;
+
+        private static void AllocateGiantArray()
+        {
+            data = new byte[GiantSizeInBytes];
+
+            int[] lol = Unsafe.As<int[]>(data);
+
+            for (int i = 0; i < GiantSizeInBytes / 8; i++)
+            {
+                lol[i] = i;
+            }
+
+            PrintMemory();
+            Console.ReadLine();
+
+            for (int i = 0; i < GiantSizeInBytes / 8; i++)
+            {
+                lol[i] = i;
+            }
+
+            Console.WriteLine(lol[10]);
+
+            data = null;
+        }
+
+        private static unsafe void AllocateGiantMemoryMappedFile()
+        {
+            using (var mmf = MemoryMappedFile.CreateNew("hello", GiantSizeInBytes, MemoryMappedFileAccess.ReadWrite))
+            {
+                using (MemoryMappedViewAccessor accessor = mmf.CreateViewAccessor())
+                {
+                    byte* ptr = default;
+                    accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+
+                    int* lol = (int*)ptr;
+                    for (int i = 0; i < GiantSizeInBytes / 8; i++)
+                    {
+                        lol[i] = i;
+                    }
+
+                    PrintMemory();
+                    Console.ReadLine();
+
+                    for (int i = 0; i < GiantSizeInBytes / 8; i++)
+                    {
+                        lol[i] = i;
+                    }       
+                }
+            }
+        }
+
+
+
+        private static void PrintMemory()
+        {
+            var p = Process.GetCurrentProcess();
+            double virtualMb = p.PeakVirtualMemorySize64 / 1024.0 / 1024.0;
+            double wsMb = p.PeakWorkingSet64 / 1024.0 / 1024.0;
+            double pagedMb = p.PeakPagedMemorySize64 / 1024.0 / 1024.0;
+            double privateMb = p.PrivateMemorySize64 / 1024.0 / 1024.0;
+
+            Console.WriteLine($"Virtual: {virtualMb} MB | Working Set: {wsMb} MB | Paged: {pagedMb} MB | Private: {privateMb}");
         }
     }
 }

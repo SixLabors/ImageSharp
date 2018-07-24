@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -36,26 +35,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             Span<TPixel> pixels = source.GetPixelSpan();
 
             int gridSize = 64;
+            int pixelsInGrid = gridSize * gridSize;
             int contrastLimit = 5;
             int halfGridSize = gridSize / 2;
-            int[] histogram = new int[this.LuminanceLevels];
-            int[] histogramCopy = new int[this.LuminanceLevels];
-            int[] cdf = new int[this.LuminanceLevels];
+            using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+            using (IBuffer<int> histogramBufferCopy = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+            using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
+                Span<int> histogram = histogramBuffer.GetSpan();
+                Span<int> histogramCopy = histogramBufferCopy.GetSpan();
+                Span<int> cdf = cdfBuffer.GetSpan();
+
                 for (int x = halfGridSize; x < source.Width - halfGridSize; x++)
                 {
-                    this.CleanArray(histogram);
-                    this.CleanArray(cdf);
+                    histogram.Clear();
 
-                    var pixelsGrid = new List<TPixel>();
+                    // Build the histogram of grayscale values for the current grid.
                     for (int dy = 0; dy < gridSize; dy++)
                     {
                         Span<TPixel> rowSpan = source.GetPixelRowSpan(dy).Slice(start: x - halfGridSize, length: gridSize);
-                        pixelsGrid.AddRange(rowSpan.ToArray());
+                        this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
                     }
-
-                    this.CalcHistogram(pixelsGrid, histogram, this.LuminanceLevels);
 
                     for (int y = halfGridSize + 1; y < source.Height - halfGridSize; y++)
                     {
@@ -68,17 +69,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
 
                         // Clipping the histogram, but doing it on a copy to keep the original un-clipped values
-                        histogram.AsSpan().CopyTo(histogramCopy);
+                        histogram.CopyTo(histogramCopy);
                         this.ClipHistogram(histogramCopy, gridSize, contrastLimit);
+                        cdf.Clear();
                         int cdfMin = this.CalculateCdf(cdf, histogramCopy);
-                        double numberOfPixelsMinusCdfMin = (double)(pixelsGrid.Count - cdfMin);
+                        double numberOfPixelsMinusCdfMin = (double)(pixelsInGrid - cdfMin);
 
                         // Map the current pixel to the new equalized value
                         int luminance = this.GetLuminance(pixels[(y * source.Width) + x], this.LuminanceLevels);
                         double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
                         targetPixels[x, y].PackFromVector4(new Vector4((float)luminanceEqualized));
-
-                        this.CleanArray(cdf);
                     }
                 }
 
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
         /// <summary>
         /// AHE tends to over amplify the contrast in near-constant regions of the image, since the histogram in such regions is highly concentrated.
-        /// Clipping the histogram is meant to reduce this effect, by cutting of histogram bin's which exceed a certain amount and redistribute 
+        /// Clipping the histogram is meant to reduce this effect, by cutting of histogram bin's which exceed a certain amount and redistribute
         /// the values over the clip limit to all other bins equally.
         /// </summary>
         /// <param name="histogram">The histogram to apply the clipping</param>
@@ -125,6 +125,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             return addToEachBin;
         }
 
+        /// <summary>
+        /// Adds a row of grey values to the histogram.
+        /// </summary>
+        /// <param name="greyValues">The grey values to add</param>
+        /// <param name="histogram">The histogram</param>
+        /// <param name="luminanceLevels">The number of different luminance levels.</param>
         private void AddPixelsTooHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
         {
             for (int i = 0; i < greyValues.Length; i++)
@@ -134,29 +140,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
         }
 
+        /// <summary>
+        /// Removes a row of grey values from the histogram.
+        /// </summary>
+        /// <param name="greyValues">The grey values to remove</param>
+        /// <param name="histogram">The histogram</param>
+        /// <param name="luminanceLevels">The number of different luminance levels.</param>
         private void RemovePixelsFromHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
         {
             for (int i = 0; i < greyValues.Length; i++)
             {
                 int luminance = this.GetLuminance(greyValues[i], luminanceLevels);
                 histogram[luminance]--;
-            }
-        }
-
-        private void CalcHistogram(List<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
-        {
-            for (int i = 0; i < greyValues.Count; i++)
-            {
-                int luminance = this.GetLuminance(greyValues[i], luminanceLevels);
-                histogram[luminance]++;
-            }
-        }
-
-        private void CleanArray(Span<int> array)
-        {
-            for (int i = 0; i < array.Length; i++)
-            {
-                array[i] = 0;
             }
         }
     }

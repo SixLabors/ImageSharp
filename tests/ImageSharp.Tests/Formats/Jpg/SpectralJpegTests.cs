@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -42,10 +40,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void PdfJsDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
+        public void Decoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
@@ -58,25 +56,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
-        [Theory(Skip = "Debug only, enable manually!")]
+        [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void OriginalDecoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
+        public void VerifySpectralCorrectness<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            var decoder = new GolangJpegDecoderCore(Configuration.Default, new JpegDecoder());
+            if (!TestEnvironment.IsWindows)
+            {
+                return;
+            }
+
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
 
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
             using (var ms = new MemoryStream(sourceBytes))
             {
-                decoder.ParseStream(ms, false);
+                decoder.ParseStream(ms);
+                var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
 
-                var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-                VerifyJpeg.SaveSpectralImage(provider, data);
+                this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
             }
         }
-
-        private void VerifySpectralCorrectness<TPixel>(
+        
+        private void VerifySpectralCorrectnessImpl<TPixel>(
             TestImageProvider<TPixel> provider,
             LibJpegTools.SpectralData imageSharpData)
             where TPixel : struct, IPixel<TPixel>
@@ -118,52 +121,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Output.WriteLine($"TOLERANCE = totalNumOfBlocks / 64 = {tolerance}");
 
             Assert.True(totalDifference < tolerance);
-        }
-
-        [Theory]
-        [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void VerifySpectralCorrectness_PdfJs<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (!TestEnvironment.IsWindows)
-            {
-                return;
-            }
-
-            var decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder());
-
-            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-
-            using (var ms = new MemoryStream(sourceBytes))
-            {
-                decoder.ParseStream(ms);
-                var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-
-                this.VerifySpectralCorrectness<TPixel>(provider, imageSharpData);
-            }
-        }
-
-        [Theory]
-        [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
-        public void VerifySpectralCorrectness_Golang<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (!TestEnvironment.IsWindows)
-            {
-                return;
-            }
-
-            var decoder = new GolangJpegDecoderCore(Configuration.Default, new GolangJpegDecoder());
-
-            byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-
-            using (var ms = new MemoryStream(sourceBytes))
-            {
-                decoder.ParseStream(ms);
-                var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
-
-                this.VerifySpectralCorrectness<TPixel>(provider, imageSharpData);
-            }
         }
     }
 }

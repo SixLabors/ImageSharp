@@ -4,19 +4,19 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct FixedByteBuffer512
+    internal unsafe struct FixedInt16Buffer257
     {
-        public fixed byte Data[1 << ScanDecoder.FastBits];
+        public fixed short Data[257];
 
-        public byte this[int idx]
+        public short this[int idx]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                ref byte self = ref Unsafe.As<FixedByteBuffer512, byte>(ref this);
+                ref short self = ref Unsafe.As<FixedInt16Buffer257, short>(ref this);
                 return Unsafe.Add(ref self, idx);
             }
         }

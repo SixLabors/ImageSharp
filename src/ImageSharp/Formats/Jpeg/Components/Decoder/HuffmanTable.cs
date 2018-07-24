@@ -6,13 +6,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Represents a Huffman Table
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct PdfJsHuffmanTable
+    internal unsafe struct HuffmanTable
     {
         /// <summary>
         /// Gets the max code array
@@ -40,12 +40,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         public FixedInt16Buffer257 Sizes;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PdfJsHuffmanTable"/> struct.
+        /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="count">The code lengths</param>
         /// <param name="values">The huffman values</param>
-        public PdfJsHuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
+        public HuffmanTable(MemoryAllocator memoryAllocator, ReadOnlySpan<byte> count, ReadOnlySpan<byte> values)
         {
             const int Length = 257;
             using (IBuffer<short> huffcode = memoryAllocator.Allocate<short>(Length))

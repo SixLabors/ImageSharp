@@ -5,21 +5,19 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal class PdfJsFrameComponent : IDisposable, IJpegComponent
+    internal class JpegFrameComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryAllocator memoryAllocator;
 
-        public PdfJsFrameComponent(MemoryAllocator memoryAllocator, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+        public JpegFrameComponent(MemoryAllocator memoryAllocator, JpegFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
             this.memoryAllocator = memoryAllocator;
             this.Frame = frame;
@@ -89,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int ACHuffmanTableId { get; set; }
 
-        public PdfJsFrame Frame { get; }
+        public JpegFrame Frame { get; }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -125,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
             else
             {
-                PdfJsFrameComponent c0 = this.Frame.Components[0];
+                JpegFrameComponent c0 = this.Frame.Components[0];
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 

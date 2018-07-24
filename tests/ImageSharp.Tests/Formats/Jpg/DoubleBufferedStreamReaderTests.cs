@@ -3,7 +3,8 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.Memory;
 using Xunit;
 

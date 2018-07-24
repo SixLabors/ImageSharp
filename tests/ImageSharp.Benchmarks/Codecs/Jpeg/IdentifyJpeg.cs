@@ -3,8 +3,8 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
@@ -29,22 +29,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public IImageInfo IdentifyGolang()
+        public IImageInfo Identify()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                var decoder = new GolangJpegDecoder();
-
-                return decoder.Identify(Configuration.Default, memoryStream);
-            }
-        }
-
-        [Benchmark]
-        public IImageInfo IdentifyPdfJs()
-        {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                var decoder = new PdfJsJpegDecoder();
+                var decoder = new JpegDecoder();
                 return decoder.Identify(Configuration.Default, memoryStream);
             }
         }

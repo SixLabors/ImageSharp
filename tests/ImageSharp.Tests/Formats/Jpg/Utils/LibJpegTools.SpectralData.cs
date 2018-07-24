@@ -5,11 +5,9 @@ using System;
 using System.Linq;
 using System.Numerics;
 
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
@@ -32,17 +30,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.Components = components;
             }
 
-            public static SpectralData LoadFromImageSharpDecoder(PdfJsJpegDecoderCore decoder)
+            public static SpectralData LoadFromImageSharpDecoder(JpegDecoderCore decoder)
             {
-                PdfJsFrameComponent[] srcComponents = decoder.Frame.Components;
-                LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
-
-                return new SpectralData(destComponents);
-            }
-
-            public static SpectralData LoadFromImageSharpDecoder(GolangJpegDecoderCore decoder)
-            {
-                GolangComponent[] srcComponents = decoder.Components;
+                JpegFrameComponent[] srcComponents = decoder.Frame.Components;
                 LibJpegTools.ComponentData[] destComponents = srcComponents.Select(LibJpegTools.ComponentData.Load).ToArray();
 
                 return new SpectralData(destComponents);
@@ -108,8 +98,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public bool Equals(SpectralData other)
             {
-                if (object.ReferenceEquals(null, other)) return false;
-                if (object.ReferenceEquals(this, other)) return true;
+                if (other is null)
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, other))
+                {
+                    return true;
+                }
+
                 if (this.ComponentCount != other.ComponentCount)
                 {
                     return false;

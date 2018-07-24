@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Gets the components.
         /// </summary>
-        public JpegFrameComponent[] Components => this.Frame.Components;
+        public JpegComponent[] Components => this.Frame.Components;
 
         /// <inheritdoc/>
         IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
@@ -666,7 +666,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
-                this.Frame.Components = new JpegFrameComponent[this.Frame.ComponentCount];
+                this.Frame.Components = new JpegComponent[this.Frame.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
                 for (int i = 0; i < this.Frame.ComponentCount; i++)
@@ -685,7 +685,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         maxV = v;
                     }
 
-                    var component = new JpegFrameComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                    var component = new JpegComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
@@ -793,7 +793,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     throw new ImageFormatException("Unknown component selector");
                 }
 
-                ref JpegFrameComponent component = ref this.Frame.Components[componentIndex];
+                ref JpegComponent component = ref this.Frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;

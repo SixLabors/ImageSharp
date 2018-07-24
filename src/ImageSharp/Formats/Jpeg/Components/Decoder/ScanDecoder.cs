@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly FastACTables fastACTables;
 
         private readonly DoubleBufferedStreamReader stream;
-        private readonly JpegFrameComponent[] components;
+        private readonly JpegComponent[] components;
         private readonly ZigZag dctZigZag;
 
         // The restart interval.
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     for (int k = 0; k < this.componentsLength; k++)
                     {
-                        JpegFrameComponent component = this.components[k];
+                        JpegComponent component = this.components[k];
 
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.ACHuffmanTableId];
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private void ParseBaselineDataNonInterleaved()
         {
-            JpegFrameComponent component = this.components[this.componentIndex];
+            JpegComponent component = this.components[this.componentIndex];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
@@ -294,7 +294,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                     // Scan an interleaved mcu... process components in order
                     for (int k = 0; k < this.componentsLength; k++)
                     {
-                        JpegFrameComponent component = this.components[k];
+                        JpegComponent component = this.components[k];
                         ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DCHuffmanTableId];
                         int h = component.HorizontalSamplingFactor;
                         int v = component.VerticalSamplingFactor;
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         private void ParseProgressiveDataNonInterleaved()
         {
-            JpegFrameComponent component = this.components[this.componentIndex];
+            JpegComponent component = this.components[this.componentIndex];
 
             int w = component.WidthInBlocks;
             int h = component.HeightInBlocks;
@@ -394,7 +394,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         private void DecodeBlockBaseline(
-            JpegFrameComponent component,
+            JpegComponent component,
             int row,
             int col,
             ref HuffmanTable dcTable,
@@ -409,7 +409,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 JpegThrowHelper.ThrowBadHuffmanCode();
             }
 
-            ref short blockDataRef = ref component.GetBlockDataReference(row, col);
+            ref short blockDataRef = ref component.GetBlockDataReference(col, row);
 
             int diff = t != 0 ? this.ExtendReceive(t) : 0;
             int dc = component.DcPredictor + diff;
@@ -473,7 +473,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         private void DecodeBlockProgressiveDC(
-            JpegFrameComponent component,
+            JpegComponent component,
             int row,
             int col,
             ref HuffmanTable dcTable)
@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             this.CheckBits();
 
-            ref short blockDataRef = ref component.GetBlockDataReference(row, col);
+            ref short blockDataRef = ref component.GetBlockDataReference(col, row);
 
             if (this.successiveHigh == 0)
             {
@@ -509,7 +509,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         private void DecodeBlockProgressiveAC(
-            JpegFrameComponent component,
+            JpegComponent component,
             int row,
             int col,
             ref HuffmanTable acTable,
@@ -520,7 +520,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 JpegThrowHelper.ThrowImageFormatException("Can't merge DC and AC.");
             }
 
-            ref short blockDataRef = ref component.GetBlockDataReference(row, col);
+            ref short blockDataRef = ref component.GetBlockDataReference(col, row);
 
             if (this.successiveHigh == 0)
             {
@@ -939,7 +939,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int i = 0; i < this.components.Length; i++)
             {
-                JpegFrameComponent c = this.components[i];
+                JpegComponent c = this.components[i];
                 c.DcPredictor = 0;
             }
 

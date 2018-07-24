@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     startY = 0;
                 }
 
-                using (IBuffer<float> amount = source.MemoryAllocator.Allocate<float>(width))
+                using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
                 using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
                     source,
                     sourceRectangle,

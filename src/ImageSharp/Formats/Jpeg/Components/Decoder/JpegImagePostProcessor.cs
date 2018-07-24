@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Linq;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
@@ -37,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Temporal buffer to store a row of colors.
         /// </summary>
-        private readonly IBuffer<Vector4> rgbaBuffer;
+        private readonly IMemoryOwner<Vector4> rgbaBuffer;
 
         /// <summary>
         /// The <see cref="JpegColorConverter"/> corresponding to the current <see cref="JpegColorSpace"/> determined by <see cref="IRawJpegData.ColorSpace"/>.

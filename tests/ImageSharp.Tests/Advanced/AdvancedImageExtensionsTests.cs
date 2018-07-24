@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
                     Memory<TPixel> externalMemory = managerOfExeternalMemory.Memory;
 
-                    using (Image<TPixel> image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
+                    using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
                     {
                         Memory<TPixel> internalMemory = image1.GetPixelMemory();
                         Assert.Equal(targetBuffer.Length, internalMemory.Length);
@@ -72,7 +72,6 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                     image0.ComparePixelBufferTo(externalMemory.Span);
                 }
             }
-
         }
 
         [Theory]

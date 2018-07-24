@@ -84,23 +84,14 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// consuming an external buffer instance.
+        /// wrapping an external <see cref="MemorySource{T}"/>
         /// </summary>
-        internal Image(Configuration configuration, IBuffer<TPixel> consumedBuffer, int width, int height)
-            : this(configuration, consumedBuffer, width, height, new ImageMetaData())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// consuming an external buffer instance.
-        /// </summary>
-        internal Image(Configuration configuration, IBuffer<TPixel> consumedBuffer, int width, int height, ImageMetaData metadata)
+        internal Image(Configuration configuration, MemorySource<TPixel> memorySource, int width, int height, ImageMetaData metadata)
         {
             this.configuration = configuration;
             this.PixelType = new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
             this.MetaData = metadata;
-            this.frames = new ImageFrameCollection<TPixel>(this, width, height, consumedBuffer);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
         }
 
         /// <summary>

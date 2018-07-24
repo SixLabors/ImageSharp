@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {

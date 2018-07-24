@@ -4,8 +4,7 @@
 using System;
 using System.IO;
 using BenchmarkDotNet.Attributes;
-
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {

@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.SpectralBlocks[x, y] = new Block8x8(data);
             }
 
-            public static ComponentData Load(JpegFrameComponent c, int index)
+            public static ComponentData Load(JpegComponent c, int index)
             {
                 var result = new ComponentData(
                     c.WidthInBlocks,

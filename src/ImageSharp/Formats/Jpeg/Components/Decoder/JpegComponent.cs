@@ -13,11 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal class JpegFrameComponent : IDisposable, IJpegComponent
+    internal class JpegComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryAllocator memoryAllocator;
 
-        public JpegFrameComponent(MemoryAllocator memoryAllocator, JpegFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+        public JpegComponent(MemoryAllocator memoryAllocator, JpegFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
             this.memoryAllocator = memoryAllocator;
             this.Frame = frame;
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             }
             else
             {
-                JpegFrameComponent c0 = this.Frame.Components[0];
+                JpegComponent c0 = this.Frame.Components[0];
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
@@ -138,16 +138,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetBlockBufferOffset(int row, int col)
+        public ref short GetBlockDataReference(int column, int row)
         {
-            return 64 * (((this.WidthInBlocks + 1) * row) + col);
-        }
-
-        // TODO: we need consistence in (row, col) VS (col, row) ordering
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref short GetBlockDataReference(int row, int col)
-        {
-            ref Block8x8 blockRef = ref this.GetBlockReference(col, row);
+            ref Block8x8 blockRef = ref this.GetBlockReference(column, row);
             return ref Unsafe.As<Block8x8, short>(ref blockRef);
         }
     }

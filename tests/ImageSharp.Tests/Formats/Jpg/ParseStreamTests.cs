@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expectedSizeInBlocks, decoder.ImageSizeInMCU);
 
                 var uniform1 = new Size(1, 1);
-                JpegFrameComponent c0 = decoder.Components[0];
+                JpegComponent c0 = decoder.Components[0];
                 VerifyJpeg.VerifyComponent(c0, expectedSizeInBlocks, uniform1, uniform1);
             }
         }
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 sb.AppendLine(imageFile);
                 sb.AppendLine($"Size:{decoder.ImageSizeInPixels} MCU:{decoder.ImageSizeInMCU}");
-                JpegFrameComponent c0 = decoder.Components[0];
-                JpegFrameComponent c1 = decoder.Components[1];
+                JpegComponent c0 = decoder.Components[0];
+                JpegComponent c1 = decoder.Components[1];
 
                 sb.AppendLine($"Luma: SAMP: {c0.SamplingFactors} BLOCKS: {c0.SizeInBlocks}");
                 sb.AppendLine($"Chroma: {c1.SamplingFactors} BLOCKS: {c1.SizeInBlocks}");
@@ -107,9 +107,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(componentCount, decoder.ComponentCount);
                 Assert.Equal(componentCount, decoder.Components.Length);
 
-                JpegFrameComponent c0 = decoder.Components[0];
-                JpegFrameComponent c1 = decoder.Components[1];
-                JpegFrameComponent c2 = decoder.Components[2];
+                JpegComponent c0 = decoder.Components[0];
+                JpegComponent c1 = decoder.Components[1];
+                JpegComponent c2 = decoder.Components[2];
 
                 var uniform1 = new Size(1, 1);
 
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 if (componentCount == 4)
                 {
-                    JpegFrameComponent c3 = decoder.Components[2];
+                    JpegComponent c3 = decoder.Components[2];
                     VerifyJpeg.VerifyComponent(c3, expectedLumaSizeInBlocks, fLuma, uniform1);
                 }
             }

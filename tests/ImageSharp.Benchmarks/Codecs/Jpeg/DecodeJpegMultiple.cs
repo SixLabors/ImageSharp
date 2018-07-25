@@ -3,8 +3,7 @@
 
 using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SDImage = System.Drawing.Image;
 
@@ -22,15 +21,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         protected override IEnumerable<string> SearchPatterns => new[] { "*.jpg" };
 
         [Benchmark(Description = "DecodeJpegMultiple - ImageSharp")]
-        public void DecodeJpegImageSharpOrig()
+        public void DecodeJpegImageSharp()
         {
-            this.ForEachStream(ms => Image.Load<Rgba32>(ms, new GolangJpegDecoder()));
-        }
-
-        [Benchmark(Description = "DecodeJpegMultiple - ImageSharp PDFJs")]
-        public void DecodeJpegImageSharpPdfJs()
-        {
-            this.ForEachStream(ms => Image.Load<Rgba32>(ms, new PdfJsJpegDecoder()));
+            this.ForEachStream(ms => Image.Load<Rgba32>(ms, new JpegDecoder()));
         }
 
         [Benchmark(Baseline = true, Description = "DecodeJpegMultiple - System.Drawing")]

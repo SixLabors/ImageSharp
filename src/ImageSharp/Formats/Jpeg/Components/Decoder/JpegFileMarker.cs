@@ -3,32 +3,30 @@
 
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Represents a jpeg file marker
+    /// Represents a jpeg file marker.
     /// </summary>
-    internal readonly struct PdfJsFileMarker
+    internal readonly struct JpegFileMarker
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PdfJsFileMarker"/> struct.
+        /// Initializes a new instance of the <see cref="JpegFileMarker"/> struct.
         /// </summary>
         /// <param name="marker">The marker</param>
         /// <param name="position">The position within the stream</param>
-        public PdfJsFileMarker(byte marker, long position)
+        public JpegFileMarker(byte marker, long position)
+            : this(marker, position, false)
         {
-            this.Marker = marker;
-            this.Position = position;
-            this.Invalid = false;
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PdfJsFileMarker"/> struct.
+        /// Initializes a new instance of the <see cref="JpegFileMarker"/> struct.
         /// </summary>
         /// <param name="marker">The marker</param>
         /// <param name="position">The position within the stream</param>
         /// <param name="invalid">Whether the current marker is invalid</param>
-        public PdfJsFileMarker(byte marker, long position, bool invalid)
+        public JpegFileMarker(byte marker, long position, bool invalid)
         {
             this.Marker = marker;
             this.Position = position;

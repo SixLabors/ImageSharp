@@ -58,17 +58,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
                     }
 
-                    for (int y = halfGridSize + 1; y < source.Height - halfGridSize; y++)
+                    for (int y = 1; y < source.Height; y++)
                     {
-                        // Remove top most row from the histogram
-                        Span<TPixel> rowSpan = source.GetPixelRowSpan(y - halfGridSize - 1).Slice(start: x - halfGridSize, length: gridSize);
+                        // Remove top most row from the histogram, mirroring rows which exceeds the borders
+                        Span<TPixel> rowSpan = source.GetPixelRowSpan(Math.Abs(y - halfGridSize - 1)).Slice(start: x - halfGridSize, length: gridSize);
                         this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
 
-                        // Add new bottom row to the histogram
-                        rowSpan = source.GetPixelRowSpan(y + halfGridSize - 1).Slice(start: x - halfGridSize, length: gridSize);
+                        // Add new bottom row to the histogram, mirroring rows which exceeds the borders
+                        int rowPos = y + halfGridSize - 1;
+                        if (rowPos >= source.Height)
+                        {
+                            int diff = rowPos - source.Height;
+                            rowPos = source.Height - diff - 1;
+                        }
+
+                        rowSpan = source.GetPixelRowSpan(rowPos).Slice(start: x - halfGridSize, length: gridSize);
                         this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
 
-                        // Clipping the histogram, but doing it on a copy to keep the original un-clipped values
+                        // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration
                         histogram.CopyTo(histogramCopy);
                         this.ClipHistogram(histogramCopy, gridSize, contrastLimit);
                         cdf.Clear();

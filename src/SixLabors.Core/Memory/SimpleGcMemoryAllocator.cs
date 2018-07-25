@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
+using SixLabors.Memory.Internals;
 
 namespace SixLabors.Memory
 {

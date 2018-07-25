@@ -21,7 +21,7 @@ namespace SixLabors.Helpers.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                Guard.NotNull(null, "myParamName");
+                Guard.NotNull((object)null, "myParamName");
             });
         }
 
@@ -30,7 +30,7 @@ namespace SixLabors.Helpers.Tests
         {
             var exception = Assert.Throws<ArgumentNullException>(() =>
             {
-                Guard.NotNull(null, "myParamName", "myTestMessage");
+                Guard.NotNull((object)null, "myParamName", "myTestMessage");
             });
 
             Assert.Equal("myParamName", exception.ParamName);

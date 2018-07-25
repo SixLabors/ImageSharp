@@ -39,7 +39,7 @@ namespace SixLabors.Helpers.Tests
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                DebugGuard.NotNull(null, "myParamName");
+                DebugGuard.NotNull((object)null, "myParamName");
             });
         }
 

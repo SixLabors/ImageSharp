@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.Memory
+namespace SixLabors.Memory.Internals
 {
     /// <summary>
     /// Wraps an array as an <see cref="IManagedByteBuffer"/> instance.

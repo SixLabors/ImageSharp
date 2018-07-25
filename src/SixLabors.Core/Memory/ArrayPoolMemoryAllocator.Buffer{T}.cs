@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
+using SixLabors.Memory.Internals;
 
 namespace SixLabors.Memory
 {

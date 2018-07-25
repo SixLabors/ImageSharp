@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
         public void JpegSystemDrawing()
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
                 this.bmpDrawing.Save(memoryStream, ImageFormat.Jpeg);
             }
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Description = "ImageSharp Jpeg")]
         public void JpegCore()
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            using (var memoryStream = new MemoryStream())
             {
                 this.bmpCore.SaveAsJpeg(memoryStream);
             }

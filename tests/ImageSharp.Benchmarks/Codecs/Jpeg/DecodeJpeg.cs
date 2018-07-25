@@ -4,8 +4,8 @@
 using System.Drawing;
 using System.IO;
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
+
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 using CoreSize = SixLabors.Primitives.Size;
@@ -45,23 +45,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark(Description = "Decode Jpeg - ImageSharp")]
-        public CoreSize JpegImageSharpOrig()
+        public CoreSize JpegImageSharp()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                using (var image = Image.Load<Rgba32>(memoryStream, new GolangJpegDecoder()))
-                {
-                    return new CoreSize(image.Width, image.Height);
-                }
-            }
-        }
-
-        [Benchmark(Description = "Decode Jpeg - ImageSharp PdfJs")]
-        public CoreSize JpegImageSharpPdfJs()
-        {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                using (var image = Image.Load<Rgba32>(memoryStream, new PdfJsJpegDecoder()))
+                using (var image = Image.Load<Rgba32>(memoryStream, new JpegDecoder()))
                 {
                     return new CoreSize(image.Width, image.Height);
                 }

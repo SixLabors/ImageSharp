@@ -1,18 +1,15 @@
+using System;
+using System.Linq;
+using System.Numerics;
+
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.Memory;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-    using System;
-    using System.Linq;
-    using System.Numerics;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort.Components.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
-    using SixLabors.Memory;
-    using SixLabors.Primitives;
-
     internal static partial class LibJpegTools
     {
         /// <summary>
@@ -57,32 +54,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 this.SpectralBlocks[x, y] = new Block8x8(data);
             }
 
-            public static ComponentData Load(PdfJsFrameComponent c, int index)
+            public static ComponentData Load(JpegComponent c, int index)
             {
                 var result = new ComponentData(
                     c.WidthInBlocks,
                     c.HeightInBlocks,
                     index
-                );
-
-                for (int y = 0; y < result.HeightInBlocks; y++)
-                {
-                    for (int x = 0; x < result.WidthInBlocks; x++)
-                    {
-                        short[] data = c.GetBlockReference(x, y).ToArray();
-                        result.MakeBlock(data, y, x);
-                    }
-                }
-
-                return result;
-            }
-
-            public static ComponentData Load(GolangComponent c)
-            {
-                var result = new ComponentData(
-                    c.SizeInBlocks.Width,
-                    c.SizeInBlocks.Height,
-                    c.Index
                 );
 
                 for (int y = 0; y < result.HeightInBlocks; y++)
@@ -143,8 +120,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public bool Equals(ComponentData other)
             {
-                if (object.ReferenceEquals(null, other)) return false;
-                if (object.ReferenceEquals(this, other)) return true;
+                if (other is null)
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, other))
+                {
+                    return true;
+                }
+
                 bool ok = this.Index == other.Index && this.HeightInBlocks == other.HeightInBlocks
                           && this.WidthInBlocks == other.WidthInBlocks;
                 //&& this.MinVal == other.MinVal
@@ -165,8 +150,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public override bool Equals(object obj)
             {
-                if (Object.ReferenceEquals(null, obj)) return false;
-                if (Object.ReferenceEquals(this, obj)) return true;
+                if (obj is null) return false;
+                if (object.ReferenceEquals(this, obj)) return true;
                 if (obj.GetType() != this.GetType()) return false;
                 return this.Equals((ComponentData)obj);
             }
@@ -175,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 unchecked
                 {
-                    var hashCode = this.Index;
+                    int hashCode = this.Index;
                     hashCode = (hashCode * 397) ^ this.HeightInBlocks;
                     hashCode = (hashCode * 397) ^ this.WidthInBlocks;
                     hashCode = (hashCode * 397) ^ this.MinVal.GetHashCode();

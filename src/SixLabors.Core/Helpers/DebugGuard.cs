@@ -19,8 +19,10 @@ namespace SixLabors
         /// <param name="target">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
+        /// <typeparam name="T">The type of the object to verify</typeparam>
         [Conditional("DEBUG")]
-        public static void NotNull(object target, string parameterName)
+        public static void NotNull<T>(T target, string parameterName)
+            where T : class
         {
             if (target == null)
             {

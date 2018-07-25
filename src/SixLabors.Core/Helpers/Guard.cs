@@ -22,7 +22,9 @@ namespace SixLabors
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
-        public static void NotNull(object target, string parameterName, string message = "")
+        /// <typeparam name="T">The type of the object to verify</typeparam>
+        public static void NotNull<T>(T target, string parameterName, string message = "")
+            where T : class
         {
             if (target == null)
             {

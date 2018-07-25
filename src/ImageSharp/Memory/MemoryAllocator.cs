@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
+
 namespace SixLabors.Memory
 {
     /// <summary>
@@ -9,13 +11,13 @@ namespace SixLabors.Memory
     public abstract class MemoryAllocator
     {
         /// <summary>
-        /// Allocates an <see cref="IBuffer{T}"/> of size <paramref name="length"/>.
+        /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.
         /// </summary>
         /// <typeparam name="T">Type of the data stored in the buffer</typeparam>
         /// <param name="length">Size of the buffer to allocate</param>
         /// <param name="options">The allocation options.</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
-        internal abstract IBuffer<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
+        internal abstract IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
             where T : struct;
 
         /// <summary>

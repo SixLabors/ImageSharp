@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -66,12 +67,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The hash table.
         /// </summary>
-        private readonly IBuffer<int> hashTable;
+        private readonly IMemoryOwner<int> hashTable;
 
         /// <summary>
         /// The code table.
         /// </summary>
-        private readonly IBuffer<int> codeTable;
+        private readonly IMemoryOwner<int> codeTable;
 
         /// <summary>
         /// Define the storage for the packet accumulator.

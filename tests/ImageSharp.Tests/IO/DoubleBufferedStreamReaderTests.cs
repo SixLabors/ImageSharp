@@ -3,11 +3,11 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+using SixLabors.ImageSharp.IO;
 using SixLabors.Memory;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Jpg
+namespace SixLabors.ImageSharp.Tests.IO
 {
     public class DoubleBufferedStreamReaderTests
     {
@@ -26,6 +26,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // We've read a whole chunk but increment by 1 in our reader.
                 Assert.Equal(stream.Position, DoubleBufferedStreamReader.ChunkLength);
                 Assert.Equal(1, reader.Position);
+            }
+        }
+
+        [Fact]
+        public void DoubleBufferedStreamReaderCanReadSingleByteFromOffset()
+        {
+            using (MemoryStream stream = this.CreateTestStream())
+            {
+                byte[] expected = stream.ToArray();
+                const int offset = 5;
+                var reader = new DoubleBufferedStreamReader(this.allocator, stream);
+                reader.Position = offset;
+
+                Assert.Equal(expected[offset], reader.ReadByte());
+
+                // We've read a whole chunk but increment by 1 in our reader.
+                Assert.Equal(stream.Position, DoubleBufferedStreamReader.ChunkLength + offset);
+                Assert.Equal(offset + 1, reader.Position);
             }
         }
 
@@ -138,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // Skip Again
                 reader.Skip(skip2);
 
-                // First Skap + First Read + Second Skip
+                // First Skip + First Read + Second Skip
                 int position = skip + plusOne + skip2;
 
                 Assert.Equal(position, reader.Position);

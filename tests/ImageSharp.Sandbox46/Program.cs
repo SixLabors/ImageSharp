@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Sandbox46
             foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];
-                benchmarks.DecodeJpeg_Original(fileName);
+                benchmarks.DecodeJpeg(fileName);
             }
         }
     }

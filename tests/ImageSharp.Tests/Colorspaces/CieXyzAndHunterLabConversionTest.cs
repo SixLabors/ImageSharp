@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -9,7 +8,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
     /// <summary>
-    /// Tests <see cref="CieXyz"/>-<see cref="CieLab"/> conversions.
+    /// Tests <see cref="CieXyz"/>-<see cref="HunterLab"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using:
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class CieXyzAndHunterLabConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         /// <summary>
         /// Tests conversion from <see cref="HunterLab"/> to <see cref="CieXyz"/> (<see cref="Illuminants.C"/>).
@@ -30,14 +29,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new HunterLab(l, a, b);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.C };
+            var expected = new CieXyz(x, y, z);
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var actual = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(z, output.Z, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         /// <summary>
@@ -51,14 +49,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new HunterLab(l, a, b);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var expected = new CieXyz(x, y, z);
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var actual = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(z, output.Z, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         /// <summary>
@@ -72,14 +69,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new CieXyz(x, y, z);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var expected = new HunterLab(l, a, b);
 
             // Act
-            HunterLab output = converter.ToHunterLab(input);
+            var actual = converter.ToHunterLab(input);
 
             // Assert
-            Assert.Equal(l, output.L, FloatRoundingComparer);
-            Assert.Equal(a, output.A, FloatRoundingComparer);
-            Assert.Equal(b, output.B, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
     }
 }

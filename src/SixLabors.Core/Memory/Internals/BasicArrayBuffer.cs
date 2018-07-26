@@ -44,23 +44,6 @@ namespace SixLabors.Memory.Internals
         /// </summary>
         public int Length { get; }
 
-        /// <summary>
-        /// Returns a reference to specified element of the buffer.
-        /// </summary>
-        /// <param name="index">The index</param>
-        /// <returns>The reference to the specified element</returns>
-        public ref T this[int index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
-
-                Span<T> span = this.GetSpan();
-                return ref span[index];
-            }
-        }
-
         /// <inheritdoc />
         public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
 

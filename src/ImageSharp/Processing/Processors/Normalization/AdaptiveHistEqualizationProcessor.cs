@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -47,32 +48,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Span<int> histogramCopy = histogramBufferCopy.GetSpan();
                 Span<int> cdf = cdfBuffer.GetSpan();
 
-                for (int x = halfGridSize; x < source.Width - halfGridSize; x++)
+                for (int x = 0; x < source.Width; x++)
                 {
                     histogram.Clear();
 
                     // Build the histogram of grayscale values for the current grid.
                     for (int dy = 0; dy < gridSize; dy++)
                     {
-                        Span<TPixel> rowSpan = source.GetPixelRowSpan(dy).Slice(start: x - halfGridSize, length: gridSize);
+                        Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, dy, gridSize);
                         this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
                     }
 
                     for (int y = 1; y < source.Height; y++)
                     {
                         // Remove top most row from the histogram, mirroring rows which exceeds the borders
-                        Span<TPixel> rowSpan = source.GetPixelRowSpan(Math.Abs(y - halfGridSize - 1)).Slice(start: x - halfGridSize, length: gridSize);
+                        Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize - 1, gridSize);
                         this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
 
                         // Add new bottom row to the histogram, mirroring rows which exceeds the borders
-                        int rowPos = y + halfGridSize - 1;
-                        if (rowPos >= source.Height)
-                        {
-                            int diff = rowPos - source.Height;
-                            rowPos = source.Height - diff - 1;
-                        }
-
-                        rowSpan = source.GetPixelRowSpan(rowPos).Slice(start: x - halfGridSize, length: gridSize);
+                        rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize - 1, gridSize);
                         this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
 
                         // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration
@@ -91,6 +85,59 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }
+        }
+
+        /// <summary>
+        /// Get the a pixel row at a given position with a length of the grid size. Mirrors pixels which exceeds the edges.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="x">The x position.</param>
+        /// <param name="y">The y position.</param>
+        /// <param name="gridSize">The grid size.</param>
+        /// <returns>A pixel row of the length of the grid size.</returns>
+        private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, int x, int y, int gridSize)
+        {
+            if (y < 0)
+            {
+                y = Math.Abs(y);
+            }
+            else if (y >= source.Height)
+            {
+                int diff = y - source.Height;
+                y = source.Height - diff - 1;
+            }
+
+            // special cases for the left and the right border where GetPixelRowSpan can not be used
+            if (x < 0)
+            {
+                var rowPixels = new List<TPixel>();
+                for (int dx = x; dx < x + gridSize; dx++)
+                {
+                    rowPixels.Add(source[Math.Abs(dx), y]);
+                }
+
+                return rowPixels.ToArray();
+            }
+            else if (x + gridSize > source.Width)
+            {
+                var rowPixels = new List<TPixel>();
+                for (int dx = x; dx < x + gridSize; dx++)
+                {
+                    if (dx >= source.Width)
+                    {
+                        int diff = dx - source.Width;
+                        rowPixels.Add(source[dx - diff - 1, y]);
+                    }
+                    else
+                    {
+                        rowPixels.Add(source[dx, y]);
+                    }
+                }
+
+                return rowPixels.ToArray();
+            }
+
+            return source.GetPixelRowSpan(y).Slice(start: x, length: gridSize);
         }
 
         /// <summary>

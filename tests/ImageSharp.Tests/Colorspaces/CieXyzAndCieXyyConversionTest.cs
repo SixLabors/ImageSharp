@@ -17,8 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class CieXyzAndCieXyyConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
-
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         [Theory]
@@ -29,14 +28,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_xyY_to_XYZ(float xyzX, float xyzY, float xyzZ, float x, float y, float yl)
         {
             var input = new CieXyy(x, y, yl);
+            var expected = new CieXyz(xyzX, xyzY, xyzZ);
 
             // Act
-            CieXyz output = Converter.ToCieXyz(input);
+            var actual = Converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(xyzX, output.X, FloatRoundingComparer);
-            Assert.Equal(xyzY, output.Y, FloatRoundingComparer);
-            Assert.Equal(xyzZ, output.Z, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         [Theory]
@@ -47,14 +45,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_XYZ_to_xyY(float xyzX, float xyzY, float xyzZ, float x, float y, float yl)
         {
             var input = new CieXyz(xyzX, xyzY, xyzZ);
+            var expected = new CieXyy(x, y, yl);
 
             // Act
-            CieXyy output = Converter.ToCieXyy(input);
+            var actual = Converter.ToCieXyy(input);
 
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(yl, output.Yl, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
     }
 }

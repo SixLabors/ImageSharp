@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -17,8 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class CieLuvAndCieLchuvuvConversionTests
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
-
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
@@ -37,14 +35,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             // Arrange
             var input = new CieLchuv(l, c, h);
+            var expected = new CieLuv(l2, u, v);
 
             // Act
-            CieLuv output = Converter.ToCieLuv(input);
+            var actual = Converter.ToCieLuv(input);
 
             // Assert
-            Assert.Equal(l2, output.L, FloatRoundingComparer);
-            Assert.Equal(u, output.U, FloatRoundingComparer);
-            Assert.Equal(v, output.V, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         /// <summary>
@@ -64,14 +61,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             // Arrange
             var input = new CieLuv(l, u, v);
+            var expected = new CieLchuv(l2, c, h);
 
             // Act
-            CieLchuv output = Converter.ToCieLchuv(input);
+            var actual = Converter.ToCieLchuv(input);
 
             // Assert
-            Assert.Equal(l2, output.L, FloatRoundingComparer);
-            Assert.Equal(c, output.C, FloatRoundingComparer);
-            Assert.Equal(h, output.H, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
     }
 }

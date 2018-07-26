@@ -17,297 +17,158 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </summary>
     public class ColorSpaceEqualityTests
     {
-        //internal static readonly Dictionary<string, IColorVector> EmptyDataLookup =
-        //    new Dictionary<string, IColorVector>
-        //        {
-        //            {nameof( CieLab), default(CieLab) },
-        //            {nameof( CieLch), default(CieLch) },
-        //            {nameof( CieLchuv), default(CieLchuv) },
-        //            {nameof( CieLuv), default(CieLuv) },
-        //            {nameof( CieXyz), default(CieXyz) },
-        //            {nameof( CieXyy), default(CieXyy) },
-        //            {nameof( Hsl), default(Hsl) },
-        //            {nameof( HunterLab), default(HunterLab) },
-        //            {nameof( Lms), default(Lms) },
-        //            {nameof( LinearRgb), default(LinearRgb) },
-        //            {nameof( Rgb), default(Rgb) },
-        //            {nameof( YCbCr), default(YCbCr) }
-        //        };
+        [Fact]
+        public void CieLabEquality()
+        {
+            var x = default(CieLab);
+            var y = new CieLab(Vector3.One);
+            Assert.Equal(default(CieLab), default(CieLab));
+            Assert.Equal(new CieLab(1, 0, 1), new CieLab(1, 0, 1));
+            Assert.Equal(new CieLab(Vector3.One), new CieLab(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly IEnumerable<object[]> EmptyData = EmptyDataLookup.Select(x => new[] { x.Key });
+        [Fact]
+        public void CieLchEquality()
+        {
+            var x = default(CieLch);
+            var y = new CieLch(Vector3.One);
+            Assert.Equal(default(CieLch), default(CieLch));
+            Assert.Equal(new CieLch(1, 0, 1), new CieLch(1, 0, 1));
+            Assert.Equal(new CieLch(Vector3.One), new CieLch(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly TheoryData<object, object, Type> EqualityData =
-        //   new TheoryData<object, object, Type>
-        //       {
-        //       { new CieLab(Vector3.One), new CieLab(Vector3.One), typeof(CieLab) },
-        //       { new CieLch(Vector3.One), new CieLch(Vector3.One), typeof(CieLch) },
-        //       { new CieLchuv(Vector3.One), new CieLchuv(Vector3.One), typeof(CieLchuv) },
-        //       { new CieLuv(Vector3.One), new CieLuv(Vector3.One), typeof(CieLuv) },
-        //       { new CieXyz(Vector3.One), new CieXyz(Vector3.One), typeof(CieXyz) },
-        //       { new CieXyy(Vector3.One), new CieXyy(Vector3.One), typeof(CieXyy) },
-        //       { new HunterLab(Vector3.One), new HunterLab(Vector3.One), typeof(HunterLab) },
-        //       { new Lms(Vector3.One), new Lms(Vector3.One), typeof(Lms) },
-        //       { new LinearRgb(Vector3.One), new LinearRgb(Vector3.One), typeof(LinearRgb) },
-        //       { new Rgb(Vector3.One), new Rgb(Vector3.One), typeof(Rgb) },
-        //       { new Hsl(Vector3.One), new Hsl(Vector3.One), typeof(Hsl) },
-        //       { new Hsv(Vector3.One), new Hsv(Vector3.One), typeof(Hsv) },
-        //       { new YCbCr(Vector3.One), new YCbCr(Vector3.One), typeof(YCbCr) },
-        //   };
+        [Fact]
+        public void CieLchuvEquality()
+        {
+            var x = default(CieLchuv);
+            var y = new CieLchuv(Vector3.One);
+            Assert.Equal(default(CieLchuv), default(CieLchuv));
+            Assert.Equal(new CieLchuv(1, 0, 1), new CieLchuv(1, 0, 1));
+            Assert.Equal(new CieLchuv(Vector3.One), new CieLchuv(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly TheoryData<object, object, Type> NotEqualityDataNulls =
-        //    new TheoryData<object, object, Type>
-        //        {
-        //        // Valid object against null
-        //       { new CieLab(Vector3.One), null, typeof(CieLab) },
-        //       { new CieLch(Vector3.One), null, typeof(CieLch) },
-        //       { new CieLchuv(Vector3.One), null, typeof(CieLchuv) },
-        //       { new CieLuv(Vector3.One), null, typeof(CieLuv) },
-        //       { new CieXyz(Vector3.One), null, typeof(CieXyz) },
-        //       { new CieXyy(Vector3.One), null, typeof(CieXyy) },
-        //       { new HunterLab(Vector3.One), null, typeof(HunterLab) },
-        //       { new Lms(Vector3.One), null, typeof(Lms) },
-        //       { new LinearRgb(Vector3.One), null, typeof(LinearRgb) },
-        //       { new Rgb(Vector3.One), null, typeof(Rgb) },
-        //       { new Hsl(Vector3.One), null, typeof(Hsl) },
-        //       { new Hsv(Vector3.One), null, typeof(Hsv) },
-        //       { new YCbCr(Vector3.One), null, typeof(YCbCr) },
-        //    };
+        [Fact]
+        public void CieLuvEquality()
+        {
+            var x = default(CieLuv);
+            var y = new CieLuv(Vector3.One);
+            Assert.Equal(default(CieLuv), default(CieLuv));
+            Assert.Equal(new CieLuv(1, 0, 1), new CieLuv(1, 0, 1));
+            Assert.Equal(new CieLuv(Vector3.One), new CieLuv(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly TheoryData<object, object, Type> NotEqualityDataDifferentObjects =
-        //   new TheoryData<object, object, Type>
-        //       {
-        //        // Valid objects of different types but not equal
-        //        { new CieLab(Vector3.One), new CieLch(Vector3.Zero), null },
-        //        { new CieLuv(Vector3.One), new CieLchuv(Vector3.Zero), null },
-        //        { new CieXyz(Vector3.One), new HunterLab(Vector3.Zero), null },
-        //        { new Rgb(Vector3.One), new LinearRgb(Vector3.Zero), null },
-        //        { new Rgb(Vector3.One), new Lms(Vector3.Zero), null },
-        //        { new Cmyk(Vector4.One), new Hsl(Vector3.Zero), null },
-        //        { new YCbCr(Vector3.One), new CieXyy(Vector3.Zero), null },
-        //        { new Hsv(Vector3.One), new Hsl(Vector3.Zero), null },
-        //   };
+        [Fact]
+        public void CieXyzEquality()
+        {
+            var x = default(CieXyz);
+            var y = new CieXyz(Vector3.One);
+            Assert.Equal(default(CieXyz), default(CieXyz));
+            Assert.Equal(new CieXyz(1, 0, 1), new CieXyz(1, 0, 1));
+            Assert.Equal(new CieXyz(Vector3.One), new CieXyz(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly TheoryData<object, object, Type> NotEqualityData =
-        //   new TheoryData<object, object, Type>
-        //       {
-        //        // Valid objects of the same type but not equal
-        //       { new CieLab(Vector3.One), new CieLab(Vector3.Zero), typeof(CieLab) },
-        //       { new CieLch(Vector3.One), new CieLch(Vector3.Zero), typeof(CieLch) },
-        //       { new CieLchuv(Vector3.One), new CieLchuv(Vector3.Zero), typeof(CieLchuv) },
-        //       { new CieLuv(Vector3.One), new CieLuv(Vector3.Zero), typeof(CieLuv) },
-        //       { new CieXyz(Vector3.One), new CieXyz(Vector3.Zero), typeof(CieXyz) },
-        //       { new CieXyy(Vector3.One), new CieXyy(Vector3.Zero), typeof(CieXyy) },
-        //       { new HunterLab(Vector3.One), new HunterLab(Vector3.Zero), typeof(HunterLab) },
-        //       { new Lms(Vector3.One), new Lms(Vector3.Zero), typeof(Lms) },
-        //       { new LinearRgb(Vector3.One), new LinearRgb(Vector3.Zero), typeof(LinearRgb) },
-        //       { new Rgb(Vector3.One), new Rgb(Vector3.Zero), typeof(Rgb) },
-        //       { new Cmyk(Vector4.One), new Cmyk(Vector4.Zero), typeof(Cmyk) },
-        //       { new Hsl(Vector3.One), new Hsl(Vector3.Zero), typeof(Hsl) },
-        //       { new Hsv(Vector3.One), new Hsv(Vector3.Zero), typeof(Hsv) },
-        //       { new YCbCr(Vector3.One), new YCbCr(Vector3.Zero), typeof(YCbCr) },
-        //   };
+        [Fact]
+        public void CieXyyEquality()
+        {
+            var x = default(CieXyy);
+            var y = new CieXyy(Vector3.One);
+            Assert.Equal(default(CieXyy), default(CieXyy));
+            Assert.Equal(new CieXyy(1, 0, 1), new CieXyy(1, 0, 1));
+            Assert.Equal(new CieXyy(Vector3.One), new CieXyy(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly TheoryData<object, object, Type, float> AlmostEqualsData =
-        //    new TheoryData<object, object, Type, float>
-        //        {
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, 0F), typeof(CieLab), 0F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, 0F), typeof(CieLab), .001F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, 0F), typeof(CieLab), .0001F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, 0F), typeof(CieLab), .0005F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, .001F, 0F), typeof(CieLab), .001F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, .0001F), typeof(CieLab), .0001F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(.0005F, 0F, 0F), typeof(CieLab), .0005F },
-        //        { new CieLch(0F, 0F, 0F), new CieLch(0F, .001F, 0F), typeof(CieLch), .001F },
-        //        { new CieLchuv(0F, 0F, 0F), new CieLchuv(0F, .001F, 0F), typeof(CieLchuv), .001F },
-        //        { new CieLuv(0F, 0F, 0F), new CieLuv(0F, .001F, 0F), typeof(CieLuv), .001F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380F, 380F), typeof(CieXyz), 0F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380.001F, 380F, 380F), typeof(CieXyz), .01F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380.001F, 380F), typeof(CieXyz), .01F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380F, 380.001F), typeof(CieXyz), .01F },
-        //        { new Cmyk(1, 1, 1, 1), new Cmyk(1, 1, 1, .99F), typeof(Cmyk), .01F },
-        //        { new YCbCr(255F, 128F, 128F), new YCbCr(255F, 128F, 128.001F), typeof(YCbCr), .01F },
-        //        { new Hsv(0F, 0F, 0F), new Hsv(0F, 0F, 0F), typeof(Hsv), 0F },
-        //        { new Hsl(0F, 0F, 0F), new Hsl(0F, 0F, 0F), typeof(Hsl), 0F },
-        //    };
+        [Fact]
+        public void HslEquality()
+        {
+            var x = default(Hsl);
+            var y = new Hsl(Vector3.One);
+            Assert.Equal(default(Hsl), default(Hsl));
+            Assert.Equal(new Hsl(1, 0, 1), new Hsl(1, 0, 1));
+            Assert.Equal(new Hsl(Vector3.One), new Hsl(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //public static readonly TheoryData<object, object, Type, float> AlmostNotEqualsData =
-        //    new TheoryData<object, object, Type, float>
-        //        {
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0.1F, 0F, 0F), typeof(CieLab), .001F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0.1F, 0F), typeof(CieLab), .001F },
-        //        { new CieLab(0F, 0F, 0F), new CieLab(0F, 0F, 0.1F), typeof(CieLab), .001F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380.1F, 380F, 380F), typeof(CieXyz), .001F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380.1F, 380F), typeof(CieXyz), .001F },
-        //        { new CieXyz(380F, 380F, 380F), new CieXyz(380F, 380F, 380.1F), typeof(CieXyz), .001F },
-        //    };
+        [Fact]
+        public void HsvEquality()
+        {
+            var x = default(Hsv);
+            var y = new Hsv(Vector3.One);
+            Assert.Equal(default(Hsv), default(Hsv));
+            Assert.Equal(new Hsv(1, 0, 1), new Hsv(1, 0, 1));
+            Assert.Equal(new Hsv(Vector3.One), new Hsv(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //[Theory]
-        //[MemberData(nameof(EmptyData))]
-        //public void Vector_Equals_WhenTrue(string color)
-        //{
-        //    IColorVector colorVector = EmptyDataLookup[color];
-        //    // Act
-        //    bool equal = colorVector.Vector.Equals(Vector3.Zero);
+        [Fact]
+        public void HunterLabEquality()
+        {
+            var x = default(HunterLab);
+            var y = new HunterLab(Vector3.One);
+            Assert.Equal(default(HunterLab), default(HunterLab));
+            Assert.Equal(new HunterLab(1, 0, 1), new HunterLab(1, 0, 1));
+            Assert.Equal(new HunterLab(Vector3.One), new HunterLab(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //    // Assert
-        //    Assert.True(equal);
-        //}
+        [Fact]
+        public void LmsEquality()
+        {
+            var x = default(Lms);
+            var y = new Lms(Vector3.One);
+            Assert.Equal(default(Lms), default(Lms));
+            Assert.Equal(new Lms(1, 0, 1), new Lms(1, 0, 1));
+            Assert.Equal(new Lms(Vector3.One), new Lms(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //[Theory]
-        //[MemberData(nameof(EqualityData))]
-        //public void Equals_WhenTrue(object first, object second, Type type)
-        //{
-        //    // Act
-        //    bool equal = first.Equals(second);
+        [Fact]
+        public void LinearRgbEquality()
+        {
+            var x = default(LinearRgb);
+            var y = new LinearRgb(Vector3.One);
+            Assert.Equal(default(LinearRgb), default(LinearRgb));
+            Assert.Equal(new LinearRgb(1, 0, 1), new LinearRgb(1, 0, 1));
+            Assert.Equal(new LinearRgb(Vector3.One), new LinearRgb(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //    // Assert
-        //    Assert.True(equal);
-        //}
+        [Fact]
+        public void RgbEquality()
+        {
+            var x = default(Rgb);
+            var y = new Rgb(Vector3.One);
+            Assert.Equal(default(Rgb), default(Rgb));
+            Assert.Equal(new Rgb(1, 0, 1), new Rgb(1, 0, 1));
+            Assert.Equal(new Rgb(Vector3.One), new Rgb(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //[Theory]
-        //[MemberData(nameof(NotEqualityDataNulls))]
-        //[MemberData(nameof(NotEqualityDataDifferentObjects))]
-        //[MemberData(nameof(NotEqualityData))]
-        //public void Equals_WhenFalse(object first, object second, Type type)
-        //{
-        //    // Act
-        //    bool equal = first.Equals(second);
+        [Fact]
+        public void YCbCrEquality()
+        {
+            var x = default(YCbCr);
+            var y = new YCbCr(Vector3.One);
+            Assert.Equal(default(YCbCr), default(YCbCr));
+            Assert.Equal(new YCbCr(1, 0, 1), new YCbCr(1, 0, 1));
+            Assert.Equal(new YCbCr(Vector3.One), new YCbCr(Vector3.One));
+            Assert.False(x.Equals(y));
+        }
 
-        //    // Assert
-        //    Assert.False(equal);
-        //}
-
-        //[Theory]
-        //[MemberData(nameof(EqualityData))]
-        //public void GetHashCode_WhenEqual(object first, object second, Type type)
-        //{
-        //    // Act
-        //    bool equal = first.GetHashCode() == second.GetHashCode();
-
-        //    // Assert
-        //    Assert.True(equal);
-        //}
-
-        //[Theory]
-        //[MemberData(nameof(NotEqualityDataDifferentObjects))]
-        //public void GetHashCode_WhenNotEqual(object first, object second, Type type)
-        //{
-        //    // Act
-        //    bool equal = first.GetHashCode() == second.GetHashCode();
-
-        //    // Assert
-        //    Assert.False(equal);
-        //}
-
-        //[Theory]
-        //[MemberData(nameof(EqualityData))]
-        //public void GenericEquals_WhenTrue(object first, object second, Type type)
-        //{
-        //    // Arrange
-        //    // Cast to the known object types, this is so that we can hit the
-        //    // equality operator on the concrete type, otherwise it goes to the
-        //    // default "object" one :)
-        //    dynamic firstObject = Convert.ChangeType(first, type);
-        //    dynamic secondObject = Convert.ChangeType(second, type);
-
-        //    // Act
-        //    dynamic equal = firstObject.Equals(secondObject);
-
-        //    // Assert
-        //    Assert.True(equal);
-        //}
-
-        //[Theory]
-        //[MemberData(nameof(NotEqualityData))]
-        //public void GenericEquals_WhenFalse(object first, object second, Type type)
-        //{
-        //    // Arrange
-        //    // Cast to the known object types, this is so that we can hit the
-        //    // equality operator on the concrete type, otherwise it goes to the
-        //    // default "object" one :)
-        //    dynamic firstObject = Convert.ChangeType(first, type);
-        //    dynamic secondObject = Convert.ChangeType(second, type);
-
-        //    // Act
-        //    dynamic equal = firstObject.Equals(secondObject);
-
-        //    // Assert
-        //    Assert.False(equal);
-        //}
-
-        //// TODO:Disabled due to RuntypeBinder errors while structs are internal
-        ////[Theory]
-        ////[MemberData(nameof(EqualityData))]
-        ////public void EqualityOperator(object first, object second, Type type)
-        ////{
-        ////    // Arrange
-        ////    // Cast to the known object types, this is so that we can hit the
-        ////    // equality operator on the concrete type, otherwise it goes to the
-        ////    // default "object" one :)
-        ////    dynamic firstObject = Convert.ChangeType(first, type);
-        ////    dynamic secondObject = Convert.ChangeType(second, type);
-
-        ////    // Act
-        ////    dynamic equal = firstObject == secondObject;
-
-        ////    // Assert
-        ////    Assert.True(equal);
-        ////}
-
-        //[Theory]
-        //[MemberData(nameof(NotEqualityData))]
-        //public void Operator_WhenTrue(object first, object second, Type type)
-        //{
-        //    // Arrange
-        //    // Cast to the known object types, this is so that we can hit the
-        //    // equality operator on the concrete type, otherwise it goes to the
-        //    // default "object" one :)
-        //    dynamic firstObject = Convert.ChangeType(first, type);
-        //    dynamic secondObject = Convert.ChangeType(second, type);
-
-        //    // Act
-        //    dynamic notEqual = firstObject != secondObject;
-
-        //    // Assert
-        //    Assert.True(notEqual);
-        //}
-
-        //// TODO:Disabled due to RuntypeBinder errors while structs are internal
-        ////[Theory]
-        ////[MemberData(nameof(AlmostEqualsData))]
-        ////public void AlmostEquals(object first, object second, Type type, float precision)
-        ////{
-        ////    // Arrange
-        ////    // Cast to the known object types, this is so that we can hit the
-        ////    // equality operator on the concrete type, otherwise it goes to the
-        ////    // default "object" one :)
-        ////    dynamic firstObject = Convert.ChangeType(first, type);
-        ////    dynamic secondObject = Convert.ChangeType(second, type);
-
-        ////    // Act
-        ////    dynamic almostEqual = firstObject.AlmostEquals(secondObject, precision);
-
-        ////    // Assert
-        ////    Assert.True(almostEqual);
-        ////}
-
-        //// TODO:Disabled due to RuntypeBinder errors while structs are internal
-        ////[Theory]
-        ////[MemberData(nameof(AlmostNotEqualsData))]
-        ////public void AlmostNotEquals(object first, object second, Type type, float precision)
-        ////{
-        ////    // Arrange
-        ////    // Cast to the known object types, this is so that we can hit the
-        ////    // equality operator on the concrete type, otherwise it goes to the
-        ////    // default "object" one :)
-        ////    dynamic firstObject = Convert.ChangeType(first, type);
-        ////    dynamic secondObject = Convert.ChangeType(second, type);
-
-        ////    // Act
-        ////    dynamic almostEqual = firstObject.AlmostEquals(secondObject, precision);
-
-        ////    // Assert
-        ////    Assert.False(almostEqual);
-        ////}
+        [Fact]
+        public void CmykEquality()
+        {
+            var x = default(Cmyk);
+            var y = new Cmyk(Vector4.One);
+            Assert.Equal(default(Cmyk), default(Cmyk));
+            Assert.Equal(new Cmyk(1, 0, 1, 0), new Cmyk(1, 0, 1, 0));
+            Assert.Equal(new Cmyk(Vector4.One), new Cmyk(Vector4.One));
+            Assert.False(x.Equals(y));
+        }
     }
 }

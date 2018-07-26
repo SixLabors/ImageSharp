@@ -9,14 +9,14 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
     /// <summary>
-    /// Tests <see cref="CieXyz"/>-<see cref="CieLab"/> conversions.
+    /// Tests <see cref="CieXyz"/>-<see cref="Lms"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using original colorful library.
     /// </remarks>
     public class CieXyzAndLmsConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(5);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         /// <summary>
         /// Tests conversion from <see cref="CieXyz"/> (<see cref="Illuminants.D65"/>) to <see cref="Lms"/>.
@@ -33,14 +33,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new Lms(l, m, s);
             var converter = new ColorSpaceConverter();
+            var expected = new CieXyz(x, y, z);
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var actual = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(z, output.Z, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         /// <summary>
@@ -58,14 +57,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new CieXyz(x, y, z);
             var converter = new ColorSpaceConverter();
+            var expected = new Lms(l, m, s);
 
             // Act
-            Lms output = converter.ToLms(input);
+            var actual = converter.ToLms(input);
 
             // Assert
-            Assert.Equal(l, output.L, FloatRoundingComparer);
-            Assert.Equal(m, output.M, FloatRoundingComparer);
-            Assert.Equal(s, output.S, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
     }
 }

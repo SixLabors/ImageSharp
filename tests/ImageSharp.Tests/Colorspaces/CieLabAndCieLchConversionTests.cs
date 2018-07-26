@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -17,8 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class CieLabAndCieLchConversionTests
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
-
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
 
         /// <summary>
@@ -37,14 +35,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             // Arrange
             var input = new CieLch(l, c, h);
+            var expected = new CieLab(l2, a, b);
 
             // Act
-            var output = Converter.ToCieLab(input);
+            var actual = Converter.ToCieLab(input);
 
             // Assert
-            Assert.Equal(l2, output.L, FloatRoundingComparer);
-            Assert.Equal(a, output.A, FloatRoundingComparer);
-            Assert.Equal(b, output.B, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         /// <summary>
@@ -63,14 +60,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             // Arrange
             var input = new CieLab(l, a, b);
+            var expected = new CieLch(l2, c, h);
 
             // Act
-            var output = Converter.ToCieLch(input);
+            var actual = Converter.ToCieLch(input);
 
             // Assert
-            Assert.Equal(l2, output.L, FloatRoundingComparer);
-            Assert.Equal(c, output.C, FloatRoundingComparer);
-            Assert.Equal(h, output.H, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
     }
 }

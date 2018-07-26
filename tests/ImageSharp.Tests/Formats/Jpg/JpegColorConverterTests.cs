@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 seed);
         }
 
-        private static void ValidateYCbCr(JpegColorConverter.ComponentValues values, Vector4[] result, int i)
+        private static void ValidateYCbCr(in JpegColorConverter.ComponentValues values, Vector4[] result, int i)
         {
             float y = values.Component0[i];
             float cb = values.Component1[i];

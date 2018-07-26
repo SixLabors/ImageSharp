@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class CieXyzAndCieLuvConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(4);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         /// <summary>
         /// Tests conversion from <see cref="CieLuv"/> to <see cref="CieXyz"/> (<see cref="Illuminants.D65"/>).
@@ -35,14 +34,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new CieLuv(l, u, v, Illuminants.D65);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            var expected = new CieXyz(x, y, z);
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var actual = converter.ToCieXyz(input);
 
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(z, output.Z, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
         /// <summary>
@@ -60,14 +58,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new CieXyz(x, y, z);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            var expected = new CieLuv(l, u, v);
 
             // Act
-            CieLuv output = converter.ToCieLuv(input);
+            var actual = converter.ToCieLuv(input);
 
             // Assert
-            Assert.Equal(l, output.L, FloatRoundingComparer);
-            Assert.Equal(u, output.U, FloatRoundingComparer);
-            Assert.Equal(v, output.V, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
         }
     }
 }

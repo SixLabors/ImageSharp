@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// Color converter between CIE XYZ and CIE xyY
     /// <see href="http://www.brucelindbloom.com/"/> for formulas.
     /// </summary>
-    internal class CieXyzAndCieXyyConverter : IColorConversion<CieXyz, CieXyy>, IColorConversion<CieXyy, CieXyz>
+    internal sealed class CieXyzAndCieXyyConverter : IColorConversion<CieXyz, CieXyy>, IColorConversion<CieXyy, CieXyz>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -207,6 +207,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+        /// <see cref="Rgba32"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgba32"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgba32(ColorSpaces.Rgb color)
+        {
+            var vector = new Vector4(color.ToVector3(), 1);
+            Rgba32 rgba = default;
+            rgba.PackFromScaledVector4(vector);
+            return rgba;
+        }
+
+        /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
         /// </summary>
         /// <param name="left">

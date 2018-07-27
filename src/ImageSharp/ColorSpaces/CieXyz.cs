@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an CIE XYZ 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#Definition_of_the_CIE_XYZ_color_space"/>
     /// </summary>
-    internal readonly struct CieXyz : IEquatable<CieXyz>
+    public readonly struct CieXyz : IEquatable<CieXyz>
     {
         /// <summary>
         /// Gets the X component. A mix (a linear combination) of cone response curves chosen to be nonnegative.

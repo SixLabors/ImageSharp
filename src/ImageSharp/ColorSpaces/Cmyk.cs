@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
     /// </summary>
-    internal readonly struct Cmyk : IEquatable<Cmyk>
+    public readonly struct Cmyk : IEquatable<Cmyk>
     {
         /// <summary>
         /// Gets the cyan color component.

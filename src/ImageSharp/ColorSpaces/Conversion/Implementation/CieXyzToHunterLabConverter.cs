@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Color converter between CieXyz and HunterLab
     /// </summary>
-    internal class CieXyzToHunterLabConverter : CieXyzAndHunterLabConverterBase, IColorConversion<CieXyz, HunterLab>
+    internal sealed class CieXyzToHunterLabConverter : CieXyzAndHunterLabConverterBase, IColorConversion<CieXyz, HunterLab>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToHunterLabConverter"/> class.

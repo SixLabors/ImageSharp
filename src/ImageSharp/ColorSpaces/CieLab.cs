@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents a CIE L*a*b* 1976 color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    internal readonly struct CieLab : IEquatable<CieLab>
+    public readonly struct CieLab : IEquatable<CieLab>
     {
         /// <summary>
         /// D50 standard illuminant.

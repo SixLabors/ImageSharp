@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <remarks>
     /// http://en.wikipedia.org/wiki/Rec._709
     /// </remarks>
-    internal class Rec709Companding : ICompanding
+    public sealed class Rec709Companding : ICompanding
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

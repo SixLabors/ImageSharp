@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Trivial implementation of <see cref="RgbWorkingSpace"/>
     /// </summary>
-    internal class RgbWorkingSpace : IEquatable<RgbWorkingSpace>
+    public class RgbWorkingSpace : IEquatable<RgbWorkingSpace>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> class.

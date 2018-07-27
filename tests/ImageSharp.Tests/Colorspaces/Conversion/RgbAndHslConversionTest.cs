@@ -6,33 +6,38 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Colorspaces
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="Rgb"/>-<see cref="YCbCr"/> conversions.
+    /// Tests <see cref="Rgb"/>-<see cref="Hsl"/> conversions.
     /// </summary>
     /// <remarks>
-    /// Test data generated mathematically
+    /// Test data generated using:
+    /// <see href="http://www.colorhexa.com"/>
+    /// <see href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
     /// </remarks>
-    public class RgbAndYCbCrConversionTest
+    public class RgbAndHslConversionTest
     {
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
-        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.001F);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         /// <summary>
-        /// Tests conversion from <see cref="YCbCr"/> to <see cref="Rgb"/>.
+        /// Tests conversion from <see cref="Hsl"/> to <see cref="Rgb"/>.
         /// </summary>
         [Theory]
-        [InlineData(255, 128, 128, 1, 1, 1)]
-        [InlineData(0, 128, 128, 0, 0, 0)]
-        [InlineData(128, 128, 128, 0.502, 0.502, 0.502)]
-        public void Convert_YCbCr_To_Rgb(float y, float cb, float cr, float r, float g, float b)
+        [InlineData(0, 0, 0, 0, 0, 0)]
+        [InlineData(0, 1, 1, 1, 1, 1)]
+        [InlineData(360, 1, 1, 1, 1, 1)]
+        [InlineData(0, 1, .5F, 1, 0, 0)]
+        [InlineData(120, 1, .5F, 0, 1, 0)]
+        [InlineData(240, 1, .5F, 0, 0, 1)]
+        public void Convert_Hsl_To_Rgb(float h, float s, float l, float r, float g, float b)
         {
             // Arrange
-            var input = new YCbCr(y, cb, cr);
+            var input = new Hsl(h, s, l);
             var expected = new Rgb(r, g, b);
 
-            Span<YCbCr> inputSpan = new YCbCr[5];
+            Span<Hsl> inputSpan = new Hsl[5];
             inputSpan.Fill(input);
 
             Span<Rgb> actualSpan = new Rgb[5];
@@ -52,26 +57,28 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="Rgb"/> to <see cref="YCbCr"/>.
+        /// Tests conversion from <see cref="Rgb"/> to <see cref="Hsl"/>.
         /// </summary>
         [Theory]
-        [InlineData(0, 0, 0, 0, 128, 128)]
-        [InlineData(1, 1, 1, 255, 128, 128)]
-        [InlineData(0.5, 0.5, 0.5, 127.5, 128, 128)]
-        [InlineData(1, 0, 0, 76.245, 84.972, 255)]
-        public void Convert_Rgb_To_YCbCr(float r, float g, float b, float y, float cb, float cr)
+        [InlineData(0, 0, 0, 0, 0, 0)]
+        [InlineData(1, 1, 1, 0, 0, 1)]
+        [InlineData(1, 0, 0, 0, 1, .5F)]
+        [InlineData(0, 1, 0, 120, 1, .5F)]
+        [InlineData(0, 0, 1, 240, 1, .5F)]
+        public void Convert_Rgb_To_Hsl(float r, float g, float b, float h, float s, float l)
         {
             // Arrange
             var input = new Rgb(r, g, b);
-            var expected = new YCbCr(y, cb, cr);
+            var expected = new Hsl(h, s, l);
+
 
             Span<Rgb> inputSpan = new Rgb[5];
             inputSpan.Fill(input);
 
-            Span<YCbCr> actualSpan = new YCbCr[5];
+            Span<Hsl> actualSpan = new Hsl[5];
 
             // Act
-            var actual = Converter.ToYCbCr(input);
+            var actual = Converter.ToHsl(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert

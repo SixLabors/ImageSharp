@@ -6,35 +6,37 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Colorspaces
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
-    /// Tests <see cref="Rgb"/>-<see cref="Cmyk"/> conversions.
+    /// Tests <see cref="Rgb"/>-<see cref="Hsv"/> conversions.
     /// </summary>
     /// <remarks>
     /// Test data generated using:
     /// <see href="http://www.colorhexa.com"/>
-    /// <see href="http://www.rapidtables.com/convert/color/cmyk-to-rgb.htm"/>
     /// </remarks>
-    public class RgbAndCmykConversionTest
+    public class RgbAndHsvConversionTest
     {
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         /// <summary>
-        /// Tests conversion from <see cref="Cmyk"/> to <see cref="Rgb"/>.
+        /// Tests conversion from <see cref="Hsv"/> to <see cref="Rgb"/>.
         /// </summary>
         [Theory]
-        [InlineData(1, 1, 1, 1, 0, 0, 0)]
-        [InlineData(0, 0, 0, 0, 1, 1, 1)]
-        [InlineData(0, 0.84, 0.037, 0.365, 0.635, 0.1016, 0.6115)]
-        public void Convert_Cmyk_To_Rgb(float c, float m, float y, float k, float r, float g, float b)
+        [InlineData(0, 0, 0, 0, 0, 0)]
+        [InlineData(0, 0, 1, 1, 1, 1)]
+        [InlineData(360, 1, 1, 1, 0, 0)]
+        [InlineData(0, 1, 1, 1, 0, 0)]
+        [InlineData(120, 1, 1, 0, 1, 0)]
+        [InlineData(240, 1, 1, 0, 0, 1)]
+        public void Convert_Hsv_To_Rgb(float h, float s, float v, float r, float g, float b)
         {
             // Arrange
-            var input = new Cmyk(c, m, y, k);
+            var input = new Hsv(h, s, v);
             var expected = new Rgb(r, g, b);
 
-            Span<Cmyk> inputSpan = new Cmyk[5];
+            Span<Hsv> inputSpan = new Hsv[5];
             inputSpan.Fill(input);
 
             Span<Rgb> actualSpan = new Rgb[5];
@@ -54,25 +56,27 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         }
 
         /// <summary>
-        /// Tests conversion from <see cref="Rgb"/> to <see cref="Cmyk"/>.
+        /// Tests conversion from <see cref="Rgb"/> to <see cref="Hsv"/>.
         /// </summary>
         [Theory]
-        [InlineData(1, 1, 1, 0, 0, 0, 0)]
-        [InlineData(0, 0, 0, 0, 0, 0, 1)]
-        [InlineData(0.635, 0.1016, 0.6115, 0, 0.84, 0.037, 0.365)]
-        public void Convert_Rgb_To_Cmyk(float r, float g, float b, float c, float m, float y, float k)
+        [InlineData(0, 0, 0, 0, 0, 0)]
+        [InlineData(1, 1, 1, 0, 0, 1)]
+        [InlineData(1, 0, 0, 0, 1, 1)]
+        [InlineData(0, 1, 0, 120, 1, 1)]
+        [InlineData(0, 0, 1, 240, 1, 1)]
+        public void Convert_Rgb_To_Hsv(float r, float g, float b, float h, float s, float v)
         {
             // Arrange
             var input = new Rgb(r, g, b);
-            var expected = new Cmyk(c, m, y, k);
+            var expected = new Hsv(h, s, v);
 
             Span<Rgb> inputSpan = new Rgb[5];
             inputSpan.Fill(input);
 
-            Span<Cmyk> actualSpan = new Cmyk[5];
+            Span<Hsv> actualSpan = new Hsv[5];
 
             // Act
-            var actual = Converter.ToCmyk(input);
+            var actual = Converter.ToHsv(input);
             Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert

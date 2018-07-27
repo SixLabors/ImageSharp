@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
-
-namespace SixLabors.ImageSharp.ColorSpaces
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
     /// Pair of companding functions for <see cref="RgbWorkingSpace"/>.

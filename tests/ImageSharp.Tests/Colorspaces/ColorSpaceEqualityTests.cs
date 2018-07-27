@@ -1,15 +1,10 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using SixLabors.ImageSharp.ColorSpaces;
 using Xunit;
 
-// ReSharper disable InconsistentNaming
-// TODO: This needs to be refactored so that it uses a serializable type once the colorspace code is public
 namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
     /// <summary>

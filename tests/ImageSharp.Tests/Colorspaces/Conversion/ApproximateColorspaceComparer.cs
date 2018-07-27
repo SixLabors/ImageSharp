@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
-namespace SixLabors.ImageSharp.Tests.Colorspaces
+namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
     /// <summary>
     /// Allows the approximate comparison of colorspace component values.

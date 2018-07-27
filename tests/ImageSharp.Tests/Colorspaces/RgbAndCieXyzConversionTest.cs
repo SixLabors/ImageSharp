@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
+using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -17,9 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class RgbAndCieXyzConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(5);
-
-        private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         /// <summary>
         /// Tests conversion from <see cref="CieXyz"/> (<see cref="Illuminants.D50"/>)
@@ -37,17 +35,25 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new CieXyz(x, y, z);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var expected = new Rgb(r, g, b);
+
+            Span<CieXyz> inputSpan = new CieXyz[5];
+            inputSpan.Fill(input);
+
+            Span<Rgb> actualSpan = new Rgb[5];
 
             // Act
-            Rgb output = converter.ToRgb(input);
+            var actual = converter.ToRgb(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
-            IEqualityComparer<float> comparer = new ApproximateFloatComparer(0.001f);
+            Assert.Equal(Rgb.DefaultWorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
 
-            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
-            Assert.Equal(r, output.R, comparer);
-            Assert.Equal(g, output.G, comparer);
-            Assert.Equal(b, output.B, comparer);
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -65,17 +71,27 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         public void Convert_XYZ_D65_to_SRGB(float x, float y, float z, float r, float g, float b)
         {
             // Arrange
-            CieXyz input = new CieXyz(x, y, z);
-            ColorSpaceConverter converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var input = new CieXyz(x, y, z);
+            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var expected = new Rgb(r, g, b);
+
+            Span<CieXyz> inputSpan = new CieXyz[5];
+            inputSpan.Fill(input);
+
+            Span<Rgb> actualSpan = new Rgb[5];
 
             // Act
-            Rgb output = converter.ToRgb(input);
+            var actual = converter.ToRgb(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
-            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
-            Assert.Equal(r, output.R, FloatRoundingComparer);
-            Assert.Equal(g, output.G, FloatRoundingComparer);
-            Assert.Equal(b, output.B, FloatRoundingComparer);
+            Assert.Equal(Rgb.DefaultWorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -94,15 +110,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new Rgb(r, g, b);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50 };
+            var expected = new CieXyz(x, y, z);
+
+            Span<Rgb> inputSpan = new Rgb[5];
+            inputSpan.Fill(input);
+
+            Span<CieXyz> actualSpan = new CieXyz[5];
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var actual = converter.ToCieXyz(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
-            IEqualityComparer<float> comparer = new ApproximateFloatComparer(0.001f);
-            Assert.Equal(x, output.X, comparer);
-            Assert.Equal(y, output.Y, comparer);
-            Assert.Equal(z, output.Z, comparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -121,14 +146,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             // Arrange
             var input = new Rgb(r, g, b);
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var expected = new CieXyz(x, y, z);
+
+            Span<Rgb> inputSpan = new Rgb[5];
+            inputSpan.Fill(input);
+
+            Span<CieXyz> actualSpan = new CieXyz[5];
 
             // Act
-            CieXyz output = converter.ToCieXyz(input);
+            var actual = converter.ToCieXyz(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
-            Assert.Equal(x, output.X, FloatRoundingComparer);
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(z, output.Z, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
     }
 }

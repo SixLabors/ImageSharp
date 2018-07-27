@@ -16,7 +16,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </summary>
     public class ColorConverterAdaptTest
     {
-        private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(.0001F);
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
 
         [Theory]
@@ -34,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb actual = converter.Adapt(input);
 
             // Assert
-            Assert.Equal(expected.WorkingSpace, actual.WorkingSpace, ApproximateComparer);
+            Assert.Equal(expected.WorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
             Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 
@@ -53,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             Rgb actual = converter.Adapt(input);
 
             // Assert
-            Assert.Equal(expected.WorkingSpace, actual.WorkingSpace, ApproximateComparer);
+            Assert.Equal(expected.WorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
             Assert.Equal(expected, actual, ColorSpaceComparer);
         }
 

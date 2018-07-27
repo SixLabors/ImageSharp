@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -37,11 +38,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var input = new CieLch(l, c, h);
             var expected = new CieLab(l2, a, b);
 
+            Span<CieLch> inputSpan = new CieLch[5];
+            inputSpan.Fill(input);
+
+            Span<CieLab> actualSpan = new CieLab[5];
+
             // Act
             var actual = Converter.ToCieLab(input);
+            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -62,11 +74,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var input = new CieLab(l, a, b);
             var expected = new CieLch(l2, c, h);
 
+            Span<CieLab> inputSpan = new CieLab[5];
+            inputSpan.Fill(input);
+
+            Span<CieLch> actualSpan = new CieLch[5];
+
             // Act
             var actual = Converter.ToCieLch(input);
+            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
     }
 }

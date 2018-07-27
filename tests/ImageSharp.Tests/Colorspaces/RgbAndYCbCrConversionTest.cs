@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
+using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -16,11 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
     /// </remarks>
     public class RgbAndYCbCrConversionTest
     {
-        private static readonly IEqualityComparer<float> FloatRoundingComparer = new FloatRoundingComparer(3);
-
         private static readonly ColorSpaceConverter Converter = new ColorSpaceConverter();
-
-        private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
+        private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.001F);
 
         /// <summary>
         /// Tests conversion from <see cref="YCbCr"/> to <see cref="Rgb"/>.
@@ -33,15 +30,25 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             // Arrange
             var input = new YCbCr(y, cb, cr);
+            var expected = new Rgb(r, g, b);
+
+            Span<YCbCr> inputSpan = new YCbCr[5];
+            inputSpan.Fill(input);
+
+            Span<Rgb> actualSpan = new Rgb[5];
 
             // Act
-            Rgb output = Converter.ToRgb(input);
+            var actual = Converter.ToRgb(input);
+            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
-            Assert.Equal(Rgb.DefaultWorkingSpace, output.WorkingSpace, ApproximateComparer);
-            Assert.Equal(r, output.R, FloatRoundingComparer);
-            Assert.Equal(g, output.G, FloatRoundingComparer);
-            Assert.Equal(b, output.B, FloatRoundingComparer);
+            Assert.Equal(Rgb.DefaultWorkingSpace, actual.WorkingSpace, ColorSpaceComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -56,14 +63,24 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             // Arrange
             var input = new Rgb(r, g, b);
+            var expected = new YCbCr(y, cb, cr);
+
+            Span<Rgb> inputSpan = new Rgb[5];
+            inputSpan.Fill(input);
+
+            Span<YCbCr> actualSpan = new YCbCr[5];
 
             // Act
-            YCbCr output = Converter.ToYCbCr(input);
+            var actual = Converter.ToYCbCr(input);
+            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
-            Assert.Equal(y, output.Y, FloatRoundingComparer);
-            Assert.Equal(cb, output.Cb, FloatRoundingComparer);
-            Assert.Equal(cr, output.Cr, FloatRoundingComparer);
+            Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
     }
 }

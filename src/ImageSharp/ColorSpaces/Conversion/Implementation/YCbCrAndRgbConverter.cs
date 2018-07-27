@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// Color converter between YCbCr and Rgb
     /// See <see href="https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion"/> for formulas.
     /// </summary>
-    internal class YCbCrAndRgbConverter : IColorConversion<YCbCr, Rgb>, IColorConversion<Rgb, YCbCr>
+    internal sealed class YCbCrAndRgbConverter : IColorConversion<YCbCr, Rgb>, IColorConversion<Rgb, YCbCr>
     {
         private static readonly Vector3 MaxBytes = new Vector3(255F);
 

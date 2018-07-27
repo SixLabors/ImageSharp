@@ -8,12 +8,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Color converter between LinearRgb and Rgb
     /// </summary>
-    internal class LinearRgbToRgbConverter : IColorConversion<LinearRgb, Rgb>
+    internal sealed class LinearRgbToRgbConverter : IColorConversion<LinearRgb, Rgb>
     {
         /// <inheritdoc/>
         public Rgb Convert(in LinearRgb input)
         {
-            Vector3 vector = input.ToVector3();
+            var vector = input.ToVector3();
             vector.X = input.WorkingSpace.Companding.Compress(vector.X);
             vector.Y = input.WorkingSpace.Companding.Compress(vector.Y);
             vector.Z = input.WorkingSpace.Companding.Compress(vector.Z);

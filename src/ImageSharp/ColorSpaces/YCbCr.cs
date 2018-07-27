@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
     /// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
     /// </summary>
-    internal readonly struct YCbCr : IEquatable<YCbCr>
+    public readonly struct YCbCr : IEquatable<YCbCr>
     {
         /// <summary>
         /// Vector which is used in clamping to the max value.

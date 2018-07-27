@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Color converter between CMYK and Rgb
     /// </summary>
-    internal class CmykAndRgbConverter : IColorConversion<Cmyk, Rgb>, IColorConversion<Rgb, Cmyk>
+    internal sealed class CmykAndRgbConverter : IColorConversion<Cmyk, Rgb>, IColorConversion<Rgb, Cmyk>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

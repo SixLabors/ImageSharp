@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <summary>
     /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
     /// </summary>
-    internal partial class ColorSpaceConverter
+    public partial class ColorSpaceConverter
     {
         /// <summary>
         /// The default whitepoint used for converting to CieLab

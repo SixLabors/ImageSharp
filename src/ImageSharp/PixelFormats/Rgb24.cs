@@ -50,6 +50,21 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.B = b;
         }
 
+        /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
+        /// <see cref="Rgb24"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="ColorSpaces.Rgb"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgb24"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgb24(ColorSpaces.Rgb color)
+        {
+            var vector = new Vector4(color.ToVector3(), 1);
+            Rgb24 rgb = default;
+            rgb.PackFromScaledVector4(vector);
+            return rgb;
+        }
+
         /// <inheritdoc/>
         public PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations<Rgb24>();
 

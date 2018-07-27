@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space.
     /// </summary>
-    internal readonly struct Rgb : IEquatable<Rgb>
+    public readonly struct Rgb : IEquatable<Rgb>
     {
         /// <summary>
         /// The default rgb working space
@@ -98,19 +98,27 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
+        /// Allows the implicit conversion of an instance of <see cref="Rgb24"/> to a
+        /// <see cref="Rgb"/>.
+        /// </summary>
+        /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgb"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator Rgb(Rgb24 color)
+        {
+            return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
+        }
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
         /// <see cref="Rgb"/>.
         /// </summary>
-        /// <param name="color">
-        /// The instance of <see cref="Rgba32"/> to convert.
-        /// </param>
-        /// <returns>
-        /// An instance of <see cref="Rgb"/>.
-        /// </returns>
+        /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
+        /// <returns>An instance of <see cref="Rgb"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator Rgb(Rgba32 color)
         {
-            return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
+            return new Rgba32(color.R / 255F, color.G / 255F, color.B / 255F);
         }
 
         /// <summary>

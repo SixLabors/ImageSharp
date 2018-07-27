@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Chromaticity coordinates taken from:
     /// <see href="http://www.brucelindbloom.com/index.html?WorkingSpaceInfo.html"/>
     /// </summary>
-    internal static class RgbWorkingSpaces
+    public static class RgbWorkingSpaces
     {
         /// <summary>
         /// sRgb working space.

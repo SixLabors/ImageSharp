@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Color converter between CIE XYZ and LMS
     /// </summary>
-    internal class CieXyzAndLmsConverter : IColorConversion<CieXyz, Lms>, IColorConversion<Lms, CieXyz>
+    internal sealed class CieXyzAndLmsConverter : IColorConversion<CieXyz, Lms>, IColorConversion<Lms, CieXyz>
     {
         /// <summary>
         /// Default transformation matrix used, when no other is set. (Bradford)

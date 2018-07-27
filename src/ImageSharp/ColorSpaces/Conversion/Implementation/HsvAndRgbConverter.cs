@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// Color converter between HSV and Rgb
     /// See <see href="http://www.poynton.com/PDFs/coloureq.pdf"/> for formulas.
     /// </summary>
-    internal class HsvAndRgbConverter : IColorConversion<Hsv, Rgb>, IColorConversion<Rgb, Hsv>
+    internal sealed class HsvAndRgbConverter : IColorConversion<Hsv, Rgb>, IColorConversion<Rgb, Hsv>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

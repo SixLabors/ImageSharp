@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Color converter between HunterLab and CieXyz
     /// </summary>
-    internal class HunterLabToCieXyzConverter : CieXyzAndHunterLabConverterBase, IColorConversion<HunterLab, CieXyz>
+    internal sealed class HunterLabToCieXyzConverter : CieXyzAndHunterLabConverterBase, IColorConversion<HunterLab, CieXyz>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// Transformation described here:
     /// http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html
     /// </remarks>
-    internal class VonKriesChromaticAdaptation : IChromaticAdaptation
+    public class VonKriesChromaticAdaptation : IChromaticAdaptation
     {
         private readonly CieXyzAndLmsConverter converter;
 
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Initializes a new instance of the <see cref="VonKriesChromaticAdaptation"/> class.
         /// </summary>
         /// <param name="converter">The color converter</param>
-        public VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
+        internal VonKriesChromaticAdaptation(CieXyzAndLmsConverter converter)
         {
             this.converter = converter;
         }

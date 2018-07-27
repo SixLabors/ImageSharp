@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
+using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -30,11 +30,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var input = new CieXyy(x, y, yl);
             var expected = new CieXyz(xyzX, xyzY, xyzZ);
 
+            Span<CieXyy> inputSpan = new CieXyy[5];
+            inputSpan.Fill(input);
+
+            Span<CieXyz> actualSpan = new CieXyz[5];
+
             // Act
             var actual = Converter.ToCieXyz(input);
+            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         [Theory]
@@ -47,11 +58,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var input = new CieXyz(xyzX, xyzY, xyzZ);
             var expected = new CieXyy(x, y, yl);
 
+            Span<CieXyz> inputSpan = new CieXyz[5];
+            inputSpan.Fill(input);
+
+            Span<CieXyy> actualSpan = new CieXyy[5];
+
             // Act
             var actual = Converter.ToCieXyy(input);
+            Converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
     }
 }

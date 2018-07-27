@@ -3,13 +3,14 @@
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces
 {
     /// <summary>
     /// Allows the approximate comparison of colorspace component values.
     /// </summary>
-    internal class ApproximateColorSpaceComparer :
+    internal readonly struct ApproximateColorSpaceComparer :
         IEqualityComparer<Rgb>,
         IEqualityComparer<CieLab>,
         IEqualityComparer<CieLch>,
@@ -17,8 +18,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         IEqualityComparer<CieLuv>,
         IEqualityComparer<CieXyz>,
         IEqualityComparer<CieXyy>,
+        IEqualityComparer<Cmyk>,
         IEqualityComparer<HunterLab>,
-        IEqualityComparer<Lms>
+        IEqualityComparer<Hsl>,
+        IEqualityComparer<Hsv>,
+        IEqualityComparer<Lms>,
+        IEqualityComparer<YCbCr>,
+        IEqualityComparer<CieXyChromaticityCoordinates>,
+        IEqualityComparer<RgbPrimariesChromaticityCoordinates>,
+        IEqualityComparer<RgbWorkingSpace>
     {
         private readonly float Epsilon;
 
@@ -130,6 +138,21 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         }
 
         /// <inheritdoc/>
+        public bool Equals(Cmyk x, Cmyk y)
+        {
+            return this.Equals(x.C, y.C)
+             && this.Equals(x.M, y.M)
+             && this.Equals(x.Y, y.Y)
+             && this.Equals(x.K, y.K);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(Cmyk obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
         public bool Equals(HunterLab x, HunterLab y)
         {
             return this.Equals(x.L, y.L)
@@ -144,6 +167,34 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         }
 
         /// <inheritdoc/>
+        public bool Equals(Hsl x, Hsl y)
+        {
+            return this.Equals(x.H, y.H)
+             && this.Equals(x.S, y.S)
+             && this.Equals(x.L, y.L);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(Hsl obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(Hsv x, Hsv y)
+        {
+            return this.Equals(x.H, y.H)
+             && this.Equals(x.S, y.S)
+             && this.Equals(x.V, y.V);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(Hsv obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
         public bool Equals(Lms x, Lms y)
         {
             return this.Equals(x.L, y.L)
@@ -153,6 +204,63 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
 
         /// <inheritdoc/>
         public int GetHashCode(Lms obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(YCbCr x, YCbCr y)
+        {
+            return this.Equals(x.Y, y.Y)
+             && this.Equals(x.Cb, y.Cb)
+             && this.Equals(x.Cr, y.Cr);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(YCbCr obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(CieXyChromaticityCoordinates x, CieXyChromaticityCoordinates y)
+        {
+            return this.Equals(x.X, y.X) && this.Equals(x.Y, y.Y);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(CieXyChromaticityCoordinates obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(RgbPrimariesChromaticityCoordinates x, RgbPrimariesChromaticityCoordinates y)
+        {
+            return this.Equals(x.R, y.R) && this.Equals(x.G, y.G) && this.Equals(x.B, y.B);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(RgbPrimariesChromaticityCoordinates obj)
+        {
+            return obj.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
+        {
+            if (x is RgbWorkingSpace g1 && y is RgbWorkingSpace g2)
+            {
+                return this.Equals(g1.WhitePoint, g2.WhitePoint)
+                    && this.Equals(g1.ChromaticityCoordinates, g2.ChromaticityCoordinates);
+            }
+
+            return this.Equals(x.WhitePoint, y.WhitePoint)
+                && this.Equals(x.ChromaticityCoordinates, y.ChromaticityCoordinates);
+        }
+
+        /// <inheritdoc/>
+        public int GetHashCode(RgbWorkingSpace obj)
         {
             return obj.GetHashCode();
         }

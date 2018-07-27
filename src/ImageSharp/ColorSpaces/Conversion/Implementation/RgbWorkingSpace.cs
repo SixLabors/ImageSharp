@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
     /// Trivial implementation of <see cref="RgbWorkingSpace"/>
     /// </summary>
-    internal class RgbWorkingSpace
+    internal class RgbWorkingSpace : IEquatable<RgbWorkingSpace>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> class.
@@ -39,12 +41,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Compares two <see cref="RgbWorkingSpace"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="RgbWorkingSpace"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="RgbWorkingSpace"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="RgbWorkingSpace"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="RgbWorkingSpace"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -56,12 +54,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <summary>
         /// Compares two <see cref="RgbWorkingSpace"/> objects for inequality
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="RgbWorkingSpace"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="RgbWorkingSpace"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="RgbWorkingSpace"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="RgbWorkingSpace"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
@@ -70,11 +64,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return !Equals(left, right);
         }
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return obj is RgbWorkingSpace other && this.Equals(other);
         }
 
+        /// <inheritdoc/>
         public bool Equals(RgbWorkingSpace other)
         {
             // TODO: Object.Equals for ICompanding will be slow.
@@ -86,13 +82,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.WhitePoint.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.ChromaticityCoordinates.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.Companding?.GetHashCode() ?? 0);
-                return hashCode;
-            }
+            int hash = this.WhitePoint.GetHashCode();
+            hash = HashHelpers.Combine(hash, this.ChromaticityCoordinates.GetHashCode());
+            hash = HashHelpers.Combine(hash, this.Companding?.GetHashCode() ?? 0);
+            return hash;
         }
     }
 }

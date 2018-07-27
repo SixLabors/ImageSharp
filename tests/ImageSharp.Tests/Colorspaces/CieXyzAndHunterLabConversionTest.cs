@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using Xunit;
@@ -31,11 +32,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.C };
             var expected = new CieXyz(x, y, z);
 
+            Span<HunterLab> inputSpan = new HunterLab[5];
+            inputSpan.Fill(input);
+
+            Span<CieXyz> actualSpan = new CieXyz[5];
+
             // Act
             var actual = converter.ToCieXyz(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -51,11 +63,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
             var expected = new CieXyz(x, y, z);
 
+            Span<HunterLab> inputSpan = new HunterLab[5];
+            inputSpan.Fill(input);
+
+            Span<CieXyz> actualSpan = new CieXyz[5];
+
             // Act
             var actual = converter.ToCieXyz(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
 
         /// <summary>
@@ -71,11 +94,22 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
             var expected = new HunterLab(l, a, b);
 
+            Span<CieXyz> inputSpan = new CieXyz[5];
+            inputSpan.Fill(input);
+
+            Span<HunterLab> actualSpan = new HunterLab[5];
+
             // Act
             var actual = converter.ToHunterLab(input);
+            converter.Convert(inputSpan, actualSpan, actualSpan.Length);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
+
+            for (int i = 0; i < actualSpan.Length; i++)
+            {
+                Assert.Equal(expected, actualSpan[i], ColorSpaceComparer);
+            }
         }
     }
 }

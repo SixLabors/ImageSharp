@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents an linear Rgb color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
-    internal readonly struct LinearRgb : IEquatable<LinearRgb>
+    public readonly struct LinearRgb : IEquatable<LinearRgb>
     {
         /// <summary>
         /// The default LinearRgb working space.

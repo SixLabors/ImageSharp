@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an Hunter LAB color.
     /// <see href="https://en.wikipedia.org/wiki/Lab_color_space"/>
     /// </summary>
-    internal readonly struct HunterLab : IEquatable<HunterLab>
+    public readonly struct HunterLab : IEquatable<HunterLab>
     {
         /// <summary>
         /// D50 standard illuminant.

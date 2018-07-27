@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Converts from <see cref="CieXyz"/> to <see cref="CieLab"/>.
     /// </summary>
-    internal class CieXyzToCieLabConverter : IColorConversion<CieXyz, CieLab>
+    internal sealed class CieXyzToCieLabConverter : IColorConversion<CieXyz, CieLab>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToCieLabConverter"/> class.

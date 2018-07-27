@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Performs chromatic adaptation on the various color spaces.
     /// </content>
-    internal partial class ColorSpaceConverter
+    public partial class ColorSpaceConverter
     {
         /// <summary>
         /// Performs chromatic adaptation of given <see cref="CieXyz"/> color.

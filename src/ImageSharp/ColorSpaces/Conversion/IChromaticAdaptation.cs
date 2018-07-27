@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// A linear transformation of a source color (XS, YS, ZS) into a destination color (XD, YD, ZD) by a linear transformation [M]
     /// which is dependent on the source reference white (XWS, YWS, ZWS) and the destination reference white (XWD, YWD, ZWD).
     /// </summary>
-    internal interface IChromaticAdaptation
+    public interface IChromaticAdaptation
     {
         /// <summary>
         /// Performs a linear transformation of a source color in to the destination color.

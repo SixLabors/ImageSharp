@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Allows conversion to <see cref="CieLchuv"/>.
     /// </content>
-    internal partial class ColorSpaceConverter
+    public partial class ColorSpaceConverter
     {
         /// <summary>
         /// The converter for converting between CieLab to CieLchuv.

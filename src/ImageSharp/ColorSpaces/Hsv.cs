@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents a HSV (hue, saturation, value) color. Also known as HSB (hue, saturation, brightness).
     /// </summary>
-    internal readonly struct Hsv : IEquatable<Hsv>
+    public readonly struct Hsv : IEquatable<Hsv>
     {
         /// <summary>
         /// Max range used for clamping.

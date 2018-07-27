@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Converts from <see cref="CieLch"/> to <see cref="CieLab"/>.
     /// </summary>
-    internal class CieLchToCieLabConverter : IColorConversion<CieLch, CieLab>
+    internal sealed class CieLchToCieLabConverter : IColorConversion<CieLch, CieLab>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

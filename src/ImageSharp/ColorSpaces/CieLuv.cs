@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// attempted perceptual uniformity
     /// <see href="https://en.wikipedia.org/wiki/CIELUV"/>
     /// </summary>
-    internal readonly struct CieLuv : IEquatable<CieLuv>
+    public readonly struct CieLuv : IEquatable<CieLuv>
     {
         /// <summary>
         /// D65 standard illuminant.

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// <summary>
     /// Represents the coordinates of CIEXY chromaticity space
     /// </summary>
-    internal readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>
+    public readonly struct CieXyChromaticityCoordinates : IEquatable<CieXyChromaticityCoordinates>
     {
         /// <summary>
         /// Gets the chromaticity X-coordinate.

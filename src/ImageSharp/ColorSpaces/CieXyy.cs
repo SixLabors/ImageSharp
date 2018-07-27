@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
     /// Represents an CIE xyY 1931 color
     /// <see href="https://en.wikipedia.org/wiki/CIE_1931_color_space#CIE_xy_chromaticity_diagram_and_the_CIE_xyY_color_space"/>
     /// </summary>
-    internal readonly struct CieXyy : IEquatable<CieXyy>
+    public readonly struct CieXyy : IEquatable<CieXyy>
     {
         /// <summary>
         /// Gets the X chrominance component.

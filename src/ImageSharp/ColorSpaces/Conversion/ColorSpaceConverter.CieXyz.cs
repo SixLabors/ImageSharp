@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
     /// <content>
     /// Allows conversion to <see cref="CieXyz"/>.
     /// </content>
-    internal partial class ColorSpaceConverter
+    public partial class ColorSpaceConverter
     {
         private static readonly CieLabToCieXyzConverter CieLabToCieXyzConverter = new CieLabToCieXyzConverter();
 

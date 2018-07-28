@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="h">The h hue component.</param>
         /// <param name="s">The s saturation component.</param>
         /// <param name="l">The l value (lightness) component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Hsl(float h, float s, float l)
             : this(new Vector3(h, s, l))
         {
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Hsl"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the h, s, l components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Hsl(Vector3 vector)
         {
             vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Hsl left, Hsl right) => left.Equals(right);
 
         /// <summary>
@@ -81,11 +81,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(Hsl left, Hsl right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
             int hash = this.H.GetHashCode();
@@ -96,16 +96,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "Hsl [ Empty ]"
-                : $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
+            return $"Hsl [ H={this.H:#0.##}, S={this.S:#0.##}, L={this.L:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Hsl other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Hsl other)
         {
             return this.H.Equals(other.H)

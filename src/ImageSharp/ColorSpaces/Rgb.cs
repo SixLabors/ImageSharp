@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="r">The red component ranging between 0 and 1.</param>
         /// <param name="g">The green component ranging between 0 and 1.</param>
         /// <param name="b">The blue component ranging between 0 and 1.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb(float r, float g, float b)
             : this(r, g, b, DefaultWorkingSpace)
         {
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="g">The green component ranging between 0 and 1.</param>
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         /// <param name="workingSpace">The rgb working space.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb(float r, float g, float b, RgbWorkingSpace workingSpace)
         {
             // Clamp to 0-1 range.
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Rgb"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the r, g, b components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb(Vector3 vector)
             : this(vector, DefaultWorkingSpace)
         {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the r, g, b components.</param>
         /// <param name="workingSpace">The rgb working space.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Rgb(Vector3 vector, RgbWorkingSpace workingSpace)
         {
             // Clamp to 0-1 range.
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>An instance of <see cref="Rgb"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static implicit operator Rgb(Rgb24 color)
         {
             return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
         /// <returns>An instance of <see cref="Rgb"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static implicit operator Rgb(Rgba32 color)
         {
             return new Rgba32(color.R / 255F, color.G / 255F, color.B / 255F);
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Rgb left, Rgb right) => left.Equals(right);
 
         /// <summary>
@@ -144,14 +144,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(Rgb left, Rgb right) => !left.Equals(right);
 
         /// <summary>
         /// Returns a new <see cref="Vector3"/> representing this instance.
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector3 ToVector3() => new Vector3(this.R, this.G, this.B);
 
         /// <inheritdoc/>
@@ -165,16 +165,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "Rgb [ Empty ]"
-                : $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
+            return $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Rgb other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Rgb other)
         {
             return this.R.Equals(other.R)

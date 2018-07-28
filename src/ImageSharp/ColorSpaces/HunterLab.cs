@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(float l, float a, float b)
             : this(new Vector3(l, a, b), DefaultWhitePoint)
         {
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(float l, float a, float b, CieXyz whitePoint)
             : this(new Vector3(l, a, b), whitePoint)
         {
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, a, b components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l a b components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public HunterLab(Vector3 vector, CieXyz whitePoint)
         {
             // TODO: Clamp?
@@ -113,11 +113,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(HunterLab left, HunterLab right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
             int hash = this.L.GetHashCode();
@@ -129,16 +129,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "HunterLab [Empty]"
-                : $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
+            return $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is HunterLab other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(HunterLab other)
         {
             return this.L.Equals(other.L)

@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="c">The chroma, relative saturation.</param>
         /// <param name="h">The hue in degrees.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLchuv(float l, float c, float h)
             : this(l, c, h, DefaultWhitePoint)
         {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="c">The chroma, relative saturation.</param>
         /// <param name="h">The hue in degrees.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLchuv(float l, float c, float h, CieXyz whitePoint)
         {
             this.L = l;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, c, h components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLchuv(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, c, h components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLchuv(Vector3 vector, CieXyz whitePoint)
             : this()
         {
@@ -129,16 +129,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieLchuv [Empty]"
-                : $"CieLchuv [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}";
+            return $"CieLchuv [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieLchuv other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieLchuv other)
         {
             return this.L.Equals(other.L)
@@ -154,7 +152,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// A value ranging from 0 to 100.
         /// </remarks>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float Saturation()
         {
             float result = 100 * (this.C / this.L);

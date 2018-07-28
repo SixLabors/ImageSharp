@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="y">The y luminance component.</param>
         /// <param name="cb">The cb chroma component.</param>
         /// <param name="cr">The cr chroma component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public YCbCr(float y, float cb, float cr)
             : this(new Vector3(y, cb, cr))
         {
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="YCbCr"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the y, cb, cr components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public YCbCr(Vector3 vector)
         {
             vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
@@ -80,11 +80,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(YCbCr left, YCbCr right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
             int hash = this.Y.GetHashCode();
@@ -95,16 +95,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "YCbCr [ Empty ]"
-                : $"YCbCr [ Y={this.Y}, Cb={this.Cb}, Cr={this.Cr} ]";
+            return $"YCbCr [ Y={this.Y}, Cb={this.Cb}, Cr={this.Cr} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is YCbCr other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(YCbCr other)
         {
             return this.Y.Equals(other.Y)

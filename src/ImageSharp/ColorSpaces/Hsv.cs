@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="h">The h hue component.</param>
         /// <param name="s">The s saturation component.</param>
         /// <param name="v">The v value (brightness) component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Hsv(float h, float s, float v)
             : this(new Vector3(h, s, v))
         {
@@ -54,63 +54,13 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Hsv"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the h, s, v components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Hsv(Vector3 vector)
         {
             vector = Vector3.Clamp(vector, Vector3.Zero, VectorMax);
             this.H = vector.X;
             this.S = vector.Y;
             this.V = vector.Z;
-        }
-
-        /// <summary>
-        /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
-        /// <see cref="Hsv"/>.
-        /// </summary>
-        /// <param name="color">The instance of <see cref="Rgba32"/> to convert.</param>
-        /// <returns>
-        /// An instance of <see cref="Hsv"/>.
-        /// </returns>
-        public static implicit operator Hsv(Rgba32 color)
-        {
-            float r = color.R / 255F;
-            float g = color.G / 255F;
-            float b = color.B / 255F;
-
-            float max = MathF.Max(r, MathF.Max(g, b));
-            float min = MathF.Min(r, MathF.Min(g, b));
-            float chroma = max - min;
-            float h = 0;
-            float s = 0;
-            float v = max;
-
-            if (MathF.Abs(chroma) < Constants.Epsilon)
-            {
-                return new Hsv(0, s, v);
-            }
-
-            if (MathF.Abs(r - max) < Constants.Epsilon)
-            {
-                h = (g - b) / chroma;
-            }
-            else if (MathF.Abs(g - max) < Constants.Epsilon)
-            {
-                h = 2 + ((b - r) / chroma);
-            }
-            else if (MathF.Abs(b - max) < Constants.Epsilon)
-            {
-                h = 4 + ((r - g) / chroma);
-            }
-
-            h *= 60;
-            if (h < 0.0)
-            {
-                h += 360;
-            }
-
-            s = chroma / v;
-
-            return new Hsv(h, s, v);
         }
 
         /// <summary>
@@ -121,7 +71,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Hsv left, Hsv right) => left.Equals(right);
 
         /// <summary>
@@ -132,11 +82,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(Hsv left, Hsv right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
             int hash = this.H.GetHashCode();
@@ -147,16 +97,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "Hsv [ Empty ]"
-                : $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
+            return $"Hsv [ H={this.H:#0.##}, S={this.S:#0.##}, V={this.V:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Hsv other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Hsv other)
         {
             return this.H.Equals(other.H)

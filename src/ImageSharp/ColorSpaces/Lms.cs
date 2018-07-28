@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="l">L represents the responsivity at long wavelengths.</param>
         /// <param name="m">M represents the responsivity at medium wavelengths.</param>
         /// <param name="s">S represents the responsivity at short wavelengths.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Lms(float l, float m, float s)
         {
             this.L = l;
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Lms"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the l, m, s components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Lms(Vector3 vector)
         {
             // Not clamping as documentation about this space seems to indicate "usual" ranges
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Lms left, Lms right) => left.Equals(right);
 
         /// <summary>
@@ -78,14 +78,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(Lms left, Lms right) => !left.Equals(right);
 
         /// <summary>
         /// Returns a new <see cref="Vector3"/> representing this instance.
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector3 ToVector3() => new Vector3(this.L, this.M, this.S);
 
         /// <inheritdoc/>
@@ -99,16 +99,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "Lms [ Empty ]"
-                : $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
+            return $"Lms [ L={this.L:#0.##}, M={this.M:#0.##}, S={this.S:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Lms other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Lms other)
         {
             return this.L.Equals(other.L)

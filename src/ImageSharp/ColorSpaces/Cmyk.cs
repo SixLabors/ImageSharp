@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="m">The magenta component.</param>
         /// <param name="y">The yellow component.</param>
         /// <param name="k">The keyline black component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(float c, float m, float y, float k)
             : this(new Vector4(c, m, y, k))
         {
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="Cmyk"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the c, m, y, k components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(Vector4 vector)
         {
             vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Cmyk left, Cmyk right) => left.Equals(right);
 
         /// <summary>
@@ -82,11 +82,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(Cmyk left, Cmyk right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
         {
             int hash = this.C.GetHashCode();
@@ -98,16 +98,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "Cmyk [Empty]"
-                : $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
+            return $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Cmyk other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(Cmyk other)
         {
             return this.C.Equals(other.C)

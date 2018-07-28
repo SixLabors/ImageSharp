@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="x">X is a mix (a linear combination) of cone response curves chosen to be nonnegative</param>
         /// <param name="y">The y luminance component.</param>
         /// <param name="z">Z is quasi-equal to blue stimulation, or the S cone of the human eye.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyz(float x, float y, float z)
             : this(new Vector3(x, y, z))
         {
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(CieXyz left, CieXyz right)
         {
             return left.Equals(right);
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(CieXyz left, CieXyz right)
         {
             return !left.Equals(right);
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Returns a new <see cref="Vector3"/> representing this instance.
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Vector3 ToVector3() => new Vector3(this.X, this.Y, this.Z);
 
         /// <inheritdoc/>
@@ -107,16 +107,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieXyz [ Empty ]"
-                : $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
+            return $"CieXyz [ X={this.X:#0.##}, Y={this.Y:#0.##}, Z={this.Z:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieXyz other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieXyz other)
         {
             return this.X.Equals(other.X)

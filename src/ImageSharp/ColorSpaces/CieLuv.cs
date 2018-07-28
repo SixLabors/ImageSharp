@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="u">The blue-yellow chromaticity coordinate of the given whitepoint.</param>
         /// <param name="v">The red-green chromaticity coordinate of the given whitepoint.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLuv(float l, float u, float v)
             : this(l, u, v, DefaultWhitePoint)
         {
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="u">The blue-yellow chromaticity coordinate of the given whitepoint.</param>
         /// <param name="v">The red-green chromaticity coordinate of the given whitepoint.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLuv(float l, float u, float v, CieXyz whitePoint)
         {
             this.L = l;
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, u, v components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLuv(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, u, v components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLuv(Vector3 vector, CieXyz whitePoint)
         {
             this.L = vector.X;
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(CieLuv left, CieLuv right) => left.Equals(right);
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(CieLuv left, CieLuv right) => !left.Equals(right);
 
         /// <inheritdoc/>
@@ -132,16 +132,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieLuv [ Empty ]"
-                : $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
+            return $"CieLuv [ L={this.L:#0.##}, U={this.U:#0.##}, V={this.V:#0.##} ]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieLuv other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieLuv other)
         {
             return this.L.Equals(other.L)

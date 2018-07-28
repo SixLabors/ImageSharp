@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="x">The x chroma component.</param>
         /// <param name="y">The y chroma component.</param>
         /// <param name="yl">The y luminance component.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyy(float x, float y, float yl)
         {
             // Not clamping as documentation about this space seems to indicate "usual" ranges
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// Initializes a new instance of the <see cref="CieXyy"/> struct.
         /// </summary>
         /// <param name="vector">The vector representing the x, y, Y components.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyy(Vector3 vector)
             : this()
         {
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(CieXyy left, CieXyy right) => left.Equals(right);
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(CieXyy left, CieXyy right) => !left.Equals(right);
 
         /// <inheritdoc/>
@@ -93,9 +93,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieXyy [ Empty ]"
-                : $"CieXyy [ X={this.X:#0.##}, Y={this.Y:#0.##}, Yl={this.Yl:#0.##} ]";
+            return $"CieXyy [ X={this.X:#0.##}, Y={this.Y:#0.##}, Yl={this.Yl:#0.##} ]";
         }
 
         /// <inheritdoc/>
@@ -105,7 +103,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieXyy other)
         {
             return this.X.Equals(other.X)

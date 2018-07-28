@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLab(float l, float a, float b)
             : this(l, a, b, DefaultWhitePoint)
         {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="a">The a (green - magenta) component.</param>
         /// <param name="b">The b (blue - yellow) component.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLab(float l, float a, float b, CieXyz whitePoint)
         {
             this.L = l;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, a, b components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLab(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, a, b components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLab(Vector3 vector, CieXyz whitePoint)
             : this()
         {
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(CieLab left, CieLab right) => left.Equals(right);
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(CieLab left, CieLab right) => !left.Equals(right);
 
         /// <inheritdoc/>
@@ -131,16 +131,14 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieLab [Empty]"
-                : $"CieLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
+            return $"CieLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieLab other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieLab other)
         {
             return this.L.Equals(other.L)

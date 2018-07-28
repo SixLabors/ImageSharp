@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="c">The chroma, relative saturation.</param>
         /// <param name="h">The hue in degrees.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch(float l, float c, float h)
             : this(l, c, h, DefaultWhitePoint)
         {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="c">The chroma, relative saturation.</param>
         /// <param name="h">The hue in degrees.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch(float l, float c, float h, CieXyz whitePoint)
         {
             this.L = l;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, c, h components.</param>
         /// <remarks>Uses <see cref="DefaultWhitePoint"/> as white point.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch(Vector3 vector)
             : this(vector, DefaultWhitePoint)
         {
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="vector">The vector representing the l, c, h components.</param>
         /// <param name="whitePoint">The reference white point. <see cref="Illuminants"/></param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieLch(Vector3 vector, CieXyz whitePoint)
         {
             this.L = vector.X;
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(CieLch left, CieLch right)
         {
             return left.Equals(right);
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(CieLch left, CieLch right) => !left.Equals(right);
 
         /// <inheritdoc/>
@@ -133,17 +133,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieLch [Empty]"
-                : $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
+            return $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override bool Equals(object obj) => obj is CieLch other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieLch other)
         {
             return this.L.Equals(other.L)
@@ -159,7 +157,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// A value ranging from 0 to 100.
         /// </remarks>
         /// <returns>The <see cref="float"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float Saturation()
         {
             float result = 100 * (this.C / this.L);

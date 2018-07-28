@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// </summary>
         /// <param name="x">Chromaticity coordinate x (usually from 0 to 1)</param>
         /// <param name="y">Chromaticity coordinate y (usually from 0 to 1)</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public CieXyChromaticityCoordinates(float x, float y)
         {
             this.X = x;
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
         {
             return left.Equals(right);
@@ -62,29 +62,27 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator !=(CieXyChromaticityCoordinates left, CieXyChromaticityCoordinates right)
         {
             return !left.Equals(right);
         }
 
         /// <inheritdoc />
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode() => HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.Equals(default)
-                ? "CieXyChromaticityCoordinates [Empty]"
-                : $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
+            return $"CieXyChromaticityCoordinates [ X={this.X:#0.##}, Y={this.Y:#0.##}]";
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is CieXyChromaticityCoordinates other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(CieXyChromaticityCoordinates other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
     }
 }

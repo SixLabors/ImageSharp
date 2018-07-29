@@ -181,12 +181,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public HunterLab ToHunterLab(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = !this.WhitePoint.Equals(this.TargetHunterLabWhitePoint) && this.IsChromaticAdaptationPerformed
-                ? this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetHunterLabWhitePoint)
+            CieXyz adapted = !this.whitePoint.Equals(this.targetHunterLabWhitePoint) && this.performChromaticAdaptation
+                ? this.chromaticAdaptation.Transform(color, this.whitePoint, this.targetHunterLabWhitePoint)
                 : color;
 
             // Conversion
-            return new CieXyzToHunterLabConverter(this.TargetHunterLabWhitePoint).Convert(adapted);
+            return new CieXyzToHunterLabConverter(this.targetHunterLabWhitePoint).Convert(adapted);
         }
 
         /// <summary>

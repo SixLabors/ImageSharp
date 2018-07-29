@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLch ToCieLch(in CieLab color)
         {
             // Adaptation
-            CieLab adapted = this.IsChromaticAdaptationPerformed ? this.Adapt(color) : color;
+            CieLab adapted = this.performChromaticAdaptation ? this.Adapt(color) : color;
 
             // Conversion
             return CieLabToCieLchConverter.Convert(adapted);

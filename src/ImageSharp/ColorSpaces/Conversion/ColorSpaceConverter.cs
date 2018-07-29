@@ -7,94 +7,46 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
-    /// Converts between color spaces ensuring that the color is adapted using chromatic adaptation.
+    /// Provides methods to allow the conversion of color values into different color spaces.
     /// </summary>
     public partial class ColorSpaceConverter
     {
-        /// <summary>
-        /// The default whitepoint used for converting to CieLab
-        /// </summary>
-        public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
+        // Options.
+        private CieXyz whitePoint;
+        private CieXyz targetLuvWhitePoint;
+        private CieXyz targetLabWhitePoint;
+        private CieXyz targetHunterLabWhitePoint;
+        private RgbWorkingSpace targetRgbWorkingSpace;
+        private IChromaticAdaptation chromaticAdaptation;
+        private bool performChromaticAdaptation;
+        private Matrix4x4 lmsAdaptationMatrix;
 
-        private Matrix4x4 transformationMatrix;
-
-        private CieXyzAndLmsConverter cachedCieXyzAndLmsConverter;
+        private CieXyzAndLmsConverter cieXyzAndLmsConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorSpaceConverter"/> class.
         /// </summary>
         public ColorSpaceConverter()
+          : this(new ColorSpaceConverterOptions())
         {
-            // Note the order here this is important.
-            this.WhitePoint = DefaultWhitePoint;
-            this.LmsAdaptationMatrix = CieXyzAndLmsConverter.DefaultTransformationMatrix;
-            this.ChromaticAdaptation = new VonKriesChromaticAdaptation(this.cachedCieXyzAndLmsConverter);
-            this.TargetLuvWhitePoint = CieLuv.DefaultWhitePoint;
-            this.TargetLabWhitePoint = CieLab.DefaultWhitePoint;
-            this.TargetHunterLabWhitePoint = HunterLab.DefaultWhitePoint;
-            this.TargetRgbWorkingSpace = Rgb.DefaultWorkingSpace;
         }
 
         /// <summary>
-        /// Gets or sets the white point used for chromatic adaptation in conversions from/to XYZ color space.
-        /// When null, no adaptation will be performed.
+        /// Initializes a new instance of the <see cref="ColorSpaceConverter"/> class.
         /// </summary>
-        public CieXyz WhitePoint { get; set; }
-
-        /// <summary>
-        /// Gets or sets the white point used *when creating* Luv/LChuv colors. (Luv/LChuv colors on the input already contain the white point information)
-        /// Defaults to: <see cref="CieLuv.DefaultWhitePoint"/>.
-        /// </summary>
-        public CieXyz TargetLuvWhitePoint { get; set; }
-
-        /// <summary>
-        /// Gets or sets the white point used *when creating* Lab/LChab colors. (Lab/LChab colors on the input already contain the white point information)
-        /// Defaults to: <see cref="CieLab.DefaultWhitePoint"/>.
-        /// </summary>
-        public CieXyz TargetLabWhitePoint { get; set; }
-
-        /// <summary>
-        /// Gets or sets the white point used *when creating* HunterLab colors. (HunterLab colors on the input already contain the white point information)
-        /// Defaults to: <see cref="HunterLab.DefaultWhitePoint"/>.
-        /// </summary>
-        public CieXyz TargetHunterLabWhitePoint { get; set; }
-
-        /// <summary>
-        /// Gets or sets the target working space used *when creating* RGB colors. (RGB colors on the input already contain the working space information)
-        /// Defaults to: <see cref="Rgb.DefaultWorkingSpace"/>.
-        /// </summary>
-        public RgbWorkingSpace TargetRgbWorkingSpace { get; set; }
-
-        /// <summary>
-        /// Gets or sets the chromatic adaptation method used. When null, no adaptation will be performed.
-        /// </summary>
-        public IChromaticAdaptation ChromaticAdaptation { get; set; }
-
-        /// <summary>
-        /// Gets or sets transformation matrix used in conversion to <see cref="Lms"/>,
-        /// also used in the default Von Kries Chromatic Adaptation method.
-        /// </summary>
-        public Matrix4x4 LmsAdaptationMatrix
+        /// <param name="options">The configuration options.</param>
+        public ColorSpaceConverter(ColorSpaceConverterOptions options)
         {
-            get => this.transformationMatrix;
-
-            set
-            {
-                this.transformationMatrix = value;
-                if (this.cachedCieXyzAndLmsConverter == null)
-                {
-                    this.cachedCieXyzAndLmsConverter = new CieXyzAndLmsConverter(value);
-                }
-                else
-                {
-                    this.cachedCieXyzAndLmsConverter.TransformationMatrix = value;
-                }
-            }
+            Guard.NotNull(options, nameof(options));
+            this.whitePoint = options.WhitePoint;
+            this.targetLuvWhitePoint = options.TargetLuvWhitePoint;
+            this.targetLabWhitePoint = options.TargetLabWhitePoint;
+            this.targetHunterLabWhitePoint = options.TargetHunterLabWhitePoint;
+            this.targetRgbWorkingSpace = options.TargetRgbWorkingSpace;
+            this.chromaticAdaptation = options.ChromaticAdaptation;
+            this.performChromaticAdaptation = this.chromaticAdaptation != null;
+            this.lmsAdaptationMatrix = options.LmsAdaptationMatrix;
+            this.cieXyzAndLmsConverter = new CieXyzAndLmsConverter(this.lmsAdaptationMatrix);
         }
-
-        /// <summary>
-        /// Gets a value indicating whether chromatic adaptation has been performed.
-        /// </summary>
-        private bool IsChromaticAdaptationPerformed => this.ChromaticAdaptation != null;
     }
 }

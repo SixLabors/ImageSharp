@@ -34,7 +34,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D50, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var converter = new ColorSpaceConverter(options);
             var expected = new Rgb(r, g, b);
 
             Span<CieXyz> inputSpan = new CieXyz[5];
@@ -72,7 +73,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D65, TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var converter = new ColorSpaceConverter(options);
             var expected = new Rgb(r, g, b);
 
             Span<CieXyz> inputSpan = new CieXyz[5];
@@ -109,7 +111,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new Rgb(r, g, b);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D50 };
+            var converter = new ColorSpaceConverter(options);
             var expected = new CieXyz(x, y, z);
 
             Span<Rgb> inputSpan = new Rgb[5];
@@ -145,7 +148,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new Rgb(r, g, b);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D65 };
+            var converter = new ColorSpaceConverter(options);
             var expected = new CieXyz(x, y, z);
 
             Span<Rgb> inputSpan = new Rgb[5];

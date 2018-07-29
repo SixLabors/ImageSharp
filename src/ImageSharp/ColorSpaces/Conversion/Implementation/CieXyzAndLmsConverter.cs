@@ -39,24 +39,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyzAndLmsConverter(Matrix4x4 transformationMatrix)
         {
-            this.TransformationMatrix = transformationMatrix;
-        }
-
-        /// <summary>
-        /// Gets or sets the transformation matrix used for the conversion (definition of the cone response domain).
-        /// <see cref="LmsAdaptationMatrix"/>
-        /// </summary>
-        public Matrix4x4 TransformationMatrix
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.transformationMatrix;
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set
-            {
-                this.transformationMatrix = value;
-                Matrix4x4.Invert(this.transformationMatrix, out this.inverseTransformationMatrix);
-            }
+            this.transformationMatrix = transformationMatrix;
+            Matrix4x4.Invert(this.transformationMatrix, out this.inverseTransformationMatrix);
         }
 
         /// <inheritdoc/>

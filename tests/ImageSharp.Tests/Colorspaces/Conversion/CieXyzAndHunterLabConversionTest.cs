@@ -29,7 +29,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new HunterLab(l, a, b);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.C };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.C };
+            var converter = new ColorSpaceConverter(options);
             var expected = new CieXyz(x, y, z);
 
             Span<HunterLab> inputSpan = new HunterLab[5];
@@ -60,7 +61,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new HunterLab(l, a, b);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D65 };
+            var converter = new ColorSpaceConverter(options);
             var expected = new CieXyz(x, y, z);
 
             Span<HunterLab> inputSpan = new HunterLab[5];
@@ -91,7 +93,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D65 };
+            var converter = new ColorSpaceConverter(options);
             var expected = new HunterLab(l, a, b);
 
             Span<CieXyz> inputSpan = new CieXyz[5];

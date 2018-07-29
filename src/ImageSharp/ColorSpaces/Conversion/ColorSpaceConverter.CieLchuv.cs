@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLchuv ToCieLchuv(in CieLuv color)
         {
             // Adaptation
-            CieLuv adapted = this.IsChromaticAdaptationPerformed ? this.Adapt(color) : color;
+            CieLuv adapted = this.performChromaticAdaptation ? this.Adapt(color) : color;
 
             // Conversion
             return CieLuvToCieLchuvConverter.Convert(adapted);
@@ -388,7 +388,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="CieLchuv"/></returns>
-        public CieLchuv ToCieLchuv(Rgb color)
+        public CieLchuv ToCieLchuv(in Rgb color)
         {
             var xyzColor = this.ToCieXyz(color);
 
@@ -423,8 +423,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="CieLchuv"/></returns>
         public CieLchuv ToCieLchuv(in YCbCr color)
         {
-            CieXyz xyzColor = this.ToCieXyz(color);
-
+            var xyzColor = this.ToCieXyz(color);
             return this.ToCieLchuv(xyzColor);
         }
 

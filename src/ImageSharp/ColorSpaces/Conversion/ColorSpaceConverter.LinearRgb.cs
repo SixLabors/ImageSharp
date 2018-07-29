@@ -185,12 +185,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public LinearRgb ToLinearRgb(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = this.TargetRgbWorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+            CieXyz adapted = this.targetRgbWorkingSpace.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
                 ? color
-                : this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetRgbWorkingSpace.WhitePoint);
+                : this.chromaticAdaptation.Transform(color, this.whitePoint, this.targetRgbWorkingSpace.WhitePoint);
 
             // Conversion
-            CieXyzToLinearRgbConverter xyzConverter = this.GetCieXyxToLinearRgbConverter(this.TargetRgbWorkingSpace);
+            CieXyzToLinearRgbConverter xyzConverter = this.GetCieXyxToLinearRgbConverter(this.targetRgbWorkingSpace);
             return xyzConverter.Convert(adapted);
         }
 

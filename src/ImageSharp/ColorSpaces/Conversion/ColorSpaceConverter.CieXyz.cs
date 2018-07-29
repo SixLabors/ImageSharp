@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = CieLabToCieXyzConverter.Convert(color);
 
             // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+            CieXyz adapted = color.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
                 ? unadapted
                 : this.Adapt(unadapted, color.WhitePoint);
 
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = CieLuvToCieXyzConverter.Convert(color);
 
             // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+            CieXyz adapted = color.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
                               ? unadapted
                               : this.Adapt(unadapted, color.WhitePoint);
 
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = HunterLabToCieXyzConverter.Convert(color);
 
             // Adaptation
-            CieXyz adapted = color.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+            CieXyz adapted = color.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
                                  ? unadapted
                                  : this.Adapt(unadapted, color.WhitePoint);
 
@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             CieXyz unadapted = converter.Convert(color);
 
             // Adaptation
-            return color.WorkingSpace.WhitePoint.Equals(this.WhitePoint) || !this.IsChromaticAdaptationPerformed
+            return color.WorkingSpace.WhitePoint.Equals(this.whitePoint) || !this.performChromaticAdaptation
                        ? unadapted
                        : this.Adapt(unadapted, color.WorkingSpace.WhitePoint);
         }
@@ -388,7 +388,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieXyz ToCieXyz(in Lms color)
         {
             // Conversion
-            return this.cachedCieXyzAndLmsConverter.Convert(color);
+            return this.cieXyzAndLmsConverter.Convert(color);
         }
 
         /// <summary>

@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// <returns>The <see cref="Lms"/></returns>
         public Lms ToLms(in CieXyz color)
         {
-            return this.cachedCieXyzAndLmsConverter.Convert(color);
+            return this.cieXyzAndLmsConverter.Convert(color);
         }
 
         /// <summary>

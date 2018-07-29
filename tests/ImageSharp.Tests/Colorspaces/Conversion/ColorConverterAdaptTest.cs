@@ -27,7 +27,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new Rgb(r1, g1, b1, RgbWorkingSpaces.WideGamutRgb);
             var expected = new Rgb(r2, g2, b2, RgbWorkingSpaces.SRgb);
-            var converter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var options = new ColorSpaceConverterOptions { TargetRgbWorkingSpace = RgbWorkingSpaces.SRgb };
+            var converter = new ColorSpaceConverter(options);
 
             // Action
             Rgb actual = converter.Adapt(input);
@@ -46,7 +47,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new Rgb(r1, g1, b1, RgbWorkingSpaces.SRgb);
             var expected = new Rgb(r2, g2, b2, RgbWorkingSpaces.WideGamutRgb);
-            var converter = new ColorSpaceConverter { TargetRgbWorkingSpace = RgbWorkingSpaces.WideGamutRgb };
+            var options = new ColorSpaceConverterOptions { TargetRgbWorkingSpace = RgbWorkingSpaces.WideGamutRgb };
+            var converter = new ColorSpaceConverter(options);
 
             // Action
             Rgb actual = converter.Adapt(input);
@@ -64,7 +66,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new CieLab(l1, a1, b1, Illuminants.D65);
             var expected = new CieLab(l2, a2, b2);
-            var converter = new ColorSpaceConverter { TargetLabWhitePoint = Illuminants.D50 };
+            var options = new ColorSpaceConverterOptions { TargetLabWhitePoint = Illuminants.D50 };
+            var converter = new ColorSpaceConverter(options);
 
             // Action
             CieLab actual = converter.Adapt(input);
@@ -81,7 +84,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new CieXyz(x1, y1, z1);
             var expected = new CieXyz(x2, y2, z2);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D50 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D50 };
+            var converter = new ColorSpaceConverter(options);
 
             // Action
             CieXyz actual = converter.Adapt(input, Illuminants.D65);
@@ -98,11 +102,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new CieXyz(x1, y1, z1);
             var expected = new CieXyz(x2, y2, z2);
-            var converter = new ColorSpaceConverter
+            var options = new ColorSpaceConverterOptions
             {
                 ChromaticAdaptation = new VonKriesChromaticAdaptation(LmsAdaptationMatrix.XyzScaling),
                 WhitePoint = Illuminants.D50
             };
+
+            var converter = new ColorSpaceConverter(options);
 
             // Action
             CieXyz actual = converter.Adapt(input, Illuminants.D65);
@@ -119,11 +125,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new CieXyz(x1, y1, z1);
             var expected = new CieXyz(x2, y2, z2);
-            var converter = new ColorSpaceConverter
+            var options = new ColorSpaceConverterOptions
             {
                 ChromaticAdaptation = new VonKriesChromaticAdaptation(LmsAdaptationMatrix.XyzScaling),
                 WhitePoint = Illuminants.D50
             };
+
+            var converter = new ColorSpaceConverter(options);
 
             // Action
             CieXyz actual = converter.Adapt(input, Illuminants.D65);

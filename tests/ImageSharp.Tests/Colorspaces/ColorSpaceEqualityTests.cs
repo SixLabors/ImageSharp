@@ -17,6 +17,10 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         {
             var x = default(CieLab);
             var y = new CieLab(Vector3.One);
+
+            Assert.True(default(CieLab) == default(CieLab));
+            Assert.True(default(CieLab) != new CieLab(1, 0, 1));
+            Assert.False(default(CieLab) == new CieLab(1, 0, 1));
             Assert.Equal(default(CieLab), default(CieLab));
             Assert.Equal(new CieLab(1, 0, 1), new CieLab(1, 0, 1));
             Assert.Equal(new CieLab(Vector3.One), new CieLab(Vector3.One));

@@ -35,7 +35,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new CieLab(l, a, b, Illuminants.D65);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            var converter = new ColorSpaceConverter(options);
             var expected = new CieXyz(x, y, z);
 
             Span<CieLab> inputSpan = new CieLab[5];
@@ -70,7 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         {
             // Arrange
             var input = new CieXyz(x, y, z);
-            var converter = new ColorSpaceConverter { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            var options = new ColorSpaceConverterOptions { WhitePoint = Illuminants.D65, TargetLabWhitePoint = Illuminants.D65 };
+            var converter = new ColorSpaceConverter(options);
             var expected = new CieLab(l, a, b);
 
             Span<CieXyz> inputSpan = new CieXyz[5];

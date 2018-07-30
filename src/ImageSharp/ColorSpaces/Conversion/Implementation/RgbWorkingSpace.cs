@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// <inheritdoc/>
         public bool Equals(RgbWorkingSpace other)
         {
-            // TODO: Object.Equals for ICompanding will be slow.
+            // Object.Equals for ICompanding compares the reference only.
             return this.WhitePoint.Equals(other.WhitePoint)
                 && this.ChromaticityCoordinates.Equals(other.ChromaticityCoordinates)
                 && Equals(this.Companding, other.Companding);

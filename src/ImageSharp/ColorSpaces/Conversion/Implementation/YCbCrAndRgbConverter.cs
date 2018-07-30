@@ -8,14 +8,18 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between YCbCr and Rgb
+    /// Color converter between <see cref="YCbCr"/> and <see cref="Rgb"/>
     /// See <see href="https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion"/> for formulas.
     /// </summary>
-    internal sealed class YCbCrAndRgbConverter : IColorConversion<YCbCr, Rgb>, IColorConversion<Rgb, YCbCr>
+    internal sealed class YCbCrAndRgbConverter
     {
         private static readonly Vector3 MaxBytes = new Vector3(255F);
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="YCbCr"/> input to an instance of <see cref="Rgb"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(in YCbCr input)
         {
@@ -30,7 +34,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return new Rgb(new Vector3(r, g, b) / MaxBytes);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="Rgb"/> input to an instance of <see cref="YCbCr"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public YCbCr Convert(in Rgb input)
         {

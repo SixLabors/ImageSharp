@@ -8,11 +8,15 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between CMYK and Rgb
+    /// Color converter between <see cref="Cmyk"/> and <see cref="Rgb"/>
     /// </summary>
-    internal sealed class CmykAndRgbConverter : IColorConversion<Cmyk, Rgb>, IColorConversion<Rgb, Cmyk>
+    internal sealed class CmykAndRgbConverter
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="Cmyk"/> input to an instance of <see cref="Rgb"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(in Cmyk input)
         {
@@ -20,11 +24,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return new Rgb(rgb);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="Rgb"/> input to an instance of <see cref="Cmyk"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Cmyk Convert(in Rgb input)
         {
-            // To CMYK
+            // To CMY
             Vector3 cmy = Vector3.One - input.ToVector3();
 
             // To CMYK

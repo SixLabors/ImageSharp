@@ -9,9 +9,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Converts from <see cref="CieLab"/> to <see cref="CieLch"/>.
     /// </summary>
-    internal sealed class CieLuvToCieLchuvConverter : IColorConversion<CieLuv, CieLchuv>
+    internal sealed class CieLuvToCieLchuvConverter
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="CieLuv"/> input to an instance of <see cref="CieLchuv"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLchuv Convert(in CieLuv input)
         {

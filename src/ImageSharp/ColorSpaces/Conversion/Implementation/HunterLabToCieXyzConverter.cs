@@ -7,11 +7,15 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between HunterLab and CieXyz
+    /// Color converter between <see cref="HunterLab"/> and <see cref="CieXyz"/>
     /// </summary>
-    internal sealed class HunterLabToCieXyzConverter : CieXyzAndHunterLabConverterBase, IColorConversion<HunterLab, CieXyz>
+    internal sealed class HunterLabToCieXyzConverter : CieXyzAndHunterLabConverterBase
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="HunterLab"/> input to an instance of <see cref="CieXyz"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(in HunterLab input)
         {

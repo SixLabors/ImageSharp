@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// <summary>
     /// Converts from <see cref="CieXyz"/> to <see cref="CieLuv"/>.
     /// </summary>
-    internal sealed class CieXyzToCieLuvConverter : IColorConversion<CieXyz, CieLuv>
+    internal sealed class CieXyzToCieLuvConverter
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CieXyzToCieLuvConverter"/> class.
@@ -35,7 +35,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         public CieXyz LuvWhitePoint { get; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Performs the conversion from the <see cref="CieXyz"/> input to an instance of <see cref="CieLuv"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieLuv Convert(in CieXyz input)
         {

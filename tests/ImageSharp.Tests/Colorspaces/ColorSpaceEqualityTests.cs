@@ -138,17 +138,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
         }
 
         [Fact]
-        public void RgbEquality()
-        {
-            var x = default(Rgb);
-            var y = new Rgb(Vector3.One);
-            Assert.Equal(default(Rgb), default(Rgb));
-            Assert.Equal(new Rgb(1, 0, 1), new Rgb(1, 0, 1));
-            Assert.Equal(new Rgb(Vector3.One), new Rgb(Vector3.One));
-            Assert.False(x.Equals(y));
-        }
-
-        [Fact]
         public void YCbCrEquality()
         {
             var x = default(YCbCr);

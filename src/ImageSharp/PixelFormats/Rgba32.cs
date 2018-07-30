@@ -224,12 +224,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Compares two <see cref="Rgba32"/> objects for equality.
         /// </summary>
-        /// <param name="left">
-        /// The <see cref="Rgba32"/> on the left side of the operand.
-        /// </param>
-        /// <param name="right">
-        /// The <see cref="Rgba32"/> on the right side of the operand.
-        /// </param>
+        /// <param name="left">The <see cref="Rgba32"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="Rgba32"/> on the right side of the operand.</param>
         /// <returns>
         /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>

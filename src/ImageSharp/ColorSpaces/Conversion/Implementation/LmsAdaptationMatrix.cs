@@ -7,7 +7,7 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// AdaptionMatrix3X3 used for transformation from XYZ to LMS, defining the cone response domain.
+    /// Matrices used for transformation from <see cref="CieXyz"/> to <see cref="Lms"/>, defining the cone response domain.
     /// Used in <see cref="IChromaticAdaptation"/>
     /// </summary>
     /// <remarks>

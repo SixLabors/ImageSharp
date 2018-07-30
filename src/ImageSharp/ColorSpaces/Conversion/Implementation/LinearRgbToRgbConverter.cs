@@ -6,11 +6,15 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between LinearRgb and Rgb
+    /// Color converter between <see cref="LinearRgb"/> and <see cref="Rgb"/>
     /// </summary>
-    internal sealed class LinearRgbToRgbConverter : IColorConversion<LinearRgb, Rgb>
+    internal sealed class LinearRgbToRgbConverter
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="LinearRgb"/> input to an instance of <see cref="Rgb"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         public Rgb Convert(in LinearRgb input)
         {
             var vector = input.ToVector3();

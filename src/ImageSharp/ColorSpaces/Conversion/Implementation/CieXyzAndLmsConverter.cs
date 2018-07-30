@@ -7,9 +7,9 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between CIE XYZ and LMS
+    /// Color converter between <see cref="CieXyz"/> and <see cref="Lms"/>
     /// </summary>
-    internal sealed class CieXyzAndLmsConverter : IColorConversion<CieXyz, Lms>, IColorConversion<Lms, CieXyz>
+    internal sealed class CieXyzAndLmsConverter
     {
         /// <summary>
         /// Default transformation matrix used, when no other is set. (Bradford)
@@ -43,7 +43,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             Matrix4x4.Invert(this.transformationMatrix, out this.inverseTransformationMatrix);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="CieXyz"/> input to an instance of <see cref="Lms"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Lms Convert(in CieXyz input)
         {
@@ -52,7 +56,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return new Lms(vector);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="Lms"/> input to an instance of <see cref="CieXyz"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(in Lms input)
         {

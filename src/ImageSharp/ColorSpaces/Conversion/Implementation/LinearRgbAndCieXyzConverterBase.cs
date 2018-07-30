@@ -6,7 +6,7 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Provides base methods for converting between Rgb and CieXyz color spaces.
+    /// Provides base methods for converting between <see cref="LinearRgb"/> and <see cref="CieXyz"/> color spaces.
     /// </summary>
     internal abstract class LinearRgbAndCieXyzConverterBase
     {

@@ -10,9 +10,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// Color converter between CIE XYZ and CIE xyY
     /// <see href="http://www.brucelindbloom.com/"/> for formulas.
     /// </summary>
-    internal sealed class CieXyzAndCieXyyConverter : IColorConversion<CieXyz, CieXyy>, IColorConversion<CieXyy, CieXyz>
+    internal sealed class CieXyzAndCieXyyConverter
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="CieXyz"/> input to an instance of <see cref="CieXyy"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyy Convert(in CieXyz input)
         {
@@ -27,7 +31,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return new CieXyy(x, y, input.Y);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="CieXyy"/> input to an instance of <see cref="CieXyz"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CieXyz Convert(in CieXyy input)
         {

@@ -10,9 +10,13 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
     /// Color converter between HSL and Rgb
     /// See <see href="http://www.poynton.com/PDFs/coloureq.pdf"/> for formulas.
     /// </summary>
-    internal sealed class HslAndRgbConverter : IColorConversion<Hsl, Rgb>, IColorConversion<Rgb, Hsl>
+    internal sealed class HslAndRgbConverter
     {
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="Hsl"/> input to an instance of <see cref="Rgb"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgb Convert(in Hsl input)
         {
@@ -43,7 +47,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             return new Rgb(r, g, b);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="Rgb"/> input to an instance of <see cref="Hsl"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Hsl Convert(in Rgb input)
         {

@@ -6,9 +6,9 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
 {
     /// <summary>
-    /// Color converter between LinearRgb and CieXyz
+    /// Color converter between <see cref="LinearRgb"/> and <see cref="CieXyz"/>
     /// </summary>
-    internal sealed class LinearRgbToCieXyzConverter : LinearRgbAndCieXyzConverterBase, IColorConversion<LinearRgb, CieXyz>
+    internal sealed class LinearRgbToCieXyzConverter : LinearRgbAndCieXyzConverterBase
     {
         private readonly Matrix4x4 conversionMatrix;
 
@@ -35,7 +35,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
         /// </summary>
         public RgbWorkingSpace SourceWorkingSpace { get; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Performs the conversion from the <see cref="LinearRgb"/> input to an instance of <see cref="CieXyz"/> type.
+        /// </summary>
+        /// <param name="input">The input color instance.</param>
+        /// <returns>The converted result</returns>
         public CieXyz Convert(in LinearRgb input)
         {
             DebugGuard.IsTrue(input.WorkingSpace.Equals(this.SourceWorkingSpace), nameof(input.WorkingSpace), "Input and source working spaces must be equal.");

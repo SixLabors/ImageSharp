@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
-    /// Provides methods to allow the conversion of color values into different color spaces.
+    /// Provides methods to allow the conversion of color values between different color spaces.
     /// </summary>
     public partial class ColorSpaceConverter
     {
@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private Matrix4x4 lmsAdaptationMatrix;
 
         private CieXyzAndLmsConverter cieXyzAndLmsConverter;
+        private CieXyzToCieLabConverter cieXyzToCieLabConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorSpaceConverter"/> class.
@@ -46,7 +47,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             this.chromaticAdaptation = options.ChromaticAdaptation;
             this.performChromaticAdaptation = this.chromaticAdaptation != null;
             this.lmsAdaptationMatrix = options.LmsAdaptationMatrix;
+
             this.cieXyzAndLmsConverter = new CieXyzAndLmsConverter(this.lmsAdaptationMatrix);
+            this.cieXyzToCieLabConverter = new CieXyzToCieLabConverter(this.targetLabWhitePoint);
         }
     }
 }

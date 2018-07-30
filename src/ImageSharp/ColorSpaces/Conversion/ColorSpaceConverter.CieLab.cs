@@ -170,8 +170,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
                 : color;
 
             // Conversion
-            var converter = new CieXyzToCieLabConverter(this.targetLabWhitePoint);
-            return converter.Convert(adapted);
+            return this.cieXyzToCieLabConverter.Convert(adapted);
         }
 
         /// <summary>

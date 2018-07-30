@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public static implicit operator Rgb(Rgba32 color)
         {
-            return new Rgba32(color.R / 255F, color.G / 255F, color.B / 255F);
+            return new Rgb(color.R / 255F, color.G / 255F, color.B / 255F);
         }
 
         /// <summary>

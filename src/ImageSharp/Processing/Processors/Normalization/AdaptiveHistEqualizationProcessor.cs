@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -28,6 +29,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public AdaptiveHistEqualizationProcessor(int gridSize, int clipLimit, int luminanceLevels)
             : base(luminanceLevels)
         {
+            Guard.MustBeGreaterThan(gridSize, 8, nameof(gridSize));
+            Guard.MustBeGreaterThan(clipLimit, 1, nameof(clipLimit));
+
             this.GridSize = gridSize;
             this.ClipLimit = clipLimit;
         }
@@ -51,49 +55,55 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             int pixelsInGrid = this.GridSize * this.GridSize;
             int halfGridSize = this.GridSize / 2;
-            using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
-            using (IBuffer<int> histogramBufferCopy = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
-            using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
-                Span<int> histogram = histogramBuffer.GetSpan();
-                Span<int> histogramCopy = histogramBufferCopy.GetSpan();
-                Span<int> cdf = cdfBuffer.GetSpan();
-
-                for (int x = 0; x < source.Width; x++)
-                {
-                    histogram.Clear();
-
-                    // Build the histogram of grayscale values for the current grid.
-                    for (int dy = -halfGridSize; dy < halfGridSize; dy++)
+                Parallel.For(
+                    0,
+                    source.Width,
+                    configuration.ParallelOptions,
+                    x =>
                     {
-                        Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, dy, this.GridSize);
-                        this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
-                    }
+                        using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+                        using (IBuffer<int> histogramBufferCopy = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+                        using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+                        {
+                            Span<int> histogram = histogramBuffer.GetSpan();
+                            Span<int> histogramCopy = histogramBufferCopy.GetSpan();
+                            Span<int> cdf = cdfBuffer.GetSpan();
 
-                    for (int y = 0; y < source.Height; y++)
-                    {
-                        // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration
-                        histogram.CopyTo(histogramCopy);
-                        this.ClipHistogram(histogramCopy, this.ClipLimit);
-                        cdf.Clear();
-                        int cdfMin = this.CalculateCdf(cdf, histogramCopy);
-                        double numberOfPixelsMinusCdfMin = (double)(pixelsInGrid - cdfMin);
+                            histogram.Clear();
 
-                        // Map the current pixel to the new equalized value
-                        int luminance = this.GetLuminance(pixels[(y * source.Width) + x], this.LuminanceLevels);
-                        double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-                        targetPixels[x, y].PackFromVector4(new Vector4((float)luminanceEqualized));
+                            // Build the histogram of grayscale values for the current grid.
+                            for (int dy = -halfGridSize; dy < halfGridSize; dy++)
+                            {
+                                Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, dy, this.GridSize);
+                                this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                            }
 
-                        // Remove top most row from the histogram, mirroring rows which exceeds the borders
-                        Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize, this.GridSize);
-                        this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
+                            for (int y = 0; y < source.Height; y++)
+                            {
+                                // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration
+                                histogram.CopyTo(histogramCopy);
+                                this.ClipHistogram(histogramCopy, this.ClipLimit);
+                                cdf.Clear();
+                                int cdfMin = this.CalculateCdf(cdf, histogramCopy);
+                                double numberOfPixelsMinusCdfMin = (double)(pixelsInGrid - cdfMin);
 
-                        // Add new bottom row to the histogram, mirroring rows which exceeds the borders
-                        rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize, this.GridSize);
-                        this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
-                    }
-                }
+                                // Map the current pixel to the new equalized value
+                                int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
+                                double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
+                                targetPixels[x, y].PackFromVector4(new Vector4((float)luminanceEqualized));
+
+                                // Remove top most row from the histogram, mirroring rows which exceeds the borders
+                                Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize, this.GridSize);
+                                this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
+
+                                // Add new bottom row to the histogram, mirroring rows which exceeds the borders
+                                rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize, this.GridSize);
+                                this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                            }
+                        }
+                    });
 
                 Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
             }

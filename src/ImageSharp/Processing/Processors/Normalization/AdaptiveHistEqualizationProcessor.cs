@@ -169,8 +169,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         /// <param name="histogram">The histogram to apply the clipping.</param>
         /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-        /// <returns>The number of pixels redistributed to all other bins.</returns>
-        private int ClipHistogram(Span<int> histogram, int clipLimit)
+        private void ClipHistogram(Span<int> histogram, int clipLimit)
         {
             int sumOverClip = 0;
             for (int i = 0; i < histogram.Length; i++)
@@ -187,15 +186,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             {
                 histogram[i] += addToEachBin;
             }
-
-            // The redistribution will push some bins over the clip limit again.
-            // Re-Applying the clipping until this effect no longer occurs.
-            while (addToEachBin > 1)
-            {
-                addToEachBin = this.ClipHistogram(histogram, clipLimit);
-            }
-
-            return addToEachBin;
         }
 
         /// <summary>

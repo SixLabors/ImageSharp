@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private RgbWorkingSpace targetRgbWorkingSpace;
         private IChromaticAdaptation chromaticAdaptation;
         private bool performChromaticAdaptation;
+        private bool performLabChromaticAdaptation;
         private Matrix4x4 lmsAdaptationMatrix;
 
         private CieXyzAndLmsConverter cieXyzAndLmsConverter;
@@ -46,6 +47,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             this.targetRgbWorkingSpace = options.TargetRgbWorkingSpace;
             this.chromaticAdaptation = options.ChromaticAdaptation;
             this.performChromaticAdaptation = this.chromaticAdaptation != null;
+            this.performLabChromaticAdaptation = !this.whitePoint.Equals(this.targetLabWhitePoint) && this.performChromaticAdaptation;
             this.lmsAdaptationMatrix = options.LmsAdaptationMatrix;
 
             this.cieXyzAndLmsConverter = new CieXyzAndLmsConverter(this.lmsAdaptationMatrix);

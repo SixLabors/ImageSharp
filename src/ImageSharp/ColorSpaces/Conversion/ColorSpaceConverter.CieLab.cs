@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         public CieLab ToCieLab(in CieXyz color)
         {
             // Adaptation
-            CieXyz adapted = !this.whitePoint.Equals(this.targetLabWhitePoint) && this.performChromaticAdaptation
+            CieXyz adapted = this.performLabChromaticAdaptation
                 ? this.chromaticAdaptation.Transform(color, this.whitePoint, this.targetLabWhitePoint)
                 : color;
 

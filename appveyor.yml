@@ -1,19 +1,16 @@
 version: 0.0.{build}
 image: Visual Studio 2017
 
-install:
-  - choco install gitversion.portable -pre -y
 
 before_build:
   - cmd: dotnet --version
-  - ps: c:\ProgramData\chocolatey\lib\gitversion.portable\tools\gitversion.exe /l console /output buildserver
 
 build_script:
   - cmd: build.cmd
   - cmd: tests\CodeCoverage\CodeCoverage.cmd
 
 after_build:
-  - cmd: appveyor PushArtifact "artifacts\SixLabors.Core.%GitVersion_NuGetVersion%.nupkg"
+  - cmd: appveyor PushArtifact "artifacts\SixLabors.Core.%APPVEYOR_BUILD_VERSION%.nupkg"
 
 deploy:
   - provider: NuGet
@@ -24,14 +21,6 @@ deploy:
     artifact: /.*\.nupkg/
     on:
       branch: master
-  - provider: NuGet
-    server: https://www.myget.org/F/sixlabors-unstable/api/v2/package
-    symbol_server: https://www.myget.org/F/sixlabors-unstable/symbols/api/v2/package
-    api_key:
-      secure: V/lEHP0UeMWIpWd0fiNlY2IgbCnJKQlGdRksECdJbOBdaE20Fl0RNL7WyqHe02o4
-    artifact: /.*\.nupkg/
-    on:
-      branch: develop
 
 # prevent the double build when a branch has an active PR
 skip_branch_with_pr: true

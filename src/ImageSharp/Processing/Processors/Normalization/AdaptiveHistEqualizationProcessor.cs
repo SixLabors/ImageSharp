@@ -22,29 +22,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="AdaptiveHistEqualizationProcessor{TPixel}"/> class.
         /// </summary>
-        /// <param name="gridSize">The grid size of the adaptive histogram equalization.</param>
-        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
-        public AdaptiveHistEqualizationProcessor(int gridSize, int clipLimit, int luminanceLevels)
-            : base(luminanceLevels)
+        /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="gridSize">The grid size of the adaptive histogram equalization.</param>
+        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, int clipLimit, int gridSize)
+            : base(luminanceLevels, clipHistogram, clipLimit)
         {
             Guard.MustBeGreaterThan(gridSize, 8, nameof(gridSize));
-            Guard.MustBeGreaterThan(clipLimit, 1, nameof(clipLimit));
 
             this.GridSize = gridSize;
-            this.ClipLimit = clipLimit;
         }
 
         /// <summary>
         /// Gets the size of the grid for the adaptive histogram equalization.
         /// </summary>
         public int GridSize { get; }
-
-        /// <summary>
-        /// Gets the histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.
-        /// </summary>
-        public int ClipLimit { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
@@ -82,23 +76,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                             for (int y = 0; y < source.Height; y++)
                             {
-                                // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration
-                                histogram.CopyTo(histogramCopy);
-                                this.ClipHistogram(histogramCopy, this.ClipLimit);
+                                if (this.ClipHistogramEnabled)
+                                {
+                                    // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
+                                    histogram.CopyTo(histogramCopy);
+                                    this.ClipHistogram(histogramCopy, this.ClipLimit);
+                                }
+
+                                // Calculate the cumulative distribution function, which will map each input pixel in the current grid to a new value.
                                 cdf.Clear();
-                                int cdfMin = this.CalculateCdf(cdf, histogramCopy);
-                                double numberOfPixelsMinusCdfMin = (double)(pixelsInGrid - cdfMin);
+                                int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy) : this.CalculateCdf(cdf, histogram);
+                                float numberOfPixelsMinusCdfMin = pixelsInGrid - cdfMin;
 
                                 // Map the current pixel to the new equalized value
                                 int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
-                                double luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
+                                float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
                                 targetPixels[x, y].PackFromVector4(new Vector4((float)luminanceEqualized));
 
-                                // Remove top most row from the histogram, mirroring rows which exceeds the borders
+                                // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize, this.GridSize);
                                 this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
 
-                                // Add new bottom row to the histogram, mirroring rows which exceeds the borders
+                                // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
                                 rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize, this.GridSize);
                                 this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
                             }
@@ -160,32 +159,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             return source.GetPixelRowSpan(y).Slice(start: x, length: gridSize);
-        }
-
-        /// <summary>
-        /// AHE tends to over amplify the contrast in near-constant regions of the image, since the histogram in such regions is highly concentrated.
-        /// Clipping the histogram is meant to reduce this effect, by cutting of histogram bin's which exceed a certain amount and redistribute
-        /// the values over the clip limit to all other bins equally.
-        /// </summary>
-        /// <param name="histogram">The histogram to apply the clipping.</param>
-        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-        private void ClipHistogram(Span<int> histogram, int clipLimit)
-        {
-            int sumOverClip = 0;
-            for (int i = 0; i < histogram.Length; i++)
-            {
-                if (histogram[i] > clipLimit)
-                {
-                    sumOverClip += histogram[i] - clipLimit;
-                    histogram[i] = clipLimit;
-                }
-            }
-
-            int addToEachBin = (int)Math.Floor(sumOverClip / (double)this.LuminanceLevels);
-            for (int i = 0; i < histogram.Length; i++)
-            {
-                histogram[i] += addToEachBin;
-            }
         }
 
         /// <summary>

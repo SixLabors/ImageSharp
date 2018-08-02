@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Normalization;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization
@@ -50,7 +51,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
             };
 
             // Act
-            image.Mutate(x => x.HistogramEqualization(luminanceLevels));
+            image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions()
+            {
+                LuminanceLevels = luminanceLevels
+            }));
 
             // Assert
             for (int y = 0; y < 8; y++)

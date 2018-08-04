@@ -1,8 +1,11 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.Primitives;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Represents a rectangular area inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).
@@ -120,7 +123,7 @@ namespace SixLabors.Memory
         public BufferArea<T> GetSubArea(Rectangle rectangle)
         {
             ImageSharp.DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, this.Rectangle.Width, nameof(rectangle));
-            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
+            SixLabors.DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
 
             int x = this.Rectangle.X + rectangle.X;
             int y = this.Rectangle.Y + rectangle.Y;

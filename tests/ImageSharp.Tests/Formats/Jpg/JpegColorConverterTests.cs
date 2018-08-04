@@ -8,8 +8,7 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
-using SixLabors.ImageSharp.Tests.Memory;
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 
 using Xunit;
 using Xunit.Abstractions;

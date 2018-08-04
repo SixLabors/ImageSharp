@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.MetaData.Profiles.Icc;
@@ -20,14 +20,14 @@ using SixLabors.ImageSharp.Primitives;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
+namespace SixLabors.ImageSharp.Formats.Jpeg
 {
     /// <summary>
     /// Performs the jpeg decoding operation.
     /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
     /// with additional fixes for both performance and common encoding errors.
     /// </summary>
-    internal sealed class PdfJsJpegDecoderCore : IRawJpegData
+    internal sealed class JpegDecoderCore : IRawJpegData
     {
         /// <summary>
         /// The only supported precision
@@ -52,12 +52,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <summary>
         /// The DC HUffman tables
         /// </summary>
-        private PdfJsHuffmanTables dcHuffmanTables;
+        private HuffmanTables dcHuffmanTables;
 
         /// <summary>
         /// The AC HUffman tables
         /// </summary>
-        private PdfJsHuffmanTables acHuffmanTables;
+        private HuffmanTables acHuffmanTables;
 
         /// <summary>
         /// The fast AC tables used for entropy decoding
@@ -90,11 +90,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         private AdobeMarker adobe;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PdfJsJpegDecoderCore" /> class.
+        /// Initializes a new instance of the <see cref="JpegDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="options">The options.</param>
-        public PdfJsJpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
+        public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
             this.configuration = configuration ?? Configuration.Default;
             this.IgnoreMetadata = options.IgnoreMetadata;
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <summary>
         /// Gets the frame
         /// </summary>
-        public PdfJsFrame Frame { get; private set; }
+        public JpegFrame Frame { get; private set; }
 
         /// <inheritdoc/>
         public Size ImageSizeInPixels { get; private set; }
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <summary>
         /// Gets the components.
         /// </summary>
-        public PdfJsFrameComponent[] Components => this.Frame.Components;
+        public JpegComponent[] Components => this.Frame.Components;
 
         /// <inheritdoc/>
         IEnumerable<IJpegComponent> IRawJpegData.Components => this.Components;
@@ -165,14 +165,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// </summary>
         /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
-        /// <returns>The <see cref="PdfJsFileMarker"/></returns>
-        public static PdfJsFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
+        /// <returns>The <see cref="JpegFileMarker"/></returns>
+        public static JpegFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
         {
             int value = stream.Read(marker, 0, 2);
 
             if (value == 0)
             {
-                return new PdfJsFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
             }
 
             if (marker[0] == JpegConstants.Markers.XFF)
@@ -185,16 +185,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     int suffix = stream.ReadByte();
                     if (suffix == -1)
                     {
-                        return new PdfJsFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                        return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
                     }
 
                     m = suffix;
                 }
 
-                return new PdfJsFileMarker((byte)m, stream.Position - 2);
+                return new JpegFileMarker((byte)m, stream.Position - 2);
             }
 
-            return new PdfJsFileMarker(marker[1], stream.Position - 2, true);
+            return new JpegFileMarker(marker[1], stream.Position - 2, true);
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             // Check for the Start Of Image marker.
             this.InputStream.Read(this.markerBuffer, 0, 2);
-            var fileMarker = new PdfJsFileMarker(this.markerBuffer[1], 0);
+            var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
                 throw new ImageFormatException("Missing SOI marker.");
@@ -244,14 +244,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
 
             this.InputStream.Read(this.markerBuffer, 0, 2);
             byte marker = this.markerBuffer[1];
-            fileMarker = new PdfJsFileMarker(marker, (int)this.InputStream.Position - 2);
+            fileMarker = new JpegFileMarker(marker, (int)this.InputStream.Position - 2);
 
             // Only assign what we need
             if (!metadataOnly)
             {
                 this.QuantizationTables = new Block8x8F[4];
-                this.dcHuffmanTables = new PdfJsHuffmanTables();
-                this.acHuffmanTables = new PdfJsHuffmanTables();
+                this.dcHuffmanTables = new HuffmanTables();
+                this.acHuffmanTables = new HuffmanTables();
                 this.fastACTables = new FastACTables(this.configuration.MemoryAllocator);
             }
 
@@ -670,7 +670,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="frameMarker">The current frame marker.</param>
         /// <param name="metadataOnly">Whether to parse metadata only</param>
-        private void ProcessStartOfFrameMarker(int remaining, PdfJsFileMarker frameMarker, bool metadataOnly)
+        private void ProcessStartOfFrameMarker(int remaining, JpegFileMarker frameMarker, bool metadataOnly)
         {
             if (this.Frame != null)
             {
@@ -685,7 +685,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                 throw new ImageFormatException("Only 8-Bit precision supported.");
             }
 
-            this.Frame = new PdfJsFrame
+            this.Frame = new JpegFrame
             {
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
@@ -707,7 +707,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
             {
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.Frame.ComponentCount];
-                this.Frame.Components = new PdfJsFrameComponent[this.Frame.ComponentCount];
+                this.Frame.Components = new JpegComponent[this.Frame.ComponentCount];
                 this.ColorSpace = this.DeduceJpegColorSpace();
 
                 for (int i = 0; i < this.Frame.ComponentCount; i++)
@@ -726,7 +726,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                         maxV = v;
                     }
 
-                    var component = new PdfJsFrameComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                    var component = new JpegComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
@@ -834,7 +834,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
                     throw new ImageFormatException("Unknown component selector");
                 }
 
-                ref PdfJsFrameComponent component = ref this.Frame.Components[componentIndex];
+                ref JpegComponent component = ref this.Frame.Components[componentIndex];
                 int tableSpec = this.InputStream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
@@ -871,9 +871,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort
         /// <param name="codeLengths">The codelengths</param>
         /// <param name="values">The values</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void BuildHuffmanTable(PdfJsHuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
+        private void BuildHuffmanTable(HuffmanTables tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
         {
-            tables[index] = new PdfJsHuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
+            tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
         }
 
         /// <summary>

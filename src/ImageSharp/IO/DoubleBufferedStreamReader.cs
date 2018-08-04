@@ -7,8 +7,7 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.Memory;
 
-// TODO: This could be useful elsewhere.
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
     /// A stream reader that add a secondary level buffer in addition to native stream buffered reading

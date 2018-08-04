@@ -3,10 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Binarization;
-using SixLabors.ImageSharp.Processing.Dithering;
-using SixLabors.ImageSharp.Processing.Dithering.ErrorDiffusion;
-using SixLabors.ImageSharp.Processing.Dithering.Ordered;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 

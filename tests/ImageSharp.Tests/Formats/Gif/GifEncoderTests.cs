@@ -5,7 +5,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -16,6 +16,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.001F);
+
+        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
+        new TheoryData<string, int, int, PixelResolutionUnit>
+        {
+            { TestImages.Gif.Rings, (int)ImageMetaData.DefaultHorizontalResolution, (int)ImageMetaData.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
+            { TestImages.Gif.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
+        };
 
         [Theory]
         [WithTestPatternImages(100, 100, TestPixelTypes)]
@@ -40,6 +48,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (var encoded = Image.Load(path))
             {
                 encoded.CompareToReferenceOutput(ValidatorComparer, provider, null, "gif");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RatioFiles))]
+        public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
+        {
+            var options = new GifEncoder()
+            {
+                IgnoreMetadata = false
+            };
+
+            var testFile = TestFile.Create(imagePath);
+            using (Image<Rgba32> input = testFile.CreateImage())
+            {
+                using (var memStream = new MemoryStream())
+                {
+                    input.Save(memStream, options);
+
+                    memStream.Position = 0;
+                    using (var output = Image.Load<Rgba32>(memStream))
+                    {
+                        ImageMetaData meta = output.MetaData;
+                        Assert.Equal(xResolution, meta.HorizontalResolution);
+                        Assert.Equal(yResolution, meta.VerticalResolution);
+                        Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                    }
+                }
             }
         }
 

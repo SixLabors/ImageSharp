@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.MetaData;
@@ -233,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.ValidateHeader();
                                     break;
                                 case PngChunkType.Physical:
-                                    this.ReadPhysicalChunk(metadata, chunk.Data.Array);
+                                    this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                     break;
                                 case PngChunkType.Data:
                                     if (image == null)
@@ -307,7 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ValidateHeader();
                                 break;
                             case PngChunkType.Physical:
-                                this.ReadPhysicalChunk(metadata, chunk.Data.Array);
+                                this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
                                 this.SkipChunkDataAndCrc(chunk);
@@ -369,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return false;
             }
 
-            buffer = this.MemoryAllocator.AllocateCleanManagedByteBuffer(bytesPerScanline * 8 / bits);
+            buffer = this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
             byte[] result = buffer.Array;
             int mask = 0xFF >> (8 - bits);
             int resultOffset = 0;
@@ -396,9 +397,26 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="data">The data containing physical data.</param>
         private void ReadPhysicalChunk(ImageMetaData metadata, ReadOnlySpan<byte> data)
         {
-            // 39.3700787 = inches in a meter.
-            metadata.HorizontalResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4)) / 39.3700787d;
-            metadata.VerticalResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4)) / 39.3700787d;
+            // The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image. It contains:
+            // Pixels per unit, X axis: 4 bytes (unsigned integer)
+            // Pixels per unit, Y axis: 4 bytes (unsigned integer)
+            // Unit specifier:          1 byte
+            //
+            // The following values are legal for the unit specifier:
+            //   0: unit is unknown
+            //   1: unit is the meter
+            //
+            // When the unit specifier is 0, the pHYs chunk defines pixel aspect ratio only; the actual size of the pixels remains unspecified.
+            int hResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(0, 4));
+            int vResolution = BinaryPrimitives.ReadInt32BigEndian(data.Slice(4, 4));
+            byte unit = data[8];
+
+            metadata.ResolutionUnits = unit == byte.MinValue
+                ? PixelResolutionUnit.AspectRatio
+                : PixelResolutionUnit.PixelsPerMeter;
+
+            metadata.HorizontalResolution = hResolution;
+            metadata.VerticalResolution = vResolution;
         }
 
         /// <summary>
@@ -419,8 +437,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = this.MemoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.scanline = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.previousScanline = this.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.scanline = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -1427,7 +1445,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IManagedByteBuffer ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            IManagedByteBuffer buffer = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(length);
+            IManagedByteBuffer buffer = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
 
             this.currentStream.Read(buffer.Array, 0, length);
 

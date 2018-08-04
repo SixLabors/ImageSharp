@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -32,17 +33,17 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The prefix buffer.
         /// </summary>
-        private readonly IBuffer<int> prefix;
+        private readonly IMemoryOwner<int> prefix;
 
         /// <summary>
         /// The suffix buffer.
         /// </summary>
-        private readonly IBuffer<int> suffix;
+        private readonly IMemoryOwner<int> suffix;
 
         /// <summary>
         /// The pixel stack buffer.
         /// </summary>
-        private readonly IBuffer<int> pixelStack;
+        private readonly IMemoryOwner<int> pixelStack;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwDecoder"/> class
@@ -57,9 +58,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             this.stream = stream;
 
-            this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, true);
-            this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, true);
-            this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, true);
+            this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+            this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+            this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
         }
 
         /// <summary>

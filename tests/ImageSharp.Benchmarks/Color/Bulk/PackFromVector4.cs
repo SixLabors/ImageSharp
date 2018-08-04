@@ -1,21 +1,24 @@
 // ReSharper disable InconsistentNaming
+
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     [Config(typeof(Config.ShortClr))]
     public abstract class PackFromVector4<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IBuffer<Vector4> source;
+        private IMemoryOwner<Vector4> source;
 
-        private IBuffer<TPixel> destination;
+        private IMemoryOwner<TPixel> destination;
 
         [Params(16, 128, 512)]
         public int Count { get; set; }

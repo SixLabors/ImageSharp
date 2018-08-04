@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Primitives
             var start = new PointF(this.Bounds.Left - 1, y);
             var end = new PointF(this.Bounds.Right + 1, y);
 
-            using (IBuffer<PointF> tempBuffer = configuration.MemoryAllocator.Allocate<PointF>(buffer.Length))
+            using (IMemoryOwner<PointF> tempBuffer = configuration.MemoryAllocator.Allocate<PointF>(buffer.Length))
             {
                 Span<PointF> innerBuffer = tempBuffer.GetSpan();
                 int count = this.Shape.FindIntersections(start, end, innerBuffer);

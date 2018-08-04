@@ -1,9 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -48,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (PdfJsJpegDecoderCore decoder = JpegFixture.ParsePdfJsStream(imageFile))
+            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
             using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryAllocator, decoder))
             using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, decoder.ImageWidth, decoder.ImageHeight))
             {
@@ -68,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (PdfJsJpegDecoderCore decoder = JpegFixture.ParsePdfJsStream(imageFile))
+            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
             using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryAllocator, decoder))
             using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
             {

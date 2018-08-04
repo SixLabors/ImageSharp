@@ -3,6 +3,8 @@
 
 // ReSharper disable InconsistentNaming
 
+using System.Buffers;
+
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Memory
@@ -30,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         private bool CheckIsRentingPooledBuffer<T>(int length)
             where T : struct
         {
-            IBuffer<T> buffer = this.MemoryAllocator.Allocate<T>(length);
+            IMemoryOwner<T> buffer = this.MemoryAllocator.Allocate<T>(length);
             ref T ptrToPrevPosition0 = ref buffer.GetReference();
             buffer.Dispose();
             
@@ -126,18 +128,18 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void CleaningRequests_AreControlledByAllocationParameter_Clean(bool clean)
+        [InlineData(AllocationOptions.None)]
+        [InlineData(AllocationOptions.Clean)]
+        public void CleaningRequests_AreControlledByAllocationParameter_Clean(AllocationOptions options)
         {
-            using (IBuffer<int> firstAlloc = this.MemoryAllocator.Allocate<int>(42))
+            using (IMemoryOwner<int> firstAlloc = this.MemoryAllocator.Allocate<int>(42))
             {
                 firstAlloc.GetSpan().Fill(666);
             }
 
-            using (IBuffer<int> secondAlloc = this.MemoryAllocator.Allocate<int>(42, clean))
+            using (IMemoryOwner<int> secondAlloc = this.MemoryAllocator.Allocate<int>(42, options))
             {
-                int expected = clean ? 0 : 666;
+                int expected = options == AllocationOptions.Clean ? 0 : 666;
                 Assert.Equal(expected, secondAlloc.GetSpan()[0]);
             }
         }
@@ -147,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [InlineData(true)]
         public void ReleaseRetainedResources_ReplacesInnerArrayPool(bool keepBufferAlive)
         {
-            IBuffer<int> buffer = this.MemoryAllocator.Allocate<int>(32);
+            IMemoryOwner<int> buffer = this.MemoryAllocator.Allocate<int>(32);
             ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.GetSpan());
 
             if (!keepBufferAlive)
@@ -165,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void ReleaseRetainedResources_DisposingPreviouslyAllocatedBuffer_IsAllowed()
         {
-            IBuffer<int> buffer = this.MemoryAllocator.Allocate<int>(32);
+            IMemoryOwner<int> buffer = this.MemoryAllocator.Allocate<int>(32);
             this.MemoryAllocator.ReleaseRetainedResources();
             buffer.Dispose();
         }
@@ -181,11 +183,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             int arrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
 
-            IBuffer<int> small = this.MemoryAllocator.Allocate<int>(arrayLengthThreshold - 1);
+            IMemoryOwner<int> small = this.MemoryAllocator.Allocate<int>(arrayLengthThreshold - 1);
             ref int ptr2Small = ref small.GetReference();
             small.Dispose();
 
-            IBuffer<int> large = this.MemoryAllocator.Allocate<int>(arrayLengthThreshold + 1);
+            IMemoryOwner<int> large = this.MemoryAllocator.Allocate<int>(arrayLengthThreshold + 1);
             
             Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
         }

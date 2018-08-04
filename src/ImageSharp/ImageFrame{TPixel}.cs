@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -86,7 +87,7 @@ namespace SixLabors.ImageSharp
 
             this.configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height, false);
+            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
             this.MetaData = metaData;
             this.Clear(configuration.ParallelOptions, backgroundColor);
         }
@@ -94,8 +95,8 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class wrapping an existing buffer.
         /// </summary>
-        internal ImageFrame(Configuration configuration, int width, int height, IBuffer<TPixel> consumedBuffer)
-            : this(configuration, width, height, consumedBuffer, new ImageFrameMetaData())
+        internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource)
+            : this(configuration, width, height, memorySource, new ImageFrameMetaData())
         {
         }
 
@@ -106,7 +107,7 @@ namespace SixLabors.ImageSharp
             Configuration configuration,
             int width,
             int height,
-            IBuffer<TPixel> consumedBuffer,
+            MemorySource<TPixel> memorySource,
             ImageFrameMetaData metaData)
         {
             Guard.NotNull(configuration, nameof(configuration));
@@ -116,7 +117,7 @@ namespace SixLabors.ImageSharp
 
             this.configuration = configuration;
             this.MemoryAllocator = configuration.MemoryAllocator;
-            this.PixelBuffer = new Buffer2D<TPixel>(consumedBuffer, width, height);
+            this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
             this.MetaData = metaData;
         }
 
@@ -272,7 +273,7 @@ namespace SixLabors.ImageSharp
                 this.Height,
                 this.configuration,
                 this.Width,
-                (int y, IBuffer<Vector4> tempRowBuffer) =>
+                (int y, IMemoryOwner<Vector4> tempRowBuffer) =>
                 {
                     Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
                     Span<TPixel2> targetRow = target.GetPixelRowSpan(y);

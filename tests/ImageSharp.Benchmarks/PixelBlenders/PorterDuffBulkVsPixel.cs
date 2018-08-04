@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Buffers;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
     using System;
@@ -24,7 +26,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-            using (IBuffer<Vector4> buffer = Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
+            using (IMemoryOwner<Vector4> buffer = Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
             {
                 Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -59,7 +61,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (var image = new Image<Rgba32>(800, 800))
             {
-                using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
+                using (IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
                     amounts.GetSpan().Fill(1);
 
@@ -80,7 +82,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             using (var image = new Image<Rgba32>(800, 800))
             {
-                using (IBuffer<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
+                using (IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
                 {
                     amounts.GetSpan().Fill(1);
                     Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();

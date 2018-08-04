@@ -8,8 +8,6 @@ using System.Numerics;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -34,18 +32,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImages.Jpeg.Baseline.Jpeg444,
         };
 
-        //[Theory] // Benchmark, enable manually
-        //[MemberData(nameof(DecodeJpegData))]
-        public void DecodeJpeg_Original(string fileName)
-        {
-            this.DecodeJpegBenchmarkImpl(fileName, new GolangJpegDecoder());
-        }
-
         // [Theory] // Benchmark, enable manually
         // [MemberData(nameof(DecodeJpegData))]
-        public void DecodeJpeg_PdfJs(string fileName)
+        public void DecodeJpeg(string fileName)
         {
-            this.DecodeJpegBenchmarkImpl(fileName, new PdfJsJpegDecoder());
+            this.DecodeJpegBenchmarkImpl(fileName, new JpegDecoder());
         }
 
         private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
@@ -70,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ExecutionCount,
                 () =>
                     {
-                        Image<Rgba32> img = Image.Load<Rgba32>(bytes, decoder);
+                        var img = Image.Load<Rgba32>(bytes, decoder);
                     },
                 // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");

@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -226,11 +226,41 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             byte packedValue = GifLogicalScreenDescriptor.GetPackedValue(useGlobalTable, this.bitDepth - 1, false, this.bitDepth - 1);
 
+            // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
+            // width over its height.  The value range in this field allows
+            // specification of the widest pixel of 4:1 to the tallest pixel of
+            // 1:4 in increments of 1/64th.
+            //
+            // Values :        0 -   No aspect ratio information is given.
+            //            1..255 -   Value used in the computation.
+            //
+            // Aspect Ratio = (Pixel Aspect Ratio + 15) / 64
+            ImageMetaData meta = image.MetaData;
+            byte ratio = 0;
+
+            if (meta.ResolutionUnits == PixelResolutionUnit.AspectRatio)
+            {
+                double hr = meta.HorizontalResolution;
+                double vr = meta.VerticalResolution;
+                if (hr != vr)
+                {
+                    if (hr > vr)
+                    {
+                        ratio = (byte)((hr * 64) - 15);
+                    }
+                    else
+                    {
+                        ratio = (byte)(((1 / vr) * 64) - 15);
+                    }
+                }
+            }
+
             var descriptor = new GifLogicalScreenDescriptor(
                 width: (ushort)image.Width,
                 height: (ushort)image.Height,
                 packed: packedValue,
-                backgroundColorIndex: unchecked((byte)transparencyIndex));
+                backgroundColorIndex: unchecked((byte)transparencyIndex),
+                ratio);
 
             descriptor.WriteTo(this.buffer);
 

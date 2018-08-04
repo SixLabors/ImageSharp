@@ -3,6 +3,8 @@
 // Licensed under the Apache License, Version 2.0.
 // </copyright>
 
+using System.Buffers;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
 
@@ -16,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 
     using SixLabors.Memory;
     using SixLabors.Primitives;
-    using SixLabors.ImageSharp.Processing.Overlays.Processors;
+    using SixLabors.ImageSharp.Processing.Processors.Overlays;
     using SixLabors.ImageSharp.Processing.Processors;
 
     public class Glow : BenchmarkBase
@@ -102,7 +104,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 
                 int width = maxX - minX;
-                using (IBuffer<TPixel> rowColors = Configuration.Default.MemoryAllocator.Allocate<TPixel>(width))
+                using (IMemoryOwner<TPixel> rowColors = Configuration.Default.MemoryAllocator.Allocate<TPixel>(width))
                 {
                     Buffer2D<TPixel> sourcePixels = source.PixelBuffer;
                     rowColors.GetSpan().Fill(glowColor);

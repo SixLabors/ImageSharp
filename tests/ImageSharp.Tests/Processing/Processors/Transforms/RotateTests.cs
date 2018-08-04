@@ -3,8 +3,6 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Transforms;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
@@ -25,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             RotateMode.Rotate180,
             RotateMode.Rotate270
         };
-        
+
         [Theory]
         [WithTestPatternImages(nameof(RotateAngles), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateAngles), 50, 100, DefaultPixelType)]
@@ -38,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 image.DebugSave(provider, value);
             }
         }
-        
+
         [Theory]
         [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, DefaultPixelType)]
         [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, DefaultPixelType)]

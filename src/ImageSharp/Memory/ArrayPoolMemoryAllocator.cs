@@ -9,7 +9,7 @@ namespace SixLabors.Memory
     /// <summary>
     /// Implements <see cref="MemoryAllocator"/> by allocating memory from <see cref="ArrayPool{T}"/>.
     /// </summary>
-    public partial class ArrayPoolMemoryAllocator : MemoryAllocator
+    public sealed partial class ArrayPoolMemoryAllocator : MemoryAllocator
     {
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
@@ -89,7 +89,7 @@ namespace SixLabors.Memory
         }
 
         /// <inheritdoc />
-        internal override IBuffer<T> Allocate<T>(int length, bool clear)
+        internal override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
@@ -98,7 +98,7 @@ namespace SixLabors.Memory
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
 
             var buffer = new Buffer<T>(byteArray, length, pool);
-            if (clear)
+            if (options == AllocationOptions.Clean)
             {
                 buffer.Clear();
             }
@@ -107,13 +107,13 @@ namespace SixLabors.Memory
         }
 
         /// <inheritdoc />
-        internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear)
+        internal override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options)
         {
             ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);
 
             var buffer = new ManagedByteBuffer(byteArray, length, pool);
-            if (clear)
+            if (options == AllocationOptions.Clean)
             {
                 buffer.Clear();
             }

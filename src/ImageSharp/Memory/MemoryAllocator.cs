@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
+
 namespace SixLabors.Memory
 {
     /// <summary>
@@ -9,23 +11,22 @@ namespace SixLabors.Memory
     public abstract class MemoryAllocator
     {
         /// <summary>
-        /// Allocates an <see cref="IBuffer{T}"/> of size <paramref name="length"/>, optionally
-        /// clearing the buffer before it gets returned.
+        /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.
         /// </summary>
         /// <typeparam name="T">Type of the data stored in the buffer</typeparam>
         /// <param name="length">Size of the buffer to allocate</param>
-        /// <param name="clear">True to clear the backing memory of the buffer</param>
+        /// <param name="options">The allocation options.</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
-        internal abstract IBuffer<T> Allocate<T>(int length, bool clear)
+        internal abstract IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
             where T : struct;
 
         /// <summary>
-        /// Allocates an <see cref="IManagedByteBuffer"/>
+        /// Allocates an <see cref="IManagedByteBuffer"/>.
         /// </summary>
         /// <param name="length">The requested buffer length</param>
-        /// <param name="clear">A value indicating whether to clean the buffer</param>
+        /// <param name="options">The allocation options.</param>
         /// <returns>The <see cref="IManagedByteBuffer"/></returns>
-        internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, bool clear);
+        internal abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None);
 
         /// <summary>
         /// Releases all retained resources not being in use.

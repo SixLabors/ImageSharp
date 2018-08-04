@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 namespace SixLabors.Memory
 {
     /// <summary>
-    /// Provides a base class for <see cref="IBuffer{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.
+    /// Provides a base class for <see cref="IMemoryOwner{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.
     /// </summary>
-    internal abstract class ManagedBufferBase<T> : System.Buffers.MemoryManager<T>, IBuffer<T>
+    internal abstract class ManagedBufferBase<T> : MemoryManager<T>
         where T : struct
     {
         private GCHandle pinHandle;

@@ -3,9 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Drawing;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
 using SixLabors.Shapes;
 using Xunit;
 // ReSharper disable InconsistentNaming
@@ -81,6 +79,23 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>("Blue");
 
             provider.RunValidatingProcessorTest(c => c.Fill(color, region), testDetails, ImageComparer.Exact);
+        }
+
+        [Theory]
+        [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, 5, 7, 3, 8)]
+        [WithSolidFilledImages(16, 16, "Red", PixelTypes.Rgba32, 8, 5, 6, 4)]
+        public void FillRegion_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider, int x0, int y0, int w, int h)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            FormattableString testDetails = $"(x{x0},y{y0},w{w},h{h})";
+            var region = new RectangleF(x0, y0, w, h);
+            TPixel color = TestUtils.GetPixelOfNamedColor<TPixel>("Blue");
+
+            provider.RunValidatingProcessorTestOnWrappedMemoryImage(
+                c => c.Fill(color, region),
+                testDetails,
+                ImageComparer.Exact,
+                useReferenceOutputFrom: nameof(this.FillRegion));
         }
 
         public static readonly TheoryData<bool, string, float, PixelBlenderMode, float> BlendData =

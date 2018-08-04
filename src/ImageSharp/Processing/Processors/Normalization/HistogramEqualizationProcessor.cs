@@ -101,9 +101,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             int addToEachBin = (int)Math.Floor(sumOverClip / (double)this.LuminanceLevels);
-            for (int i = 0; i < histogram.Length; i++)
+            if (addToEachBin > 0)
             {
-                histogram[i] += addToEachBin;
+                for (int i = 0; i < histogram.Length; i++)
+                {
+                    histogram[i] += addToEachBin;
+                }
             }
         }
 

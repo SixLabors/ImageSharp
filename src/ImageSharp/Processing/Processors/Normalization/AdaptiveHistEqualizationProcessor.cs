@@ -26,11 +26,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
         /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-        /// <param name="gridSize">The grid size of the adaptive histogram equalization.</param>
+        /// <param name="gridSize">The grid size of the adaptive histogram equalization. Minimum value is 4.</param>
         public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, int clipLimit, int gridSize)
             : base(luminanceLevels, clipHistogram, clipLimit)
         {
-            Guard.MustBeGreaterThan(gridSize, 8, nameof(gridSize));
+            Guard.MustBeGreaterThanOrEqualTo(gridSize, 4, nameof(gridSize));
 
             this.GridSize = gridSize;
         }
@@ -84,14 +84,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 }
 
                                 // Calculate the cumulative distribution function, which will map each input pixel in the current grid to a new value.
-                                cdf.Clear();
                                 int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy) : this.CalculateCdf(cdf, histogram);
                                 float numberOfPixelsMinusCdfMin = pixelsInGrid - cdfMin;
 
                                 // Map the current pixel to the new equalized value
                                 int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
                                 float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-                                targetPixels[x, y].PackFromVector4(new Vector4((float)luminanceEqualized));
+                                targetPixels[x, y].PackFromVector4(new Vector4(luminanceEqualized));
 
                                 // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize, this.GridSize);

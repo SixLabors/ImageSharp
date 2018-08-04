@@ -36,10 +36,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
-            // Build the histogram of the grayscale levels.
             using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
             {
+                // Build the histogram of the grayscale levels.
                 Span<int> histogram = histogramBuffer.GetSpan();
                 for (int i = 0; i < pixels.Length; i++)
                 {

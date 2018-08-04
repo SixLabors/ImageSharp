@@ -2,28 +2,22 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.ColorSpaces
 {
     /// <summary>
-    /// Represents an RGB color with specified <see cref="IRgbWorkingSpace"/> working space
+    /// Represents an RGB color with specified <see cref="RgbWorkingSpace"/> working space
     /// </summary>
     internal readonly struct Rgb : IColorVector, IEquatable<Rgb>, IAlmostEquatable<Rgb, float>
     {
         /// <summary>
-        /// Represents a <see cref="Rgb"/> that has R, G, and B values set to zero.
-        /// </summary>
-        public static readonly Rgb Empty = default;
-
-        /// <summary>
         /// The default rgb working space
         /// </summary>
-        public static readonly IRgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
+        public static readonly RgbWorkingSpace DefaultWorkingSpace = RgbWorkingSpaces.SRgb;
 
         /// <summary>
         /// The backing vector for SIMD support.
@@ -50,7 +44,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="b">The blue component ranging between 0 and 1.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb(float r, float g, float b, IRgbWorkingSpace workingSpace)
+        public Rgb(float r, float g, float b, RgbWorkingSpace workingSpace)
             : this(new Vector3(r, g, b), workingSpace)
         {
         }
@@ -71,7 +65,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <param name="vector">The vector representing the r, g, b components.</param>
         /// <param name="workingSpace">The rgb working space.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb(Vector3 vector, IRgbWorkingSpace workingSpace)
+        public Rgb(Vector3 vector, RgbWorkingSpace workingSpace)
             : this()
         {
             // Clamp to 0-1 range.
@@ -112,24 +106,10 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the Rgb color space <seealso cref="RgbWorkingSpaces"/>
         /// </summary>
-        public IRgbWorkingSpace WorkingSpace
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="Rgb"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
+        public RgbWorkingSpace WorkingSpace { get; }
 
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="Rgba32"/> to a
@@ -192,16 +172,12 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Rgb [ Empty ]";
-            }
-
-            return $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
+            return this.Equals(default)
+                ? "Rgb [ Empty ]"
+                : $"Rgb [ R={this.R:#0.##}, G={this.G:#0.##}, B={this.B:#0.##} ]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
             return obj is Rgb other && this.Equals(other);

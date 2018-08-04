@@ -9,7 +9,10 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.Memory
 {
-    internal static class BufferExtensions
+    /// <summary>
+    /// Extension methods for <see cref="IMemoryOwner{T}"/>
+    /// </summary>
+    internal static class MemoryOwnerExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> GetSpan<T>(this IMemoryOwner<T> buffer)
@@ -57,15 +60,5 @@ namespace SixLabors.Memory
         public static ref T GetReference<T>(this IMemoryOwner<T> buffer)
             where T : struct =>
             ref MemoryMarshal.GetReference(buffer.GetSpan());
-
-        public static void Read(this Stream stream, IManagedByteBuffer buffer)
-        {
-            stream.Read(buffer.Array, 0, buffer.Length());
-        }
-
-        public static void Write(this Stream stream, IManagedByteBuffer buffer)
-        {
-            stream.Write(buffer.Array, 0, buffer.Length());
-        }
     }
 }

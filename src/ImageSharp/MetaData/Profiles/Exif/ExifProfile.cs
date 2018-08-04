@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <summary>
         /// The byte array to read the EXIF profile from.
         /// </summary>
-        private readonly byte[] data;
+        private byte[] data;
 
         /// <summary>
         /// The collection of EXIF values
@@ -86,7 +85,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             if (other.data != null)
             {
                 this.data = new byte[other.data.Length];
-                Buffer.BlockCopy(other.data, 0, this.data, 0, other.data.Length);
+                other.data.AsSpan().CopyTo(this.data);
             }
         }
 

@@ -1,13 +1,13 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+using System;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
+using Xunit;
+
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    using System;
-
-    using SixLabors.Memory;
-    using SixLabors.Primitives;
-
-    using Xunit;
-
     public class BufferAreaTests
     {
         [Fact]
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using (var buffer = Configuration.Default.MemoryAllocator.Allocate2D<int>(10, 20))
             {
-                var rectangle = new Rectangle(3,2, 5, 6);
+                var rectangle = new Rectangle(3, 2, 5, 6);
                 var area = new BufferArea<int>(buffer, rectangle);
 
                 Assert.Equal(buffer, area.DestinationBuffer);
@@ -33,9 +33,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
                     buffer[x, y] = y * 100 + x;
                 }
             }
+
             return buffer;
         }
-        
+
         [Theory]
         [InlineData(2, 3, 2, 2)]
         [InlineData(5, 4, 3, 2)]
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
             {
                 Rectangle r = new Rectangle(rx, ry, 5, 6);
-                
+
                 BufferArea<int> area = buffer.GetArea(r);
 
                 int value = area[x, y];

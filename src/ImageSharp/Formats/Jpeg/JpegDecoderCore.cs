@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private ushort resetInterval;
 
         /// <summary>
-        /// Whether the image has a EXIF header
+        /// Whether the image has an EXIF marker
         /// </summary>
         private bool isExif;
 
@@ -78,6 +78,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Contains exif data
         /// </summary>
         private byte[] exifData;
+
+        /// <summary>
+        /// Whether the image has an ICC marker
+        /// </summary>
+        private bool isIcc;
+
+        /// <summary>
+        /// Contains ICC data
+        /// </summary>
+        private byte[] iccData;
 
         /// <summary>
         /// Contains information about the JFIF marker
@@ -208,6 +218,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.ParseStream(stream);
             this.InitExifProfile();
+            this.InitIccProfile();
             this.InitDerivedMetaDataProperties();
             return this.PostProcessIntoImage<TPixel>();
         }
@@ -220,6 +231,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             this.ParseStream(stream, true);
             this.InitExifProfile();
+            this.InitIccProfile();
             this.InitDerivedMetaDataProperties();
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.MetaData);
         }
@@ -412,13 +424,28 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Initializes the exif profile.
+        /// Initializes the EXIF profile.
         /// </summary>
         private void InitExifProfile()
         {
             if (this.isExif)
             {
                 this.MetaData.ExifProfile = new ExifProfile(this.exifData);
+            }
+        }
+
+        /// <summary>
+        /// Initializes the ICC profile.
+        /// </summary>
+        private void InitIccProfile()
+        {
+            if (this.isIcc)
+            {
+                var profile = new IccProfile(this.iccData);
+                if (profile.CheckIsValid())
+                {
+                    this.MetaData.IccProfile = profile;
+                }
             }
         }
 
@@ -450,11 +477,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.MetaData.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(this.MetaData.ExifProfile);
                 }
             }
+        }
 
-            if (this.MetaData.IccProfile?.CheckIsValid() == false)
-            {
-                this.MetaData.IccProfile = null;
-            }
+        /// <summary>
+        /// Extends the profile with additional data.
+        /// </summary>
+        /// <param name="profile">The profile data array.</param>
+        /// <param name="extension">The array containing addition profile data.</param>
+        private void ExtendProfile(ref byte[] profile, byte[] extension)
+        {
+            int currentLength = profile.Length;
+
+            Array.Resize(ref profile, currentLength + extension.Length);
+            Buffer.BlockCopy(extension, 0, profile, currentLength, extension.Length);
         }
 
         /// <summary>
@@ -488,7 +523,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         private void ProcessApp1Marker(int remaining)
         {
-            if (remaining < 6 || this.IgnoreMetadata)
+            const int Exif00 = 6;
+            if (remaining < Exif00 || this.IgnoreMetadata)
             {
                 // Skip the application header length
                 this.InputStream.Skip(remaining);
@@ -503,27 +539,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.isExif = true;
                 if (this.exifData == null)
                 {
-                    // the first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
-                    this.exifData = profile.Skip(6).ToArray();
+                    // The first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
+                    this.exifData = profile.Skip(Exif00).ToArray();
                 }
                 else
                 {
-                    // if the exif information exceeds 64K, it will be split over multiple APP1 markers
-                    this.ExtendExif(profile.Skip(6).ToArray());
+                    // If the EXIF information exceeds 64K, it will be split over multiple APP1 markers
+                    this.ExtendProfile(ref this.exifData, profile.Skip(Exif00).ToArray());
                 }
             }
-        }
-
-        /// <summary>
-        /// Extends the exif profile with additional data.
-        /// </summary>
-        /// <param name="bytes">The array containing addition profile data.</param>
-        private void ExtendExif(byte[] bytes)
-        {
-            int currentLength = this.exifData.Length;
-
-            Array.Resize(ref this.exifData, currentLength + bytes.Length);
-            Buffer.BlockCopy(bytes, 0, this.exifData, currentLength, bytes.Length);
         }
 
         /// <summary>
@@ -546,16 +570,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
+                this.isIcc = true;
                 byte[] profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
-                if (this.MetaData.IccProfile == null)
+                if (this.iccData == null)
                 {
-                    this.MetaData.IccProfile = new IccProfile(profile);
+                    this.iccData = profile;
                 }
                 else
                 {
-                    this.MetaData.IccProfile.Extend(profile);
+                    // If the ICC information exceeds 64K, it will be split over multiple APP2 markers
+                    this.ExtendProfile(ref this.iccData, profile);
                 }
             }
             else
@@ -670,7 +696,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="frameMarker">The current frame marker.</param>
         /// <param name="metadataOnly">Whether to parse metadata only</param>
-        private void ProcessStartOfFrameMarker(int remaining, JpegFileMarker frameMarker, bool metadataOnly)
+        private void ProcessStartOfFrameMarker(int remaining, in JpegFileMarker frameMarker, bool metadataOnly)
         {
             if (this.Frame != null)
             {

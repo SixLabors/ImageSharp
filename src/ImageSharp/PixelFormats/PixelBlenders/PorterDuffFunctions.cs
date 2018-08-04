@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <param name="xform">Desired transformed color, without taking Alpha channel in account</param>
         /// <returns>The final color</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector4 SrcOver_Reference(Vector4 backdrop, Vector4 source, Vector4 xform)
+        private static Vector4 SrcOverReference(Vector4 backdrop, Vector4 source, Vector4 xform)
         {
             // calculate weights
             float xw = backdrop.W * source.W;

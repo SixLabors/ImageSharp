@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.Equal(PngChunkType.Text,         GetType("tEXt"));
             Assert.Equal(PngChunkType.Gamma,        GetType("gAMA"));
             Assert.Equal(PngChunkType.Physical,     GetType("pHYs"));
+            Assert.Equal(PngChunkType.Exif,         GetType("eXIf"));
         }
 
         private static PngChunkType GetType(string text)

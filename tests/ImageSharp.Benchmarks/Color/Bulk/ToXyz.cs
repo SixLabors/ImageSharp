@@ -1,20 +1,21 @@
 // ReSharper disable InconsistentNaming
+
+using System.Buffers;
+using System;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    using System;
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     public abstract class ToXyz<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IBuffer<TPixel> source;
+        private IMemoryOwner<TPixel> source;
 
-        private IBuffer<byte> destination;
+        private IMemoryOwner<byte> destination;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }

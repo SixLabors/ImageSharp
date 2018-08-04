@@ -3,12 +3,12 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Represent a single jpeg frame
     /// </summary>
-    internal sealed class PdfJsFrame : IDisposable
+    internal sealed class JpegFrame : IDisposable
     {
         /// <summary>
         /// Gets or sets a value indicating whether the frame uses the extended specification
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <summary>
         /// Gets or sets the frame component collection
         /// </summary>
-        public PdfJsFrameComponent[] Components { get; set; }
+        public JpegComponent[] Components { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum horizontal sampling factor
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                PdfJsFrameComponent component = this.Components[i];
+                JpegComponent component = this.Components[i];
                 component.Init();
             }
         }

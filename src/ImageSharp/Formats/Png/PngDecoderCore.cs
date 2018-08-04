@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -259,6 +260,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     break;
                                 case PngChunkType.Text:
                                     this.ReadTextChunk(metadata, chunk.Data.Array, chunk.Length);
+                                    break;
+                                case PngChunkType.Exif:
+                                    if (!this.ignoreMetadata)
+                                    {
+                                        byte[] exifData = new byte[chunk.Length];
+                                        Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                        metadata.ExifProfile = new ExifProfile(exifData);
+                                    }
+
                                     break;
                                 case PngChunkType.End:
                                     this.isEndChunkReached = true;
@@ -1170,7 +1180,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Decodes and assigns marker colors that identify transparent pixels in non indexed images
         /// </summary>
-        /// <param name="alpha">The aplha tRNS array</param>
+        /// <param name="alpha">The alpha tRNS array</param>
         private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha)
         {
             if (this.pngColorType == PngColorType.Rgb)
@@ -1217,7 +1227,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="scanline">The defiltered scanline</param>
-        /// <param name="row">Thecurrent  output image row</param>
+        /// <param name="row">The current  output image row</param>
         private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> scanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {

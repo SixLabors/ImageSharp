@@ -150,17 +150,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 #endif
 
         /// <summary>
-        /// Extends the profile with additional data.
-        /// </summary>
-        /// <param name="bytes">The array containing addition profile data.</param>
-        public void Extend(byte[] bytes)
-        {
-            int currentLength = this.data.Length;
-            Array.Resize(ref this.data, currentLength + bytes.Length);
-            Buffer.BlockCopy(bytes, 0, this.data, currentLength, bytes.Length);
-        }
-
-        /// <summary>
         /// Checks for signs of a corrupt profile.
         /// </summary>
         /// <remarks>This is not an absolute proof of validity but should weed out most corrupt data.</remarks>

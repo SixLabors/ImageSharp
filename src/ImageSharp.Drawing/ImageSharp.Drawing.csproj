@@ -37,7 +37,7 @@
         <ProjectReference Include="..\ImageSharp\ImageSharp.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="SixLabors.Core" Version="1.0.0-beta0005" />
+        <PackageReference Include="SixLabors.Core" Version="1.0.0-dev000066" />
         <AdditionalFiles Include="..\..\stylecop.json" />
         <PackageReference Include="SixLabors.Fonts" Version="1.0.0-dev000087" />
         <PackageReference Include="SixLabors.Shapes" Version="1.0.0-dev000079" />

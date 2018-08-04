@@ -4,6 +4,8 @@
 using System;
 using System.IO;
 
+using SixLabors.Memory;
+
 namespace SixLabors.ImageSharp
 {
     /// <summary>
@@ -68,6 +70,16 @@ namespace SixLabors.ImageSharp
                     count -= bytesRead;
                 }
             }
+        }
+
+        public static void Read(this Stream stream, IManagedByteBuffer buffer)
+        {
+            stream.Read(buffer.Array, 0, buffer.Length());
+        }
+
+        public static void Write(this Stream stream, IManagedByteBuffer buffer)
+        {
+            stream.Write(buffer.Array, 0, buffer.Length());
         }
     }
 }

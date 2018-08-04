@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public static readonly byte[] AdobeMarker = Encoding.UTF8.GetBytes("Adobe");
 
         /// <summary>
-        /// Returns a value indicating whether the passed bytes are a match to the profile identifer
+        /// Returns a value indicating whether the passed bytes are a match to the profile identifier
         /// </summary>
         /// <param name="bytesToCheck">The bytes to check</param>
         /// <param name="profileIdentifier">The profile identifier</param>

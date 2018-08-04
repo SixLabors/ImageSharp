@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing
                             throw new ArgumentOutOfRangeException();
                     }
 
-                    var (from, to) = this.GetGradientSegment(positionOnCompleteGradient);
+                    (ColorStop<TPixel> from, ColorStop<TPixel> to) = this.GetGradientSegment(positionOnCompleteGradient);
 
                     if (from.Color.Equals(to.Color))
                     {
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing
                         float onLocalGradient = (positionOnCompleteGradient - from.Ratio) / to.Ratio;
 
                         // TODO: this should be changeble for different gradienting functions
-                        Vector4 result = PorterDuffFunctions.Normal_SrcOver(
+                        Vector4 result = PorterDuffFunctions.NormalSrcOver(
                             fromAsVector,
                             toAsVector,
                             onLocalGradient);
@@ -153,11 +153,11 @@ namespace SixLabors.ImageSharp.Processing
             private (ColorStop<TPixel> from, ColorStop<TPixel> to) GetGradientSegment(
                 float positionOnCompleteGradient)
             {
-                var localGradientFrom = this.colorStops[0];
+                ColorStop<TPixel> localGradientFrom = this.colorStops[0];
                 ColorStop<TPixel> localGradientTo = default;
 
                 // TODO: ensure colorStops has at least 2 items (technically 1 would be okay, but that's no gradient)
-                foreach (var colorStop in this.colorStops)
+                foreach (ColorStop<TPixel> colorStop in this.colorStops)
                 {
                     localGradientTo = colorStop;
 

@@ -24,17 +24,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         where TPixel : struct, IPixel<TPixel>
     {
 
-            internal class Normal_Src : PixelBlender<TPixel>
+            internal class NormalSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_Src Instance { get; } = new Normal_Src();
+                public static NormalSrc Instance { get; } = new NormalSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_Src(background, source, amount);
+                    return PorterDuffFunctions.NormalSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -63,17 +63,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_Src : PixelBlender<TPixel>
+            internal class MultiplySrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_Src Instance { get; } = new Multiply_Src();
+                public static MultiplySrc Instance { get; } = new MultiplySrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_Src(background, source, amount);
+                    return PorterDuffFunctions.MultiplySrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplySrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -102,17 +102,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_Src : PixelBlender<TPixel>
+            internal class AddSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_Src Instance { get; } = new Add_Src();
+                public static AddSrc Instance { get; } = new AddSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_Src(background, source, amount);
+                    return PorterDuffFunctions.AddSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -141,17 +141,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_Src : PixelBlender<TPixel>
+            internal class SubtractSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_Src Instance { get; } = new Subtract_Src();
+                public static SubtractSrc Instance { get; } = new SubtractSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_Src(background, source, amount);
+                    return PorterDuffFunctions.SubtractSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -180,17 +180,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_Src : PixelBlender<TPixel>
+            internal class ScreenSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_Src Instance { get; } = new Screen_Src();
+                public static ScreenSrc Instance { get; } = new ScreenSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_Src(background, source, amount);
+                    return PorterDuffFunctions.ScreenSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -219,17 +219,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_Src : PixelBlender<TPixel>
+            internal class DarkenSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_Src Instance { get; } = new Darken_Src();
+                public static DarkenSrc Instance { get; } = new DarkenSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_Src(background, source, amount);
+                    return PorterDuffFunctions.DarkenSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -250,7 +250,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -258,17 +258,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_Src : PixelBlender<TPixel>
+            internal class LightenSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_Src Instance { get; } = new Lighten_Src();
+                public static LightenSrc Instance { get; } = new LightenSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_Src(background, source, amount);
+                    return PorterDuffFunctions.LightenSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -297,17 +297,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_Src : PixelBlender<TPixel>
+            internal class OverlaySrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_Src Instance { get; } = new Overlay_Src();
+                public static OverlaySrc Instance { get; } = new OverlaySrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_Src(background, source, amount);
+                    return PorterDuffFunctions.OverlaySrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -328,7 +328,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlaySrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -336,17 +336,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_Src : PixelBlender<TPixel>
+            internal class HardLightSrc : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_Src Instance { get; } = new HardLight_Src();
+                public static HardLightSrc Instance { get; } = new HardLightSrc();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_Src(background, source, amount);
+                    return PorterDuffFunctions.HardLightSrc(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -367,7 +367,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_Src(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightSrc(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -375,17 +375,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_SrcAtop : PixelBlender<TPixel>
+            internal class NormalSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_SrcAtop Instance { get; } = new Normal_SrcAtop();
+                public static NormalSrcAtop Instance { get; } = new NormalSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.NormalSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -414,17 +414,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_SrcAtop : PixelBlender<TPixel>
+            internal class MultiplySrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_SrcAtop Instance { get; } = new Multiply_SrcAtop();
+                public static MultiplySrcAtop Instance { get; } = new MultiplySrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.MultiplySrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -445,7 +445,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplySrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -453,17 +453,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_SrcAtop : PixelBlender<TPixel>
+            internal class AddSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_SrcAtop Instance { get; } = new Add_SrcAtop();
+                public static AddSrcAtop Instance { get; } = new AddSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.AddSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -484,7 +484,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -492,17 +492,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_SrcAtop : PixelBlender<TPixel>
+            internal class SubtractSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_SrcAtop Instance { get; } = new Subtract_SrcAtop();
+                public static SubtractSrcAtop Instance { get; } = new SubtractSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.SubtractSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -523,7 +523,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -531,17 +531,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_SrcAtop : PixelBlender<TPixel>
+            internal class ScreenSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_SrcAtop Instance { get; } = new Screen_SrcAtop();
+                public static ScreenSrcAtop Instance { get; } = new ScreenSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.ScreenSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -562,7 +562,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -570,17 +570,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_SrcAtop : PixelBlender<TPixel>
+            internal class DarkenSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_SrcAtop Instance { get; } = new Darken_SrcAtop();
+                public static DarkenSrcAtop Instance { get; } = new DarkenSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.DarkenSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -601,7 +601,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -609,17 +609,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_SrcAtop : PixelBlender<TPixel>
+            internal class LightenSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_SrcAtop Instance { get; } = new Lighten_SrcAtop();
+                public static LightenSrcAtop Instance { get; } = new LightenSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.LightenSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -640,7 +640,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -648,17 +648,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_SrcAtop : PixelBlender<TPixel>
+            internal class OverlaySrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_SrcAtop Instance { get; } = new Overlay_SrcAtop();
+                public static OverlaySrcAtop Instance { get; } = new OverlaySrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.OverlaySrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -679,7 +679,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlaySrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -687,17 +687,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_SrcAtop : PixelBlender<TPixel>
+            internal class HardLightSrcAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_SrcAtop Instance { get; } = new HardLight_SrcAtop();
+                public static HardLightSrcAtop Instance { get; } = new HardLightSrcAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_SrcAtop(background, source, amount);
+                    return PorterDuffFunctions.HardLightSrcAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -718,7 +718,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_SrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightSrcAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -726,17 +726,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_SrcOver : PixelBlender<TPixel>
+            internal class NormalSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_SrcOver Instance { get; } = new Normal_SrcOver();
+                public static NormalSrcOver Instance { get; } = new NormalSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.NormalSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -757,7 +757,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -765,17 +765,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_SrcOver : PixelBlender<TPixel>
+            internal class MultiplySrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_SrcOver Instance { get; } = new Multiply_SrcOver();
+                public static MultiplySrcOver Instance { get; } = new MultiplySrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.MultiplySrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -796,7 +796,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplySrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -804,17 +804,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_SrcOver : PixelBlender<TPixel>
+            internal class AddSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_SrcOver Instance { get; } = new Add_SrcOver();
+                public static AddSrcOver Instance { get; } = new AddSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.AddSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -835,7 +835,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -843,17 +843,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_SrcOver : PixelBlender<TPixel>
+            internal class SubtractSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_SrcOver Instance { get; } = new Subtract_SrcOver();
+                public static SubtractSrcOver Instance { get; } = new SubtractSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.SubtractSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -874,7 +874,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -882,17 +882,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_SrcOver : PixelBlender<TPixel>
+            internal class ScreenSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_SrcOver Instance { get; } = new Screen_SrcOver();
+                public static ScreenSrcOver Instance { get; } = new ScreenSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.ScreenSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -913,7 +913,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -921,17 +921,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_SrcOver : PixelBlender<TPixel>
+            internal class DarkenSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_SrcOver Instance { get; } = new Darken_SrcOver();
+                public static DarkenSrcOver Instance { get; } = new DarkenSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.DarkenSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -952,7 +952,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -960,17 +960,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_SrcOver : PixelBlender<TPixel>
+            internal class LightenSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_SrcOver Instance { get; } = new Lighten_SrcOver();
+                public static LightenSrcOver Instance { get; } = new LightenSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.LightenSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -991,7 +991,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -999,17 +999,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_SrcOver : PixelBlender<TPixel>
+            internal class OverlaySrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_SrcOver Instance { get; } = new Overlay_SrcOver();
+                public static OverlaySrcOver Instance { get; } = new OverlaySrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.OverlaySrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1030,7 +1030,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlaySrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1038,17 +1038,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_SrcOver : PixelBlender<TPixel>
+            internal class HardLightSrcOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_SrcOver Instance { get; } = new HardLight_SrcOver();
+                public static HardLightSrcOver Instance { get; } = new HardLightSrcOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_SrcOver(background, source, amount);
+                    return PorterDuffFunctions.HardLightSrcOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1069,7 +1069,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_SrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1077,17 +1077,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_SrcIn : PixelBlender<TPixel>
+            internal class NormalSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_SrcIn Instance { get; } = new Normal_SrcIn();
+                public static NormalSrcIn Instance { get; } = new NormalSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.NormalSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1108,7 +1108,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1116,17 +1116,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_SrcIn : PixelBlender<TPixel>
+            internal class MultiplySrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_SrcIn Instance { get; } = new Multiply_SrcIn();
+                public static MultiplySrcIn Instance { get; } = new MultiplySrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.MultiplySrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1147,7 +1147,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplySrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1155,17 +1155,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_SrcIn : PixelBlender<TPixel>
+            internal class AddSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_SrcIn Instance { get; } = new Add_SrcIn();
+                public static AddSrcIn Instance { get; } = new AddSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.AddSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1186,7 +1186,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1194,17 +1194,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_SrcIn : PixelBlender<TPixel>
+            internal class SubtractSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_SrcIn Instance { get; } = new Subtract_SrcIn();
+                public static SubtractSrcIn Instance { get; } = new SubtractSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.SubtractSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1225,7 +1225,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1233,17 +1233,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_SrcIn : PixelBlender<TPixel>
+            internal class ScreenSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_SrcIn Instance { get; } = new Screen_SrcIn();
+                public static ScreenSrcIn Instance { get; } = new ScreenSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.ScreenSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1264,7 +1264,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1272,17 +1272,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_SrcIn : PixelBlender<TPixel>
+            internal class DarkenSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_SrcIn Instance { get; } = new Darken_SrcIn();
+                public static DarkenSrcIn Instance { get; } = new DarkenSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.DarkenSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1303,7 +1303,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1311,17 +1311,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_SrcIn : PixelBlender<TPixel>
+            internal class LightenSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_SrcIn Instance { get; } = new Lighten_SrcIn();
+                public static LightenSrcIn Instance { get; } = new LightenSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.LightenSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1342,7 +1342,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1350,17 +1350,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_SrcIn : PixelBlender<TPixel>
+            internal class OverlaySrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_SrcIn Instance { get; } = new Overlay_SrcIn();
+                public static OverlaySrcIn Instance { get; } = new OverlaySrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.OverlaySrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1381,7 +1381,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlaySrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1389,17 +1389,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_SrcIn : PixelBlender<TPixel>
+            internal class HardLightSrcIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_SrcIn Instance { get; } = new HardLight_SrcIn();
+                public static HardLightSrcIn Instance { get; } = new HardLightSrcIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_SrcIn(background, source, amount);
+                    return PorterDuffFunctions.HardLightSrcIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1420,7 +1420,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_SrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightSrcIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1428,17 +1428,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_SrcOut : PixelBlender<TPixel>
+            internal class NormalSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_SrcOut Instance { get; } = new Normal_SrcOut();
+                public static NormalSrcOut Instance { get; } = new NormalSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.NormalSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1459,7 +1459,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1467,17 +1467,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_SrcOut : PixelBlender<TPixel>
+            internal class MultiplySrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_SrcOut Instance { get; } = new Multiply_SrcOut();
+                public static MultiplySrcOut Instance { get; } = new MultiplySrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.MultiplySrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1498,7 +1498,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplySrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1506,17 +1506,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_SrcOut : PixelBlender<TPixel>
+            internal class AddSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_SrcOut Instance { get; } = new Add_SrcOut();
+                public static AddSrcOut Instance { get; } = new AddSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.AddSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1537,7 +1537,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1545,17 +1545,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_SrcOut : PixelBlender<TPixel>
+            internal class SubtractSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_SrcOut Instance { get; } = new Subtract_SrcOut();
+                public static SubtractSrcOut Instance { get; } = new SubtractSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.SubtractSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1576,7 +1576,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1584,17 +1584,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_SrcOut : PixelBlender<TPixel>
+            internal class ScreenSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_SrcOut Instance { get; } = new Screen_SrcOut();
+                public static ScreenSrcOut Instance { get; } = new ScreenSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.ScreenSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1615,7 +1615,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1623,17 +1623,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_SrcOut : PixelBlender<TPixel>
+            internal class DarkenSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_SrcOut Instance { get; } = new Darken_SrcOut();
+                public static DarkenSrcOut Instance { get; } = new DarkenSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.DarkenSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1654,7 +1654,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1662,17 +1662,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_SrcOut : PixelBlender<TPixel>
+            internal class LightenSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_SrcOut Instance { get; } = new Lighten_SrcOut();
+                public static LightenSrcOut Instance { get; } = new LightenSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.LightenSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1693,7 +1693,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1701,17 +1701,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_SrcOut : PixelBlender<TPixel>
+            internal class OverlaySrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_SrcOut Instance { get; } = new Overlay_SrcOut();
+                public static OverlaySrcOut Instance { get; } = new OverlaySrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.OverlaySrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1732,7 +1732,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlaySrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1740,17 +1740,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_SrcOut : PixelBlender<TPixel>
+            internal class HardLightSrcOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_SrcOut Instance { get; } = new HardLight_SrcOut();
+                public static HardLightSrcOut Instance { get; } = new HardLightSrcOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_SrcOut(background, source, amount);
+                    return PorterDuffFunctions.HardLightSrcOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1771,7 +1771,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_SrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightSrcOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1779,17 +1779,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_Dest : PixelBlender<TPixel>
+            internal class NormalDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_Dest Instance { get; } = new Normal_Dest();
+                public static NormalDest Instance { get; } = new NormalDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_Dest(background, source, amount);
+                    return PorterDuffFunctions.NormalDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1810,7 +1810,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1818,17 +1818,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_Dest : PixelBlender<TPixel>
+            internal class MultiplyDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_Dest Instance { get; } = new Multiply_Dest();
+                public static MultiplyDest Instance { get; } = new MultiplyDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_Dest(background, source, amount);
+                    return PorterDuffFunctions.MultiplyDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1849,7 +1849,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1857,17 +1857,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_Dest : PixelBlender<TPixel>
+            internal class AddDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_Dest Instance { get; } = new Add_Dest();
+                public static AddDest Instance { get; } = new AddDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_Dest(background, source, amount);
+                    return PorterDuffFunctions.AddDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1888,7 +1888,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1896,17 +1896,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_Dest : PixelBlender<TPixel>
+            internal class SubtractDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_Dest Instance { get; } = new Subtract_Dest();
+                public static SubtractDest Instance { get; } = new SubtractDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_Dest(background, source, amount);
+                    return PorterDuffFunctions.SubtractDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1927,7 +1927,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1935,17 +1935,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_Dest : PixelBlender<TPixel>
+            internal class ScreenDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_Dest Instance { get; } = new Screen_Dest();
+                public static ScreenDest Instance { get; } = new ScreenDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_Dest(background, source, amount);
+                    return PorterDuffFunctions.ScreenDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -1966,7 +1966,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -1974,17 +1974,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_Dest : PixelBlender<TPixel>
+            internal class DarkenDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_Dest Instance { get; } = new Darken_Dest();
+                public static DarkenDest Instance { get; } = new DarkenDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_Dest(background, source, amount);
+                    return PorterDuffFunctions.DarkenDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2005,7 +2005,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2013,17 +2013,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_Dest : PixelBlender<TPixel>
+            internal class LightenDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_Dest Instance { get; } = new Lighten_Dest();
+                public static LightenDest Instance { get; } = new LightenDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_Dest(background, source, amount);
+                    return PorterDuffFunctions.LightenDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2044,7 +2044,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2052,17 +2052,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_Dest : PixelBlender<TPixel>
+            internal class OverlayDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_Dest Instance { get; } = new Overlay_Dest();
+                public static OverlayDest Instance { get; } = new OverlayDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_Dest(background, source, amount);
+                    return PorterDuffFunctions.OverlayDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2083,7 +2083,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2091,17 +2091,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_Dest : PixelBlender<TPixel>
+            internal class HardLightDest : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_Dest Instance { get; } = new HardLight_Dest();
+                public static HardLightDest Instance { get; } = new HardLightDest();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_Dest(background, source, amount);
+                    return PorterDuffFunctions.HardLightDest(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2122,7 +2122,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_Dest(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightDest(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2130,17 +2130,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_DestAtop : PixelBlender<TPixel>
+            internal class NormalDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_DestAtop Instance { get; } = new Normal_DestAtop();
+                public static NormalDestAtop Instance { get; } = new NormalDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.NormalDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2161,7 +2161,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2169,17 +2169,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_DestAtop : PixelBlender<TPixel>
+            internal class MultiplyDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_DestAtop Instance { get; } = new Multiply_DestAtop();
+                public static MultiplyDestAtop Instance { get; } = new MultiplyDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.MultiplyDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2200,7 +2200,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2208,17 +2208,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_DestAtop : PixelBlender<TPixel>
+            internal class AddDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_DestAtop Instance { get; } = new Add_DestAtop();
+                public static AddDestAtop Instance { get; } = new AddDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.AddDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2239,7 +2239,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2247,17 +2247,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_DestAtop : PixelBlender<TPixel>
+            internal class SubtractDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_DestAtop Instance { get; } = new Subtract_DestAtop();
+                public static SubtractDestAtop Instance { get; } = new SubtractDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.SubtractDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2278,7 +2278,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2286,17 +2286,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_DestAtop : PixelBlender<TPixel>
+            internal class ScreenDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_DestAtop Instance { get; } = new Screen_DestAtop();
+                public static ScreenDestAtop Instance { get; } = new ScreenDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.ScreenDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2317,7 +2317,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2325,17 +2325,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_DestAtop : PixelBlender<TPixel>
+            internal class DarkenDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_DestAtop Instance { get; } = new Darken_DestAtop();
+                public static DarkenDestAtop Instance { get; } = new DarkenDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.DarkenDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2356,7 +2356,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2364,17 +2364,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_DestAtop : PixelBlender<TPixel>
+            internal class LightenDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_DestAtop Instance { get; } = new Lighten_DestAtop();
+                public static LightenDestAtop Instance { get; } = new LightenDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.LightenDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2395,7 +2395,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2403,17 +2403,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_DestAtop : PixelBlender<TPixel>
+            internal class OverlayDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_DestAtop Instance { get; } = new Overlay_DestAtop();
+                public static OverlayDestAtop Instance { get; } = new OverlayDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.OverlayDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2434,7 +2434,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2442,17 +2442,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_DestAtop : PixelBlender<TPixel>
+            internal class HardLightDestAtop : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_DestAtop Instance { get; } = new HardLight_DestAtop();
+                public static HardLightDestAtop Instance { get; } = new HardLightDestAtop();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_DestAtop(background, source, amount);
+                    return PorterDuffFunctions.HardLightDestAtop(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2473,7 +2473,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_DestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightDestAtop(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2481,17 +2481,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_DestOver : PixelBlender<TPixel>
+            internal class NormalDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_DestOver Instance { get; } = new Normal_DestOver();
+                public static NormalDestOver Instance { get; } = new NormalDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_DestOver(background, source, amount);
+                    return PorterDuffFunctions.NormalDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2512,7 +2512,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2520,17 +2520,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_DestOver : PixelBlender<TPixel>
+            internal class MultiplyDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_DestOver Instance { get; } = new Multiply_DestOver();
+                public static MultiplyDestOver Instance { get; } = new MultiplyDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_DestOver(background, source, amount);
+                    return PorterDuffFunctions.MultiplyDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2551,7 +2551,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2559,17 +2559,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_DestOver : PixelBlender<TPixel>
+            internal class AddDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_DestOver Instance { get; } = new Add_DestOver();
+                public static AddDestOver Instance { get; } = new AddDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_DestOver(background, source, amount);
+                    return PorterDuffFunctions.AddDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2590,7 +2590,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2598,17 +2598,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_DestOver : PixelBlender<TPixel>
+            internal class SubtractDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_DestOver Instance { get; } = new Subtract_DestOver();
+                public static SubtractDestOver Instance { get; } = new SubtractDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_DestOver(background, source, amount);
+                    return PorterDuffFunctions.SubtractDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2629,7 +2629,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2637,17 +2637,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_DestOver : PixelBlender<TPixel>
+            internal class ScreenDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_DestOver Instance { get; } = new Screen_DestOver();
+                public static ScreenDestOver Instance { get; } = new ScreenDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_DestOver(background, source, amount);
+                    return PorterDuffFunctions.ScreenDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2668,7 +2668,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2676,17 +2676,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_DestOver : PixelBlender<TPixel>
+            internal class DarkenDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_DestOver Instance { get; } = new Darken_DestOver();
+                public static DarkenDestOver Instance { get; } = new DarkenDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_DestOver(background, source, amount);
+                    return PorterDuffFunctions.DarkenDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2707,7 +2707,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2715,17 +2715,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_DestOver : PixelBlender<TPixel>
+            internal class LightenDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_DestOver Instance { get; } = new Lighten_DestOver();
+                public static LightenDestOver Instance { get; } = new LightenDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_DestOver(background, source, amount);
+                    return PorterDuffFunctions.LightenDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2746,7 +2746,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2754,17 +2754,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_DestOver : PixelBlender<TPixel>
+            internal class OverlayDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_DestOver Instance { get; } = new Overlay_DestOver();
+                public static OverlayDestOver Instance { get; } = new OverlayDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_DestOver(background, source, amount);
+                    return PorterDuffFunctions.OverlayDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2785,7 +2785,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2793,17 +2793,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_DestOver : PixelBlender<TPixel>
+            internal class HardLightDestOver : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_DestOver Instance { get; } = new HardLight_DestOver();
+                public static HardLightDestOver Instance { get; } = new HardLightDestOver();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_DestOver(background, source, amount);
+                    return PorterDuffFunctions.HardLightDestOver(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2824,7 +2824,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_DestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightDestOver(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2832,17 +2832,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_DestIn : PixelBlender<TPixel>
+            internal class NormalDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_DestIn Instance { get; } = new Normal_DestIn();
+                public static NormalDestIn Instance { get; } = new NormalDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_DestIn(background, source, amount);
+                    return PorterDuffFunctions.NormalDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2863,7 +2863,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2871,17 +2871,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_DestIn : PixelBlender<TPixel>
+            internal class MultiplyDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_DestIn Instance { get; } = new Multiply_DestIn();
+                public static MultiplyDestIn Instance { get; } = new MultiplyDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_DestIn(background, source, amount);
+                    return PorterDuffFunctions.MultiplyDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2902,7 +2902,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2910,17 +2910,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_DestIn : PixelBlender<TPixel>
+            internal class AddDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_DestIn Instance { get; } = new Add_DestIn();
+                public static AddDestIn Instance { get; } = new AddDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_DestIn(background, source, amount);
+                    return PorterDuffFunctions.AddDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2941,7 +2941,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2949,17 +2949,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_DestIn : PixelBlender<TPixel>
+            internal class SubtractDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_DestIn Instance { get; } = new Subtract_DestIn();
+                public static SubtractDestIn Instance { get; } = new SubtractDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_DestIn(background, source, amount);
+                    return PorterDuffFunctions.SubtractDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -2980,7 +2980,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -2988,17 +2988,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_DestIn : PixelBlender<TPixel>
+            internal class ScreenDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_DestIn Instance { get; } = new Screen_DestIn();
+                public static ScreenDestIn Instance { get; } = new ScreenDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_DestIn(background, source, amount);
+                    return PorterDuffFunctions.ScreenDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3019,7 +3019,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3027,17 +3027,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_DestIn : PixelBlender<TPixel>
+            internal class DarkenDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_DestIn Instance { get; } = new Darken_DestIn();
+                public static DarkenDestIn Instance { get; } = new DarkenDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_DestIn(background, source, amount);
+                    return PorterDuffFunctions.DarkenDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3058,7 +3058,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3066,17 +3066,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_DestIn : PixelBlender<TPixel>
+            internal class LightenDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_DestIn Instance { get; } = new Lighten_DestIn();
+                public static LightenDestIn Instance { get; } = new LightenDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_DestIn(background, source, amount);
+                    return PorterDuffFunctions.LightenDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3097,7 +3097,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3105,17 +3105,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_DestIn : PixelBlender<TPixel>
+            internal class OverlayDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_DestIn Instance { get; } = new Overlay_DestIn();
+                public static OverlayDestIn Instance { get; } = new OverlayDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_DestIn(background, source, amount);
+                    return PorterDuffFunctions.OverlayDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3136,7 +3136,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3144,17 +3144,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_DestIn : PixelBlender<TPixel>
+            internal class HardLightDestIn : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_DestIn Instance { get; } = new HardLight_DestIn();
+                public static HardLightDestIn Instance { get; } = new HardLightDestIn();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_DestIn(background, source, amount);
+                    return PorterDuffFunctions.HardLightDestIn(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3175,7 +3175,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_DestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightDestIn(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3183,17 +3183,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_DestOut : PixelBlender<TPixel>
+            internal class NormalDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_DestOut Instance { get; } = new Normal_DestOut();
+                public static NormalDestOut Instance { get; } = new NormalDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_DestOut(background, source, amount);
+                    return PorterDuffFunctions.NormalDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3214,7 +3214,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3222,17 +3222,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_DestOut : PixelBlender<TPixel>
+            internal class MultiplyDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_DestOut Instance { get; } = new Multiply_DestOut();
+                public static MultiplyDestOut Instance { get; } = new MultiplyDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_DestOut(background, source, amount);
+                    return PorterDuffFunctions.MultiplyDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3253,7 +3253,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3261,17 +3261,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_DestOut : PixelBlender<TPixel>
+            internal class AddDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_DestOut Instance { get; } = new Add_DestOut();
+                public static AddDestOut Instance { get; } = new AddDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_DestOut(background, source, amount);
+                    return PorterDuffFunctions.AddDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3292,7 +3292,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3300,17 +3300,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_DestOut : PixelBlender<TPixel>
+            internal class SubtractDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_DestOut Instance { get; } = new Subtract_DestOut();
+                public static SubtractDestOut Instance { get; } = new SubtractDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_DestOut(background, source, amount);
+                    return PorterDuffFunctions.SubtractDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3331,7 +3331,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3339,17 +3339,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_DestOut : PixelBlender<TPixel>
+            internal class ScreenDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_DestOut Instance { get; } = new Screen_DestOut();
+                public static ScreenDestOut Instance { get; } = new ScreenDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_DestOut(background, source, amount);
+                    return PorterDuffFunctions.ScreenDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3370,7 +3370,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3378,17 +3378,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_DestOut : PixelBlender<TPixel>
+            internal class DarkenDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_DestOut Instance { get; } = new Darken_DestOut();
+                public static DarkenDestOut Instance { get; } = new DarkenDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_DestOut(background, source, amount);
+                    return PorterDuffFunctions.DarkenDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3409,7 +3409,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3417,17 +3417,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_DestOut : PixelBlender<TPixel>
+            internal class LightenDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_DestOut Instance { get; } = new Lighten_DestOut();
+                public static LightenDestOut Instance { get; } = new LightenDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_DestOut(background, source, amount);
+                    return PorterDuffFunctions.LightenDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3448,7 +3448,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3456,17 +3456,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_DestOut : PixelBlender<TPixel>
+            internal class OverlayDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_DestOut Instance { get; } = new Overlay_DestOut();
+                public static OverlayDestOut Instance { get; } = new OverlayDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_DestOut(background, source, amount);
+                    return PorterDuffFunctions.OverlayDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3487,7 +3487,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3495,17 +3495,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_DestOut : PixelBlender<TPixel>
+            internal class HardLightDestOut : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_DestOut Instance { get; } = new HardLight_DestOut();
+                public static HardLightDestOut Instance { get; } = new HardLightDestOut();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_DestOut(background, source, amount);
+                    return PorterDuffFunctions.HardLightDestOut(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3526,7 +3526,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_DestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightDestOut(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3534,17 +3534,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_Clear : PixelBlender<TPixel>
+            internal class NormalClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_Clear Instance { get; } = new Normal_Clear();
+                public static NormalClear Instance { get; } = new NormalClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_Clear(background, source, amount);
+                    return PorterDuffFunctions.NormalClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3565,7 +3565,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3573,17 +3573,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_Clear : PixelBlender<TPixel>
+            internal class MultiplyClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_Clear Instance { get; } = new Multiply_Clear();
+                public static MultiplyClear Instance { get; } = new MultiplyClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_Clear(background, source, amount);
+                    return PorterDuffFunctions.MultiplyClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3604,7 +3604,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3612,17 +3612,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_Clear : PixelBlender<TPixel>
+            internal class AddClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_Clear Instance { get; } = new Add_Clear();
+                public static AddClear Instance { get; } = new AddClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_Clear(background, source, amount);
+                    return PorterDuffFunctions.AddClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3643,7 +3643,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3651,17 +3651,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_Clear : PixelBlender<TPixel>
+            internal class SubtractClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_Clear Instance { get; } = new Subtract_Clear();
+                public static SubtractClear Instance { get; } = new SubtractClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_Clear(background, source, amount);
+                    return PorterDuffFunctions.SubtractClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3682,7 +3682,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3690,17 +3690,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_Clear : PixelBlender<TPixel>
+            internal class ScreenClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_Clear Instance { get; } = new Screen_Clear();
+                public static ScreenClear Instance { get; } = new ScreenClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_Clear(background, source, amount);
+                    return PorterDuffFunctions.ScreenClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3721,7 +3721,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3729,17 +3729,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_Clear : PixelBlender<TPixel>
+            internal class DarkenClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_Clear Instance { get; } = new Darken_Clear();
+                public static DarkenClear Instance { get; } = new DarkenClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_Clear(background, source, amount);
+                    return PorterDuffFunctions.DarkenClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3760,7 +3760,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3768,17 +3768,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_Clear : PixelBlender<TPixel>
+            internal class LightenClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_Clear Instance { get; } = new Lighten_Clear();
+                public static LightenClear Instance { get; } = new LightenClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_Clear(background, source, amount);
+                    return PorterDuffFunctions.LightenClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3799,7 +3799,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3807,17 +3807,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_Clear : PixelBlender<TPixel>
+            internal class OverlayClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_Clear Instance { get; } = new Overlay_Clear();
+                public static OverlayClear Instance { get; } = new OverlayClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_Clear(background, source, amount);
+                    return PorterDuffFunctions.OverlayClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3838,7 +3838,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3846,17 +3846,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_Clear : PixelBlender<TPixel>
+            internal class HardLightClear : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_Clear Instance { get; } = new HardLight_Clear();
+                public static HardLightClear Instance { get; } = new HardLightClear();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_Clear(background, source, amount);
+                    return PorterDuffFunctions.HardLightClear(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3877,7 +3877,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_Clear(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightClear(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3885,17 +3885,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Normal_Xor : PixelBlender<TPixel>
+            internal class NormalXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Normal_Xor Instance { get; } = new Normal_Xor();
+                public static NormalXor Instance { get; } = new NormalXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Normal_Xor(background, source, amount);
+                    return PorterDuffFunctions.NormalXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3916,7 +3916,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Normal_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.NormalXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3924,17 +3924,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Multiply_Xor : PixelBlender<TPixel>
+            internal class MultiplyXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Multiply_Xor Instance { get; } = new Multiply_Xor();
+                public static MultiplyXor Instance { get; } = new MultiplyXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Multiply_Xor(background, source, amount);
+                    return PorterDuffFunctions.MultiplyXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3955,7 +3955,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Multiply_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.MultiplyXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -3963,17 +3963,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Add_Xor : PixelBlender<TPixel>
+            internal class AddXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Add_Xor Instance { get; } = new Add_Xor();
+                public static AddXor Instance { get; } = new AddXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Add_Xor(background, source, amount);
+                    return PorterDuffFunctions.AddXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -3994,7 +3994,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Add_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.AddXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -4002,17 +4002,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Subtract_Xor : PixelBlender<TPixel>
+            internal class SubtractXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Subtract_Xor Instance { get; } = new Subtract_Xor();
+                public static SubtractXor Instance { get; } = new SubtractXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Subtract_Xor(background, source, amount);
+                    return PorterDuffFunctions.SubtractXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -4033,7 +4033,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Subtract_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.SubtractXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -4041,17 +4041,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Screen_Xor : PixelBlender<TPixel>
+            internal class ScreenXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Screen_Xor Instance { get; } = new Screen_Xor();
+                public static ScreenXor Instance { get; } = new ScreenXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Screen_Xor(background, source, amount);
+                    return PorterDuffFunctions.ScreenXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -4072,7 +4072,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Screen_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.ScreenXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -4080,17 +4080,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Darken_Xor : PixelBlender<TPixel>
+            internal class DarkenXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Darken_Xor Instance { get; } = new Darken_Xor();
+                public static DarkenXor Instance { get; } = new DarkenXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Darken_Xor(background, source, amount);
+                    return PorterDuffFunctions.DarkenXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -4111,7 +4111,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Darken_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.DarkenXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -4119,17 +4119,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Lighten_Xor : PixelBlender<TPixel>
+            internal class LightenXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Lighten_Xor Instance { get; } = new Lighten_Xor();
+                public static LightenXor Instance { get; } = new LightenXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Lighten_Xor(background, source, amount);
+                    return PorterDuffFunctions.LightenXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -4150,7 +4150,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Lighten_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.LightenXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -4158,17 +4158,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class Overlay_Xor : PixelBlender<TPixel>
+            internal class OverlayXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static Overlay_Xor Instance { get; } = new Overlay_Xor();
+                public static OverlayXor Instance { get; } = new OverlayXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.Overlay_Xor(background, source, amount);
+                    return PorterDuffFunctions.OverlayXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -4189,7 +4189,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.Overlay_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.OverlayXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
@@ -4197,17 +4197,17 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 }
             }
 
-            internal class HardLight_Xor : PixelBlender<TPixel>
+            internal class HardLightXor : PixelBlender<TPixel>
             {
                 /// <summary>
                 /// Gets the static instance of this blender.
                 /// </summary>
-                public static HardLight_Xor Instance { get; } = new HardLight_Xor();
+                public static HardLightXor Instance { get; } = new HardLightXor();
 
                 /// <inheritdoc />
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
-                    return PorterDuffFunctions.HardLight_Xor(background, source, amount);
+                    return PorterDuffFunctions.HardLightXor(background, source, amount);
                 }
 
                 /// <inheritdoc />
@@ -4228,7 +4228,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
                         for (int i = 0; i < destination.Length; i++)
                         {
-                            destinationSpan[i] = PorterDuffFunctions.HardLight_Xor(backgroundSpan[i], sourceSpan[i], amount[i]);
+                            destinationSpan[i] = PorterDuffFunctions.HardLightXor(backgroundSpan[i], sourceSpan[i], amount[i]);
                         }
 
                         PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);

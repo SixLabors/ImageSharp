@@ -270,10 +270,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         // Y coordinates of source points
@@ -331,10 +331,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         });
 
                 // Now process the rows.
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         // Ensure offsets are normalized for cropping and padding.

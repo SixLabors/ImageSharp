@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct FixedUInt32Buffer18

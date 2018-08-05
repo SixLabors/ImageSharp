@@ -7,8 +7,7 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.Memory;
 
-// TODO: This could be useful elsewhere.
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.IO
 {
     /// <summary>
     /// A stream reader that add a secondary level buffer in addition to native stream buffered reading
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         {
             this.stream = stream;
             this.length = (int)stream.Length;
-            this.managedBuffer = memoryAllocator.AllocateCleanManagedByteBuffer(ChunkLength);
+            this.managedBuffer = memoryAllocator.AllocateManagedByteBuffer(ChunkLength, AllocationOptions.Clean);
             this.bufferChunk = this.managedBuffer.Array;
         }
 

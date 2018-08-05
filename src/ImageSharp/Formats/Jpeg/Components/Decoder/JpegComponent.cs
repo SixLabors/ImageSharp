@@ -5,21 +5,19 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// Represents a single frame component
     /// </summary>
-    internal class PdfJsFrameComponent : IDisposable, IJpegComponent
+    internal class JpegComponent : IDisposable, IJpegComponent
     {
         private readonly MemoryAllocator memoryAllocator;
 
-        public PdfJsFrameComponent(MemoryAllocator memoryAllocator, PdfJsFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
+        public JpegComponent(MemoryAllocator memoryAllocator, JpegFrame frame, byte id, int horizontalFactor, int verticalFactor, byte quantizationTableIndex, int index)
         {
             this.memoryAllocator = memoryAllocator;
             this.Frame = frame;
@@ -89,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         public int ACHuffmanTableId { get; set; }
 
-        public PdfJsFrame Frame { get; }
+        public JpegFrame Frame { get; }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -125,11 +123,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
             }
             else
             {
-                PdfJsFrameComponent c0 = this.Frame.Components[0];
+                JpegComponent c0 = this.Frame.Components[0];
                 this.SubSamplingDivisors = c0.SamplingFactors.DivideBy(this.SamplingFactors);
             }
 
-            this.SpectralBlocks = this.memoryAllocator.AllocateClean2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1);
+            this.SpectralBlocks = this.memoryAllocator.Allocate2D<Block8x8>(blocksPerColumnForMcu, blocksPerLineForMcu + 1, AllocationOptions.Clean);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -140,16 +138,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetBlockBufferOffset(int row, int col)
+        public ref short GetBlockDataReference(int column, int row)
         {
-            return 64 * (((this.WidthInBlocks + 1) * row) + col);
-        }
-
-        // TODO: we need consistence in (row, col) VS (col, row) ordering
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref short GetBlockDataReference(int row, int col)
-        {
-            ref Block8x8 blockRef = ref this.GetBlockReference(col, row);
+            ref Block8x8 blockRef = ref this.GetBlockReference(column, row);
             return ref Unsafe.As<Block8x8, short>(ref blockRef);
         }
     }

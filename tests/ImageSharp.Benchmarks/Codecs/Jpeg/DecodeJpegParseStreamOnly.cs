@@ -5,7 +5,6 @@ using BenchmarkDotNet.Attributes;
 using System.Drawing;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
@@ -38,12 +37,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             }
         }
 
-        [Benchmark(Description = "PdfJsJpegDecoderCore.ParseStream")]
+        [Benchmark(Description = "JpegDecoderCore.ParseStream")]
         public void ParseStreamPdfJs()
         {
             using (var memoryStream = new MemoryStream(this.jpegBytes))
             {
-                var decoder = new PdfJsJpegDecoderCore(Configuration.Default, new JpegDecoder() { IgnoreMetadata = true });
+                var decoder = new JpegDecoderCore(Configuration.Default, new Formats.Jpeg.JpegDecoder() { IgnoreMetadata = true });
                 decoder.ParseStream(memoryStream);
                 decoder.Dispose();
             }

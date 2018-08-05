@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
+namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
     /// The collection of lookup tables used for fast AC entropy scan decoding.
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// <param name="memoryAllocator">The memory allocator used to allocate memory for image processing operations.</param>
         public FastACTables(MemoryAllocator memoryAllocator)
         {
-            this.tables = memoryAllocator.AllocateClean2D<short>(512, 4);
+            this.tables = memoryAllocator.Allocate2D<short>(512, 4, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -35,10 +35,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         }
 
         /// <summary>
-        /// Gets a reference to the first element of the AC table indexed by <see cref="PdfJsFrameComponent.ACHuffmanTableId"/>
-        /// </summary>
+        /// Gets a reference to the first element of the AC table indexed by <see cref="JpegComponent.ACHuffmanTableId"/>       /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref short GetAcTableReference(PdfJsFrameComponent component)
+        public ref short GetAcTableReference(JpegComponent component)
         {
             return ref this.tables.GetRowSpan(component.ACHuffmanTableId)[0];
         }
@@ -48,11 +47,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components
         /// </summary>
         /// <param name="index">The table index.</param>
         /// <param name="acHuffmanTables">The collection of AC Huffman tables.</param>
-        public void BuildACTableLut(int index, PdfJsHuffmanTables acHuffmanTables)
+        public void BuildACTableLut(int index, HuffmanTables acHuffmanTables)
         {
             const int FastBits = ScanDecoder.FastBits;
             Span<short> fastAC = this.tables.GetRowSpan(index);
-            ref PdfJsHuffmanTable huffman = ref acHuffmanTables[index];
+            ref HuffmanTable huffman = ref acHuffmanTables[index];
 
             int i;
             for (i = 0; i < (1 << FastBits); i++)

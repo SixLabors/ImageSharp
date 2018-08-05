@@ -4,9 +4,11 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
@@ -214,6 +216,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(image.MetaData);
 
+            // Write Exif and ICC profiles
             this.WriteProfiles(image);
 
             // Write the quantization tables.
@@ -430,7 +433,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="meta">The image meta data.</param>
         private void WriteApplicationHeader(ImageMetaData meta)
         {
-            // Write the start of image marker. Markers are always prefixed with with 0xff.
+            // Write the start of image marker. Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = JpegConstants.Markers.SOI;
 
@@ -620,27 +623,59 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteExifProfile(ExifProfile exifProfile)
         {
-            const int Max = 65533;
+            const int MaxBytesApp1 = 65533;
+            const int MaxBytesWithExifId = 65527;
+
             byte[] data = exifProfile?.ToByteArray();
+
             if (data == null || data.Length == 0)
             {
                 return;
             }
 
-            if (data.Length > Max)
+            data = ProfileResolver.ExifMarker.Concat(data).ToArray();
+
+            int remaining = data.Length;
+            int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
+            int app1Length = bytesToWrite + 2;
+
+            this.WriteApp1Header(app1Length);
+
+            // write the exif data
+            this.outputStream.Write(data, 0, bytesToWrite);
+            remaining -= bytesToWrite;
+
+            // if the exif data exceeds 64K, write it in multiple APP1 Markers
+            for (int idx = MaxBytesApp1; idx < data.Length; idx += MaxBytesWithExifId)
             {
-                throw new ImageFormatException($"Exif profile size exceeds limit. nameof{Max}");
+                bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
+                app1Length = bytesToWrite + 2 + 6;
+
+                this.WriteApp1Header(app1Length);
+
+                // write Exif00 marker
+                ProfileResolver.ExifMarker.AsSpan().CopyTo(this.buffer.AsSpan());
+                this.outputStream.Write(this.buffer, 0, 6);
+
+                // write the exif data
+                this.outputStream.Write(data, idx, bytesToWrite);
+
+                remaining -= bytesToWrite;
             }
+        }
 
-            int length = data.Length + 2;
-
+        /// <summary>
+        /// Writes the App1 header.
+        /// </summary>
+        /// <param name="app1Length">The length of the data the app1 marker contains</param>
+        private void WriteApp1Header(int app1Length)
+        {
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = JpegConstants.Markers.APP1; // Application Marker
-            this.buffer[2] = (byte)((length >> 8) & 0xFF);
-            this.buffer[3] = (byte)(length & 0xFF);
+            this.buffer[2] = (byte)((app1Length >> 8) & 0xFF);
+            this.buffer[3] = (byte)(app1Length & 0xFF);
 
             this.outputStream.Write(this.buffer, 0, 4);
-            this.outputStream.Write(data, 0, data.Length);
         }
 
         /// <summary>
@@ -652,7 +687,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIccProfile(IccProfile iccProfile)
         {
-            // Just incase someone set the value to null by accident.
             if (iccProfile == null)
             {
                 return;
@@ -908,7 +942,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="length">The marker length.</param>
         private void WriteMarkerHeader(byte marker, int length)
         {
-            // Markers are always prefixed with with 0xff.
+            // Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
             this.buffer[1] = marker;
             this.buffer[2] = (byte)(length >> 8);

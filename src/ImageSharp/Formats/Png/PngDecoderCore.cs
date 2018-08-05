@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 
@@ -260,6 +261,15 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 case PngChunkType.Text:
                                     this.ReadTextChunk(metadata, chunk.Data.Array, chunk.Length);
                                     break;
+                                case PngChunkType.Exif:
+                                    if (!this.ignoreMetadata)
+                                    {
+                                        byte[] exifData = new byte[chunk.Length];
+                                        Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                        metadata.ExifProfile = new ExifProfile(exifData);
+                                    }
+
+                                    break;
                                 case PngChunkType.End:
                                     this.isEndChunkReached = true;
                                     break;
@@ -370,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return false;
             }
 
-            buffer = this.MemoryAllocator.AllocateCleanManagedByteBuffer(bytesPerScanline * 8 / bits);
+            buffer = this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerScanline * 8 / bits, AllocationOptions.Clean);
             byte[] result = buffer.Array;
             int mask = 0xFF >> (8 - bits);
             int resultOffset = 0;
@@ -437,8 +447,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bytesPerSample = this.header.BitDepth / 8;
             }
 
-            this.previousScanline = this.MemoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.scanline = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
+            this.previousScanline = this.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.scanline = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -1170,7 +1180,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Decodes and assigns marker colors that identify transparent pixels in non indexed images
         /// </summary>
-        /// <param name="alpha">The aplha tRNS array</param>
+        /// <param name="alpha">The alpha tRNS array</param>
         private void AssignTransparentMarkers(ReadOnlySpan<byte> alpha)
         {
             if (this.pngColorType == PngColorType.Rgb)
@@ -1217,7 +1227,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The type of pixel we are expanding to</typeparam>
         /// <param name="scanline">The defiltered scanline</param>
-        /// <param name="row">Thecurrent  output image row</param>
+        /// <param name="row">The current  output image row</param>
         private void ProcessScanlineFromPalette<TPixel>(ReadOnlySpan<byte> scanline, Span<TPixel> row)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -1445,7 +1455,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IManagedByteBuffer ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            IManagedByteBuffer buffer = this.configuration.MemoryAllocator.AllocateCleanManagedByteBuffer(length);
+            IManagedByteBuffer buffer = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
 
             this.currentStream.Read(buffer.Array, 0, length);
 

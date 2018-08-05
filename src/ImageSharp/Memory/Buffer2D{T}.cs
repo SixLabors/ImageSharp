@@ -62,7 +62,7 @@ namespace SixLabors.Memory
             get
             {
                 ImageSharp.DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
-                DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+                ImageSharp.DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
                 Span<T> span = this.Span;
                 return ref span[(this.Width * y) + x];
             }

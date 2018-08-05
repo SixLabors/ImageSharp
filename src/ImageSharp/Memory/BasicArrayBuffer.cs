@@ -38,7 +38,7 @@ namespace SixLabors.Memory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
+                ImageSharp.DebugGuard.MustBeLessThan(index, this.Length, nameof(index));
 
                 Span<T> span = this.GetSpan();
                 return ref span[index];

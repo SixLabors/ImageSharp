@@ -1,14 +1,16 @@
-﻿using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    using System;
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.Memory;
-
     [Config(typeof(Config.ShortClr))]
     public class YCbCrColorConversion
     {
@@ -81,6 +83,5 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
             return buffers;
         }
-
     }
 }

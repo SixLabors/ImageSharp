@@ -58,10 +58,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     halfHeight,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                         {
                             int newY = height - y - 1;
@@ -91,10 +91,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     height,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                         {
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

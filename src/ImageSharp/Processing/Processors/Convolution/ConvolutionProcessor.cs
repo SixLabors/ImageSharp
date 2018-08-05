@@ -51,10 +51,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 source.CopyTo(targetPixels);
 
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                  startY,
                  endY,
-                 configuration.ParallelOptions,
+                 configuration,
                  y =>
                  {
                      Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

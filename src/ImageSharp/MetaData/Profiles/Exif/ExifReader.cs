@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         private Endianness endianness = Endianness.BigEndian;
         private uint exifOffset;
         private uint gpsOffset;
-        private int startIndex;
 
         public ExifReader(byte[] exifData)
         {
@@ -76,20 +75,6 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public List<ExifValue> ReadValues()
         {
             var values = new List<ExifValue>();
-
-            if (this.ReadString(4) == "Exif")
-            {
-                if (this.ReadUInt16() != 0)
-                {
-                    return values;
-                }
-
-                this.startIndex = 6;
-            }
-            else
-            {
-                this.position = 0;
-            }
 
             if (this.ReadString(2) == "II")
             {
@@ -169,7 +154,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <param name="index">The index.</param>
         private void AddValues(List<ExifValue> values, int index)
         {
-            this.position = this.startIndex + index;
+            this.position = index;
             int count = this.ReadUInt16();
 
             for (int i = 0; i < count; i++)
@@ -353,7 +338,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             {
                 int oldIndex = this.position;
 
-                uint newIndex = this.ConvertToUInt32(offsetBuffer) + (uint)this.startIndex;
+                uint newIndex = this.ConvertToUInt32(offsetBuffer);
 
                 // Ensure that the new index does not overrun the data
                 if (newIndex > int.MaxValue)
@@ -454,7 +439,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             {
                 if (value.Tag == ExifTag.JPEGInterchangeFormat && (value.DataType == ExifDataType.Long))
                 {
-                    this.ThumbnailOffset = (uint)value.Value + (uint)this.startIndex;
+                    this.ThumbnailOffset = (uint)value.Value;
                 }
                 else if (value.Tag == ExifTag.JPEGInterchangeFormatLength && value.DataType == ExifDataType.Long)
                 {

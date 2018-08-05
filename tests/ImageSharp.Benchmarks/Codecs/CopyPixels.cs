@@ -24,10 +24,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 Buffer2D<Rgba32> sourcePixels = source.GetRootFramePixelBuffer();
                 Buffer2D<Rgba32> targetPixels = target.GetRootFramePixelBuffer();
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
                         {
                             for (int x = 0; x < source.Width; x++)
@@ -48,10 +48,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 Buffer2D<Rgba32> sourcePixels = source.GetRootFramePixelBuffer();
                 Buffer2D<Rgba32> targetPixels = target.GetRootFramePixelBuffer();
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
                         {
                             Span<Rgba32> sourceRow = sourcePixels.GetRowSpan(y);
@@ -73,10 +73,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using (var source = new Image<Rgba32>(1024, 768))
             using (var target = new Image<Rgba32>(1024, 768))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
                     {
                         for (int x = 0; x < source.Width; x++)
@@ -95,10 +95,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using (var source = new Image<Rgba32>(1024, 768))
             using (var target = new Image<Rgba32>(1024, 768))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
                     {
                         Span<Rgba32> sourceRow = source.Frames.RootFrame.GetPixelRowSpan(y);

@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             var config = Configuration.CreateDefaultInstance();
-            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 100, 100))
             {
                 image.Mutate(x => x
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             var config = Configuration.CreateDefaultInstance();
-            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 100, 100))
             {
                 image.Mutate(x => x
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             var config = Configuration.CreateDefaultInstance();
-            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 200, 200))
             {
                 image.Mutate(x => x

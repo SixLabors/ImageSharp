@@ -54,10 +54,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             // If there's no reason for blending, then avoid it.
             if (this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         source.GetPixelRowSpan(y).Slice(minX, width).Fill(solidBrush.Color);
@@ -84,10 +84,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 {
                     amount.GetSpan().Fill(1f);
 
-                    Parallel.For(
+                    ParallelFor.WithConfiguration(
                         minY,
                         maxY,
-                        configuration.ParallelOptions,
+                        configuration,
                         y =>
                             {
                                 int offsetY = y - startY;

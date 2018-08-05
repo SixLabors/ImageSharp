@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
             this.MetaData = metaData;
-            this.Clear(configuration.ParallelOptions, backgroundColor);
+            this.Clear(configuration.GetParallelOptions(), backgroundColor);
         }
 
         /// <summary>

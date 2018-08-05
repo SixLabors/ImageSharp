@@ -70,25 +70,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 startY,
                 endY,
-                configuration.ParallelOptions,
+                configuration,
                 y =>
-                {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    Rgba32 rgba = default;
-
-                    for (int x = startX; x < endX; x++)
                     {
-                        ref TPixel color = ref row[x];
-                        color.ToRgba32(ref rgba);
+                        Span<TPixel> row = source.GetPixelRowSpan(y);
+                        Rgba32 rgba = default;
 
-                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                        float luminance = isAlphaOnly ? rgba.A : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
-                        color = luminance >= threshold ? upper : lower;
-                    }
-                });
+                        for (int x = startX; x < endX; x++)
+                        {
+                            ref TPixel color = ref row[x];
+                            color.ToRgba32(ref rgba);
+
+                            // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                            float luminance = isAlphaOnly
+                                                  ? rgba.A
+                                                  : (.2126F * rgba.R) + (.7152F * rgba.G) + (.0722F * rgba.B);
+                            color = luminance >= threshold ? upper : lower;
+                        }
+                    });
         }
     }
 }

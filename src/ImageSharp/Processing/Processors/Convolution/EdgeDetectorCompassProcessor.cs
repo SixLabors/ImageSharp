@@ -135,10 +135,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         Buffer2D<TPixel> passPixels = pass.PixelBuffer;
                         Buffer2D<TPixel> targetPixels = source.PixelBuffer;
 
-                        Parallel.For(
+                        ParallelFor.WithConfiguration(
                             minY,
                             maxY,
-                            configuration.ParallelOptions,
+                            configuration,
                             y =>
                                 {
                                     int offsetY = y - shiftY;

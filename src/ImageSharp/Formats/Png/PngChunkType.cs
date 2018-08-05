@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// Contains a list of of chunk types.
+    /// Contains a list of chunk types.
     /// </summary>
     internal enum PngChunkType : uint
     {
@@ -55,6 +55,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The pHYs chunk specifies the intended pixel size or aspect ratio for display of the image.
         /// </summary>
-        Physical = 0x70485973U // pHYs
+        Physical = 0x70485973U, // pHYs
+
+        /// <summary>
+        /// The data chunk which contains the Exif profile.
+        /// </summary>
+        Exif = 0x65584966U // eXIf
     }
 }

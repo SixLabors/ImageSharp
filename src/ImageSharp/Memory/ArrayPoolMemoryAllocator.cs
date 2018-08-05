@@ -62,7 +62,7 @@ namespace SixLabors.Memory
         public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes, int maxArraysPerBucketLargePool, int maxArraysPerBucketNormalPool)
         {
             ImageSharp.Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));
-            Guard.MustBeLessThanOrEqualTo(poolSelectorThresholdInBytes, maxPoolSizeInBytes, nameof(poolSelectorThresholdInBytes));
+            ImageSharp.Guard.MustBeLessThanOrEqualTo(poolSelectorThresholdInBytes, maxPoolSizeInBytes, nameof(poolSelectorThresholdInBytes));
 
             this.MaxPoolSizeInBytes = maxPoolSizeInBytes;
             this.PoolSelectorThresholdInBytes = poolSelectorThresholdInBytes;

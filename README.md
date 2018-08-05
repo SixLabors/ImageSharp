@@ -70,14 +70,27 @@ Our API is designed to be simple to consume. Here's an example of the code requi
 On platforms supporting netstandard 1.3+
 
 ```csharp
-// Image.Load(string path) is a shortcut for our default type. 
-// Other pixel formats use Image.Load<TPixel>(string path))
-using (Image<Rgba32> image = Image.Load("foo.jpg"))
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+
+namespace ImageSharpExample
 {
-    image.Mutate(x => x
-         .Resize(image.Width / 2, image.Height / 2)
-         .Grayscale());
-    image.Save("bar.jpg"); // Automatic encoder selected based on extension.
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Image.Load(string path) is a shortcut for our default type. 
+            // Other pixel formats use Image.Load<TPixel>(string path))
+            using (Image<Rgba32> image = Image.Load("foo.jpg"))
+            {
+                image.Mutate(x => x
+                     .Resize(image.Width / 2, image.Height / 2)
+                     .Grayscale());
+                image.Save("bar.jpg"); // Automatic encoder selected based on extension.
+            }
+        }
+    }
 }
 ```
 On netstandard 1.1 - 1.2

@@ -112,10 +112,10 @@ namespace SixLabors.ImageSharp.Benchmarks
                     Buffer2D<TPixel> sourcePixels = source.PixelBuffer;
                     rowColors.GetSpan().Fill(glowColor);
 
-                    Parallel.For(
+                    ParallelFor.WithConfiguration(
                         minY,
                         maxY,
-                        configuration.ParallelOptions,
+                        configuration,
                         y =>
                             {
                                 int offsetY = y - startY;

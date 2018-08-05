@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             Parallel.ForEach(
                 range,
-                configuration.ParallelOptions,
+                configuration.GetParallelOptions(),
                 y =>
                     {
                         int offsetY = y - startY;

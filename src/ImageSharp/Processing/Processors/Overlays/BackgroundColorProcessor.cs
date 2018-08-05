@@ -82,10 +82,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                 }
 
                 PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions.BlenderMode);
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         Span<TPixel> destination = source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);

@@ -1,29 +1,27 @@
-﻿// <copyright file="Crop.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
+using System;
 using System.Buffers;
+using System.Numerics;
+using System.Threading.Tasks;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Processors.Overlays;
+using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-
-    using BenchmarkDotNet.Attributes;
-    using SixLabors.ImageSharp.PixelFormats;
-
     using CoreSize = SixLabors.Primitives.Size;
-    using System.Numerics;
-    using System;
-    using System.Threading.Tasks;
-
-    using SixLabors.Memory;
-    using SixLabors.Primitives;
-    using SixLabors.ImageSharp.Processing.Processors.Overlays;
-    using SixLabors.ImageSharp.Processing.Processors;
 
     public class Glow : BenchmarkBase
     {
         private GlowProcessor<Rgba32> bulk;
+
         private GlowProcessorParallel<Rgba32> parallel;
 
         [GlobalSetup]
@@ -31,8 +29,8 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             this.bulk = new GlowProcessor<Rgba32>(NamedColors<Rgba32>.Beige, 800 * .5f, GraphicsOptions.Default);
             this.parallel = new GlowProcessorParallel<Rgba32>(NamedColors<Rgba32>.Beige) { Radius = 800 * .5f, };
-
         }
+
         [Benchmark(Description = "ImageSharp Glow - Bulk")]
         public CoreSize GlowBulk()
         {
@@ -76,7 +74,10 @@ namespace SixLabors.ImageSharp.Benchmarks
             public float Radius { get; set; }
 
             /// <inheritdoc/>
-            protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+            protected override void OnFrameApply(
+                ImageFrame<TPixel> source,
+                Rectangle sourceRectangle,
+                Configuration configuration)
             {
                 int startY = sourceRectangle.Y;
                 int endY = sourceRectangle.Bottom;
@@ -84,7 +85,9 @@ namespace SixLabors.ImageSharp.Benchmarks
                 int endX = sourceRectangle.Right;
                 TPixel glowColor = this.GlowColor;
                 Vector2 centre = Rectangle.Center(sourceRectangle);
-                float maxDistance = this.Radius > 0 ? Math.Min(this.Radius, sourceRectangle.Width * .5F) : sourceRectangle.Width * .5F;
+                float maxDistance = this.Radius > 0
+                                        ? Math.Min(this.Radius, sourceRectangle.Width * .5F)
+                                        : sourceRectangle.Width * .5F;
 
                 // Align start/end positions.
                 int minX = Math.Max(0, startX);
@@ -114,21 +117,26 @@ namespace SixLabors.ImageSharp.Benchmarks
                         maxY,
                         configuration,
                         y =>
-                        {
-                            int offsetY = y - startY;
-
-                            for (int x = minX; x < maxX; x++)
                             {
-                                int offsetX = x - startX;
-                                float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
-                                Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
-                                TPixel packed = default(TPixel);
-                                packed.PackFromVector4(PremultipliedLerp(sourceColor, glowColor.ToVector4(), 1 - (.95F * (distance / maxDistance))));
-                                sourcePixels[offsetX, offsetY] = packed;
-                            }
-                        });
+                                int offsetY = y - startY;
+
+                                for (int x = minX; x < maxX; x++)
+                                {
+                                    int offsetX = x - startX;
+                                    float distance = Vector2.Distance(centre, new Vector2(offsetX, offsetY));
+                                    Vector4 sourceColor = sourcePixels[offsetX, offsetY].ToVector4();
+                                    TPixel packed = default(TPixel);
+                                    packed.PackFromVector4(
+                                        PremultipliedLerp(
+                                            sourceColor,
+                                            glowColor.ToVector4(),
+                                            1 - (.95F * (distance / maxDistance))));
+                                    sourcePixels[offsetX, offsetY] = packed;
+                                }
+                            });
                 }
             }
+
             public static Vector4 PremultipliedLerp(Vector4 backdrop, Vector4 source, float amount)
             {
                 amount = amount.Clamp(0, 1);

@@ -4,14 +4,13 @@
 using System;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.Memory;
-
     public class GenericBlock8x8Tests
     {
         public static Image<TPixel> CreateTestImage<TPixel>()

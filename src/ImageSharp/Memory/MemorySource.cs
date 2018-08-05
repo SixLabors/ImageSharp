@@ -4,7 +4,9 @@
 using System;
 using System.Buffers;
 
-namespace SixLabors.Memory
+using SixLabors.Memory;
+
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Holds a <see cref="System.Memory{T}"/> that is either OWNED or CONSUMED.

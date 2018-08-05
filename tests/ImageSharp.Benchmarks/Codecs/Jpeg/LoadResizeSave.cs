@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [GlobalSetup]
         public void Setup()
         {
-            this.configuration.ParallelOptions.MaxDegreeOfParallelism =
+            this.configuration.MaxDegreeOfParallelism =
                 this.EnableParallelExecution ? Environment.ProcessorCount : 1;
 
             if (this.sourceBytes == null)

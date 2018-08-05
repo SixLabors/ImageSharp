@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using Moq;
 using Xunit;
+// ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -46,15 +47,6 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Test that the default configuration parallel options is not null.
-        /// </summary>
-        [Fact]
-        public void TestDefaultConfigurationParallelOptionsIsNotNull()
-        {
-            Assert.True(Configuration.Default.ParallelOptions != null);
-        }
-
-        /// <summary>
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
@@ -70,8 +62,21 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void TestDefaultConfigurationMaxDegreeOfParallelism()
         {
-            Assert.True(Configuration.Default.ParallelOptions.MaxDegreeOfParallelism == Environment.ProcessorCount);
+            Assert.True(Configuration.Default.MaxDegreeOfParallelism == Environment.ProcessorCount);
+
+            var cfg = new Configuration();
+            Assert.True(cfg.MaxDegreeOfParallelism == Environment.ProcessorCount);
         }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-42)]
+        public void Set_MaxDegreeOfParallelism_ToNonPositiveValue_Throws(int value)
+        {
+            var cfg = new Configuration();
+            Assert.Throws<ArgumentOutOfRangeException>(() => cfg.MaxDegreeOfParallelism = value);
+        }
+
 
         [Fact]
         public void ConstructorCallConfigureOnFormatProvider()

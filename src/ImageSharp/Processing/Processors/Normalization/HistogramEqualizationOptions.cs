@@ -25,10 +25,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public bool ClipHistogram { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets the histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.
-        /// Defaults to 60.
+        /// Gets or sets the histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.
+        /// Defaults to 0.35.
         /// </summary>
-        public int ClipLimit { get; set; } = 60;
+        public float ClipLimitPercentage { get; set; } = 0.035f;
 
         /// <summary>
         /// Gets or sets the size of the grid for the adaptive histogram equalization. Defaults to 32.

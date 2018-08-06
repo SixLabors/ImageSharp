@@ -25,10 +25,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
         /// <param name="gridSize">The grid size of the adaptive histogram equalization. Minimum value is 4.</param>
-        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, int clipLimit, int gridSize)
-            : base(luminanceLevels, clipHistogram, clipLimit)
+        public AdaptiveHistEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage, int gridSize)
+            : base(luminanceLevels, clipHistogram, clipLimitPercentage)
         {
             Guard.MustBeGreaterThanOrEqualTo(gridSize, 4, nameof(gridSize));
 
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 {
                                     // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
                                     histogram.CopyTo(histogramCopy);
-                                    this.ClipHistogram(histogramCopy, this.ClipLimit);
+                                    this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, pixelsInGrid);
                                 }
 
                                 // Calculate the cumulative distribution function, which will map each input pixel in the current grid to a new value.

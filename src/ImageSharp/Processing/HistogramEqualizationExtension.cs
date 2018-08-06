@@ -40,15 +40,15 @@ namespace SixLabors.ImageSharp.Processing
             switch (options.Method)
             {
                 case HistogramEqualizationMethod.Global:
-                    processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit);
+                    processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage);
                     break;
 
                 case HistogramEqualizationMethod.Adaptive:
-                    processor = new AdaptiveHistEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit, options.GridSize);
+                    processor = new AdaptiveHistEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage, options.GridSize);
                     break;
 
                 default:
-                    processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimit);
+                    processor = new GlobalHistogramEqualizationProcessor<TPixel>(options.LuminanceLevels, options.ClipHistogram, options.ClipLimitPercentage);
                     break;
             }
 

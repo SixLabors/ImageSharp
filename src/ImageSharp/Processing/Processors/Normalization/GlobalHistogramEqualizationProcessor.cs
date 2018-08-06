@@ -23,9 +23,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicating whether to clip the histogram bins at a specific value.</param>
-        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-        public GlobalHistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, int clipLimit)
-            : base(luminanceLevels, clipHistogram, clipLimit)
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels. Histogram bins which exceed this limit, will be capped at this value.</param>
+        public GlobalHistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
+            : base(luminanceLevels, clipHistogram, clipLimitPercentage)
         {
         }
 
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 if (this.ClipHistogramEnabled)
                 {
-                    this.ClipHistogram(histogram, this.ClipLimit);
+                    this.ClipHistogram(histogram, this.ClipLimitPercentage, numberOfPixels);
                 }
 
                 // Calculate the cumulative distribution function, which will map each input pixel to a new value.

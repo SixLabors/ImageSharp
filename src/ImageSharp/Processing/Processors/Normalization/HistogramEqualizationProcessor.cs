@@ -19,15 +19,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicates, if histogram bins should be clipped.</param>
-        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, int clipLimit)
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
+        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
-            Guard.MustBeGreaterThan(clipLimit, 1, nameof(clipLimit));
+            Guard.MustBeGreaterThan(clipLimitPercentage, 0.0f, nameof(clipLimitPercentage));
 
             this.LuminanceLevels = luminanceLevels;
             this.ClipHistogramEnabled = clipHistogram;
-            this.ClipLimit = clipLimit;
+            this.ClipLimitPercentage = clipLimitPercentage;
         }
 
         /// <summary>
@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public bool ClipHistogramEnabled { get; }
 
         /// <summary>
-        /// Gets the histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.
+        /// Gets the histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.
         /// </summary>
-        public int ClipLimit { get; }
+        public float ClipLimitPercentage { get; }
 
         /// <summary>
         /// Calculates the cumulative distribution function.
@@ -87,9 +87,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// the values over the clip limit to all other bins equally.
         /// </summary>
         /// <param name="histogram">The histogram to apply the clipping.</param>
-        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
-        protected void ClipHistogram(Span<int> histogram, int clipLimit)
+        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the grid. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="pixelCount">The numbers of pixels inside the grid.</param>
+        protected void ClipHistogram(Span<int> histogram, float clipLimitPercentage, int pixelCount)
         {
+            int clipLimit = Convert.ToInt32(pixelCount * clipLimitPercentage);
             int sumOverClip = 0;
             for (int i = 0; i < histogram.Length; i++)
             {

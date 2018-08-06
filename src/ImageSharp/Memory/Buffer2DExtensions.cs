@@ -3,9 +3,10 @@
 
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.Primitives;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Defines extension methods for <see cref="Buffer2D{T}"/>.

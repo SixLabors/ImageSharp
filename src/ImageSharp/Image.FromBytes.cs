@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -193,13 +194,24 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         public static unsafe IImageFormat DetectFormat(Configuration config, ReadOnlySpan<byte> data)
         {
-            fixed (byte* ptr = &data.GetPinnableReference())
+            int maxHeaderSize = config.MaxHeaderSize;
+            if (maxHeaderSize <= 0)
             {
-                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                return null;
+            }
+
+            IImageFormat format = default;
+            foreach (IImageFormatDetector detector in config.ImageFormatsManager.FormatDetectors)
+            {
+                IImageFormat f = detector.DetectFormat(data);
+
+                if (f != null)
                 {
-                    return DetectFormat(config, stream);
+                    format = f;
                 }
             }
+
+            return format;
         }
 
         /// <summary>

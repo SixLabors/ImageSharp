@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 // Calculate the cumulative distribution function, which will map each input pixel to a new value.
                 Span<int> cdf = cdfBuffer.GetSpan();
-                int cdfMin = this.CalculateCdf(cdf, histogram);
+                int cdfMin = this.CalculateCdf(cdf, histogram, histogram.Length - 1);
 
                 // Apply the cdf to each pixel of the image
                 float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;

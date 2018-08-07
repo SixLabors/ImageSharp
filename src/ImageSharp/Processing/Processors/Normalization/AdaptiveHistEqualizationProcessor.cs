@@ -64,14 +64,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             Span<int> histogram = histogramBuffer.GetSpan();
                             Span<int> histogramCopy = histogramBufferCopy.GetSpan();
                             Span<int> cdf = cdfBuffer.GetSpan();
-
-                            histogram.Clear();
+                            int maxHistIdx = 0;
 
                             // Build the histogram of grayscale values for the current grid.
                             for (int dy = -halfGridSize; dy < halfGridSize; dy++)
                             {
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, dy, this.GridSize);
-                                this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                int maxIdx = this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                if (maxIdx > maxHistIdx)
+                                {
+                                    maxHistIdx = maxIdx;
+                                }
                             }
 
                             for (int y = 0; y < source.Height; y++)
@@ -79,12 +82,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                 if (this.ClipHistogramEnabled)
                                 {
                                     // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
-                                    histogram.CopyTo(histogramCopy);
+                                    histogram.Slice(0, maxHistIdx).CopyTo(histogramCopy);
                                     this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, pixelsInGrid);
                                 }
 
                                 // Calculate the cumulative distribution function, which will map each input pixel in the current grid to a new value.
-                                int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy) : this.CalculateCdf(cdf, histogram);
+                                int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy, maxHistIdx) : this.CalculateCdf(cdf, histogram, maxHistIdx);
                                 float numberOfPixelsMinusCdfMin = pixelsInGrid - cdfMin;
 
                                 // Map the current pixel to the new equalized value
@@ -94,11 +97,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                                 // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize, this.GridSize);
-                                this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                maxHistIdx = this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels, maxHistIdx);
 
                                 // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
                                 rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize, this.GridSize);
-                                this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                int maxIdx = this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                if (maxIdx > maxHistIdx)
+                                {
+                                    maxHistIdx = maxIdx;
+                                }
                             }
                         }
                     });
@@ -127,34 +134,39 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 y = source.Height - diff - 1;
             }
 
-            // special cases for the left and the right border where GetPixelRowSpan can not be used
+            // Special cases for the left and the right border where GetPixelRowSpan can not be used
             if (x < 0)
             {
-                var rowPixels = new List<TPixel>();
+                var rowPixels = new TPixel[gridSize];
+                int idx = 0;
                 for (int dx = x; dx < x + gridSize; dx++)
                 {
-                    rowPixels.Add(source[Math.Abs(dx), y]);
+                    rowPixels[idx] = source[Math.Abs(dx), y];
+                    idx++;
                 }
 
-                return rowPixels.ToArray();
+                return rowPixels;
             }
             else if (x + gridSize > source.Width)
             {
-                var rowPixels = new List<TPixel>();
+                var rowPixels = new TPixel[gridSize];
+                int idx = 0;
                 for (int dx = x; dx < x + gridSize; dx++)
                 {
                     if (dx >= source.Width)
                     {
                         int diff = dx - source.Width;
-                        rowPixels.Add(source[dx - diff - 1, y]);
+                        rowPixels[idx] = source[dx - diff - 1, y];
                     }
                     else
                     {
-                        rowPixels.Add(source[dx, y]);
+                        rowPixels[idx] = source[dx, y];
                     }
+
+                    idx++;
                 }
 
-                return rowPixels.ToArray();
+                return rowPixels;
             }
 
             return source.GetPixelRowSpan(y).Slice(start: x, length: gridSize);
@@ -166,13 +178,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="greyValues">The grey values to add</param>
         /// <param name="histogram">The histogram</param>
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
-        private void AddPixelsTooHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
+        /// <returns>The maximum index where a value was changed.</returns>
+        private int AddPixelsTooHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
         {
-            for (int i = 0; i < greyValues.Length; i++)
+            int maxIdx = 0;
+            for (int idx = 0; idx < greyValues.Length; idx++)
             {
-                int luminance = this.GetLuminance(greyValues[i], luminanceLevels);
+                int luminance = this.GetLuminance(greyValues[idx], luminanceLevels);
                 histogram[luminance]++;
+                if (luminance > maxIdx)
+                {
+                    maxIdx = luminance;
+                }
             }
+
+            return maxIdx;
         }
 
         /// <summary>
@@ -181,13 +201,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="greyValues">The grey values to remove</param>
         /// <param name="histogram">The histogram</param>
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
-        private void RemovePixelsFromHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
+        /// <param name="maxHistIdx">The current maximum index of the histogram.</param>
+        /// <returns>The (maybe changed) maximum index of the histogram.</returns>
+        private int RemovePixelsFromHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels, int maxHistIdx)
         {
-            for (int i = 0; i < greyValues.Length; i++)
+            for (int idx = 0; idx < greyValues.Length; idx++)
             {
-                int luminance = this.GetLuminance(greyValues[i], luminanceLevels);
+                int luminance = this.GetLuminance(greyValues[idx], luminanceLevels);
                 histogram[luminance]--;
+
+                // If the histogram at the maximum index has changed to 0, search for the next smaller value.
+                if (luminance == maxHistIdx && histogram[luminance] == 0)
+                {
+                    for (int j = luminance; j >= 0;  j--)
+                    {
+                        maxHistIdx = j;
+                        if (histogram[j] != 0)
+                        {
+                            break;
+                        }
+                    }
+                }
             }
+
+            return maxHistIdx;
         }
     }
 }

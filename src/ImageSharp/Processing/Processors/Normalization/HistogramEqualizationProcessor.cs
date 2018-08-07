@@ -50,12 +50,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         /// <param name="cdf">The array holding the cdf.</param>
         /// <param name="histogram">The histogram of the input image.</param>
+        /// <param name="maxIdx">Index of the maximum of the histogram.</param>
         /// <returns>The first none zero value of the cdf.</returns>
-        protected int CalculateCdf(Span<int> cdf, Span<int> histogram)
+        protected int CalculateCdf(Span<int> cdf, Span<int> histogram, int maxIdx)
         {
             // Calculate the cumulative histogram
             int histSum = 0;
-            for (int i = 0; i < histogram.Length; i++)
+            for (int i = 0; i <= maxIdx; i++)
             {
                 histSum += histogram[i];
                 cdf[i] = histSum;
@@ -63,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             // Get the first none zero value of the cumulative histogram
             int cdfMin = 0;
-            for (int i = 0; i < histogram.Length; i++)
+            for (int i = 0; i <= maxIdx; i++)
             {
                 if (cdf[i] != 0)
                 {
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
-            for (int i = 0; i < histogram.Length; i++)
+            for (int i = 0; i <= maxIdx; i++)
             {
                 cdf[i] = Math.Max(0, cdf[i] - cdfMin);
             }

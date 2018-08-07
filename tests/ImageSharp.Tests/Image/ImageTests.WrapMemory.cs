@@ -8,6 +8,7 @@ using System.Drawing.Imaging;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Shapes;
@@ -102,6 +103,11 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WrapSystemDrawingBitmap_WhenObserved()
             {
+                if (ShouldSkipBitmapTest)
+                {
+                    return;
+                }
+
                 using (var bmp = new Bitmap(51, 23))
                 {
                     using (var memoryManager = new BitmapMemoryManager(bmp))
@@ -130,6 +136,11 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WrapSystemDrawingBitmap_WhenOwned()
             {
+                if (ShouldSkipBitmapTest)
+                {
+                    return;
+                }
+
                 using (var bmp = new Bitmap(51, 23))
                 {
                     var memoryManager = new BitmapMemoryManager(bmp);
@@ -151,6 +162,9 @@ namespace SixLabors.ImageSharp.Tests
                     bmp.Save(fn, ImageFormat.Bmp);
                 }
             }
+
+            private static bool ShouldSkipBitmapTest =>
+                !TestEnvironment.Is64BitProcess || TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1";
         }
     }
 }

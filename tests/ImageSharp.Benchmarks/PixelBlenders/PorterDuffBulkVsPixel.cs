@@ -1,32 +1,35 @@
-﻿// <copyright file="Crop.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
+using System;
 using System.Buffers;
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System;
-
-    using BenchmarkDotNet.Attributes;
-    using SixLabors.ImageSharp.PixelFormats;
     using CoreSize = SixLabors.Primitives.Size;
-    using System.Numerics;
-
-    using SixLabors.Memory;
-    using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
     public class PorterDuffBulkVsPixel : BenchmarkBase
     {
-        private void BulkVectorConvert<TPixel>(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
+        private void BulkVectorConvert<TPixel>(
+            Span<TPixel> destination,
+            Span<TPixel> background,
+            Span<TPixel> source,
+            Span<float> amount)
             where TPixel : struct, IPixel<TPixel>
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-            using (IMemoryOwner<Vector4> buffer = Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
+            using (IMemoryOwner<Vector4> buffer =
+                Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
             {
                 Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
                 Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
@@ -43,8 +46,13 @@ namespace SixLabors.ImageSharp.Benchmarks
                 PixelOperations<TPixel>.Instance.PackFromVector4(destinationSpan, destination, destination.Length);
             }
         }
-        private void BulkPixelConvert<TPixel>(Span<TPixel> destination, Span<TPixel> background, Span<TPixel> source, Span<float> amount)
-           where TPixel : struct, IPixel<TPixel>
+
+        private void BulkPixelConvert<TPixel>(
+            Span<TPixel> destination,
+            Span<TPixel> background,
+            Span<TPixel> source,
+            Span<float> amount)
+            where TPixel : struct, IPixel<TPixel>
         {
             Guard.MustBeGreaterThanOrEqualTo(destination.Length, background.Length, nameof(destination));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, background.Length, nameof(destination));

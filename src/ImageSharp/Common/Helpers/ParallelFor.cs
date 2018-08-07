@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp
     internal static class ParallelFor
     {
         /// <summary>
-        /// Helper method to execute Parallel.For using the settings in <see cref="Configuration.ParallelOptions"/>
+        /// Helper method to execute Parallel.For using the settings in <paramref name="configuration"/>
         /// </summary>
         public static void WithConfiguration(int fromInclusive, int toExclusive, Configuration configuration, Action<int> body)
         {
-            Parallel.For(fromInclusive, toExclusive, configuration.ParallelOptions, body);
+            Parallel.For(fromInclusive, toExclusive, configuration.GetParallelOptions(), body);
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp
             where T : struct
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            ParallelOptions parallelOptions = configuration.ParallelOptions;
+            ParallelOptions parallelOptions = configuration.GetParallelOptions();
 
             IMemoryOwner<T> InitBuffer()
             {

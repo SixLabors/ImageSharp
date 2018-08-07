@@ -3,6 +3,8 @@
 
 using System;
 using System.Buffers;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 using SixLabors.Shapes;

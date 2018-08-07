@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -89,7 +90,7 @@ namespace SixLabors.ImageSharp
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
             this.MetaData = metaData;
-            this.Clear(configuration.ParallelOptions, backgroundColor);
+            this.Clear(configuration.GetParallelOptions(), backgroundColor);
         }
 
         /// <summary>

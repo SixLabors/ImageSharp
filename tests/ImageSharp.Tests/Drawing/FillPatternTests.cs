@@ -2,10 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Memory;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing

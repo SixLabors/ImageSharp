@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -139,10 +140,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             {
                 amount.GetSpan().Fill(this.Opacity);
 
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                         {
                             Span<TPixel> background = source.GetPixelRowSpan(y).Slice(minX, width);

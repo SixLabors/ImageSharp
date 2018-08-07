@@ -3,6 +3,7 @@
 
 using System.Numerics;
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Primitives;
 using SixLabors.ImageSharp.Processing;
@@ -10,8 +11,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.Memory;
-
     public class PolygonTests : FileTestBase
     {
         [Fact]

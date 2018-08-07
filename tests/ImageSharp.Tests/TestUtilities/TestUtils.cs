@@ -6,7 +6,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -14,9 +15,6 @@ using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.Memory;
-
     /// <summary>
     /// Various utility and extension methods.
     /// </summary>

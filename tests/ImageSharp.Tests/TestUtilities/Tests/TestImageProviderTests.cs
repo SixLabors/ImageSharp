@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests
 {

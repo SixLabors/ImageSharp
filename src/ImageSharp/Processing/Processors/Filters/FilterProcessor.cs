@@ -41,10 +41,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             int endX = interest.Right;
             Matrix4x4 matrix = this.Matrix;
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 startY,
                 endY,
-                configuration.ParallelOptions,
+                configuration,
                 y =>
                     {
                         Span<TPixel> row = source.GetPixelRowSpan(y);

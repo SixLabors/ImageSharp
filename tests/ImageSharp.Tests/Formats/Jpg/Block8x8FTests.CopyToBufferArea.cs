@@ -5,7 +5,7 @@
 //#define BENCHMARKING
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.Primitives;
 

@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.Memory;
@@ -111,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             }
 
             int width = maxX - minX;
-            using (IBuffer<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
+            using (IMemoryOwner<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
             {
                 // Be careful! Do not capture rowColorsSpan in the lambda below!
                 Span<TPixel> rowColorsSpan = rowColors.GetSpan();
@@ -121,27 +123,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                     rowColorsSpan[i] = glowColor;
                 }
 
-                Parallel.For(
+                ParallelFor.WithTemporaryBuffer<float>(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
-                    y =>
+                    configuration,
+                    width,
+                    (y, amounts) =>
                     {
-                        using (IBuffer<float> amounts = source.MemoryAllocator.Allocate<float>(width))
+                        Span<float> amountsSpan = amounts.GetSpan();
+                        int offsetY = y - startY;
+                        int offsetX = minX - startX;
+                        for (int i = 0; i < width; i++)
                         {
-                            Span<float> amountsSpan = amounts.GetSpan();
-                            int offsetY = y - startY;
-                            int offsetX = minX - startX;
-                            for (int i = 0; i < width; i++)
-                            {
-                                float distance = Vector2.Distance(center, new Vector2(i + offsetX, offsetY));
-                                amountsSpan[i] = (this.GraphicsOptions.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
-                            }
-
-                            Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
-
-                            this.blender.Blend(source.MemoryAllocator, destination, destination, rowColors.GetSpan(), amountsSpan);
+                            float distance = Vector2.Distance(center, new Vector2(i + offsetX, offsetY));
+                            amountsSpan[i] = (this.GraphicsOptions.BlendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
                         }
+
+                        Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
+
+                        this.blender.Blend(source.MemoryAllocator, destination, destination, rowColors.GetSpan(), amountsSpan);
                     });
             }
         }

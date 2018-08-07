@@ -1,22 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Buffers;
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 // ReSharper disable InconsistentNaming
 
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     public abstract class ToXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IBuffer<TPixel> source;
+        private IMemoryOwner<TPixel> source;
 
-        private IBuffer<byte> destination;
+        private IMemoryOwner<byte> destination;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }

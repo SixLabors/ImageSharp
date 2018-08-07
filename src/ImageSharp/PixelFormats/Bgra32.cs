@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing four 8-bit unsigned normalized values ranging from 0 to 255.
     /// The color components are stored in blue, green, red, and alpha order (least significant to most significant byte).
+    /// The format is binary compatible with System.Drawing.Imaging.PixelFormat.Format32bppArgb
     /// <para>
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>

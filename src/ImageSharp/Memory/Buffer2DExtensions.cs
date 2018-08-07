@@ -3,9 +3,10 @@
 
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.Primitives;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Defines extension methods for <see cref="Buffer2D{T}"/>.
@@ -18,7 +19,7 @@ namespace SixLabors.Memory
         internal static Span<T> GetSpan<T>(this Buffer2D<T> buffer)
             where T : struct
         {
-            return buffer.Buffer.GetSpan();
+            return buffer.MemorySource.GetSpan();
         }
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace SixLabors.Memory
         public static Memory<T> GetRowMemory<T>(this Buffer2D<T> buffer, int y)
             where T : struct
         {
-            return buffer.Buffer.Memory.Slice(y * buffer.Width, buffer.Width);
+            return buffer.MemorySource.Memory.Slice(y * buffer.Width, buffer.Width);
         }
 
         /// <summary>

@@ -2,9 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -66,12 +69,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The hash table.
         /// </summary>
-        private readonly IBuffer<int> hashTable;
+        private readonly IMemoryOwner<int> hashTable;
 
         /// <summary>
         /// The code table.
         /// </summary>
-        private readonly IBuffer<int> codeTable;
+        private readonly IMemoryOwner<int> codeTable;
 
         /// <summary>
         /// Define the storage for the packet accumulator.
@@ -168,8 +171,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public LzwEncoder(MemoryAllocator memoryAllocator, int colorDepth)
         {
             this.initialCodeSize = Math.Max(2, colorDepth);
-            this.hashTable = memoryAllocator.Allocate<int>(HashSize, true);
-            this.codeTable = memoryAllocator.Allocate<int>(HashSize, true);
+            this.hashTable = memoryAllocator.Allocate<int>(HashSize, AllocationOptions.Clean);
+            this.codeTable = memoryAllocator.Allocate<int>(HashSize, AllocationOptions.Clean);
         }
 
         /// <summary>

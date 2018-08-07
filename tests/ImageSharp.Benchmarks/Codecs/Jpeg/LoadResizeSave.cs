@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(
-            TestImages.Jpeg.Baseline.Jpeg420Exif 
+            TestImages.Jpeg.Baseline.Jpeg420Exif
             //, TestImages.Jpeg.Baseline.Calliphora
             )]
         public string TestImage { get; set; }
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [GlobalSetup]
         public void Setup()
         {
-            this.configuration.ParallelOptions.MaxDegreeOfParallelism =
+            this.configuration.MaxDegreeOfParallelism =
                 this.EnableParallelExecution ? Environment.ProcessorCount : 1;
 
             if (this.sourceBytes == null)
@@ -74,10 +74,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark]
         public void ImageSharp()
         {
-            using (var source = Image.Load(
-                this.configuration,
-                this.sourceBytes,
-                new JpegDecoder { IgnoreMetadata = true }))
+            var source = Image.Load(this.configuration, this.sourceBytes, new JpegDecoder { IgnoreMetadata = true });
+            using (source)
             using (var destStream = new MemoryStream(this.destBytes))
             {
                 source.Mutate(c => c.Resize(source.Width / 4, source.Height / 4));

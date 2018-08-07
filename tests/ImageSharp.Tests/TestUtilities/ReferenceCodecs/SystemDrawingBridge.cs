@@ -2,11 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Drawing;
 using System.Drawing.Imaging;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
@@ -43,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (IBuffer<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w))
+            using (IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w))
             {
                 fixed (Bgra32* destPtr = &workBuffer.GetReference())
                 {
@@ -89,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
             var image = new Image<TPixel>(w, h);
 
-            using (IBuffer<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
+            using (IMemoryOwner<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
             {
                 fixed (Bgr24* destPtr = &workBuffer.GetReference())
                 {
@@ -122,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             long destRowByteCount = data.Stride;
             long sourceRowByteCount = w * sizeof(Bgra32);
 
-            using (IBuffer<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w))
+            using (IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w))
             {
                 fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                 {

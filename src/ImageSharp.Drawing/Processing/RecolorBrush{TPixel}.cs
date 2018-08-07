@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -138,8 +140,8 @@ namespace SixLabors.ImageSharp.Processing
             {
                 MemoryAllocator memoryAllocator = this.Target.MemoryAllocator;
 
-                using (IBuffer<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
-                using (IBuffer<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
+                using (IMemoryOwner<float> amountBuffer = memoryAllocator.Allocate<float>(scanline.Length))
+                using (IMemoryOwner<TPixel> overlay = memoryAllocator.Allocate<TPixel>(scanline.Length))
                 {
                     Span<float> amountSpan = amountBuffer.GetSpan();
                     Span<TPixel> overlaySpan = overlay.GetSpan();

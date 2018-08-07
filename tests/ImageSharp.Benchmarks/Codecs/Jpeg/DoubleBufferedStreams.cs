@@ -4,16 +4,16 @@
 using System;
 using System.IO;
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Jpeg.PdfJsPort.Components;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     [Config(typeof(Config.ShortClr))]
     public class DoubleBufferedStreams
     {
-        private byte[] buffer = CreateTestBytes();
-        private byte[] chunk1 = new byte[2];
-        private byte[] chunk2 = new byte[2];
+        private readonly byte[] buffer = CreateTestBytes();
+        private readonly byte[] chunk1 = new byte[2];
+        private readonly byte[] chunk2 = new byte[2];
 
         private MemoryStream stream1;
         private MemoryStream stream2;

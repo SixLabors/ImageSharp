@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.Memory;
 
@@ -10,11 +11,11 @@ namespace SixLabors.ImageSharp
     internal static class ParallelFor
     {
         /// <summary>
-        /// Helper method to execute Parallel.For using the settings in <see cref="Configuration.ParallelOptions"/>
+        /// Helper method to execute Parallel.For using the settings in <paramref name="configuration"/>
         /// </summary>
         public static void WithConfiguration(int fromInclusive, int toExclusive, Configuration configuration, Action<int> body)
         {
-            Parallel.For(fromInclusive, toExclusive, configuration.ParallelOptions, body);
+            Parallel.For(fromInclusive, toExclusive, configuration.GetParallelOptions(), body);
         }
 
         /// <summary>
@@ -32,23 +33,23 @@ namespace SixLabors.ImageSharp
             int toExclusive,
             Configuration configuration,
             int bufferLength,
-            Action<int, IBuffer<T>> body)
+            Action<int, IMemoryOwner<T>> body)
             where T : struct
         {
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
-            ParallelOptions parallelOptions = configuration.ParallelOptions;
+            ParallelOptions parallelOptions = configuration.GetParallelOptions();
 
-            IBuffer<T> InitBuffer()
+            IMemoryOwner<T> InitBuffer()
             {
                 return memoryAllocator.Allocate<T>(bufferLength);
             }
 
-            void CleanUpBuffer(IBuffer<T> buffer)
+            void CleanUpBuffer(IMemoryOwner<T> buffer)
             {
                 buffer.Dispose();
             }
 
-            IBuffer<T> BodyFunc(int i, ParallelLoopState state, IBuffer<T> buffer)
+            IMemoryOwner<T> BodyFunc(int i, ParallelLoopState state, IMemoryOwner<T> buffer)
             {
                 body(i, buffer);
                 return buffer;

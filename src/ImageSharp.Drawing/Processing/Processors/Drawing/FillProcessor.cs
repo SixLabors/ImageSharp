@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.Memory;
 using SixLabors.Primitives;
 
@@ -54,10 +55,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             // If there's no reason for blending, then avoid it.
             if (this.IsSolidBrushWithoutBlending(out SolidBrush<TPixel> solidBrush))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         source.GetPixelRowSpan(y).Slice(minX, width).Fill(solidBrush.Color);
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     startY = 0;
                 }
 
-                using (IBuffer<float> amount = source.MemoryAllocator.Allocate<float>(width))
+                using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
                 using (BrushApplicator<TPixel> applicator = this.brush.CreateApplicator(
                     source,
                     sourceRectangle,
@@ -84,10 +85,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 {
                     amount.GetSpan().Fill(1f);
 
-                    Parallel.For(
+                    ParallelFor.WithConfiguration(
                         minY,
                         maxY,
-                        configuration.ParallelOptions,
+                        configuration,
                         y =>
                             {
                                 int offsetY = y - startY;

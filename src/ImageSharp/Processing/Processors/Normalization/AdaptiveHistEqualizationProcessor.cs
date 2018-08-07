@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -51,15 +51,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int halfGridSize = this.GridSize / 2;
             using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Width,
-                    configuration.ParallelOptions,
+                    Configuration.Default,
                     x =>
                     {
-                        using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
-                        using (IBuffer<int> histogramBufferCopy = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
-                        using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+                        using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        using (System.Buffers.IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
                         {
                             Span<int> histogram = histogramBuffer.GetSpan();
                             Span<int> histogramCopy = histogramBufferCopy.GetSpan();
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             // Build the histogram of grayscale values for the current grid.
                             for (int dy = -halfGridSize; dy < halfGridSize; dy++)
                             {
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, dy, this.GridSize);
+                                Span<TPixel> rowSpan = this.GetPixelRow(source, (int)x - halfGridSize, dy, this.GridSize);
                                 int maxIdx = this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {

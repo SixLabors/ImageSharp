@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(MetaDataTestData))]
-        public void MetaDataIsParsedCorrectly_Orig(
+        public void MetaDataIsParsedCorrectly(
             bool useIdentify,
             string imagePath,
             int expectedPixelSize,
@@ -60,25 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             TestMetaDataImpl(
                 useIdentify,
-                GolangJpegDecoder,
-                imagePath,
-                expectedPixelSize,
-                exifProfilePresent,
-                iccProfilePresent);
-        }
-
-        [Theory]
-        [MemberData(nameof(MetaDataTestData))]
-        public void MetaDataIsParsedCorrectly_PdfJs(
-            bool useIdentify,
-            string imagePath,
-            int expectedPixelSize,
-            bool exifProfilePresent,
-            bool iccProfilePresent)
-        {
-            TestMetaDataImpl(
-                useIdentify,
-                PdfJsJpegDecoder,
+                JpegDecoder,
                 imagePath,
                 expectedPixelSize,
                 exifProfilePresent,
@@ -216,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify)
         {
-            TestImageInfo(TestImages.Jpeg.Baseline.Floorplan, DefaultJpegDecoder, useIdentify,
+            TestImageInfo(TestImages.Jpeg.Baseline.Floorplan, JpegDecoder, useIdentify,
                 imageInfo =>
                     {
                         Assert.Equal(300, imageInfo.MetaData.HorizontalResolution);
@@ -229,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify)
         {
-            TestImageInfo(TestImages.Jpeg.Baseline.Jpeg420Exif, DefaultJpegDecoder, useIdentify,
+            TestImageInfo(TestImages.Jpeg.Baseline.Jpeg420Exif, JpegDecoder, useIdentify,
                 imageInfo =>
                     {
                         Assert.Equal(72, imageInfo.MetaData.HorizontalResolution);

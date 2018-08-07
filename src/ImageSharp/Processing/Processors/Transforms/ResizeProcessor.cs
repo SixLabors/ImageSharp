@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -9,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -269,10 +271,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float widthFactor = sourceRectangle.Width / (float)this.ResizeRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.ResizeRectangle.Height;
 
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         // Y coordinates of source points
@@ -296,14 +298,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // TODO: Using a transposed variant of 'firstPassPixels' could eliminate the need for the WeightsWindow.ComputeWeightedColumnSum() method, and improve speed!
             using (Buffer2D<Vector4> firstPassPixels = source.MemoryAllocator.Allocate2D<Vector4>(width, source.Height))
             {
-                firstPassPixels.Buffer.Clear();
+                firstPassPixels.MemorySource.Clear();
 
                 ParallelFor.WithTemporaryBuffer(
                     0,
                     sourceRectangle.Bottom,
                     configuration,
                     source.Width,
-                    (int y, IBuffer<Vector4> tempRowBuffer) =>
+                    (int y, IMemoryOwner<Vector4> tempRowBuffer) =>
                         {
                             ref Vector4 firstPassRow = ref MemoryMarshal.GetReference(firstPassPixels.GetRowSpan(y));
                             Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
@@ -330,10 +332,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         });
 
                 // Now process the rows.
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     minY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         // Ensure offsets are normalized for cropping and padding.

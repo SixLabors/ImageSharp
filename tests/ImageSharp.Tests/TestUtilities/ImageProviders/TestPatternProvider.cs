@@ -5,12 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.Memory;
-
     public abstract partial class TestImageProvider<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {

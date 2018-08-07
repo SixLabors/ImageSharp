@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -36,8 +37,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             int numberOfPixels = source.Width * source.Height;
             Span<TPixel> pixels = source.GetPixelSpan();
 
-            using (IBuffer<int> histogramBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
-            using (IBuffer<int> cdfBuffer = memoryAllocator.AllocateClean<int>(this.LuminanceLevels))
+            using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+            using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
                 // Build the histogram of the grayscale levels.
                 Span<int> histogram = histogramBuffer.GetSpan();

@@ -1,19 +1,24 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 // ReSharper disable InconsistentNaming
+
+using System.Buffers;
+using System;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    using System;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.Memory;
-    using SixLabors.ImageSharp.PixelFormats;
-
     public abstract class PackFromXyzw<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private IBuffer<TPixel> destination;
+        private IMemoryOwner<TPixel> destination;
 
-        private IBuffer<byte> source;
+        private IMemoryOwner<byte> source;
 
         [Params(16, 128, 1024)]
         public int Count { get; set; }

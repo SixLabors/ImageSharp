@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.MetaData;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -231,6 +232,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.WritePhysicalChunk(stream, image);
             this.WriteGammaChunk(stream);
+            this.WriteExifChunk(stream, image);
             this.WriteDataChunks(image.Frames.RootFrame, quantizedPixelsSpan, stream);
             this.WriteEndChunk(stream);
             stream.Flush();
@@ -490,7 +492,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Calculates the correct number of bytes per pixel for the given color type.
         /// </summary>
-        /// <returns>The <see cref="int"/></returns>
+        /// <returns>Bytes per pixel</returns>
         private int CalculateBytesPerPixel()
         {
             switch (this.pngColorType)
@@ -649,6 +651,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
+        /// Writes the eXIf chunk to the stream, if any EXIF Profile values are present in the meta data.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="image">The image.</param>
+        private void WriteExifChunk<TPixel>(Stream stream, Image<TPixel> image)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            if (image.MetaData.ExifProfile?.Values.Count > 0)
+            {
+                image.MetaData.SyncProfiles();
+                this.WriteChunk(stream, PngChunkType.Exif, image.MetaData.ExifProfile.ToByteArray());
+            }
+        }
+
+        /// <summary>
         /// Writes the gamma information to the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -678,9 +696,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.bytesPerScanline = this.width * this.bytesPerPixel;
             int resultLength = this.bytesPerScanline + 1;
 
-            this.previousScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.rawScanline = this.memoryAllocator.AllocateCleanManagedByteBuffer(this.bytesPerScanline);
-            this.result = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+            this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.rawScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.result = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
 
             switch (this.pngFilterMethod)
             {
@@ -689,29 +707,29 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngFilterMethod.Sub:
 
-                    this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.sub = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
 
                 case PngFilterMethod.Up:
 
-                    this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.up = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
 
                 case PngFilterMethod.Average:
 
-                    this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.average = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
 
                 case PngFilterMethod.Paeth:
 
-                    this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.paeth = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
                 case PngFilterMethod.Adaptive:
 
-                    this.sub = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                    this.up = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                    this.average = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
-                    this.paeth = this.memoryAllocator.AllocateCleanManagedByteBuffer(resultLength);
+                    this.sub = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
+                    this.up = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
+                    this.average = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
+                    this.paeth = this.memoryAllocator.AllocateManagedByteBuffer(resultLength, AllocationOptions.Clean);
                     break;
             }
 

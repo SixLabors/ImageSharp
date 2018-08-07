@@ -3,9 +3,10 @@
 
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.Primitives;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Represents a buffer of value type objects
@@ -15,15 +16,17 @@ namespace SixLabors.Memory
     internal sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
+        private MemorySource<T> memorySource;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
-        /// <param name="wrappedBuffer">The buffer to wrap</param>
+        /// <param name="memorySource">The buffer to wrap</param>
         /// <param name="width">The number of elements in a row</param>
         /// <param name="height">The number of rows</param>
-        public Buffer2D(IBuffer<T> wrappedBuffer, int width, int height)
+        public Buffer2D(MemorySource<T> memorySource, int width, int height)
         {
-            this.Buffer = wrappedBuffer;
+            this.memorySource = memorySource;
             this.Width = width;
             this.Height = height;
         }
@@ -39,13 +42,13 @@ namespace SixLabors.Memory
         public int Height { get; private set; }
 
         /// <summary>
-        /// Gets the backing <see cref="IBuffer{T}"/>
+        /// Gets the backing <see cref="MemorySource{T}"/>
         /// </summary>
-        public IBuffer<T> Buffer { get; private set; }
+        public MemorySource<T> MemorySource => this.memorySource;
 
-        public Memory<T> Memory => this.Buffer.Memory;
+        public Memory<T> Memory => this.MemorySource.Memory;
 
-        public Span<T> Span => this.Buffer.GetSpan();
+        public Span<T> Span => this.Memory.Span;
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -59,8 +62,8 @@ namespace SixLabors.Memory
             get
             {
                 ImageSharp.DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
-                DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-                Span<T> span = this.Buffer.GetSpan();
+                ImageSharp.DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+                Span<T> span = this.Span;
                 return ref span[(this.Width * y) + x];
             }
         }
@@ -70,7 +73,7 @@ namespace SixLabors.Memory
         /// </summary>
         public void Dispose()
         {
-            this.Buffer?.Dispose();
+            this.MemorySource.Dispose();
         }
 
         /// <summary>
@@ -79,35 +82,14 @@ namespace SixLabors.Memory
         /// </summary>
         public static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            if (source.Buffer.IsMemoryOwner && destination.Buffer.IsMemoryOwner)
-            {
-                SwapContents(destination, source);
-            }
-            else
-            {
-                if (destination.Size() != source.Size())
-                {
-                    throw new InvalidOperationException("SwapOrCopyContents(): buffers should both owned or the same size!");
-                }
-
-                source.Span.CopyTo(destination.Span);
-            }
+            MemorySource<T>.SwapOrCopyContent(ref destination.memorySource, ref source.memorySource);
+            SwapDimensionData(destination, source);
         }
 
-        /// <summary>
-        /// Swap the contents (<see cref="Buffer"/>, <see cref="Width"/>, <see cref="Height"/>) of the two buffers.
-        /// Useful to transfer the contents of a temporary <see cref="Buffer2D{T}"/> to a persistent <see cref="SixLabors.ImageSharp.ImageFrame{T}.PixelBuffer"/>
-        /// </summary>
-        /// <param name="a">The first buffer</param>
-        /// <param name="b">The second buffer</param>
-        private static void SwapContents(Buffer2D<T> a, Buffer2D<T> b)
+        private static void SwapDimensionData(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();
-
-            IBuffer<T> temp = a.Buffer;
-            a.Buffer = b.Buffer;
-            b.Buffer = temp;
 
             b.Width = aSize.Width;
             b.Height = aSize.Height;

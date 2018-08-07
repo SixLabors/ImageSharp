@@ -1,8 +1,11 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 using System;
 using System.Runtime.CompilerServices;
+
 using SixLabors.Primitives;
 
-namespace SixLabors.Memory
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Represents a rectangular area inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).

@@ -58,10 +58,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int minX = Math.Max(this.CropRectangle.X, sourceRectangle.X);
             int maxX = Math.Min(this.CropRectangle.Right, sourceRectangle.Right);
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 minY,
                 maxY,
-                configuration.ParallelOptions,
+                configuration,
                 y =>
                 {
                     Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(minX);

@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -77,10 +78,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (this.Sampler is NearestNeighborResampler)
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     height,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         Span<TPixel> destRow = destination.GetPixelRowSpan(y);
@@ -115,10 +116,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             using (Buffer2D<float> yBuffer = memoryAllocator.Allocate2D<float>(yLength, height))
             using (Buffer2D<float> xBuffer = memoryAllocator.Allocate2D<float>(xLength, height))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     height,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                         {
                             ref TPixel destRowRef = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y));

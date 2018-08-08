@@ -147,10 +147,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int height = source.Height;
             Rectangle destinationBounds = destination.Bounds();
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 0,
                 height,
-                configuration.ParallelOptions,
+                configuration,
                 y =>
                 {
                     Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
@@ -179,10 +179,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width = source.Width;
             int height = source.Height;
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 0,
                 height,
-                configuration.ParallelOptions,
+                configuration,
                 y =>
                 {
                     Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
@@ -207,10 +207,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int height = source.Height;
             Rectangle destinationBounds = destination.Bounds();
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 0,
                 height,
-                configuration.ParallelOptions,
+                configuration,
                 y =>
                 {
                     Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

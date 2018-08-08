@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 ParallelFor.WithConfiguration(
                     0,
                     source.Width,
-                    Configuration.Default,
+                    configuration,
                     x =>
                     {
                         using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))

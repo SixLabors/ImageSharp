@@ -1,19 +1,17 @@
-﻿// <copyright file="CopyPixels.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
+using System;
+using System.Threading.Tasks;
+
+using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    using System;
-    using System.Threading.Tasks;
-
-    using BenchmarkDotNet.Attributes;
-    using SixLabors.ImageSharp.Advanced;
-    using SixLabors.Memory;
-
     public class CopyPixels : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "PixelAccessor Copy by indexer")]
@@ -24,10 +22,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 Buffer2D<Rgba32> sourcePixels = source.GetRootFramePixelBuffer();
                 Buffer2D<Rgba32> targetPixels = target.GetRootFramePixelBuffer();
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
                         {
                             for (int x = 0; x < source.Width; x++)
@@ -48,10 +46,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 Buffer2D<Rgba32> sourcePixels = source.GetRootFramePixelBuffer();
                 Buffer2D<Rgba32> targetPixels = target.GetRootFramePixelBuffer();
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
                         {
                             Span<Rgba32> sourceRow = sourcePixels.GetRowSpan(y);
@@ -73,17 +71,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using (var source = new Image<Rgba32>(1024, 768))
             using (var target = new Image<Rgba32>(1024, 768))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
-                    {
-                        for (int x = 0; x < source.Width; x++)
                         {
-                            target[x, y] = source[x, y];
-                        }
-                    });
+                            for (int x = 0; x < source.Width; x++)
+                            {
+                                target[x, y] = source[x, y];
+                            }
+                        });
 
                 return target[0, 0];
             }
@@ -95,20 +93,20 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             using (var source = new Image<Rgba32>(1024, 768))
             using (var target = new Image<Rgba32>(1024, 768))
             {
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     0,
                     source.Height,
-                    Configuration.Default.ParallelOptions,
+                    Configuration.Default,
                     y =>
-                    {
-                        Span<Rgba32> sourceRow = source.Frames.RootFrame.GetPixelRowSpan(y);
-                        Span<Rgba32> targetRow = target.Frames.RootFrame.GetPixelRowSpan(y);
-
-                        for (int x = 0; x < source.Width; x++)
                         {
-                            targetRow[x] = sourceRow[x];
-                        }
-                    });
+                            Span<Rgba32> sourceRow = source.Frames.RootFrame.GetPixelRowSpan(y);
+                            Span<Rgba32> targetRow = target.Frames.RootFrame.GetPixelRowSpan(y);
+
+                            for (int x = 0; x < source.Width; x++)
+                            {
+                                targetRow[x] = sourceRow[x];
+                            }
+                        });
 
                 return target[0, 0];
             }

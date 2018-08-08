@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
 using SixLabors.Primitives;
@@ -69,10 +70,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             {
                 source.CopyTo(targetPixels);
 
-                Parallel.For(
+                ParallelFor.WithConfiguration(
                     startY,
                     maxY,
-                    configuration.ParallelOptions,
+                    configuration,
                     y =>
                     {
                         Span<TPixel> sourceRow = source.GetPixelRowSpan(y);

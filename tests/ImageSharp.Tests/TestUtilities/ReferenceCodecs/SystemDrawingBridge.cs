@@ -7,7 +7,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs

@@ -5,6 +5,8 @@
 using System;
 using System.Numerics;
 using System.Buffers;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders

@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Utils;
 using SixLabors.Memory;

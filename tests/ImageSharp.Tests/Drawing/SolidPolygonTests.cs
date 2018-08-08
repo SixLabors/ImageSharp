@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Shapes;
@@ -12,8 +13,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.Memory;
-
     public class SolidPolygonTests : FileTestBase
     {
         [Fact]
@@ -184,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             var config = Configuration.CreateDefaultInstance();
-            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 100, 100))
             {
                 image.Mutate(x => x
@@ -200,7 +199,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             var config = Configuration.CreateDefaultInstance();
-            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 100, 100))
             {
                 image.Mutate(x => x
@@ -217,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "FilledPolygons");
 
             var config = Configuration.CreateDefaultInstance();
-            config.ParallelOptions.MaxDegreeOfParallelism = 1;
+            config.MaxDegreeOfParallelism = 1;
             using (var image = new Image<Rgba32>(config, 200, 200))
             {
                 image.Mutate(x => x

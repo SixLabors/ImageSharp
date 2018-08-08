@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            this.configuration.ParallelOptions.MaxDegreeOfParallelism =
+            this.configuration.MaxDegreeOfParallelism =
                 this.EnableParallelExecution ? Environment.ProcessorCount : 1;
         }
 

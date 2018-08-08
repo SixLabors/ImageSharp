@@ -4,6 +4,8 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -43,12 +45,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
         {
-            ParallelOptions parallelOptions = configuration.ParallelOptions;
-
             using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, source.Bounds(), this.KernelX, parallelOptions);
-                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, sourceRectangle, this.KernelY, parallelOptions);
+                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, source.Bounds(), this.KernelX, configuration);
+                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, sourceRectangle, this.KernelY, configuration);
             }
         }
 
@@ -62,13 +62,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
         /// </param>
         /// <param name="kernel">The kernel operator.</param>
-        /// <param name="parallelOptions">The parallel options</param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
         private void ApplyConvolution(
             Buffer2D<TPixel> targetPixels,
             Buffer2D<TPixel> sourcePixels,
             Rectangle sourceRectangle,
             DenseMatrix<float> kernel,
-            ParallelOptions parallelOptions)
+            Configuration configuration)
         {
             int kernelHeight = kernel.Rows;
             int kernelWidth = kernel.Columns;
@@ -82,10 +82,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int maxY = endY - 1;
             int maxX = endX - 1;
 
-            Parallel.For(
+            ParallelFor.WithConfiguration(
                 startY,
                 endY,
-                parallelOptions,
+                configuration,
                 y =>
                 {
                     Span<TPixel> targetRow = targetPixels.GetRowSpan(y);

@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -70,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             for (int dy = -halfGridSize; dy < halfGridSize; dy++)
                             {
                                 Span<TPixel> rowSpan = this.GetPixelRow(source, (int)x - halfGridSize, dy, this.GridSize);
-                                int maxIdx = this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
                                     maxHistIdx = maxIdx;
@@ -101,7 +100,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                                 // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
                                 rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize, this.GridSize);
-                                int maxIdx = this.AddPixelsTooHistogram(rowSpan, histogram, this.LuminanceLevels);
+                                int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
                                 if (maxIdx > maxHistIdx)
                                 {
                                     maxHistIdx = maxIdx;
@@ -179,7 +178,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <param name="histogram">The histogram</param>
         /// <param name="luminanceLevels">The number of different luminance levels.</param>
         /// <returns>The maximum index where a value was changed.</returns>
-        private int AddPixelsTooHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
+        private int AddPixelsToHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
         {
             int maxIdx = 0;
             for (int idx = 0; idx < greyValues.Length; idx++)

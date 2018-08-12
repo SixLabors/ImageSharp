@@ -2,11 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization
@@ -59,29 +54,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <returns>The first none zero value of the cdf.</returns>
         protected int CalculateCdf(Span<int> cdf, Span<int> histogram, int maxIdx)
         {
-            // Calculate the cumulative histogram
             int histSum = 0;
+            int cdfMin = 0;
+            bool cdfMinFound = false;
             for (int i = 0; i <= maxIdx; i++)
             {
                 histSum += histogram[i];
-                cdf[i] = histSum;
-            }
-
-            // Get the first none zero value of the cumulative histogram
-            int cdfMin = 0;
-            for (int i = 0; i <= maxIdx; i++)
-            {
-                if (cdf[i] != 0)
+                if (!cdfMinFound && histSum != 0)
                 {
-                    cdfMin = cdf[i];
-                    break;
+                    cdfMin = histSum;
+                    cdfMinFound = true;
                 }
-            }
 
-            // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
-            for (int i = 0; i <= maxIdx; i++)
-            {
-                cdf[i] = Math.Max(0, cdf[i] - cdfMin);
+                // Creating the lookup table: subtracting cdf min, so we do not need to do that inside the for loop
+                cdf[i] = Math.Max(0, histSum - cdfMin);
             }
 
             return cdfMin;
@@ -108,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
             }
 
-            int addToEachBin = (int)Math.Floor(sumOverClip / (double)this.LuminanceLevels);
+            int addToEachBin = sumOverClip > 0 ? (int)Math.Floor(sumOverClip / (double)this.LuminanceLevels) : 0;
             if (addToEachBin > 0)
             {
                 for (int i = 0; i < histogram.Length; i++)

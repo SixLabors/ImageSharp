@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, uint numberOfComponents)
         {
-            if (buffer == null || buffer.Length == 0)
+            if (buffer.Length == 0)
             {
                 return null;
             }

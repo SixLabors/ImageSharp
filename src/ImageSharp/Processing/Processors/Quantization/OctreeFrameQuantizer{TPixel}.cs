@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 {
                     // If so, check if I have a previous node setup. This will only occur if the first color in the image
                     // happens to be black, with an alpha component of zero.
-                    if (this.previousNode == null)
+                    if (this.previousNode is null)
                     {
                         this.previousColor = pixel;
                         this.root.AddColor(ref pixel, this.maxColorBits, 0, this, ref rgba);
@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 // Find the deepest level containing at least one reducible node
                 int index = this.maxColorBits - 1;
-                while ((index > 0) && (this.ReducibleNodes[index] == null))
+                while ((index > 0) && (this.ReducibleNodes[index] is null))
                 {
                     index--;
                 }
@@ -440,7 +440,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                                     | ((rgba.R & Mask[level]) >> shift);
 
                         OctreeNode child = this.children[index];
-                        if (child == null)
+                        if (child is null)
                         {
                             // Create a new child node and store it in the array
                             child = new OctreeNode(level + 1, colorBits, octree);

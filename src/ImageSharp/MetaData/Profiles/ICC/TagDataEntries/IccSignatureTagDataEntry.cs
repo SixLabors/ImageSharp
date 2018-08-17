@@ -28,12 +28,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccSignatureTagDataEntry(string signatureData, IccProfileTag tagSignature)
             : base(IccTypeSignature.Signature, tagSignature)
         {
-            Guard.NotNull(signatureData, nameof(signatureData));
-            this.SignatureData = signatureData;
+            this.SignatureData = signatureData ?? throw new ArgumentNullException(nameof(signatureData));
         }
 
         /// <summary>
-        /// Gets the Signature
+        /// Gets the signature data
         /// </summary>
         public string SignatureData { get; }
 

@@ -29,11 +29,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="text">The text value of this string</param>
         public IccLocalizedString(CultureInfo culture, string text)
         {
-            Guard.NotNull(culture, nameof(culture));
-            Guard.NotNull(text, nameof(text));
-
-            this.Culture = culture;
-            this.Text = text;
+            this.Culture = culture ?? throw new ArgumentNullException(nameof(culture));
+            this.Text = text ?? throw new ArgumentNullException(nameof(text));
         }
 
         /// <summary>

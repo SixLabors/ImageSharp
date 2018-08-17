@@ -34,8 +34,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public OrderedDitherPaletteProcessor(IOrderedDither dither, TPixel[] palette)
             : base(palette)
         {
-            Guard.NotNull(dither, nameof(dither));
-            this.Dither = dither;
+            this.Dither = dither ?? throw new ArgumentNullException(nameof(dither));
         }
 
         /// <summary>

@@ -32,13 +32,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUcrBgTagDataEntry(ushort[] ucrCurve, ushort[] bgCurve, string description, IccProfileTag tagSignature)
             : base(IccTypeSignature.UcrBg, tagSignature)
         {
-            Guard.NotNull(ucrCurve, nameof(ucrCurve));
-            Guard.NotNull(bgCurve, nameof(bgCurve));
-            Guard.NotNull(description, nameof(description));
-
-            this.UcrCurve = ucrCurve;
-            this.BgCurve = bgCurve;
-            this.Description = description;
+            this.UcrCurve = ucrCurve ?? throw new ArgumentNullException(nameof(ucrCurve));
+            this.BgCurve = bgCurve ?? throw new ArgumentNullException(nameof(bgCurve));
+            this.Description = description ?? throw new ArgumentNullException(nameof(description));
         }
 
         /// <summary>

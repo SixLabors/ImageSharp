@@ -550,7 +550,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteDefineHuffmanTables(int componentCount)
         {
             // Table identifiers.
-            byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
+            Span<byte> headers = stackalloc byte[] { 0x00, 0x10, 0x01, 0x11 };
+
             int markerlen = 2;
             HuffmanSpec[] specs = HuffmanSpec.TheHuffmanSpecs;
 

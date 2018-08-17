@@ -27,8 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUInt8ArrayTagDataEntry(byte[] data, IccProfileTag tagSignature)
             : base(IccTypeSignature.UInt8Array, tagSignature)
         {
-            Guard.NotNull(data, nameof(data));
-            this.Data = data;
+            this.Data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
         /// <summary>

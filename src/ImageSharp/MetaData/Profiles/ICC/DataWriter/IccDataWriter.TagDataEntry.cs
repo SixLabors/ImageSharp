@@ -901,7 +901,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             int size, count = 0;
 
-            if (value.Ascii == null)
+            if (value.Ascii is null)
             {
                 count += this.WriteUInt32(0);
             }
@@ -914,7 +914,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 this.dataStream.Position += size;
             }
 
-            if (value.Unicode == null)
+            if (value.Unicode is null)
             {
                 count += this.WriteUInt32(0);
                 count += this.WriteUInt32(0);
@@ -929,7 +929,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 this.dataStream.Position += size;
             }
 
-            if (value.ScriptCode == null)
+            if (value.ScriptCode is null)
             {
                 count += this.WriteUInt16(0);
                 count += this.WriteByte(0);

@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp
 
             string ext = Path.GetExtension(filePath);
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
-            if (format == null)
+            if (format is null)
             {
                 var sb = new StringBuilder();
                 sb.AppendLine($"Can't find a format that is associated with the file extention '{ext}'. Registered formats with there extensions include:");
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp
 
             IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
-            if (encoder == null)
+            if (encoder is null)
             {
                 var sb = new StringBuilder();
                 sb.AppendLine($"Can't find encoder for file extention '{ext}' using image format '{format.Name}'. Registered encoders include:");
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(format, nameof(format));
             IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
 
-            if (encoder == null)
+            if (encoder is null)
             {
                 var sb = new StringBuilder();
                 sb.AppendLine("Can't find encoder for provided mime type. Available encoded:");

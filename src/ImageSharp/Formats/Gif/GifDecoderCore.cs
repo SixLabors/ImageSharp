@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ImageFrame<TPixel> currentFrame = null;
             ImageFrame<TPixel> imageFrame;
 
-            if (previousFrame == null)
+            if (previousFrame is null)
             {
                 // This initializes the image to become fully transparent because the alpha channel is zero.
                 image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
@@ -485,7 +485,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (this.restoreArea == null)
+            if (this.restoreArea is null)
             {
                 return;
             }

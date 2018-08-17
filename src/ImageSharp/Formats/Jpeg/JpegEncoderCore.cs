@@ -628,7 +628,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             byte[] data = exifProfile?.ToByteArray();
 
-            if (data == null || data.Length == 0)
+            if (data is null || data.Length == 0)
             {
                 return;
             }
@@ -687,7 +687,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIccProfile(IccProfile iccProfile)
         {
-            if (iccProfile == null)
+            if (iccProfile is null)
             {
                 return;
             }
@@ -698,7 +698,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             byte[] data = iccProfile.ToByteArray();
 
-            if (data == null || data.Length == 0)
+            if (data is null || data.Length == 0)
             {
                 return;
             }

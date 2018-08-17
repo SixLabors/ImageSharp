@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         protected override TPixel[] GetPalette()
         {
-            if (this.palette == null)
+            if (this.palette is null)
             {
                 this.palette = new TPixel[this.colors];
                 for (int k = 0; k < this.colors; k++)

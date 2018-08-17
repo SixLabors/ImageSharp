@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return;
             }
 
-            if (this.data == null)
+            if (this.data is null)
             {
                 this.header = new IccProfileHeader();
                 return;
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return;
             }
 
-            if (this.data == null)
+            if (this.data is null)
             {
                 this.entries = new List<IccTagDataEntry>();
                 return;

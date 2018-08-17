@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccUInt64ArrayTagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

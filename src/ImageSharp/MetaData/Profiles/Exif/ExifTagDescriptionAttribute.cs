@@ -37,7 +37,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         public static string GetDescription(ExifTag tag, object value)
         {
             FieldInfo field = tag.GetType().GetTypeInfo().GetDeclaredField(tag.ToString());
-            if (field == null)
+
+            if (field is null)
             {
                 return null;
             }

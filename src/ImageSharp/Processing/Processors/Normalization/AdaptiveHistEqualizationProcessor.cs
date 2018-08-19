@@ -48,182 +48,147 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             int pixelsInGrid = this.GridSize * this.GridSize;
             int halfGridSize = this.GridSize / 2;
-            using (Buffer2D<TPixel> targetPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height))
+            int xtiles = Convert.ToInt32(Math.Ceiling(source.Width / (double)this.GridSize));
+            int ytiles = Convert.ToInt32(Math.Ceiling(source.Height / (double)this.GridSize));
+
+            var cdfData = new CdfData[xtiles, ytiles];
+            using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+            using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
-                ParallelFor.WithConfiguration(
-                    0,
-                    source.Width,
-                    configuration,
-                    x =>
+                Span<int> histogram = histogramBuffer.GetSpan();
+                Span<int> cdf = cdfBuffer.GetSpan();
+
+                // The image is split up in square tiles of the size of the parameter GridSize.
+                // For each tile the cumulative distribution function will be calculated.
+                int cdfPosX = 0;
+                int cdfPosY = 0;
+                for (int y = 0; y < source.Height; y += this.GridSize)
+                {
+                    cdfPosX = 0;
+                    for (int x = 0; x < source.Width; x += this.GridSize)
                     {
-                        using (System.Buffers.IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                        using (System.Buffers.IMemoryOwner<int> histogramBufferCopy = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
-                        using (System.Buffers.IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
+                        histogram.Clear();
+                        cdf.Clear();
+                        int ylimit = Math.Min(y + this.GridSize, source.Height);
+                        int xlimit = Math.Min(x + this.GridSize, source.Width);
+                        for (int dy = y; dy < ylimit; dy++)
                         {
-                            Span<int> histogram = histogramBuffer.GetSpan();
-                            Span<int> histogramCopy = histogramBufferCopy.GetSpan();
-                            Span<int> cdf = cdfBuffer.GetSpan();
-                            int maxHistIdx = 0;
-
-                            // Build the histogram of grayscale values for the current grid.
-                            for (int dy = -halfGridSize; dy < halfGridSize; dy++)
+                            for (int dx = x; dx < xlimit; dx++)
                             {
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, (int)x - halfGridSize, dy, this.GridSize);
-                                int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
-                                if (maxIdx > maxHistIdx)
-                                {
-                                    maxHistIdx = maxIdx;
-                                }
-                            }
-
-                            for (int y = 0; y < source.Height; y++)
-                            {
-                                if (this.ClipHistogramEnabled)
-                                {
-                                    // Clipping the histogram, but doing it on a copy to keep the original un-clipped values for the next iteration.
-                                    histogram.Slice(0, maxHistIdx).CopyTo(histogramCopy);
-                                    this.ClipHistogram(histogramCopy, this.ClipLimitPercentage, pixelsInGrid);
-                                }
-
-                                // Calculate the cumulative distribution function, which will map each input pixel in the current grid to a new value.
-                                int cdfMin = this.ClipHistogramEnabled ? this.CalculateCdf(cdf, histogramCopy, maxHistIdx) : this.CalculateCdf(cdf, histogram, maxHistIdx);
-                                float numberOfPixelsMinusCdfMin = pixelsInGrid - cdfMin;
-
-                                // Map the current pixel to the new equalized value
-                                int luminance = this.GetLuminance(source[x, y], this.LuminanceLevels);
-                                float luminanceEqualized = cdf[luminance] / numberOfPixelsMinusCdfMin;
-                                targetPixels[x, y].PackFromVector4(new Vector4(luminanceEqualized));
-
-                                // Remove top most row from the histogram, mirroring rows which exceeds the borders.
-                                Span<TPixel> rowSpan = this.GetPixelRow(source, x - halfGridSize, y - halfGridSize, this.GridSize);
-                                maxHistIdx = this.RemovePixelsFromHistogram(rowSpan, histogram, this.LuminanceLevels, maxHistIdx);
-
-                                // Add new bottom row to the histogram, mirroring rows which exceeds the borders.
-                                rowSpan = this.GetPixelRow(source, x - halfGridSize, y + halfGridSize, this.GridSize);
-                                int maxIdx = this.AddPixelsToHistogram(rowSpan, histogram, this.LuminanceLevels);
-                                if (maxIdx > maxHistIdx)
-                                {
-                                    maxHistIdx = maxIdx;
-                                }
+                                int luminace = this.GetLuminance(source[dx, dy], this.LuminanceLevels);
+                                histogram[luminace]++;
                             }
                         }
-                    });
 
-                Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
-            }
-        }
-
-        /// <summary>
-        /// Get the a pixel row at a given position with a length of the grid size. Mirrors pixels which exceeds the edges.
-        /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="x">The x position.</param>
-        /// <param name="y">The y position.</param>
-        /// <param name="gridSize">The grid size.</param>
-        /// <returns>A pixel row of the length of the grid size.</returns>
-        private Span<TPixel> GetPixelRow(ImageFrame<TPixel> source, int x, int y, int gridSize)
-        {
-            if (y < 0)
-            {
-                y = Math.Abs(y);
-            }
-            else if (y >= source.Height)
-            {
-                int diff = y - source.Height;
-                y = source.Height - diff - 1;
-            }
-
-            // Special cases for the left and the right border where GetPixelRowSpan can not be used
-            if (x < 0)
-            {
-                var rowPixels = new TPixel[gridSize];
-                int idx = 0;
-                for (int dx = x; dx < x + gridSize; dx++)
-                {
-                    rowPixels[idx] = source[Math.Abs(dx), y];
-                    idx++;
-                }
-
-                return rowPixels;
-            }
-            else if (x + gridSize > source.Width)
-            {
-                var rowPixels = new TPixel[gridSize];
-                int idx = 0;
-                for (int dx = x; dx < x + gridSize; dx++)
-                {
-                    if (dx >= source.Width)
-                    {
-                        int diff = dx - source.Width;
-                        rowPixels[idx] = source[dx - diff - 1, y];
-                    }
-                    else
-                    {
-                        rowPixels[idx] = source[dx, y];
-                    }
-
-                    idx++;
-                }
-
-                return rowPixels;
-            }
-
-            return source.GetPixelRowSpan(y).Slice(start: x, length: gridSize);
-        }
-
-        /// <summary>
-        /// Adds a row of grey values to the histogram.
-        /// </summary>
-        /// <param name="greyValues">The grey values to add</param>
-        /// <param name="histogram">The histogram</param>
-        /// <param name="luminanceLevels">The number of different luminance levels.</param>
-        /// <returns>The maximum index where a value was changed.</returns>
-        private int AddPixelsToHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels)
-        {
-            int maxIdx = 0;
-            for (int idx = 0; idx < greyValues.Length; idx++)
-            {
-                int luminance = this.GetLuminance(greyValues[idx], luminanceLevels);
-                histogram[luminance]++;
-                if (luminance > maxIdx)
-                {
-                    maxIdx = luminance;
-                }
-            }
-
-            return maxIdx;
-        }
-
-        /// <summary>
-        /// Removes a row of grey values from the histogram.
-        /// </summary>
-        /// <param name="greyValues">The grey values to remove</param>
-        /// <param name="histogram">The histogram</param>
-        /// <param name="luminanceLevels">The number of different luminance levels.</param>
-        /// <param name="maxHistIdx">The current maximum index of the histogram.</param>
-        /// <returns>The (maybe changed) maximum index of the histogram.</returns>
-        private int RemovePixelsFromHistogram(Span<TPixel> greyValues, Span<int> histogram, int luminanceLevels, int maxHistIdx)
-        {
-            for (int idx = 0; idx < greyValues.Length; idx++)
-            {
-                int luminance = this.GetLuminance(greyValues[idx], luminanceLevels);
-                histogram[luminance]--;
-
-                // If the histogram at the maximum index has changed to 0, search for the next smaller value.
-                if (luminance == maxHistIdx && histogram[luminance] == 0)
-                {
-                    for (int j = luminance; j >= 0;  j--)
-                    {
-                        maxHistIdx = j;
-                        if (histogram[j] != 0)
+                        if (this.ClipHistogramEnabled)
                         {
-                            break;
+                            this.ClipHistogram(histogram, this.ClipLimitPercentage, pixelsInGrid);
                         }
+
+                        int cdfMin = this.CalculateCdf(cdf, histogram, histogram.Length - 1);
+                        var currentCdf = new CdfData(cdf.ToArray(), cdfMin);
+                        cdfData[cdfPosX, cdfPosY] = currentCdf;
+
+                        cdfPosX++;
                     }
+
+                    cdfPosY++;
+                }
+
+                int tilePosX = 0;
+                int tilePosY = 0;
+                for (int y = halfGridSize; y < source.Height - halfGridSize; y += this.GridSize)
+                {
+                    tilePosX = 0;
+                    for (int x = halfGridSize; x < source.Width - halfGridSize; x += this.GridSize)
+                    {
+                        int gridPosX = 0;
+                        int gridPosY = 0;
+                        int ylimit = Math.Min(y + this.GridSize, source.Height);
+                        int xlimit = Math.Min(x + this.GridSize, source.Width);
+                        for (int dy = y; dy < ylimit; dy++)
+                        {
+                            gridPosX = 0;
+                            for (int dx = x; dx < xlimit; dx++)
+                            {
+                                TPixel sourcePixel = source[dx, dy];
+                                int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
+
+                                float cdfLeftTopLuminance = cdfData[tilePosX, tilePosY].RemapGreyValue(luminace, pixelsInGrid);
+                                float cdfRightTopLuminance = cdfData[tilePosX + 1, tilePosY].RemapGreyValue(luminace, pixelsInGrid);
+                                float cdfLeftBottomLuminance = cdfData[tilePosX, tilePosY + 1].RemapGreyValue(luminace, pixelsInGrid);
+                                float cdfRightBottomLuminance = cdfData[tilePosX + 1, tilePosY + 1].RemapGreyValue(luminace, pixelsInGrid);
+
+                                float luminanceEqualized = this.BilinearInterpolation(gridPosX, gridPosY, this.GridSize, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+                                pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
+                                gridPosX++;
+                            }
+
+                            gridPosY++;
+                        }
+
+                        tilePosX++;
+                    }
+
+                    tilePosY++;
                 }
             }
+        }
 
-            return maxHistIdx;
+        /// <summary>
+        /// Bilinear interpolation between four tiles.
+        /// </summary>
+        /// <param name="x">X position.</param>
+        /// <param name="y">Y position.</param>
+        /// <param name="gridSize">The size of the grid.</param>
+        /// <param name="lt">Luminance from tile top left.</param>
+        /// <param name="rt">Luminance from tile right top.</param>
+        /// <param name="lb">Luminance from tile left bottom.</param>
+        /// <param name="rb">Luminance from tile right bottom.</param>
+        /// <returns>Interpolated Luminance.</returns>
+        private float BilinearInterpolation(int x, int y, int gridSize, float lt, float rt, float lb, float rb)
+        {
+            float r1 = ((gridSize - x) / (float)gridSize * lb) + ((x / (float)gridSize) * rb);
+            float r2 = ((gridSize - x) / (float)gridSize * lt) + ((x / (float)gridSize) * rt);
+
+            float res = ((y / ((float)gridSize)) * r1) + (((y - gridSize) / (float)(-gridSize)) * r2);
+
+            return res;
+        }
+
+        private class CdfData
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="CdfData"/> class.
+            /// </summary>
+            /// <param name="cdf">The cumulative distribution function, which remaps the grey values.</param>
+            /// <param name="cdfMin">The minimum value of the cdf.</param>
+            public CdfData(int[] cdf, int cdfMin)
+            {
+                this.Cdf = cdf;
+                this.CdfMin = cdfMin;
+            }
+
+            /// <summary>
+            /// Gets the CDF.
+            /// </summary>
+            public int[] Cdf { get; }
+
+            /// <summary>
+            /// Gets minimum value of the cdf.
+            /// </summary>
+            public int CdfMin { get; }
+
+            /// <summary>
+            /// Remaps the grey value with the cdf.
+            /// </summary>
+            /// <param name="luminance">The original luminance.</param>
+            /// <param name="pixelsInGrid">The pixels in grid.</param>
+            /// <returns>The remapped luminance.</returns>
+            public float RemapGreyValue(int luminance, int pixelsInGrid)
+            {
+                return (pixelsInGrid - this.CdfMin) == 0 ? this.Cdf[luminance] / (float)pixelsInGrid : this.Cdf[luminance] / (float)(pixelsInGrid - this.CdfMin);
+            }
         }
     }
 }

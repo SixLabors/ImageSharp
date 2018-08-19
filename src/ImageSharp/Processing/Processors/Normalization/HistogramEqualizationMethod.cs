@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Adaptive histogram equalization.
         /// </summary>
-        Adaptive
+        Adaptive,
+
+        /// <summary>
+        /// Adaptive sliding window histogram equalization.
+        /// </summary>
+        AdaptiveSlidingWindow,
     }
 }

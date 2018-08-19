@@ -115,21 +115,26 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void _1DarkBlueRect_2BlendBlackEllipse<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> img = provider.GetImage())
+            using(Image<TPixel> dstImg = provider.GetImage(), srcImg = provider.GetImage())
             {
-                int scaleX = (img.Width / 100);
-                int scaleY = (img.Height / 100);
-                img.Mutate(
+                int scaleX = (dstImg.Width / 100);
+                int scaleY = (dstImg.Height / 100);
+
+                dstImg.Mutate(
                     x => x.Fill(
                         NamedColors<TPixel>.DarkBlue,
                         new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)));
-                img.Mutate(
+
+                srcImg.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { BlenderMode = mode },
                         NamedColors<TPixel>.Black,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY)));
 
-                VerifyImage(provider, mode, img);
+                dstImg.Mutate(
+                    x => x.DrawImage(new GraphicsOptions(true) { BlenderMode = mode }, srcImg)
+                    );                
+
+                VerifyImage(provider, mode, dstImg);
             }
         }
         

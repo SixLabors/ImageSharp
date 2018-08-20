@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing
 
         private float? dpiY;
 
-        private PixelBlenderMode blenderMode;
+        private PixelColorBlendingMode blenderMode;
 
         private float wrapTextWidth;
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing
             this.verticalAlignment = VerticalAlignment.Top;
 
             this.antialiasSubpixelDepth = 16;
-            this.blenderMode = PixelBlenderMode.Normal;
+            this.blenderMode = PixelColorBlendingMode.Normal;
             this.blendPercentage = 1;
             this.antialias = enableAntialiasing;
             this.dpiX = DefaultTextDpi;
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
         /// </summary>
-        public PixelBlenderMode BlenderMode { get => this.blenderMode; set => this.blenderMode = value; }
+        public PixelColorBlendingMode BlenderMode { get => this.blenderMode; set => this.blenderMode = value; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the text should be drawing with kerning enabled.
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Processing
             {
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
                 blendPercentage = options.BlendPercentage,
-                blenderMode = options.BlenderMode
+                blenderMode = options.ColorBlendingMode
             };
         }
 
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Processing
             return new GraphicsOptions(options.Antialias)
             {
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
-                BlenderMode = options.BlenderMode,
+                ColorBlendingMode = options.BlenderMode,
                 BlendPercentage = options.BlendPercentage
             };
         }

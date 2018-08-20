@@ -25,16 +25,16 @@ namespace SixLabors.ImageSharp.Tests
         };
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Normal)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Multiply)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Add)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Subtract)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Screen)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Darken)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Lighten)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Overlay)]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.HardLight)]
-        public void ImageShouldApplyDrawImage<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Normal)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Multiply)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Add)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Subtract)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Screen)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Darken)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Lighten)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Overlay)]
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.HardLight)]
+        public void ImageShouldApplyDrawImage<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -47,8 +47,8 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelBlenderMode.Normal)]
-        public void ImageShouldDrawTransformedImage<TPixel>(TestImageProvider<TPixel> provider, PixelBlenderMode mode)
+        [WithFileCollection(nameof(TestFiles), PixelTypes, PixelColorBlendingMode.Normal)]
+        public void ImageShouldDrawTransformedImage<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 backgroundPixel = background[0, 0];
                 Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
 
-                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Point(xy, xy)));
+                background.Mutate(x => x.DrawImage(overlay, PixelColorBlendingMode.Normal, 1F, new Point(xy, xy)));
 
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[0, 0]);
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 backgroundPixel = background[xy - 1, xy - 1];
                 Rgba32 overlayPixel = overlay[0, 0];
 
-                background.Mutate(x => x.DrawImage(overlay, PixelBlenderMode.Normal, 1F, new Point(xy, xy)));
+                background.Mutate(x => x.DrawImage(overlay, PixelColorBlendingMode.Normal, 1F, new Point(xy, xy)));
 
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[xy, xy]);

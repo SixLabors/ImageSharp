@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -105,19 +104,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public bool Equals(Bgra32 other)
         {
-            return this.R == other.R && this.G == other.G && this.B == other.B && this.A == other.A;
+            return this.Bgra == other.Bgra;
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Bgra32 other && this.Equals(other);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
-            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
-            return HashHelpers.Combine(hash, this.A.GetHashCode());
-        }
+        public override int GetHashCode() => this.Bgra.GetHashCode();
 
         /// <summary>
         /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]

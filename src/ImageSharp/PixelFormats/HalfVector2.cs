@@ -231,10 +231,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc />
         public override bool Equals(object obj)

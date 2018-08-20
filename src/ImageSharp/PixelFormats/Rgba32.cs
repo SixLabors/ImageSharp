@@ -437,7 +437,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => Rgba.GetHashCode();
+        public override int GetHashCode() => this.Rgba.GetHashCode();
 
         /// <summary>
         /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]

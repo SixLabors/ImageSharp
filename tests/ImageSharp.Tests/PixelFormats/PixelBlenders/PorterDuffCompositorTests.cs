@@ -11,35 +11,44 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
     public class PorterDuffCompositorTests
     {
         // TODO: Add other modes to compare.
-        public static readonly TheoryData<PixelBlenderMode> CompositingOperators =
-            new TheoryData<PixelBlenderMode>
+        public static readonly TheoryData<PixelAlphaCompositionMode> CompositingOperators =
+            new TheoryData<PixelAlphaCompositionMode>
                 {
-                    PixelBlenderMode.Src,
-                    PixelBlenderMode.Atop,
-                    PixelBlenderMode.Over,
-                    PixelBlenderMode.In,
-                    PixelBlenderMode.Out,
-                    PixelBlenderMode.Dest,
-                    PixelBlenderMode.DestAtop,
-                    PixelBlenderMode.DestOver,
-                    PixelBlenderMode.DestIn,
-                    PixelBlenderMode.DestOut,
-                    PixelBlenderMode.Clear,
-                    PixelBlenderMode.Xor
-                };
+                    PixelAlphaCompositionMode.Src,
+                    PixelAlphaCompositionMode.SrcAtop,
+                    PixelAlphaCompositionMode.SrcOver,
+                    PixelAlphaCompositionMode.SrcIn,
+                    PixelAlphaCompositionMode.SrcOut,
+                    PixelAlphaCompositionMode.Dest,
+                    PixelAlphaCompositionMode.DestAtop,
+                    PixelAlphaCompositionMode.DestOver,
+                    PixelAlphaCompositionMode.DestIn,
+                    PixelAlphaCompositionMode.DestOut,
+                    PixelAlphaCompositionMode.Clear,
+                    PixelAlphaCompositionMode.Xor
+                };        
 
         [Theory]
         [WithFile(TestImages.Png.PDDest, nameof(CompositingOperators), PixelTypes.Rgba32)]
-        public void PorterDuffOutputIsCorrect(TestImageProvider<Rgba32> provider, PixelBlenderMode mode)
+        public void PorterDuffOutputIsCorrect(TestImageProvider<Rgba32> provider, PixelAlphaCompositionMode mode)
         {
             var srcFile = TestFile.Create(TestImages.Png.PDSrc);
             using (Image<Rgba32> src = srcFile.CreateImage())
             using (Image<Rgba32> dest = provider.GetImage())
             {
-                using (Image<Rgba32> res = dest.Clone(x => x.DrawImage(new GraphicsOptions { BlenderMode = mode }, src)))
+                GraphicsOptions options = new GraphicsOptions
+                {                    
+                    AlphaCompositionMode = mode                    
+                };
+
+                using (Image<Rgba32> res = dest.Clone(x => x.DrawImage(options, src)))
                 {
-                    res.DebugSave(provider, mode.ToString());
-                    res.CompareToReferenceOutput(provider, mode.ToString());
+                    string combinedMode = mode.ToString();
+
+                    if (combinedMode != "Src" && combinedMode.StartsWith("Src")) combinedMode = combinedMode.Substring(3);
+
+                    res.DebugSave(provider, combinedMode);
+                    res.CompareToReferenceOutput(provider, combinedMode);
                 }
             }
         }

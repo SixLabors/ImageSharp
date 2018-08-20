@@ -21,7 +21,9 @@ namespace SixLabors.ImageSharp
 
         private bool? antialias;
 
-        private PixelBlenderMode blenderMode;
+        private PixelColorBlendingMode colorBlendingMode;
+
+        private PixelAlphaCompositionMode alphaCompositionMode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
@@ -29,7 +31,8 @@ namespace SixLabors.ImageSharp
         /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
         public GraphicsOptions(bool enableAntialiasing)
         {
-            this.blenderMode = PixelBlenderMode.Normal;
+            this.colorBlendingMode = PixelColorBlendingMode.Normal;
+            this.alphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
             this.blendPercentage = 1;
             this.antialiasSubpixelDepth = 16;
             this.antialias = enableAntialiasing;
@@ -67,12 +70,21 @@ namespace SixLabors.ImageSharp
         // some API thought post V1.
 
         /// <summary>
-        /// Gets or sets a value indicating the blending mode to apply to the drawing operation
+        /// Gets or sets a value indicating the color blending mode to apply to the drawing operation
         /// </summary>
-        public PixelBlenderMode BlenderMode
+        public PixelColorBlendingMode ColorBlendingMode
         {
-            get => this.blenderMode;
-            set => this.blenderMode = value;
+            get => this.colorBlendingMode;
+            set => this.colorBlendingMode = value;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating the alpha composition mode to apply to the drawing operation
+        /// </summary>
+        public PixelAlphaCompositionMode AlphaCompositionMode
+        {
+            get => this.alphaCompositionMode;
+            set => this.alphaCompositionMode = value;
         }
     }
 }

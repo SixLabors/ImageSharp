@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="blender">The blending mode.</param>
         /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float opacity)
+        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelColorBlendingMode blender, float opacity)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, opacity, blender));
 
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <param name="location">The location to draw the blended image.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelBlenderMode blender, float opacity, Point location)
+        public static IImageProcessingContext<TPixel> DrawImage<TPixel>(this IImageProcessingContext<TPixel> source, Image<TPixel> image, PixelColorBlendingMode blender, float opacity, Point location)
             where TPixel : struct, IPixel<TPixel>
             => source.ApplyProcessor(new DrawImageProcessor<TPixel>(image, location, opacity, blender));
 

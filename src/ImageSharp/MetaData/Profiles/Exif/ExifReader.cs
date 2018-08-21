@@ -76,7 +76,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             var values = new List<ExifValue>();
 
-            if (this.ReadString(2) == "II")
+            // II == 0x4949
+            if (this.ReadUInt16() == 0x4949)
             {
                 this.endianness = Endianness.LittleEndian;
             }
@@ -202,7 +203,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 
         private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, uint numberOfComponents)
         {
-            if (buffer == null || buffer.Length == 0)
+            if (buffer.Length == 0)
             {
                 return null;
             }

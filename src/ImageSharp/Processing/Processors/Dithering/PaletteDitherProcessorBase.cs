@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -28,8 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="palette">The palette to select substitute colors from.</param>
         protected PaletteDitherProcessorBase(TPixel[] palette)
         {
-            Guard.NotNull(palette, nameof(palette));
-            this.Palette = palette;
+            this.Palette = palette ?? throw new ArgumentNullException(nameof(palette));
             this.paletteVector = new Vector4[this.Palette.Length];
             PixelOperations<TPixel>.Instance.ToScaledVector4(this.Palette, this.paletteVector, this.Palette.Length);
         }

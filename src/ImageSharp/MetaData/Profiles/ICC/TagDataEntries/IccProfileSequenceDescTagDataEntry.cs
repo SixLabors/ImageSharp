@@ -30,8 +30,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccProfileSequenceDescTagDataEntry(IccProfileDescription[] descriptions, IccProfileTag tagSignature)
             : base(IccTypeSignature.ProfileSequenceDesc, tagSignature)
         {
-            Guard.NotNull(descriptions, nameof(descriptions));
-            this.Descriptions = descriptions;
+            this.Descriptions = descriptions ?? throw new ArgumentNullException(nameof(descriptions));
         }
 
         /// <summary>

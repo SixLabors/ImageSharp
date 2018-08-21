@@ -550,7 +550,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private void WriteDefineHuffmanTables(int componentCount)
         {
             // Table identifiers.
-            byte[] headers = { 0x00, 0x10, 0x01, 0x11 };
+            Span<byte> headers = stackalloc byte[] { 0x00, 0x10, 0x01, 0x11 };
+
             int markerlen = 2;
             HuffmanSpec[] specs = HuffmanSpec.TheHuffmanSpecs;
 
@@ -628,7 +629,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             byte[] data = exifProfile?.ToByteArray();
 
-            if (data == null || data.Length == 0)
+            if (data is null || data.Length == 0)
             {
                 return;
             }
@@ -687,7 +688,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteIccProfile(IccProfile iccProfile)
         {
-            if (iccProfile == null)
+            if (iccProfile is null)
             {
                 return;
             }
@@ -698,7 +699,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             byte[] data = iccProfile.ToByteArray();
 
-            if (data == null || data.Length == 0)
+            if (data is null || data.Length == 0)
             {
                 return;
             }

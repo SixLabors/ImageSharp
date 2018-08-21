@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return null;
             }
 
-            if (this.data == null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
+            if (this.data is null || this.data.Length < (this.thumbnailOffset + this.thumbnailLength))
             {
                 return null;
             }
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <returns>The <see cref="T:byte[]"/></returns>
         public byte[] ToByteArray()
         {
-            if (this.values == null)
+            if (this.values is null)
             {
                 return this.data;
             }
@@ -262,7 +262,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         private void SyncResolution(ExifTag tag, double resolution)
         {
             ExifValue value = this.GetValue(tag);
-            if (value == null)
+
+            if (value is null)
             {
                 return;
             }
@@ -283,7 +284,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 return;
             }
 
-            if (this.data == null)
+            if (this.data is null)
             {
                 this.values = new List<ExifValue>();
                 return;

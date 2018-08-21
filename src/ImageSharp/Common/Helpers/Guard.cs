@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp
         public static void NotNull<T>(T value, string parameterName)
             where T : class
         {
-            if (value == null)
+            if (value is null)
             {
                 throw new ArgumentNullException(parameterName);
             }
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty or contains only blanks.</exception>
         public static void NotNullOrWhiteSpace(string value, string parameterName)
         {
-            if (value == null)
+            if (value is null)
             {
                 throw new ArgumentNullException(parameterName);
             }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentException"><paramref name="value"/> is empty.</exception>
         public static void NotNullOrEmpty<T>(ICollection<T> value, string parameterName)
         {
-            if (value == null)
+            if (value is null)
             {
                 throw new ArgumentNullException(parameterName);
             }

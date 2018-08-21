@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp
             where TPixel : struct, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
-            if (decoder == null)
+            if (decoder is null)
             {
                 return (null, null);
             }

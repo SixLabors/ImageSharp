@@ -448,12 +448,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
-            hash = HashHelpers.Combine(hash, this.B.GetHashCode());
-            return HashHelpers.Combine(hash, this.A.GetHashCode());
-        }
+        public override int GetHashCode() => this.Rgba.GetHashCode();
 
         /// <summary>
         /// Gets the <see cref="Vector4"/> representation without normalizing to [0, 1]

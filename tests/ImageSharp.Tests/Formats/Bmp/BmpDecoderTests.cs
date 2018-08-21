@@ -17,10 +17,7 @@ namespace SixLabors.ImageSharp.Tests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
-        public static readonly string[] AllBmpFiles =
-        {
-            Car, F, NegHeight, CoreHeader, V5Header, RLE, RLEInverted, Bit8, Bit8Inverted, Bit16, Bit16Inverted
-        };
+        public static readonly string[] AllBmpFiles = All;
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>

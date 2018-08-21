@@ -11,438 +11,2140 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 {
     internal static partial class PorterDuffFunctions
     {
+
+
+
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Src(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 0) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((source * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return source;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Atop(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 1) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((source * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return Atop(backdrop, source, Normal(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Over(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 1) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((source * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return Over(backdrop, source, Normal(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 In(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 0) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((source * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return In(backdrop, source, Normal(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Out(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
+            return Out(backdrop, source);
+        }
 
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 0) + (xw * 0);
-
-            // calculate final value
-            Vector4 xform = ((Vector4.Zero * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 NormalDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Dest(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 1) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((backdrop * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return Atop(source, backdrop, Normal(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 0) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((backdrop * xw) + (Vector4.Zero * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return Over(source, backdrop, Normal(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestOver(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 1) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((backdrop * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return In(source, backdrop, Normal(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestIn(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalDestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 0) + (xw * 1);
-
-            // calculate final value
-            Vector4 xform = ((backdrop * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return Out(source, backdrop);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 DestOut(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalXor(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 1) + (xw * 0);
-
-            // calculate final value
-            Vector4 xform = ((Vector4.Zero * xw) + (backdrop * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
-        }
+            return Xor(backdrop, source);
+        }   
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Clear(Vector4 backdrop, Vector4 source, float opacity)
+        public static Vector4 NormalClear(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 0) + (bw * 0) + (xw * 0);
-
-            // calculate final value
-            Vector4 xform = ((Vector4.Zero * xw) + (Vector4.Zero * bw) + (Vector4.Zero * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return Clear(backdrop, source);
         }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Xor(Vector4 backdrop, Vector4 source, float opacity)
+        public static TPixel NormalSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel NormalXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(NormalXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplySrc(Vector4 backdrop, Vector4 source, float opacity)
         {
             opacity = opacity.Clamp(0, 1);
-            source.W *= opacity;
+            source.W *= opacity;          
 
-            // calculate weights
-            float xw = backdrop.W * source.W;
-            float bw = backdrop.W - xw;
-            float sw = source.W - xw;
-
-            // calculate final alpha
-            float fw = (sw * 1) + (bw * 1) + (xw * 0);
-
-            // calculate final value
-            Vector4 xform = ((Vector4.Zero * xw) + (backdrop * bw) + (source * sw)) / MathF.Max(fw, Constants.Epsilon);
-            xform.W = fw;
-
-            return Vector4.Lerp(backdrop, xform, opacity);
+            return source;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Normal<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static Vector4 MultiplySrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Multiply(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplySrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Multiply(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplySrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Multiply(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplySrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Multiply(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Multiply(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Multiply(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 MultiplyClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel MultiplySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Normal(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplySrc(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Multiply<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Multiply(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplySrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Add<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Add(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplySrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Subtract<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Subtract(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplySrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Screen<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Screen(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplySrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Darken<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Darken(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyDest(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Lighten<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Lighten(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Overlay<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Overlay(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel HardLight<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(HardLight(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Src<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Src(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Atop<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Atop(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyClear(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Over<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static TPixel MultiplyXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Over(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(MultiplyXor(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel In<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddSrc(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(In(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Out<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(Out(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Add(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Dest<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddSrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(Dest(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Add(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel DestAtop<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddSrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(DestAtop(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Add(backdrop, source));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel DestOver<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddSrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(DestOver(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 AddDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel DestIn<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddDestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(DestIn(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Add(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel DestOut<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddDestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(DestOut(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Add(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Clear<TPixel>(TPixel backdrop, TPixel source, float amount)
-            where TPixel : struct, IPixel<TPixel>
+        public static Vector4 AddDestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            TPixel dest = default;
-            dest.PackFromVector4(Clear(backdrop.ToVector4(), source.ToVector4(), amount));
-            return dest;
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Add(source, backdrop));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TPixel Xor<TPixel>(TPixel backdrop, TPixel source, float amount)
+        public static Vector4 AddDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 AddXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 AddClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel dest = default;
-            dest.PackFromVector4(Xor(backdrop.ToVector4(), source.ToVector4(), amount));
+            dest.PackFromVector4(AddSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel AddXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(AddXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractSrc(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Subtract(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractSrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Subtract(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractSrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Subtract(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractSrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Subtract(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Subtract(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Subtract(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 SubtractClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel SubtractXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(SubtractXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenSrc(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Screen(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Screen(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Screen(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Screen(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Screen(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Screen(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 ScreenClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel ScreenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(ScreenXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenSrc(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Darken(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Darken(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Darken(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Darken(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Darken(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Darken(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 DarkenClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel DarkenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(DarkenXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenSrc(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Lighten(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenSrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Lighten(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenSrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Lighten(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenSrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Lighten(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Lighten(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Lighten(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 LightenClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel LightenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(LightenXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlaySrc(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlaySrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, Overlay(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlaySrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, Overlay(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlaySrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, Overlay(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlaySrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, Overlay(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, Overlay(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, Overlay(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 OverlayClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlaySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlaySrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlaySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlaySrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlaySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlaySrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlaySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlaySrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlaySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlaySrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel OverlayXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(OverlayXor(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightSrc(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return source;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightSrcAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(backdrop, source, HardLight(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightSrcOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(backdrop, source, HardLight(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightSrcIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(backdrop, source, HardLight(backdrop, source));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightSrcOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(backdrop, source);
+        }
+
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightDest(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            return backdrop;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightDestAtop(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Atop(source, backdrop, HardLight(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightDestOver(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Over(source, backdrop, HardLight(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightDestIn(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return In(source, backdrop, HardLight(source, backdrop));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightDestOut(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Out(source, backdrop);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightXor(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Xor(backdrop, source);
+        }   
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 HardLightClear(Vector4 backdrop, Vector4 source, float opacity)
+        {
+            opacity = opacity.Clamp(0, 1);
+            source.W *= opacity;          
+
+            return Clear(backdrop, source);
+        }
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightSrc(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightSrcAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightSrcOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightSrcIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightSrcOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightDest(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightDestAtop(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightDestOver(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightDestIn(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightDestOut(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightClear(backdrop.ToVector4(),source.ToVector4(),opacity));
+            return dest;
+        }
+
+        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TPixel HardLightXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            TPixel dest = default;
+            dest.PackFromVector4(HardLightXor(backdrop.ToVector4(),source.ToVector4(),opacity));
             return dest;
         }
 

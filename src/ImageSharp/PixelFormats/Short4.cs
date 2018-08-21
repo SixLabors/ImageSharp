@@ -247,10 +247,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>Hash code for the instance.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
         /// Returns a string representation of the current instance.

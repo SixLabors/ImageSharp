@@ -224,10 +224,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
         /// Packs the <see cref="float"/> components into a <see cref="ushort"/>.

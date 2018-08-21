@@ -56,9 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
         public LzwDecoder(MemoryAllocator memoryAllocator, Stream stream)
         {
-            Guard.NotNull(stream, nameof(stream));
-
-            this.stream = stream;
+            this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
             this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
             this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);

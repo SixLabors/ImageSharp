@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public void AllocateNewBytes(int bytes)
         {
             this.currentDataRemaining = bytes;
-            if (this.compressedStream == null)
+            if (this.compressedStream is null)
             {
                 this.InitializeInflateStream();
             }

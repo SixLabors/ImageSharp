@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         protected override void AfterImageApply(Image<TPixel> source, Image<TPixel> destination, Rectangle sourceRectangle)
         {
             ExifProfile profile = destination.MetaData.ExifProfile;
-            if (profile == null)
+            if (profile is null)
             {
                 return;
             }

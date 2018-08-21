@@ -27,8 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccTextTagDataEntry(string text, IccProfileTag tagSignature)
             : base(IccTypeSignature.Text, tagSignature)
         {
-            Guard.NotNull(text, nameof(text));
-            this.Text = text;
+            this.Text = text ?? throw new ArgumentNullException(nameof(text));
         }
 
         /// <summary>

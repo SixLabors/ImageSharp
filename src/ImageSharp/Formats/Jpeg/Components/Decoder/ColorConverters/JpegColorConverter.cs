@@ -44,7 +44,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         public static JpegColorConverter GetConverter(JpegColorSpace colorSpace)
         {
             JpegColorConverter converter = Converters.FirstOrDefault(c => c.ColorSpace == colorSpace);
-            if (converter == null)
+
+            if (converter is null)
             {
                 throw new Exception($"Could not find any converter for JpegColorSpace {colorSpace}!");
             }

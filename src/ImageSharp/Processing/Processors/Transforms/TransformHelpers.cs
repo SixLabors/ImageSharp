@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             where TPixel : struct, IPixel<TPixel>
         {
             ExifProfile profile = image.MetaData.ExifProfile;
-            if (profile == null)
+            if (profile is null)
             {
                 return;
             }

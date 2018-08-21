@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The converted entry</returns>
         public static explicit operator IccMultiLocalizedUnicodeTagDataEntry(IccTextDescriptionTagDataEntry textEntry)
         {
-            if (textEntry == null)
+            if (textEntry is null)
             {
                 return null;
             }

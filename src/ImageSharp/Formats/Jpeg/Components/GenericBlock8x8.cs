@@ -58,13 +58,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public void LoadAndStretchEdges<TPixel>(IPixelSource<TPixel> source, int sourceX, int sourceY)
             where TPixel : struct, IPixel<TPixel>
         {
-            var buffer = source.PixelBuffer as Buffer2D<T>;
-            if (buffer == null)
+            if (source.PixelBuffer is Buffer2D<T> buffer)
+            {
+                this.LoadAndStretchEdges(buffer, sourceX, sourceY);
+            }
+            else
             {
                 throw new InvalidOperationException("LoadAndStretchEdges<TPixels>() is only valid for TPixel == T !");
             }
-
-            this.LoadAndStretchEdges(buffer, sourceX, sourceY);
         }
 
         /// <summary>

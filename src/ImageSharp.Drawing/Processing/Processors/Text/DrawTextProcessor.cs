@@ -37,9 +37,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Text
         {
             Guard.NotNull(text, nameof(text));
             Guard.NotNull(font, nameof(font));
-            if (brush == null && pen == null)
+
+            if (brush is null && pen is null)
             {
-                throw new ArgumentNullException($"at least one of {nameof(brush)} or {nameof(pen)} must not be null");
+                throw new ArgumentNullException($"Expected a {nameof(brush)} or {nameof(pen)}. Both were null");
             }
 
             this.Options = options;

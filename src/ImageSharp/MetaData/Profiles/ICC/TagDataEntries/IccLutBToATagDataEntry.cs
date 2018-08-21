@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccLutBToATagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }
@@ -200,8 +200,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         private bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)
         {
-            bool thisNull = thisCurves == null;
-            bool entryNull = entryCurves == null;
+            bool thisNull = thisCurves is null;
+            bool entryNull = entryCurves is null;
 
             if (thisNull && entryNull)
             {
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         private Vector3? CreateMatrix3x1(float[] matrix)
         {
-            if (matrix == null)
+            if (matrix is null)
             {
                 return null;
             }
@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
         private Matrix4x4? CreateMatrix3x3(float[,] matrix)
         {
-            if (matrix == null)
+            if (matrix is null)
             {
                 return null;
             }

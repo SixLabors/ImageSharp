@@ -28,8 +28,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUInt64ArrayTagDataEntry(ulong[] data, IccProfileTag tagSignature)
             : base(IccTypeSignature.UInt64Array, tagSignature)
         {
-            Guard.NotNull(data, nameof(data));
-            this.Data = data;
+            this.Data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
         /// <summary>
@@ -46,7 +45,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccUInt64ArrayTagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

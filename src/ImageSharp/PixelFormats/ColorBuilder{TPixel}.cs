@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             hex = ToRgbaHex(hex);
 
-            if (hex == null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
+            if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
             {
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
             }

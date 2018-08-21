@@ -33,9 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
         public BinaryOrderedDitherProcessor(IOrderedDither dither, TPixel upperColor, TPixel lowerColor)
         {
-            Guard.NotNull(dither, nameof(dither));
-
-            this.Dither = dither;
+            this.Dither = dither ?? throw new ArgumentNullException(nameof(dither));
             this.UpperColor = upperColor;
             this.LowerColor = lowerColor;
         }

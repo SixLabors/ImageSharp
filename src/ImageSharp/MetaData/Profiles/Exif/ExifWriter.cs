@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         private ExifParts allowedParts;
         private IList<ExifValue> values;
         private List<int> dataOffsets;
-        private List<int> ifdIndexes;
-        private List<int> exifIndexes;
-        private List<int> gpsIndexes;
+        private readonly List<int> ifdIndexes;
+        private readonly List<int> exifIndexes;
+        private readonly List<int> gpsIndexes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExifWriter"/> class.

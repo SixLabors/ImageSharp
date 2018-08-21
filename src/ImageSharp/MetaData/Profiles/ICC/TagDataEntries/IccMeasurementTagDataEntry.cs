@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccMeasurementTagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

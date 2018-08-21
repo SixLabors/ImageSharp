@@ -29,8 +29,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccMultiLocalizedUnicodeTagDataEntry(IccLocalizedString[] texts, IccProfileTag tagSignature)
             : base(IccTypeSignature.MultiLocalizedUnicode, tagSignature)
         {
-            Guard.NotNull(texts, nameof(texts));
-            this.Texts = texts;
+            this.Texts = texts ?? throw new ArgumentNullException(nameof(texts));
         }
 
         /// <summary>
@@ -47,7 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             this.ChannelValues = channelValues;
 
             int channelLength = channelValues[0].Length;
-            bool channelsNotSame = channelValues.Any(t => t == null || t.Length != channelLength);
+            bool channelsNotSame = channelValues.Any(t => t is null || t.Length != channelLength);
             Guard.IsFalse(channelsNotSame, nameof(channelValues), "The number of values per channel is not the same for all channels");
         }
 

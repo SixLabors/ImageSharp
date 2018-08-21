@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             get
             {
-                if (this.Value == null)
+                if (this.Value is null)
                 {
                     return false;
                 }
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             get
             {
-                if (this.Value == null)
+                if (this.Value is null)
                 {
                     return 4;
                 }
@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.Value == null)
+            if (this.Value is null)
             {
                 return null;
             }
@@ -589,7 +589,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 type = type.GetElementType();
             }
 
-            if (type == null || type == typeof(ushort))
+            if (type is null || type == typeof(ushort))
             {
                 return new ExifValue(tag, ExifDataType.Short, value, isArray);
             }
@@ -616,7 +616,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </exception>
         private void CheckValue(object value)
         {
-            if (value == null)
+            if (value is null)
             {
                 return;
             }

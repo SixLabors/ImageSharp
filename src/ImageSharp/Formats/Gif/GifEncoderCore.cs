@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
-                if (quantized == null)
+                if (quantized is null)
                 {
                     quantized = this.quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
                 }

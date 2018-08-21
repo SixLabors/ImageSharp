@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp
         public static void NotNull<T>(T value, string parameterName)
             where T : class
         {
-            if (value == null)
+            if (value is null)
             {
                 throw new ArgumentNullException(parameterName);
             }

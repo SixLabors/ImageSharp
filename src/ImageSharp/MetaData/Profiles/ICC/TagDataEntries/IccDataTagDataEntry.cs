@@ -42,8 +42,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccDataTagDataEntry(byte[] data, bool isAscii, IccProfileTag tagSignature)
             : base(IccTypeSignature.Data, tagSignature)
         {
-            Guard.NotNull(data, nameof(data));
-            this.Data = data;
+            this.Data = data ?? throw new ArgumentException(nameof(data));
             this.IsAscii = isAscii;
         }
 
@@ -72,7 +71,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccDataTagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

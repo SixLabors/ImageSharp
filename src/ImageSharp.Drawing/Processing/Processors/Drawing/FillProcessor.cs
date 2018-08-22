@@ -109,28 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                 return false;
             }
 
-            if (this.options.ColorBlendingMode != PixelColorBlendingMode.Normal)
-            {
-                return false;
-            }
-
-            if (this.options.AlphaCompositionMode != PixelAlphaCompositionMode.SrcOver &&
-                this.options.AlphaCompositionMode != PixelAlphaCompositionMode.Src)
-            {
-                return false;
-            }
-
-            if (this.options.BlendPercentage != 1f)
-            {
-                return false;
-            }
-
-            if (solidBrush.Color.ToVector4().W != 1f)
-            {
-                return false;
-            }
-
-            return true;
+            return this.options.IsOpaqueColorWithoutBlending(solidBrush.Color);
         }
     }
 }

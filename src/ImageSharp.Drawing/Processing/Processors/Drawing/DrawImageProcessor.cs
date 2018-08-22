@@ -23,94 +23,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        public DrawImageProcessor(Image<TPixel> image, float opacity)
-            : this(image, Point.Empty, opacity)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="options">
-        /// The options containing the opacity of the image to blend and blending mode.
-        /// Opacity must be between 0 and 1.
-        /// </param>
-        public DrawImageProcessor(Image<TPixel> image, GraphicsOptions options)
-            : this(image, Point.Empty, options)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
-        public DrawImageProcessor(Image<TPixel> image, float opacity, PixelColorBlendingMode colorBlendingMode)
-            : this(image, Point.Empty, opacity, colorBlendingMode, GraphicsOptions.Default.AlphaCompositionMode)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        /// <param name="colorBlendingMode">The Color blending mode to use when drawing the image.</param>
-        /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
-        public DrawImageProcessor(Image<TPixel> image, float opacity, PixelColorBlendingMode colorBlendingMode, PixelAlphaCompositionMode alphaCompositionMode)
-            : this(image, Point.Empty, opacity, colorBlendingMode, alphaCompositionMode)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
         /// <param name="location">The location to draw the blended image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        public DrawImageProcessor(Image<TPixel> image, Point location, float opacity)
-            : this(image, location, opacity, GraphicsOptions.Default.ColorBlendingMode, GraphicsOptions.Default.AlphaCompositionMode)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="location">The location to draw the blended image.</param>
-        /// <param name="options">
-        /// The options containing the opacity of the image to blend and blending mode.
-        /// Opacity must be between 0 and 1.
-        /// </param>
-        public DrawImageProcessor(Image<TPixel> image, Point location, GraphicsOptions options)
-            : this(image, location, options.BlendPercentage, options.ColorBlendingMode, options.AlphaCompositionMode)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="location">The location to draw the blended image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-        /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
-        public DrawImageProcessor(Image<TPixel> image, Point location, float opacity, PixelColorBlendingMode colorBlendingMode)
-            : this(image, location, opacity, colorBlendingMode, GraphicsOptions.Default.AlphaCompositionMode)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixel}"/> class.
-        /// </summary>
-        /// <param name="image">The image to blend with the currently processing image.</param>
-        /// <param name="location">The location to draw the blended image.</param>
-        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
         /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
         /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
-        public DrawImageProcessor(Image<TPixel> image, Point location, float opacity, PixelColorBlendingMode colorBlendingMode, PixelAlphaCompositionMode alphaCompositionMode)
+        /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
+        public DrawImageProcessor(Image<TPixel> image, Point location, PixelColorBlendingMode colorBlendingMode, PixelAlphaCompositionMode alphaCompositionMode, float opacity)
         {
             Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 

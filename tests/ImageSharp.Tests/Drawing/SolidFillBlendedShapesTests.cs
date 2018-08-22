@@ -21,10 +21,14 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             foreach (var blending in Enum.GetValues(typeof(PixelColorBlendingMode)))                
             {
+                // until reference images are in place, we will only test SrcOver
+                yield return new object[] { blending, PixelAlphaCompositionMode.SrcOver };                
+
+                /*
                 foreach (var composition in Enum.GetValues(typeof(PixelAlphaCompositionMode)))
                 {
                     yield return new object[] { blending, composition };
-                }
+                }*/
             }
         }
             
@@ -46,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                             NamedColors<TPixel>.DarkBlue,
                             new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)
                             )
-                        .Fill(new GraphicsOptions(true) { ColorBlendingMode = blending },
+                        .Fill(new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode=composition },
                             NamedColors<TPixel>.HotPink,
                             new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY))
                     );
@@ -73,12 +77,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Rectangle(0 * scaleX, 40 * scaleY, 100 * scaleX, 20 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending },
+                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         NamedColors<TPixel>.HotPink,
                         new Rectangle(20 * scaleX, 0 * scaleY, 30 * scaleX, 100 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending },
+                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         NamedColors<TPixel>.Transparent,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY))
                     );
@@ -105,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Rectangle(0 * scaleX, 40, 100 * scaleX, 20 * scaleY)));
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending },
+                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         NamedColors<TPixel>.HotPink,
                         new Rectangle(20 * scaleX, 0, 30 * scaleX, 100 * scaleY)));
                 var c = NamedColors<TPixel>.Red.ToVector4();
@@ -115,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 img.Mutate(
                     x => x.Fill(
-                        new GraphicsOptions(true) { ColorBlendingMode = blending },
+                        new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition },
                         pixel,
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY))
                     );
@@ -148,14 +152,18 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY)));
 
                 dstImg.Mutate(
-                    x => x.DrawImage(srcImg, new GraphicsOptions(true) { ColorBlendingMode = blending })
+                    x => x.DrawImage(srcImg, new GraphicsOptions(true) { ColorBlendingMode = blending, AlphaCompositionMode = composition })
                     );                
 
                 VerifyImage(provider, blending, composition, dstImg);
             }
         }
         
-        private static void VerifyImage<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode blending, PixelAlphaCompositionMode composition, Image<TPixel> img)
+        private static void VerifyImage<TPixel>(
+            TestImageProvider<TPixel> provider,
+            PixelColorBlendingMode blending,
+            PixelAlphaCompositionMode composition,
+            Image<TPixel> img)
             where TPixel : struct, IPixel<TPixel>
         {
             img.DebugSave(
@@ -163,20 +171,13 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 new { blending },
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);
-
-            try
-            {
-                var comparer = ImageComparer.TolerantPercentage(0.01f, 3);
-                img.CompareFirstFrameToReferenceOutput(comparer,
-                    provider,
-                    new { blending },
-                    appendPixelTypeToFileName: false,
-                    appendSourceFileOrDescription: false);
-            }
-            catch(System.IO.FileNotFoundException)
-            {
-                // temporary hack until reference images are in place.
-            }
+            
+            var comparer = ImageComparer.TolerantPercentage(0.01f, 3);
+            img.CompareFirstFrameToReferenceOutput(comparer,
+                provider,
+                new { blending },
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);            
         }
     }
 }

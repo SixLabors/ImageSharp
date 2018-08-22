@@ -161,21 +161,21 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         
         private static void VerifyImage<TPixel>(
             TestImageProvider<TPixel> provider,
-            PixelColorBlendingMode blending,
+            PixelColorBlendingMode mode,
             PixelAlphaCompositionMode composition,
             Image<TPixel> img)
             where TPixel : struct, IPixel<TPixel>
         {
             img.DebugSave(
                 provider,
-                new { blending },
+                new { mode },
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);
             
             var comparer = ImageComparer.TolerantPercentage(0.01f, 3);
             img.CompareFirstFrameToReferenceOutput(comparer,
                 provider,
-                new { blending },
+                new { mode },
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);            
         }

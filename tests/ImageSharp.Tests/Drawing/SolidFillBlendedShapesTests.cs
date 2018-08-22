@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                         new Shapes.EllipsePolygon(40 * scaleX, 50 * scaleY, 50 * scaleX, 50 * scaleY)));
 
                 dstImg.Mutate(
-                    x => x.DrawImage(new GraphicsOptions(true) { ColorBlendingMode = mode }, srcImg)
+                    x => x.DrawImage(srcImg, new GraphicsOptions(true) { ColorBlendingMode = mode })
                     );                
 
                 VerifyImage(provider, mode, dstImg);

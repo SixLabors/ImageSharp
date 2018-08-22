@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
                     AlphaCompositionMode = mode                    
                 };
 
-                using (Image<Rgba32> res = dest.Clone(x => x.DrawImage(options, src)))
+                using (Image<Rgba32> res = dest.Clone(x => x.DrawImage(src, options)))
                 {
                     string combinedMode = mode.ToString();
 

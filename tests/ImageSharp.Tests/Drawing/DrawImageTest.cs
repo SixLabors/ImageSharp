@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
                 blend.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-                image.Mutate(x => x.DrawImage(blend, mode, .75f, new Point(image.Width / 4, image.Height / 4)));
+                image.Mutate(x => x.DrawImage(blend, new Point(image.Width / 4, image.Height / 4), mode, .75f) );
                 image.DebugSave(provider, new { mode });
             }
         }
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests
                     new Rectangle(0, 0, destBounds.Width, destBounds.Height)));
 
                 var position = new Point((image.Width - blend.Width) / 2, (image.Height - blend.Height) / 2);
-                image.Mutate(x => x.DrawImage(blend, mode, .75F, position));
+                image.Mutate(x => x.DrawImage(blend, position, mode, .75F));
                 image.DebugSave(provider, new[] { "Transformed" });
             }
         }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 backgroundPixel = background[0, 0];
                 Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
 
-                background.Mutate(x => x.DrawImage(overlay, PixelColorBlendingMode.Normal, 1F, new Point(xy, xy)));
+                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
 
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[0, 0]);
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests
                 Rgba32 backgroundPixel = background[xy - 1, xy - 1];
                 Rgba32 overlayPixel = overlay[0, 0];
 
-                background.Mutate(x => x.DrawImage(overlay, PixelColorBlendingMode.Normal, 1F, new Point(xy, xy)));
+                background.Mutate(x => x.DrawImage(overlay, new Point(xy, xy), PixelColorBlendingMode.Normal, 1F));
 
                 Assert.Equal(Rgba32.White, backgroundPixel);
                 Assert.Equal(overlayPixel, background[xy, xy]);

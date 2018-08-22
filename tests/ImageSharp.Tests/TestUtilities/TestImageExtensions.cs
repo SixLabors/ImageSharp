@@ -365,7 +365,7 @@ namespace SixLabors.ImageSharp.Tests
 
             if (!File.Exists(referenceOutputFile))
             {
-                throw new Exception("Reference output file missing: " + referenceOutputFile);
+                throw new System.IO.FileNotFoundException("Reference output file missing: " + referenceOutputFile, referenceOutputFile);
             }
 
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(referenceOutputFile);

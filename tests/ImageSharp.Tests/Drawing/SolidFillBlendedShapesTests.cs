@@ -19,16 +19,12 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
         private static IEnumerable<object[]> GetAllModeCombinations()
         {
-            foreach (var blending in Enum.GetValues(typeof(PixelColorBlendingMode)))                
+            foreach (var composition in Enum.GetValues(typeof(PixelAlphaCompositionMode)))
             {
-                // until reference images are in place, we will only test SrcOver
-                yield return new object[] { blending, PixelAlphaCompositionMode.SrcOver };                
-
-                /*
-                foreach (var composition in Enum.GetValues(typeof(PixelAlphaCompositionMode)))
+                foreach (var blending in Enum.GetValues(typeof(PixelColorBlendingMode)))
                 {
                     yield return new object[] { blending, composition };
-                }*/
+                }
             }
         }
             
@@ -161,21 +157,21 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         
         private static void VerifyImage<TPixel>(
             TestImageProvider<TPixel> provider,
-            PixelColorBlendingMode mode,
+            PixelColorBlendingMode blending,
             PixelAlphaCompositionMode composition,
             Image<TPixel> img)
             where TPixel : struct, IPixel<TPixel>
         {
             img.DebugSave(
                 provider,
-                new { mode },
+                new { composition, blending },
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);
             
             var comparer = ImageComparer.TolerantPercentage(0.01f, 3);
             img.CompareFirstFrameToReferenceOutput(comparer,
                 provider,
-                new { mode },
+                new { composition, blending },
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);            
         }

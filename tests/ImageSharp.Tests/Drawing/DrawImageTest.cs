@@ -5,14 +5,14 @@ using System;
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Processors.Transforms;
-
+    [GroupOutput("Drawing")]
     public class DrawImageTest : FileTestBase
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32;
@@ -41,8 +41,29 @@ namespace SixLabors.ImageSharp.Tests
             using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))
             {
                 blend.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
-                image.Mutate(x => x.DrawImage(blend, new Point(image.Width / 4, image.Height / 4), mode, .75f) );
+                image.Mutate(x => x.DrawImage(blend, new Point(image.Width / 4, image.Height / 4), mode, .75f));
                 image.DebugSave(provider, new { mode });
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Normal)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Multiply)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Add)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Subtract)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Screen)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Darken)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Lighten)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.Overlay)]
+        [WithFile(TestImages.Png.Rainbow, PixelTypes, PixelColorBlendingMode.HardLight)]
+        public void ImageBlendingMatchesSvgSpecExamples<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> background = provider.GetImage())
+            using (var source = Image.Load<TPixel>(TestFile.Create(TestImages.Png.Ducky).Bytes))
+            {
+                background.Mutate(x => x.DrawImage(source, mode, 1F));
+                VerifyImage(provider, mode, background);
             }
         }
 
@@ -84,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 overlay.Mutate(x => x.Fill(Rgba32.Black));
 
-                int xy = -25;
+                const int xy = -25;
                 Rgba32 backgroundPixel = background[0, 0];
                 Rgba32 overlayPixel = overlay[Math.Abs(xy) + 1, Math.Abs(xy) + 1];
 
@@ -106,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 overlay.Mutate(x => x.Fill(Rgba32.Black));
 
-                int xy = 25;
+                const int xy = 25;
                 Rgba32 backgroundPixel = background[xy - 1, xy - 1];
                 Rgba32 overlayPixel = overlay[0, 0];
 
@@ -117,6 +138,26 @@ namespace SixLabors.ImageSharp.Tests
 
                 background.DebugSave(provider, testOutputDetails: "Positive");
             }
+        }
+
+        private static void VerifyImage<TPixel>(
+            TestImageProvider<TPixel> provider,
+            PixelColorBlendingMode mode,
+            Image<TPixel> img)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            img.DebugSave(
+                provider,
+                new { mode },
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+
+            var comparer = ImageComparer.TolerantPercentage(0.01F, 3);
+            img.CompareFirstFrameToReferenceOutput(comparer,
+                provider,
+                new { mode },
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
         }
     }
 }

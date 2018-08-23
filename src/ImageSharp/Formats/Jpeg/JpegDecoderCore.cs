@@ -538,7 +538,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
                 this.isExif = true;
-                if (this.exifData == null)
+                if (this.exifData is null)
                 {
                     // The first 6 bytes (Exif00) will be skipped, because this is Jpeg specific
                     this.exifData = profile.Skip(Exif00).ToArray();
@@ -575,7 +575,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 byte[] profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
-                if (this.iccData == null)
+                if (this.iccData is null)
                 {
                     this.iccData = profile;
                 }

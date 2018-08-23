@@ -30,10 +30,8 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccScreeningTagDataEntry(IccScreeningFlag flags, IccScreeningChannel[] channels, IccProfileTag tagSignature)
             : base(IccTypeSignature.Screening, tagSignature)
         {
-            Guard.NotNull(channels, nameof(channels));
-
             this.Flags = flags;
-            this.Channels = channels;
+            this.Channels = channels ?? throw new ArgumentNullException(nameof(channels));
         }
 
         /// <summary>

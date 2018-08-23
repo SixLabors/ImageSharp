@@ -17,8 +17,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccClutProcessElement(IccClut clutValue)
             : base(IccMultiProcessElementSignature.Clut, clutValue?.InputChannelCount ?? 1, clutValue?.OutputChannelCount ?? 1)
         {
-            Guard.NotNull(clutValue, nameof(clutValue));
-            this.ClutValue = clutValue;
+            this.ClutValue = clutValue ?? throw new ArgumentNullException(nameof(clutValue));
         }
 
         /// <summary>

@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                                     this.ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
                                     break;
                                 case PngChunkType.Data:
-                                    if (image == null)
+                                    if (image is null)
                                     {
                                         this.InitializeImage(metadata, out image);
                                     }
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                if (image == null)
+                if (image is null)
                 {
                     throw new ImageFormatException("PNG Image does not contain a data chunk");
                 }

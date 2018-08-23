@@ -32,7 +32,9 @@ namespace SixLabors.ImageSharp.Processing
 
         private float? dpiY;
 
-        private PixelBlenderMode blenderMode;
+        private PixelColorBlendingMode colorBlendingMode;
+
+        private PixelAlphaCompositionMode alphaCompositionMode;
 
         private float wrapTextWidth;
 
@@ -53,7 +55,8 @@ namespace SixLabors.ImageSharp.Processing
             this.verticalAlignment = VerticalAlignment.Top;
 
             this.antialiasSubpixelDepth = 16;
-            this.blenderMode = PixelBlenderMode.Normal;
+            this.colorBlendingMode = PixelColorBlendingMode.Normal;
+            this.alphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
             this.blendPercentage = 1;
             this.antialias = enableAntialiasing;
             this.dpiX = DefaultTextDpi;
@@ -80,9 +83,14 @@ namespace SixLabors.ImageSharp.Processing
         // some API thought post V1.
 
         /// <summary>
-        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation
         /// </summary>
-        public PixelBlenderMode BlenderMode { get => this.blenderMode; set => this.blenderMode = value; }
+        public PixelColorBlendingMode ColorBlendingMode { get => this.colorBlendingMode; set => this.colorBlendingMode = value; }
+
+        /// <summary>
+        /// Gets or sets a value indicating the color blending percentage to apply to the drawing operation
+        /// </summary>
+        public PixelAlphaCompositionMode AlphaCompositionMode { get => this.alphaCompositionMode; set => this.alphaCompositionMode = value; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the text should be drawing with kerning enabled.
@@ -135,7 +143,8 @@ namespace SixLabors.ImageSharp.Processing
             {
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
                 blendPercentage = options.BlendPercentage,
-                blenderMode = options.BlenderMode
+                colorBlendingMode = options.ColorBlendingMode,
+                alphaCompositionMode = options.AlphaCompositionMode
             };
         }
 
@@ -151,7 +160,8 @@ namespace SixLabors.ImageSharp.Processing
             return new GraphicsOptions(options.Antialias)
             {
                 AntialiasSubpixelDepth = options.AntialiasSubpixelDepth,
-                BlenderMode = options.BlenderMode,
+                ColorBlendingMode = options.ColorBlendingMode,
+                AlphaCompositionMode = options.AlphaCompositionMode,
                 BlendPercentage = options.BlendPercentage
             };
         }

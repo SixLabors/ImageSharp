@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         {
             this.VignetteColor = color;
             this.GraphicsOptions = options;
-            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             this.VignetteColor = color;
             this.RadiusX = radiusX;
             this.RadiusY = radiusY;
-            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options);
             this.GraphicsOptions = options;
         }
 

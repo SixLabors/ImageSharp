@@ -89,6 +89,17 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             Assert.NotNull(PixelOperations<TPixel>.Instance);
         }
+
+        [Fact]
+        public void IsOpaqueColor()
+        {
+            Assert.True(new GraphicsOptions(true).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
+
+            Assert.False(new GraphicsOptions(true, 0.5f).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
+            Assert.False(new GraphicsOptions(true).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Transparent));
+            Assert.False(new GraphicsOptions(true, PixelColorBlendingMode.Lighten, 1).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
+            Assert.False(new GraphicsOptions(true, PixelColorBlendingMode.Normal,PixelAlphaCompositionMode.DestOver, 1).IsOpaqueColorWithoutBlending(ImageSharp.PixelFormats.Rgba32.Red));
+        }
     }
 
     public abstract class PixelOperationsTests<TPixel> : MeasureFixture

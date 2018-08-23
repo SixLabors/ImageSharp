@@ -41,8 +41,8 @@ function CheckSubmoduleStatus() {
 }
 
 
-if ( ($targetFramework -eq "netcoreapp2.0") -and ($env:CI -eq "True") -and ($is32Bit -ne "True")) {
-    # We execute CodeCoverage.cmd only for one specific job on CI (netcoreapp2.0 + 64bit )
+if ( ($targetFramework -eq "netcoreapp2.1") -and ($env:CI -eq "True") -and ($is32Bit -ne "True")) {
+    # We execute CodeCoverage.cmd only for one specific job on CI (netcoreapp2.1 + 64bit )
     $testRunnerCmd = ".\tests\CodeCoverage\CodeCoverage.cmd"
 }
 elseif ($targetFramework -eq "mono") {
@@ -69,11 +69,6 @@ elseif ($targetFramework -eq "mono") {
 else {
     cd .\tests\ImageSharp.Tests
     $xunitArgs = "-nobuild -c Release -framework $targetFramework"
-
-    if ($targetFramework -eq "netcoreapp2.0") {
-        # There were issues matching the correct installed runtime if we do not specify it explicitly:
-        $xunitArgs += " --fx-version 2.0.0"
-    }
 
     if ($targetFramework -eq "netcoreapp2.1") {
         # There were issues matching the correct installed runtime if we do not specify it explicitly:

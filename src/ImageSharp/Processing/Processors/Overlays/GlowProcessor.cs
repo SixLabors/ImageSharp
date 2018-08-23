@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         {
             this.GlowColor = color;
             this.Radius = radius;
-            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
+            this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options);
             this.GraphicsOptions = options;
         }
 

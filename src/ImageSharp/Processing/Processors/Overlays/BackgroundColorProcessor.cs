@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                     amountSpan[i] = this.GraphicsOptions.BlendPercentage;
                 }
 
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions.BlenderMode);
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(this.GraphicsOptions);
                 ParallelFor.WithConfiguration(
                     minY,
                     maxY,

@@ -104,12 +104,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         {
             solidBrush = this.brush as SolidBrush<TPixel>;
 
-            return solidBrush != null
-                   && ((this.options.BlenderMode == PixelBlenderMode.Normal && this.options.BlendPercentage == 1f
-                                                                            && solidBrush.Color.ToVector4().W == 1f)
-                       || (this.options.BlenderMode == PixelBlenderMode.Over && this.options.BlendPercentage == 1f
-                                                                             && solidBrush.Color.ToVector4().W == 1f)
-                       || (this.options.BlenderMode == PixelBlenderMode.Src));
+            if (solidBrush == null)
+            {
+                return false;
+            }
+
+            return this.options.IsOpaqueColorWithoutBlending(solidBrush.Color);
         }
     }
 }

@@ -124,9 +124,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
 
-            if (property == null)
+            if (property is null)
             {
-                throw new Exception("Invalid property name!");
+                throw new Exception($"No resampler named {name}");
             }
 
             return (IResampler)property.GetValue(null);

@@ -117,12 +117,9 @@ For more examples check out:
 
 If you prefer, you can compile ImageSharp yourself (please do and help!)
 
-- Using [Visual Studio 2017 Preview](https://docs.microsoft.com/en-us/visualstudio/releasenotes/vs2017-preview-relnotes)
+- Using [Visual Studio 2017](https://visualstudio.microsoft.com/vs/)
   - Make sure you have the latest version installed
-  - Make sure you have [the newest 2.1 RC1 SDK installed](https://www.microsoft.com/net/core#windows)
-
-- Using [Visual Studio 2017](https://www.visualstudio.com/en-us/news/releasenotes/vs2017-relnotes)
-  - If you are unable and/or don't want to build ImageSharp.Tests against 2.1 RC, remove the `netcoreapp2.1` target [from TargetFrameworks](https://github.com/SixLabors/ImageSharp/blob/master/tests/ImageSharp.Tests/ImageSharp.Tests.csproj#L3) locally
+  - Make sure you have [the .NET Core 2.1 SDK](https://www.microsoft.com/net/core#windows) installed
 
 Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 

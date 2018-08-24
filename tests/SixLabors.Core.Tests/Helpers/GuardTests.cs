@@ -2,91 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using Xunit;
 
 namespace SixLabors.Helpers.Tests
 {
     public class GuardTests
     {
-        [Fact]
-        public void NotNull_TargetNotNull_ThrowsNoException()
-        {
-            Guard.NotNull("test", "myParamName");
-        }
-
-        [Fact]
-        public void NotNull_TargetNull_ThrowsException()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                Guard.NotNull((object)null, "myParamName");
-            });
-        }
-
-        [Fact]
-        public void NotNullOrEmpty_TargetNotNullOrEmpty_ThrowsNoException()
-        {
-            Guard.NotNullOrEmpty("test", "myParamName");
-        }
-
-        [Fact]
-        public void NotNullOrEmpty_TargetNull_ThrowsException()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                Guard.NotNullOrEmpty(null, "myParamName");
-            });
-        }
-
-        [Fact]
-        public void NotNullOrEmpty_TargetWhitespace_ThrowsException()
-        {
-            Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.NotNullOrEmpty("\n\n", "myParamName");
-            });
-        }
-
-        [Fact]
-        public void NotNullOrEmpty_TargetEmpty_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.NotNullOrEmpty(string.Empty, "myParamName");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("Value cannot be null, empty, or cannot contain only whitespace."));
-        }
-
-        [Fact]
-        public void NotNullOrEmptyIEnumerable_TargetNotNullOrEmpty_ThrowsNoException()
-        {
-            Guard.NotNullOrEmpty(new string[] { "test" }, "myParamName");
-        }
-
-        [Fact]
-        public void NotNullOrEmptyIEnumerable_TargetNull_ThrowsException()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                Guard.NotNullOrEmpty((IEnumerable<string>)null, "myParamName");
-            });
-        }
-
-        [Fact]
-        public void NotNullOrEmptyIEnumerable_TargetEmpty_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.NotNullOrEmpty(new string[] { }, "myParamName");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("Value cannot be empty."));
-        }
-
         [Fact]
         public void MustBeLessThan_IsLess_ThrowsNoException()
         {

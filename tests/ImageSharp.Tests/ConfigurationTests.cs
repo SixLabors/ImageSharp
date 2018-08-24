@@ -2,13 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.PixelFormats;
 using Moq;
+using SixLabors.ImageSharp.IO;
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -95,6 +91,14 @@ namespace SixLabors.ImageSharp.Tests
             config.Configure(provider.Object);
 
             provider.Verify(x => x.Configure(config));
+        }
+
+        [Fact]
+        public void DefaultConfigurationHasCorrectFormatCount()
+        {
+            Configuration config = Configuration.Default;
+
+            Assert.Equal(4, config.ImageFormats.Count());
         }
     }
 }

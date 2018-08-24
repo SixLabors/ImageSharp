@@ -264,10 +264,7 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Point [ X={this.X}, Y={this.Y} ]";
-        }
+        public override string ToString() => $"Point [ X={this.X}, Y={this.Y} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Point other && this.Equals(other);
@@ -279,6 +276,5 @@ namespace SixLabors.Primitives
         private static short HighInt16(int n) => unchecked((short)((n >> 16) & 0xffff));
 
         private static short LowInt16(int n) => unchecked((short)(n & 0xffff));
-
     }
 }

@@ -68,6 +68,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Ratio1x4 = "Png/ratio-1x4.png";
             public const string Ratio4x1 = "Png/ratio-4x1.png";
 
+            public const string Ducky = "Png/ducky.png";
+            public const string Rainbow = "Png/rainbow.png";
+
             public static class Bad
             {
                 // Odd chunk lengths

@@ -15,8 +15,8 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class ConfigurationTests
     {
-        public Configuration ConfigurationEmpty { get; private set; }
-        public Configuration DefaultConfiguration { get; private set; }
+        public Configuration ConfigurationEmpty { get; }
+        public Configuration DefaultConfiguration { get; }
 
         public ConfigurationTests()
         {
@@ -91,6 +91,19 @@ namespace SixLabors.ImageSharp.Tests
             config.Configure(provider.Object);
 
             provider.Verify(x => x.Configure(config));
+        }
+
+        [Fact]
+        public void ConfigurationCannotAddDuplicates()
+        {
+            const int count = 4;
+            Configuration config = Configuration.Default;
+
+            Assert.Equal(count, config.ImageFormats.Count());
+
+            config.ImageFormatsManager.AddImageFormat(ImageFormats.Bmp);
+
+            Assert.Equal(count, config.ImageFormats.Count());
         }
 
         [Fact]

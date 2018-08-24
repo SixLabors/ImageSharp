@@ -258,7 +258,10 @@ namespace SixLabors.Primitives
         public void Offset(Point point) => this.Offset(point.X, point.Y);
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode()
+        {
+            return HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
+        }
 
         /// <inheritdoc/>
         public override string ToString()
@@ -277,6 +280,5 @@ namespace SixLabors.Primitives
 
         private static short LowInt16(int n) => unchecked((short)(n & 0xffff));
 
-        private int GetHashCode(Point point) => HashHelpers.Combine(point.X.GetHashCode(), point.Y.GetHashCode());
     }
 }

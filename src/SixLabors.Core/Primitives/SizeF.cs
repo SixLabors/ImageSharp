@@ -200,7 +200,7 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.GetHashCode(this);
+            return HashHelpers.Combine(this.Width.GetHashCode(), this.Height.GetHashCode());
         }
 
         /// <inheritdoc/>
@@ -224,7 +224,5 @@ namespace SixLabors.Primitives
         /// <returns>Product of type SizeF.</returns>
         private static SizeF Multiply(SizeF size, float multiplier) =>
             new SizeF(size.Width * multiplier, size.Height * multiplier);
-
-        private int GetHashCode(SizeF size) => HashHelpers.Combine(size.Width.GetHashCode(), size.Height.GetHashCode());
     }
 }

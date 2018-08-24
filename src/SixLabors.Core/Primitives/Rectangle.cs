@@ -443,7 +443,14 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode()
+        {
+            return HashHelpers.Combine(
+               this.X.GetHashCode(),
+               this.Y.GetHashCode(),
+               this.Width.GetHashCode(),
+               this.Height.GetHashCode());
+        }
 
         /// <inheritdoc/>
         public override string ToString()
@@ -457,15 +464,5 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Rectangle other) => this.X == other.X && this.Y == other.Y && this.Width == other.Width && this.Height == other.Height;
-
-        private int GetHashCode(Rectangle rectangle)
-        {
-            return HashHelpers.Combine(
-                rectangle.X.GetHashCode(),
-                rectangle.Y.GetHashCode(),
-                rectangle.Width.GetHashCode(),
-                rectangle.Height.GetHashCode()
-            );
-        }
     }
 }

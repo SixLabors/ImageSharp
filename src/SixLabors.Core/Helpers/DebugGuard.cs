@@ -115,7 +115,6 @@ namespace SixLabors
                 throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min}.");
             }
         }
-     
 
         /// <summary>
         /// Verifies, that the `target` array has declared the length  or longer.

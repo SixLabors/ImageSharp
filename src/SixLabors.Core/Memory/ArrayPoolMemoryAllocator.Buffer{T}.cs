@@ -51,7 +51,7 @@ namespace SixLabors.Memory
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
             {
-                if (!disposing || this.Data == null || this.sourcePoolReference == null)
+                if (!disposing || this.Data is null || this.sourcePoolReference is null)
                 {
                     return;
                 }
@@ -71,7 +71,7 @@ namespace SixLabors.Memory
         /// <summary>
         /// The <see cref="IManagedByteBuffer"/> implementation of <see cref="ArrayPoolMemoryAllocator"/>.
         /// </summary>
-        private class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
+        private sealed class ManagedByteBuffer : Buffer<byte>, IManagedByteBuffer
         {
             public ManagedByteBuffer(byte[] data, int length, ArrayPool<byte> sourcePool)
                 : base(data, length, sourcePool)

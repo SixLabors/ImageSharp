@@ -393,11 +393,12 @@ namespace SixLabors.Primitives
 
         private int GetHashCode(RectangleF rectangle)
         {
-            int hashCode = rectangle.X.GetHashCode();
-            hashCode = HashHelpers.Combine(hashCode, rectangle.Y.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, rectangle.Width.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, rectangle.Height.GetHashCode());
-            return hashCode;
+            return HashHelpers.Combine(
+                rectangle.X.GetHashCode(),
+                rectangle.Y.GetHashCode(),
+                rectangle.Width.GetHashCode(),
+                rectangle.Height.GetHashCode()
+            );
         }
     }
 }

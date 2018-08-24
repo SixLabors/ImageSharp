@@ -190,42 +190,6 @@ namespace SixLabors.Helpers.Tests
             Assert.True(exception.Message.Contains($"Value must be greater than or equal to {min} and less than or equal to {max}."));
         }
 
-        [Fact]
-        public void IsTrue_IsTrue_ThrowsNoException()
-        {
-            Guard.IsTrue(true, "myParamName", "myTestMessage");
-        }
-
-        [Fact]
-        public void IsTrue_IsFalse_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.IsTrue(false, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
-        }
-
-        [Fact]
-        public void IsFalse_IsFalse_ThrowsNoException()
-        {
-            Guard.IsFalse(false, "myParamName", "myTestMessage");
-        }
-
-        [Fact]
-        public void IsFalse_IsTrue_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.IsFalse(true, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
-        }
-
         [Theory]
         [InlineData(2, 1)]
         [InlineData(2, 2)]

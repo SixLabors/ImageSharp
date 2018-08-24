@@ -20,19 +20,13 @@ namespace SixLabors
         /// </summary>
         /// <param name="target">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
         /// <typeparam name="T">The type of the object to verify</typeparam>
-        public static void NotNull<T>(T target, string parameterName, string message = "")
+        public static void NotNull<T>(T target, string parameterName)
             where T : class
         {
-            if (target == null)
+            if (target is null)
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentNullException(parameterName, message);
-                }
-
                 throw new ArgumentNullException(parameterName);
             }
         }
@@ -44,20 +38,14 @@ namespace SixLabors
         /// </summary>
         /// <param name="target">The target string, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="target"/> is empty or contains only blanks.</exception>
-        public static void NotNullOrEmpty(string target, string parameterName, string message = "")
+        public static void NotNullOrEmpty(string target, string parameterName)
         {
-            NotNull(target, parameterName, message);
+            NotNull(target, parameterName);
 
             if (string.IsNullOrWhiteSpace(target))
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(message, parameterName);
-                }
-
                 throw new ArgumentException("Value cannot be null, empty, or cannot contain only whitespace.", parameterName);
             }
         }
@@ -68,20 +56,14 @@ namespace SixLabors
         /// <typeparam name="T">The type of objects in the <paramref name="target"/></typeparam>
         /// <param name="target">The target enumeration, which should be checked against being null or empty.</param>
         /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
         /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="target"/> is empty.</exception>
-        public static void NotNullOrEmpty<T>(IEnumerable<T> target, string parameterName, string message = "")
+        public static void NotNullOrEmpty<T>(IEnumerable<T> target, string parameterName)
         {
-            NotNull(target, parameterName, message);
+            NotNull(target, parameterName);
 
             if (!target.Any())
             {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(message, parameterName);
-                }
-
                 throw new ArgumentException("Value cannot be empty.", parameterName);
             }
         }

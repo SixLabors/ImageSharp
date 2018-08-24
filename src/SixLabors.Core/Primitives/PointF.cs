@@ -267,7 +267,10 @@ namespace SixLabors.Primitives
         public void Offset(PointF point) => this.Offset(point.X, point.Y);
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode()
+        {
+            return HashHelpers.Combine(this.X.GetHashCode(), this.Y.GetHashCode());
+        }
 
         /// <inheritdoc/>
         public override string ToString()
@@ -281,16 +284,5 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(PointF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="point">
-        /// The instance of <see cref="PointF"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(PointF point) => HashHelpers.Combine(point.X.GetHashCode(), point.Y.GetHashCode());
     }
 }

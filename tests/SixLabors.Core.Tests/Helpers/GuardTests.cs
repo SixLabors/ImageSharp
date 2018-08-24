@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
 namespace SixLabors.Helpers.Tests
@@ -23,18 +22,6 @@ namespace SixLabors.Helpers.Tests
             {
                 Guard.NotNull((object)null, "myParamName");
             });
-        }
-
-        [Fact]
-        public void NotNull_TargetNullWithMessage_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentNullException>(() =>
-            {
-                Guard.NotNull((object)null, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
         }
 
         [Fact]
@@ -74,18 +61,6 @@ namespace SixLabors.Helpers.Tests
         }
 
         [Fact]
-        public void NotNullOrEmpty_TargetEmptyWithMessage_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.NotNullOrEmpty(string.Empty, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
-        }
-
-        [Fact]
         public void NotNullOrEmptyIEnumerable_TargetNotNullOrEmpty_ThrowsNoException()
         {
             Guard.NotNullOrEmpty(new string[] { "test" }, "myParamName");
@@ -110,18 +85,6 @@ namespace SixLabors.Helpers.Tests
 
             Assert.Equal("myParamName", exception.ParamName);
             Assert.True(exception.Message.Contains("Value cannot be empty."));
-        }
-
-        [Fact]
-        public void NotNullOrEmptyIEnumerable_TargetEmptyWithMessage_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                Guard.NotNullOrEmpty(new string[] { }, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
         }
 
         [Fact]

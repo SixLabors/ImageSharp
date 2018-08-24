@@ -120,10 +120,7 @@ namespace SixLabors.Primitives
         public float Top
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.Y;
-            }
+            get => this.Y;
         }
 
         /// <summary>
@@ -132,10 +129,7 @@ namespace SixLabors.Primitives
         public float Right
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.X + this.Width;
-            }
+            get => this.X + this.Width;
         }
 
         /// <summary>
@@ -144,10 +138,7 @@ namespace SixLabors.Primitives
         public float Bottom
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.Y + this.Height;
-            }
+            get => this.Y + this.Height;
         }
 
         /// <summary>
@@ -156,10 +147,7 @@ namespace SixLabors.Primitives
         public float Left
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.X;
-            }
+            get => this.X;
         }
 
         /// <summary>
@@ -376,7 +364,14 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode()
+        {
+            return HashHelpers.Combine(
+               this.X.GetHashCode(),
+               this.Y.GetHashCode(),
+               this.Width.GetHashCode(),
+               this.Height.GetHashCode());
+        }
 
         /// <inheritdoc/>
         public override string ToString()
@@ -385,20 +380,10 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is RectangleF && this.Equals((RectangleF)obj);
+        public override bool Equals(object obj) => obj is RectangleF other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(RectangleF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y) && this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
-
-        private int GetHashCode(RectangleF rectangle)
-        {
-            return HashHelpers.Combine(
-                rectangle.X.GetHashCode(),
-                rectangle.Y.GetHashCode(),
-                rectangle.Width.GetHashCode(),
-                rectangle.Height.GetHashCode()
-            );
-        }
     }
 }

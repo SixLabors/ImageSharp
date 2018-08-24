@@ -255,10 +255,7 @@ namespace SixLabors.Primitives
         public override int GetHashCode() => this.GetHashCode(this);
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Size [ Width={this.Width}, Height={this.Height} ]";
-        }
+        public override string ToString() => $"Size [ Width={this.Width}, Height={this.Height} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is Size && this.Equals((Size)obj);

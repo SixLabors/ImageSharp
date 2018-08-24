@@ -204,10 +204,7 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"SizeF [ Width={this.Width}, Height={this.Height} ]";
-        }
+        public override string ToString() => $"SizeF [ Width={this.Width}, Height={this.Height} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is SizeF && this.Equals((SizeF)obj);

@@ -273,10 +273,7 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"PointF [ X={this.X}, Y={this.Y} ]";
-        }
+        public override string ToString() => $"PointF [ X={this.X}, Y={this.Y} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is PointF && this.Equals((PointF)obj);

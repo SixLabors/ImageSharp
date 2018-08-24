@@ -267,7 +267,7 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Point && this.Equals((Point)obj);
+        public override bool Equals(object obj) => obj is Point other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

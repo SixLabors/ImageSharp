@@ -6,6 +6,7 @@ using Xunit;
 
 namespace SixLabors.Tests.Helpers
 {
+
     public class MathFTests
     {
         [Fact]

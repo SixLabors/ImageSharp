@@ -12,9 +12,6 @@ environment:
     - target_framework: netcoreapp2.1
       is_32bit: True
 
-    - target_framework: netcoreapp2.0
-      is_32bit: False
-
     - target_framework: net471
       is_32bit: False
 
@@ -27,8 +24,6 @@ environment:
     - target_framework: net462
       is_32bit: True
     
-    #- target_framework: netcoreapp2.0 # As far as I understand, 32 bit test execution is not supported by "dotnet xunit"
-    #  is_32bit: True
     #- target_framework: mono
     #  is_32bit: False
     #- target_framework: mono

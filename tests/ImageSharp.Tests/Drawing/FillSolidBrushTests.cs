@@ -98,38 +98,38 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 useReferenceOutputFrom: nameof(this.FillRegion));
         }
 
-        public static readonly TheoryData<bool, string, float, PixelBlenderMode, float> BlendData =
-            new TheoryData<bool, string, float, PixelBlenderMode, float>()
+        public static readonly TheoryData<bool, string, float, PixelColorBlendingMode, float> BlendData =
+            new TheoryData<bool, string, float, PixelColorBlendingMode, float>()
                 {
-                    { false, "Blue", 0.5f, PixelBlenderMode.Normal, 1.0f },
-                    { false, "Blue", 1.0f, PixelBlenderMode.Normal, 0.5f },
-                    { false, "Green", 0.5f, PixelBlenderMode.Normal, 0.3f },
-                    { false, "HotPink", 0.8f, PixelBlenderMode.Normal, 0.8f },
+                    { false, "Blue", 0.5f, PixelColorBlendingMode.Normal, 1.0f },
+                    { false, "Blue", 1.0f, PixelColorBlendingMode.Normal, 0.5f },
+                    { false, "Green", 0.5f, PixelColorBlendingMode.Normal, 0.3f },
+                    { false, "HotPink", 0.8f, PixelColorBlendingMode.Normal, 0.8f },
 
-                    { false, "Blue", 0.5f, PixelBlenderMode.Multiply, 1.0f },
-                    { false, "Blue", 1.0f, PixelBlenderMode.Multiply, 0.5f },
-                    { false, "Green", 0.5f, PixelBlenderMode.Multiply, 0.3f },
-                    { false, "HotPink", 0.8f, PixelBlenderMode.Multiply, 0.8f },
+                    { false, "Blue", 0.5f, PixelColorBlendingMode.Multiply, 1.0f },
+                    { false, "Blue", 1.0f, PixelColorBlendingMode.Multiply, 0.5f },
+                    { false, "Green", 0.5f, PixelColorBlendingMode.Multiply, 0.3f },
+                    { false, "HotPink", 0.8f, PixelColorBlendingMode.Multiply, 0.8f },
 
-                    { false, "Blue", 0.5f, PixelBlenderMode.Add, 1.0f },
-                    { false, "Blue", 1.0f, PixelBlenderMode.Add, 0.5f },
-                    { false, "Green", 0.5f, PixelBlenderMode.Add, 0.3f },
-                    { false, "HotPink", 0.8f, PixelBlenderMode.Add, 0.8f },
+                    { false, "Blue", 0.5f, PixelColorBlendingMode.Add, 1.0f },
+                    { false, "Blue", 1.0f, PixelColorBlendingMode.Add, 0.5f },
+                    { false, "Green", 0.5f, PixelColorBlendingMode.Add, 0.3f },
+                    { false, "HotPink", 0.8f, PixelColorBlendingMode.Add, 0.8f },
 
-                    { true, "Blue", 0.5f, PixelBlenderMode.Normal, 1.0f },
-                    { true, "Blue", 1.0f, PixelBlenderMode.Normal, 0.5f },
-                    { true, "Green", 0.5f, PixelBlenderMode.Normal, 0.3f },
-                    { true, "HotPink", 0.8f, PixelBlenderMode.Normal, 0.8f },
+                    { true, "Blue", 0.5f, PixelColorBlendingMode.Normal, 1.0f },
+                    { true, "Blue", 1.0f, PixelColorBlendingMode.Normal, 0.5f },
+                    { true, "Green", 0.5f, PixelColorBlendingMode.Normal, 0.3f },
+                    { true, "HotPink", 0.8f, PixelColorBlendingMode.Normal, 0.8f },
 
-                    { true, "Blue", 0.5f, PixelBlenderMode.Multiply, 1.0f },
-                    { true, "Blue", 1.0f, PixelBlenderMode.Multiply, 0.5f },
-                    { true, "Green", 0.5f, PixelBlenderMode.Multiply, 0.3f },
-                    { true, "HotPink", 0.8f, PixelBlenderMode.Multiply, 0.8f },
+                    { true, "Blue", 0.5f, PixelColorBlendingMode.Multiply, 1.0f },
+                    { true, "Blue", 1.0f, PixelColorBlendingMode.Multiply, 0.5f },
+                    { true, "Green", 0.5f, PixelColorBlendingMode.Multiply, 0.3f },
+                    { true, "HotPink", 0.8f, PixelColorBlendingMode.Multiply, 0.8f },
 
-                    { true, "Blue", 0.5f, PixelBlenderMode.Add, 1.0f },
-                    { true, "Blue", 1.0f, PixelBlenderMode.Add, 0.5f },
-                    { true, "Green", 0.5f, PixelBlenderMode.Add, 0.3f },
-                    { true, "HotPink", 0.8f, PixelBlenderMode.Add, 0.8f },
+                    { true, "Blue", 0.5f, PixelColorBlendingMode.Add, 1.0f },
+                    { true, "Blue", 1.0f, PixelColorBlendingMode.Add, 0.5f },
+                    { true, "Green", 0.5f, PixelColorBlendingMode.Add, 0.3f },
+                    { true, "HotPink", 0.8f, PixelColorBlendingMode.Add, 0.8f },
                 };
 
         [Theory]
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             bool triggerFillRegion,
             string newColorName,
             float alpha,
-            PixelBlenderMode blenderMode,
+            PixelColorBlendingMode blenderMode,
             float blendPercentage)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 
                 var options = new GraphicsOptions(false)
                                   {
-                                      BlenderMode = blenderMode,
+                                      ColorBlendingMode = blenderMode,
                                       BlendPercentage = blendPercentage
                                   };
 
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     appendPixelTypeToFileName: false,
                     appendSourceFileOrDescription: false);
 
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(blenderMode);
+                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(blenderMode, PixelAlphaCompositionMode.SrcOver);
                 TPixel expectedPixel = blender.Blend(bgColor, fillColor, blendPercentage);
 
                 image.ComparePixelBufferTo(expectedPixel);

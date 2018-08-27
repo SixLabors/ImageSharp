@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public bool Equals(IccColorantOrderTagDataEntry other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

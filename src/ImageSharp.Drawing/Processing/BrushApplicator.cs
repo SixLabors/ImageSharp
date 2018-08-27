@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing
         {
             this.Target = target;
             this.Options = options;
-            this.Blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options.BlenderMode);
+            this.Blender = PixelOperations<TPixel>.Instance.GetPixelBlender(options);
         }
 
         /// <summary>

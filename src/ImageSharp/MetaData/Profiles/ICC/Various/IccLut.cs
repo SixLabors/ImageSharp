@@ -16,8 +16,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="values">The LUT values</param>
         public IccLut(float[] values)
         {
-            Guard.NotNull(values, nameof(values));
-            this.Values = values;
+            this.Values = values ?? throw new ArgumentNullException(nameof(values));
         }
 
         /// <summary>

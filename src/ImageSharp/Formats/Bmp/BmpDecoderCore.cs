@@ -373,11 +373,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     for (int x = 0; x < arrayWidth; x++)
                     {
                         int colOffset = x * ppb;
-
-                        for (int shift = 0; shift < ppb && (x + shift) < width; shift++)
+                        for (int shift = 0, newX = colOffset; shift < ppb && newX < width; shift++, newX++)
                         {
                             int colorIndex = ((rowSpan[offset] >> (8 - bits - (shift * bits))) & mask) * 4;
-                            int newX = colOffset + shift;
 
                             // Stored in b-> g-> r order.
                             rgba.Bgr = Unsafe.As<byte, Bgr24>(ref colors[colorIndex]);

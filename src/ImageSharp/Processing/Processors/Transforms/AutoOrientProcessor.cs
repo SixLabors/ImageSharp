@@ -73,13 +73,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The <see cref="OrientationMode"/></returns>
         private static OrientationMode GetExifOrientation(Image<TPixel> source)
         {
-            if (source.MetaData.ExifProfile == null)
+            if (source.MetaData.ExifProfile is null)
             {
                 return OrientationMode.Unknown;
             }
 
             ExifValue value = source.MetaData.ExifProfile.GetValue(ExifTag.Orientation);
-            if (value == null)
+            if (value is null)
             {
                 return OrientationMode.Unknown;
             }

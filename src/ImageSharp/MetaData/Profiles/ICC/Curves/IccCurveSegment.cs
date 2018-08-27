@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public virtual bool Equals(IccCurveSegment other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

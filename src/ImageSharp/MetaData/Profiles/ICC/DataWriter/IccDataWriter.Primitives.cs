@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 
             Guard.MustBeGreaterThan(length, 0, nameof(length));
 
-            if (value == null)
+            if (value is null)
             {
                 value = string.Empty;
             }

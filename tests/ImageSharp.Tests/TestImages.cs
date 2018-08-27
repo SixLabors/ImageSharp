@@ -68,6 +68,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Ratio1x4 = "Png/ratio-1x4.png";
             public const string Ratio4x1 = "Png/ratio-4x1.png";
 
+            public const string Ducky = "Png/ducky.png";
+            public const string Rainbow = "Png/rainbow.png";
+
             public static class Bad
             {
                 // Odd chunk lengths
@@ -165,12 +168,30 @@ namespace SixLabors.ImageSharp.Tests
             public const string V5Header = "Bmp/BITMAPV5HEADER.bmp";
             public const string RLE = "Bmp/RunLengthEncoded.bmp";
             public const string RLEInverted = "Bmp/RunLengthEncoded-inverted.bmp";
+            public const string Bit1 = "Bmp/pal1.bmp";
+            public const string Bit1Pal1 = "Bmp/pal1p1.bmp";
+            public const string Bit4 = "Bmp/pal4.bmp";
             public const string Bit8 = "Bmp/test8.bmp";
             public const string Bit8Inverted = "Bmp/test8-inverted.bmp";
             public const string Bit16 = "Bmp/test16.bmp";
             public const string Bit16Inverted = "Bmp/test16-inverted.bmp";
 
-            public static readonly string[] All = { Car, F, NegHeight, CoreHeader, V5Header, RLE, RLEInverted, Bit8, Bit8Inverted, Bit16, Bit16Inverted };
+            public static readonly string[] All
+            = {
+                Car,
+                F,
+                NegHeight,
+                CoreHeader,
+                V5Header, RLE,
+                RLEInverted,
+                Bit1,
+                Bit1Pal1,
+                Bit4,
+                Bit8,
+                Bit8Inverted,
+                Bit16,
+                Bit16Inverted
+            };
         }
 
         public static class Gif

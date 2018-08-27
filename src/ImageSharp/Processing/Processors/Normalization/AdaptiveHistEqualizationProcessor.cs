@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Span<int> histogram = histogramBuffer.GetSpan();
                 Span<int> cdf = cdfBuffer.GetSpan();
 
-                // The image is split up in square tiles of the size of the parameter GridSize.
+                // The image is split up into square tiles of the size of the parameter GridSize.
                 // For each tile the cumulative distribution function will be calculated.
                 int cdfPosX = 0;
                 int cdfPosY = 0;
@@ -97,10 +97,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
                 int tilePosX = 0;
                 int tilePosY = 0;
-                for (int y = halfGridSize; y < source.Height - halfGridSize; y += this.GridSize)
+                for (int y = halfGridSize; y < source.Height - this.GridSize; y += this.GridSize)
                 {
                     tilePosX = 0;
-                    for (int x = halfGridSize; x < source.Width - halfGridSize; x += this.GridSize)
+                    for (int x = halfGridSize; x < source.Width - this.GridSize; x += this.GridSize)
                     {
                         int gridPosX = 0;
                         int gridPosY = 0;
@@ -109,17 +109,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         for (int dy = y; dy < ylimit; dy++)
                         {
                             gridPosX = 0;
+                            float ty = gridPosY / (float)(this.GridSize - 1);
+                            int yTop = tilePosY;
+                            int yBottom = yTop + 1;
                             for (int dx = x; dx < xlimit; dx++)
                             {
                                 TPixel sourcePixel = source[dx, dy];
                                 int luminace = this.GetLuminance(sourcePixel, this.LuminanceLevels);
 
-                                float cdfLeftTopLuminance = cdfData[tilePosX, tilePosY].RemapGreyValue(luminace, pixelsInGrid);
-                                float cdfRightTopLuminance = cdfData[tilePosX + 1, tilePosY].RemapGreyValue(luminace, pixelsInGrid);
-                                float cdfLeftBottomLuminance = cdfData[tilePosX, tilePosY + 1].RemapGreyValue(luminace, pixelsInGrid);
-                                float cdfRightBottomLuminance = cdfData[tilePosX + 1, tilePosY + 1].RemapGreyValue(luminace, pixelsInGrid);
+                                int xLeft = tilePosX;
+                                int xRight = tilePosX + 1;
 
-                                float luminanceEqualized = this.BilinearInterpolation(gridPosX, gridPosY, this.GridSize, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+                                float cdfLeftTopLuminance = cdfData[xLeft, yTop].RemapGreyValue(luminace, pixelsInGrid);
+                                float cdfRightTopLuminance = cdfData[xRight, yTop].RemapGreyValue(luminace, pixelsInGrid);
+                                float cdfLeftBottomLuminance = cdfData[xLeft, yBottom].RemapGreyValue(luminace, pixelsInGrid);
+                                float cdfRightBottomLuminance = cdfData[xRight, yBottom].RemapGreyValue(luminace, pixelsInGrid);
+
+                                float luminanceEqualized = this.BilinearInterpolation(gridPosX, gridPosY, gridPosX / (float)(this.GridSize - 1), ty, cdfLeftTopLuminance, cdfRightTopLuminance, cdfLeftBottomLuminance, cdfRightBottomLuminance);
+
                                 pixels[(dy * source.Width) + dx].PackFromVector4(new Vector4(luminanceEqualized));
                                 gridPosX++;
                             }
@@ -140,20 +147,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// </summary>
         /// <param name="x">X position.</param>
         /// <param name="y">Y position.</param>
-        /// <param name="gridSize">The size of the grid.</param>
-        /// <param name="lt">Luminance from tile top left.</param>
-        /// <param name="rt">Luminance from tile right top.</param>
-        /// <param name="lb">Luminance from tile left bottom.</param>
-        /// <param name="rb">Luminance from tile right bottom.</param>
+        /// <param name="tx">The interpolation value in x direction in the range of [0, 1].</param>
+        /// <param name="ty">The interpolation value in y direction in the range of [0, 1].</param>
+        /// <param name="lt">Luminance from top left tile.</param>
+        /// <param name="rt">Luminance from right top tile.</param>
+        /// <param name="lb">Luminance from left bottom tile.</param>
+        /// <param name="rb">Luminance from right bottom tile.</param>
         /// <returns>Interpolated Luminance.</returns>
-        private float BilinearInterpolation(int x, int y, int gridSize, float lt, float rt, float lb, float rb)
+        private float BilinearInterpolation(int x, int y, float tx, float ty, float lt, float rt, float lb, float rb)
         {
-            float r1 = ((gridSize - x) / (float)gridSize * lb) + ((x / (float)gridSize) * rb);
-            float r2 = ((gridSize - x) / (float)gridSize * lt) + ((x / (float)gridSize) * rt);
+            return this.LinearInterpolation(this.LinearInterpolation(lt, rt, tx), this.LinearInterpolation(lb, rb, tx), ty);
+        }
 
-            float res = ((y / ((float)gridSize)) * r1) + (((y - gridSize) / (float)(-gridSize)) * r2);
-
-            return res;
+        /// <summary>
+        /// Linear interpolation between two grey values.
+        /// </summary>
+        /// <param name="left">The left value.</param>
+        /// <param name="right">The right value.</param>
+        /// <param name="t">The interpolation value between the two values in the range of [0, 1].</param>
+        /// <returns>The interpolated value.</returns>
+        private float LinearInterpolation(float left, float right, float t)
+        {
+            return left + ((right - left) * t);
         }
 
         private class CdfData

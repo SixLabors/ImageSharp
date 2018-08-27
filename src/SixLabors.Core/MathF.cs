@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 
-#if NETCOREAPP2_0 || NETCOREAPP2_1
+#if SUPPORTS_MATHF
 [assembly: TypeForwardedTo(typeof(System.MathF))]
 #else
 namespace System

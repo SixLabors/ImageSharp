@@ -5,12 +5,24 @@ using System;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace SixLabors.Primitives.Tests
 {
     public class PointFTests
     {
+        [Fact]
+        public void CanReinterpretCastFromVector2()
+        {
+            var vector = new Vector2(1, 2);
+
+            PointF point = Unsafe.As<Vector2, PointF>(ref vector);
+
+            Assert.Equal(vector.X, point.X);
+            Assert.Equal(vector.Y, point.Y);
+        }
+
         [Fact]
         public void DefaultConstructorTest()
         {

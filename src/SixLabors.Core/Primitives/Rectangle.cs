@@ -120,10 +120,7 @@ namespace SixLabors.Primitives
         public int Top
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.Y;
-            }
+            get => this.Y;
         }
 
         /// <summary>
@@ -132,10 +129,7 @@ namespace SixLabors.Primitives
         public int Right
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return unchecked(this.X + this.Width);
-            }
+            get => unchecked(this.X + this.Width);
         }
 
         /// <summary>
@@ -144,10 +138,8 @@ namespace SixLabors.Primitives
         public int Bottom
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return unchecked(this.Y + this.Height);
-            }
+            get => unchecked(this.Y + this.Height);
+
         }
 
         /// <summary>
@@ -156,10 +148,7 @@ namespace SixLabors.Primitives
         public int Left
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.X;
-            }
+            get => this.X;
         }
 
         /// <summary>
@@ -459,7 +448,7 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Rectangle && this.Equals((Rectangle)obj);
+        public override bool Equals(object obj) => obj is Rectangle other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

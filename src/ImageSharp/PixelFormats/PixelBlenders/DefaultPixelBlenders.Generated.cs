@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplySrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplySrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -250,7 +250,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlaySrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlaySrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -316,7 +316,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightSrc(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightSrc(background[i], source[i], amount);
                     }                    
                 }
 
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -382,7 +382,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplySrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplySrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -415,7 +415,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -448,7 +448,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -481,7 +481,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -514,7 +514,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -547,7 +547,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -580,7 +580,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlaySrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlaySrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -613,7 +613,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightSrcAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightSrcAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -646,7 +646,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -679,7 +679,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplySrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplySrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -712,7 +712,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -745,7 +745,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -778,7 +778,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -811,7 +811,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -844,7 +844,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -877,7 +877,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlaySrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlaySrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -910,7 +910,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightSrcOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightSrcOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -943,7 +943,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -976,7 +976,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplySrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplySrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1009,7 +1009,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1042,7 +1042,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1075,7 +1075,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1108,7 +1108,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1141,7 +1141,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1174,7 +1174,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlaySrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlaySrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1207,7 +1207,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightSrcIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightSrcIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1240,7 +1240,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1273,7 +1273,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplySrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplySrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1306,7 +1306,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1339,7 +1339,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1372,7 +1372,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1405,7 +1405,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1438,7 +1438,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1471,7 +1471,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlaySrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlaySrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1504,7 +1504,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightSrcOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightSrcOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1537,7 +1537,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1570,7 +1570,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1603,7 +1603,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1636,7 +1636,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1669,7 +1669,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1702,7 +1702,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1735,7 +1735,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1768,7 +1768,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1801,7 +1801,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightDest(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightDest(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1834,7 +1834,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1867,7 +1867,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1900,7 +1900,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1933,7 +1933,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1966,7 +1966,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -1999,7 +1999,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2032,7 +2032,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2065,7 +2065,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2098,7 +2098,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightDestAtop(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightDestAtop(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2131,7 +2131,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2164,7 +2164,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2197,7 +2197,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2230,7 +2230,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2263,7 +2263,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2296,7 +2296,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2329,7 +2329,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2362,7 +2362,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2395,7 +2395,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightDestOver(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightDestOver(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2428,7 +2428,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2461,7 +2461,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2494,7 +2494,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2527,7 +2527,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2560,7 +2560,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2593,7 +2593,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2626,7 +2626,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2659,7 +2659,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2692,7 +2692,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightDestIn(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightDestIn(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2725,7 +2725,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2758,7 +2758,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2791,7 +2791,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2824,7 +2824,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2857,7 +2857,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2890,7 +2890,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2923,7 +2923,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2956,7 +2956,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -2989,7 +2989,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightDestOut(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightDestOut(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3022,7 +3022,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3055,7 +3055,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3088,7 +3088,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3121,7 +3121,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3154,7 +3154,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3187,7 +3187,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3220,7 +3220,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3253,7 +3253,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3286,7 +3286,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightClear(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightClear(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3319,7 +3319,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.NormalXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.NormalXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3352,7 +3352,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.MultiplyXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.MultiplyXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3385,7 +3385,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.AddXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.AddXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3418,7 +3418,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.SubtractXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.SubtractXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3451,7 +3451,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.ScreenXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.ScreenXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3484,7 +3484,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.DarkenXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.DarkenXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3517,7 +3517,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.LightenXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.LightenXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3550,7 +3550,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.OverlayXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.OverlayXor(background[i], source[i], amount);
                     }                    
                 }
 
@@ -3583,7 +3583,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.HardLightXor(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.HardLightXor(background[i], source[i], amount);
                     }                    
                 }
 

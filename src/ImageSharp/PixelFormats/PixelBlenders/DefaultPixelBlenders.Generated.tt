@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount.Clamp(0,1));
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount);
                     }                    
                 }
 

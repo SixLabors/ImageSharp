@@ -27,7 +27,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>Src(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return source;
@@ -36,7 +37,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>SrcAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Atop(backdrop, source, <#=blender#>(backdrop, source));
@@ -45,7 +47,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>SrcOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Over(backdrop, source, <#=blender#>(backdrop, source));
@@ -54,7 +57,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>SrcIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return In(backdrop, source, <#=blender#>(backdrop, source));
@@ -63,7 +67,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>SrcOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Out(backdrop, source);
@@ -78,7 +83,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>DestAtop(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Atop(source, backdrop, <#=blender#>(source, backdrop));
@@ -87,7 +93,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>DestOver(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Over(source, backdrop, <#=blender#>(source, backdrop));
@@ -96,7 +103,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>DestIn(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return In(source, backdrop, <#=blender#>(source, backdrop));
@@ -105,7 +113,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>DestOut(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Out(source, backdrop);
@@ -114,7 +123,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>Xor(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Xor(backdrop, source);
@@ -123,7 +133,8 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 <#=blender#>Clear(Vector4 backdrop, Vector4 source, float opacity)
         {
-            opacity = opacity.Clamp(0, 1);
+            DebugGuard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
+
             source.W *= opacity;          
 
             return Clear(backdrop, source);

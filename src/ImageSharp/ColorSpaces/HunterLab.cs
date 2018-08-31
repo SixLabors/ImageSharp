@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.C;
 
         /// <summary>
-        /// Represents a <see cref="HunterLab"/> that has L, A, B values set to zero.
-        /// </summary>
-        public static readonly HunterLab Empty = default(HunterLab);
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -115,18 +110,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="HunterLab"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="HunterLab"/> objects for equality.
@@ -140,7 +125,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(HunterLab left, HunterLab right)
         {
             return left.Equals(right);
@@ -165,37 +149,24 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.WhitePoint.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.backingVector.GetHashCode();
-                return hashCode;
-            }
+            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "HunterLab [Empty]";
-            }
-
-            return $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
+            return this.Equals(default)
+                ? "HunterLab [Empty]"
+                : $"HunterLab [ L={this.L:#0.##}, A={this.A:#0.##}, B={this.B:#0.##}]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is HunterLab)
-            {
-                return this.Equals((HunterLab)obj);
-            }
-
-            return false;
+            return obj is HunterLab other && this.Equals(other);
         }
 
         /// <inheritdoc/>

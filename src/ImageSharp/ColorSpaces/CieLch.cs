@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D50;
 
         /// <summary>
-        /// Represents a <see cref="CieLch"/> that has L, C, H values set to zero.
-        /// </summary>
-        public static readonly CieLch Empty = default(CieLch);
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -83,11 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the reference white point of this color
         /// </summary>
-        public CieXyz WhitePoint
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
+        public CieXyz WhitePoint { get; }
 
         /// <summary>
         /// Gets the lightness dimension.
@@ -119,18 +110,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="CieLch"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="CieLch"/> objects for equality.
@@ -171,35 +152,22 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.WhitePoint.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.backingVector.GetHashCode();
-                return hashCode;
-            }
+            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "CieLch [Empty]";
-            }
-
-            return $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
+            return this.Equals(default)
+                ? "CieLch [Empty]"
+                : $"CieLch [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieLch)
-            {
-                return this.Equals((CieLch)obj);
-            }
-
-            return false;
+            return obj is CieLch other && this.Equals(other);
         }
 
         /// <inheritdoc/>

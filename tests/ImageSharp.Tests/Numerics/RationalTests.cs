@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Primitives;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -17,15 +19,15 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreEqual()
         {
-            Rational r1 = new Rational(3, 2);
-            Rational r2 = new Rational(3, 2);
+            var r1 = new Rational(3, 2);
+            var r2 = new Rational(3, 2);
 
             Assert.Equal(r1, r2);
             Assert.True(r1 == r2);
 
-            Rational r3 = new Rational(7.55);
-            Rational r4 = new Rational(755, 100);
-            Rational r5 = new Rational(151, 20);
+            var r3 = new Rational(7.55);
+            var r4 = new Rational(755, 100);
+            var r5 = new Rational(151, 20);
 
             Assert.Equal(r3, r4);
             Assert.Equal(r4, r5);
@@ -37,8 +39,8 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreNotEqual()
         {
-            Rational first = new Rational(0, 100);
-            Rational second = new Rational(100, 100);
+            var first = new Rational(0, 100);
+            var second = new Rational(100, 100);
 
             Assert.NotEqual(first, second);
             Assert.True(first != second);
@@ -50,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            Rational rational = new Rational(7, 55);
+            var rational = new Rational(7, 55);
             Assert.Equal(7U, rational.Numerator);
             Assert.Equal(55U, rational.Denominator);
 
@@ -74,15 +76,15 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Fraction()
         {
-            Rational first = new Rational(1.0 / 1600);
-            Rational second = new Rational(1.0 / 1600, true);
+            var first = new Rational(1.0 / 1600);
+            var second = new Rational(1.0 / 1600, true);
             Assert.False(first.Equals(second));
         }
 
         [Fact]
         public void ToDouble()
         {
-            Rational rational = new Rational(0, 0);
+            var rational = new Rational(0, 0);
             Assert.Equal(double.NaN, rational.ToDouble());
 
             rational = new Rational(2, 0);
@@ -92,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ToStringRepresention()
         {
-            Rational rational = new Rational(0, 0);
+            var rational = new Rational(0, 0);
             Assert.Equal("[ Indeterminate ]", rational.ToString());
 
             rational = new Rational(double.PositiveInfinity);

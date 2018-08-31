@@ -4,9 +4,8 @@
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Brushes;
-using SixLabors.ImageSharp.Processing.Drawing.Processors;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using SixLabors.Shapes;
 using Xunit;
 
@@ -44,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsBrushPathAndOptions()
         {
-            this.operations.FillPolygon(this.brush, this.path, this.noneDefault);
+            this.operations.FillPolygon(this.noneDefault, this.brush, this.path);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
 
             Assert.Equal(this.noneDefault, processor.Options);
@@ -76,9 +75,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing.Paths
         [Fact]
         public void CorrectlySetsColorPathAndOptions()
         {
-            this.operations.FillPolygon(this.color, this.path, this.noneDefault);
+            this.operations.FillPolygon(this.noneDefault, this.color, this.path);
             FillRegionProcessor<Rgba32> processor = this.Verify<FillRegionProcessor<Rgba32>>();
-
 
             Assert.Equal(this.noneDefault, processor.Options);
 

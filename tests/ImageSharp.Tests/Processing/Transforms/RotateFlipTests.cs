@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Transforms;
-using SixLabors.ImageSharp.Processing.Transforms.Processors;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
@@ -11,26 +11,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     public class RotateFlipTests : BaseImageOperationsExtensionTest
     {
         [Theory]
-        [InlineData(RotateType.None, FlipType.None, 0)]
-        [InlineData(RotateType.Rotate90, FlipType.None, 90)]
-        [InlineData(RotateType.Rotate180, FlipType.None, 180)]
-        [InlineData(RotateType.Rotate270, FlipType.None, 270)]
-        [InlineData(RotateType.None, FlipType.Horizontal, 0)]
-        [InlineData(RotateType.Rotate90, FlipType.Horizontal, 90)]
-        [InlineData(RotateType.Rotate180, FlipType.Horizontal, 180)]
-        [InlineData(RotateType.Rotate270, FlipType.Horizontal, 270)]
-        [InlineData(RotateType.None, FlipType.Vertical, 0)]
-        [InlineData(RotateType.Rotate90, FlipType.Vertical, 90)]
-        [InlineData(RotateType.Rotate180, FlipType.Vertical, 180)]
-        [InlineData(RotateType.Rotate270, FlipType.Vertical, 270)]
-        public void RotateDegreesFloatRotateProcessorWithAnglesSet(RotateType angle, FlipType flip, float expectedAngle)
+        [InlineData(RotateMode.None, FlipMode.None, 0)]
+        [InlineData(RotateMode.Rotate90, FlipMode.None, 90)]
+        [InlineData(RotateMode.Rotate180, FlipMode.None, 180)]
+        [InlineData(RotateMode.Rotate270, FlipMode.None, 270)]
+        [InlineData(RotateMode.None, FlipMode.Horizontal, 0)]
+        [InlineData(RotateMode.Rotate90, FlipMode.Horizontal, 90)]
+        [InlineData(RotateMode.Rotate180, FlipMode.Horizontal, 180)]
+        [InlineData(RotateMode.Rotate270, FlipMode.Horizontal, 270)]
+        [InlineData(RotateMode.None, FlipMode.Vertical, 0)]
+        [InlineData(RotateMode.Rotate90, FlipMode.Vertical, 90)]
+        [InlineData(RotateMode.Rotate180, FlipMode.Vertical, 180)]
+        [InlineData(RotateMode.Rotate270, FlipMode.Vertical, 270)]
+        public void RotateDegreesFloatRotateProcessorWithAnglesSet(RotateMode angle, FlipMode flip, float expectedAngle)
         {
             this.operations.RotateFlip(angle, flip);
             RotateProcessor<Rgba32> rotateProcessor = this.Verify<RotateProcessor<Rgba32>>(0);
             FlipProcessor<Rgba32> flipProcessor = this.Verify<FlipProcessor<Rgba32>>(1);
 
             Assert.Equal(expectedAngle, rotateProcessor.Degrees);
-            Assert.Equal(flip, flipProcessor.FlipType);
+            Assert.Equal(flip, flipProcessor.FlipMode);
         }
     }
 }

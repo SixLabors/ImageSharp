@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 public bool Equals(Key other)
                 {
-                    if (ReferenceEquals(null, other)) return false;
+                    if (other is null) return false;
                     if (ReferenceEquals(this, other)) return true;
                     if (!this.commonValues.Equals(other.commonValues)) return false;
 
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 public override bool Equals(object obj)
                 {
-                    if (ReferenceEquals(null, obj)) return false;
+                    if (obj is null) return false;
                     if (ReferenceEquals(this, obj)) return true;
                     if (obj.GetType() != this.GetType()) return false;
                     return this.Equals((Key)obj);
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.FilePath = filePath;
             }
-            
+
             /// <summary>
             /// Gets the file path relative to the "~/tests/images" folder
             /// </summary>
@@ -133,15 +133,14 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Guard.NotNull(decoder, nameof(decoder));
 
-                Key key = new Key(this.PixelType, this.FilePath, decoder);
+                if (!TestEnvironment.Is64BitProcess)
+                {
+                    return LoadImage(decoder);
+                }
 
-                Image<TPixel> cachedImage = cache.GetOrAdd(
-                    key,
-                    fn =>
-                        {
-                            TestFile testFile = TestFile.Create(this.FilePath);
-                            return Image.Load<TPixel>(testFile.Bytes, decoder);
-                        });
+                var key = new Key(this.PixelType, this.FilePath, decoder);
+
+                Image<TPixel> cachedImage = cache.GetOrAdd(key, fn => { return LoadImage(decoder); });
 
                 return cachedImage.Clone();
             }
@@ -157,6 +156,12 @@ namespace SixLabors.ImageSharp.Tests
             {
                 base.Serialize(info);
                 info.AddValue("path", this.FilePath);
+            }
+
+            private Image<TPixel> LoadImage(IImageDecoder decoder)
+            {
+                var testFile = TestFile.Create(this.FilePath);
+                return Image.Load<TPixel>(this.Configuration, testFile.Bytes, decoder);
             }
         }
 

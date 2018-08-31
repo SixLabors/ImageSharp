@@ -9,22 +9,22 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
-    using SixLabors.ImageSharp.Processing.Transforms;
-    using SixLabors.ImageSharp.Processing.Transforms.Processors;
+    using SixLabors.ImageSharp.Processing;
+    using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
     public class FlipTests : BaseImageOperationsExtensionTest
     {
 
         [Theory]
-        [InlineData(FlipType.None)]
-        [InlineData(FlipType.Horizontal)]
-        [InlineData(FlipType.Vertical)]
-        public void Flip_degreesFloat_RotateProcessorWithAnglesSetAndExpandTrue(FlipType flip)
+        [InlineData(FlipMode.None)]
+        [InlineData(FlipMode.Horizontal)]
+        [InlineData(FlipMode.Vertical)]
+        public void Flip_degreesFloat_RotateProcessorWithAnglesSetAndExpandTrue(FlipMode flip)
         {
             this.operations.Flip(flip);
             FlipProcessor<Rgba32> flipProcessor = this.Verify<FlipProcessor<Rgba32>>();
 
-            Assert.Equal(flip, flipProcessor.FlipType);
+            Assert.Equal(flip, flipProcessor.FlipMode);
         }
     }
 }

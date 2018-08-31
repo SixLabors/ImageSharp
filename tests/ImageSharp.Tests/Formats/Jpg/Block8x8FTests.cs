@@ -1,24 +1,20 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-
-
 // Uncomment this to turn unit tests into benchmarks:
 //#define BENCHMARKING
 
-// ReSharper disable InconsistentNaming
+using System;
+using System.Diagnostics;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+
+using Xunit;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-    using System.Diagnostics;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public partial class Block8x8FTests : JpegFixture
     {
 #if BENCHMARKING
@@ -65,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     });
             Assert.Equal(sum, 64f * 63f * 0.5f);
         }
-        
+
         [Fact]
         public void Indexer_ReferenceBenchmarkWithArray()
         {
@@ -207,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             sw.Stop();
             this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
-        
+
         private static float[] Create8x8ColorCropTestData()
         {
             float[] result = new float[64];
@@ -233,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             Block8x8F dest = block;
             dest.NormalizeColorsInplace();
-            
+
             float[] array = new float[64];
             dest.CopyTo(array);
             this.Output.WriteLine("Result:");
@@ -268,7 +264,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.CompareBlocks(expected, actual, 0);
         }
 
-
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
@@ -297,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(expected, actual);
             }
         }
-        
+
         [Fact]
         public void RoundInto()
         {
@@ -312,7 +307,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             for (int i = 0; i < Block8x8.Size; i++)
             {
                 float expectedFloat = data[i];
-                short expectedShort = (short) Math.Round(expectedFloat);
+                short expectedShort = (short)Math.Round(expectedFloat);
                 short actualShort = dest[i];
 
                 Assert.Equal(expectedShort, actualShort);
@@ -349,12 +344,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
 
             Block8x8F actual = original;
-            
+
             actual.MultiplyInplace(ref m);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal(original[i]*m[i], actual[i]);
+                Assert.Equal(original[i] * m[i], actual[i]);
             }
         }
 
@@ -410,7 +405,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             for (int i = 0; i < 64; i++)
             {
-                Assert.Equal(original[i]*42f, actual[i]);
+                Assert.Equal(original[i] * 42f, actual[i]);
             }
         }
     }

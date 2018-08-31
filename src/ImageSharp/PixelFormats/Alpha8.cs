@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing a single 8 bit normalized W values.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 0&gt; to &lt;0, 0, 0, 1&gt; in vector form.
+    /// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
     /// </para>
     /// </summary>
     public struct Alpha8 : IPixel<Alpha8>, IPackedVector<byte>
@@ -62,6 +62,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         public PixelOperations<Alpha8> CreatePixelOperations() => new PixelOperations<Alpha8>();
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
@@ -83,6 +97,20 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackedValue = source.A;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source)
+        {
+            this.PackedValue = source.A;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.PackedValue = source.A;
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
@@ -93,6 +121,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
+        {
+            dest.R = 0;
+            dest.G = 0;
+            dest.B = 0;
+            dest.A = this.PackedValue;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToArgb32(ref Argb32 dest)
         {
             dest.R = 0;
             dest.G = 0;
@@ -117,6 +155,27 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = this.PackedValue;
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackedValue = byte.MaxValue;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest)
+        {
+            dest.R = 0;
+            dest.G = 0;
+            dest.B = 0;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <summary>
         /// Compares an object with the packed vector.
         /// </summary>
@@ -124,7 +183,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>True if the object is equal to the packed vector.</returns>
         public override bool Equals(object obj)
         {
-            return (obj is Alpha8) && this.Equals((Alpha8)obj);
+            return obj is Alpha8 other && this.Equals(other);
         }
 
         /// <summary>
@@ -149,10 +208,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
         /// Packs a <see cref="float"/> into a byte.

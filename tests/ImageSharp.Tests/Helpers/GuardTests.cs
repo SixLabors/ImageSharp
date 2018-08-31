@@ -12,13 +12,17 @@ namespace SixLabors.ImageSharp.Tests.Helpers
     /// </summary>
     public class GuardTests
     {
+        class Test
+        {
+        }
+
         /// <summary>
         /// Tests that the <see cref="M:Guard.NotNull"/> method throws when the argument is null.
         /// </summary>
         [Fact]
         public void NotNullThrowsWhenArgIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() => Guard.NotNull(null, "foo"));
+            Assert.Throws<ArgumentNullException>(() => Guard.NotNull((Test)null, "foo"));
         }
 
         /// <summary>
@@ -27,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [Fact]
         public void NotNullThrowsWhenArgNameEmpty()
         {
-            Assert.Throws<ArgumentNullException>(() => Guard.NotNull(null, string.Empty));
+            Assert.Throws<ArgumentNullException>(() => Guard.NotNull((Test)null, string.Empty));
         }
 
         /// <summary>
@@ -35,27 +39,27 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         /// </summary>
         [Fact]
         [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1122:UseStringEmptyForEmptyStrings", Justification = "Reviewed. Suppression is OK here.")]
-        public void NotEmptyThrowsWhenEmpty()
+        public void NotEmptyOrWhiteSpaceThrowsWhenEmpty()
         {
-            Assert.Throws<ArgumentException>(() => Guard.NotNullOrEmpty("", string.Empty));
+            Assert.Throws<ArgumentException>(() => Guard.NotNullOrWhiteSpace("", string.Empty));
         }
 
         /// <summary>
         /// Tests that the <see cref="M:Guard.NotEmpty"/> method throws when the argument is whitespace.
         /// </summary>
         [Fact]
-        public void NotEmptyThrowsWhenWhitespace()
+        public void NotEmptyOrWhiteSpaceThrowsOnWhitespace()
         {
-            Assert.Throws<ArgumentException>(() => Guard.NotNullOrEmpty(" ", string.Empty));
+            Assert.Throws<ArgumentException>(() => Guard.NotNullOrWhiteSpace(" ", string.Empty));
         }
 
         /// <summary>
         /// Tests that the <see cref="M:Guard.NotEmpty"/> method throws when the argument name is null.
         /// </summary>
         [Fact]
-        public void NotEmptyThrowsWhenParameterNameNull()
+        public void NotEmptyOrWhiteSpaceThrowsWhenParameterNameNull()
         {
-            Assert.Throws<ArgumentNullException>(() => Guard.NotNullOrEmpty(null, null));
+            Assert.Throws<ArgumentNullException>(() => Guard.NotNullOrWhiteSpace(null, null));
         }
 
         /// <summary>

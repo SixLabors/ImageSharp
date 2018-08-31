@@ -21,22 +21,29 @@ namespace SixLabors.ImageSharp.Tests
 
         private const string ToolsDirectoryRelativePath = @"tests\Images\External\tools";
 
-        private static Lazy<string> solutionDirectoryFullPath = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
+        private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
-        private static Lazy<bool> runsOnCi = new Lazy<bool>(
+        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(
             () =>
                 {
                     bool isCi;
-                    return Boolean.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
+                    return bool.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
                 });
+
+        private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
+
+        /// <summary>
+        /// Gets the .NET Core version, if running on .NET Core, otherwise returns an empty string.
+        /// </summary>
+        internal static string NetCoreVersion => NetCoreVersionLazy.Value;
 
         // ReSharper disable once InconsistentNaming
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
-        internal static bool RunsOnCI => runsOnCi.Value;
+        internal static bool RunsOnCI => RunsOnCiLazy.Value;
 
-        internal static string SolutionDirectoryFullPath => solutionDirectoryFullPath.Value;
+        internal static string SolutionDirectoryFullPath => SolutionDirectoryFullPathLazy.Value;
 
         private static string GetSolutionDirectoryFullPathImpl()
         {
@@ -58,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests
                         $"Unable to find ImageSharp solution directory from {assemblyLocation} because of {ex.GetType().Name}!",
                         ex);
                 }
+
                 if (directory == null)
                 {
                     throw new Exception($"Unable to find ImageSharp solution directory from {assemblyLocation}!");
@@ -92,8 +100,12 @@ namespace SixLabors.ImageSharp.Tests
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+        
+        internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        internal static bool Is64BitProcess => IntPtr.Size == 8;
 
         /// <summary>
         /// Creates the image output directory.
@@ -105,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests
         /// </returns>
         internal static string CreateOutputDirectory(string path, params string[] pathParts)
         {
-            path = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, path);
+            path = Path.Combine(ActualOutputDirectoryFullPath, path);
 
             if (pathParts != null && pathParts.Length > 0)
             {
@@ -118,6 +130,20 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             return path;
+        }
+
+        /// <summary>
+        /// Solution borrowed from:
+        /// https://github.com/dotnet/BenchmarkDotNet/issues/448#issuecomment-308424100
+        /// </summary>
+        private static string GetNetCoreVersion()
+        {
+            Assembly assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
+            string[] assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
+            if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+                return assemblyPath[netCoreAppIndex + 1];
+            return "";
         }
     }
 }

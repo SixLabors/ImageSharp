@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 using System.Numerics;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Initializes a new instance of the <see cref="IccXyzTagDataEntry"/> class.
         /// </summary>
-        /// <param name="data">The XYZ numbers</param>
+        /// <param name="data">The XYZ numbers.</param>
         public IccXyzTagDataEntry(Vector3[] data)
             : this(data, IccProfileTag.Unknown)
         {
@@ -29,12 +28,11 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccXyzTagDataEntry(Vector3[] data, IccProfileTag tagSignature)
             : base(IccTypeSignature.Xyz, tagSignature)
         {
-            Guard.NotNull(data, nameof(data));
-            this.Data = data;
+            this.Data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
         /// <summary>
-        /// Gets the XYZ numbers
+        /// Gets the XYZ numbers.
         /// </summary>
         public Vector3[] Data { get; }
 
@@ -43,7 +41,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             if (base.Equals(other) && other is IccXyzTagDataEntry entry)
             {
-                return this.Data.SequenceEqual(entry.Data);
+                return this.Data.AsSpan().SequenceEqual(entry.Data);
             }
 
             return false;

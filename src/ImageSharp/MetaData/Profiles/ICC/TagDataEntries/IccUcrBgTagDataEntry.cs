@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -33,13 +32,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUcrBgTagDataEntry(ushort[] ucrCurve, ushort[] bgCurve, string description, IccProfileTag tagSignature)
             : base(IccTypeSignature.UcrBg, tagSignature)
         {
-            Guard.NotNull(ucrCurve, nameof(ucrCurve));
-            Guard.NotNull(bgCurve, nameof(bgCurve));
-            Guard.NotNull(description, nameof(description));
-
-            this.UcrCurve = ucrCurve;
-            this.BgCurve = bgCurve;
-            this.Description = description;
+            this.UcrCurve = ucrCurve ?? throw new ArgumentNullException(nameof(ucrCurve));
+            this.BgCurve = bgCurve ?? throw new ArgumentNullException(nameof(bgCurve));
+            this.Description = description ?? throw new ArgumentNullException(nameof(description));
         }
 
         /// <summary>
@@ -60,14 +55,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccUcrBgTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccUcrBgTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccUcrBgTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -78,25 +72,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             }
 
             return base.Equals(other)
-                && this.UcrCurve.SequenceEqual(other.UcrCurve)
-                && this.BgCurve.SequenceEqual(other.BgCurve)
+                && this.UcrCurve.AsSpan().SequenceEqual(other.UcrCurve)
+                && this.BgCurve.AsSpan().SequenceEqual(other.BgCurve)
                 && string.Equals(this.Description, other.Description);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccUcrBgTagDataEntry && this.Equals((IccUcrBgTagDataEntry)obj);
+            return obj is IccUcrBgTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -105,9 +89,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.UcrCurve != null ? this.UcrCurve.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.BgCurve != null ? this.BgCurve.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Description != null ? this.Description.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.UcrCurve?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.BgCurve?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.Description?.GetHashCode() ?? 0);
                 return hashCode;
             }
         }

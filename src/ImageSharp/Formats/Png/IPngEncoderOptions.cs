@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -11,19 +11,20 @@ namespace SixLabors.ImageSharp.Formats.Png
     internal interface IPngEncoderOptions
     {
         /// <summary>
-        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
+        /// Gets the number of bits per sample or per palette index (not per pixel).
+        /// Not all values are allowed for all <see cref="ColorType"/> values.
         /// </summary>
-        bool IgnoreMetadata { get; }
+        PngBitDepth BitDepth { get; }
 
         /// <summary>
-        /// Gets the size of the color palette to use. Set to zero to leav png encoding to use pixel data.
+        /// Gets the color type
         /// </summary>
-        int PaletteSize { get; }
+        PngColorType ColorType { get; }
 
         /// <summary>
-        /// Gets the png color type
+        /// Gets the filter method.
         /// </summary>
-        PngColorType PngColorType { get; }
+        PngFilterMethod FilterMethod { get; }
 
         /// <summary>
         /// Gets the compression level 1-9.

@@ -21,11 +21,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public static readonly CieXyz DefaultWhitePoint = Illuminants.D65;
 
         /// <summary>
-        /// Represents a <see cref="CieLchuv"/> that has L, C, H values set to zero.
-        /// </summary>
-        public static readonly CieLchuv Empty = default(CieLchuv);
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector3 backingVector;
@@ -83,11 +78,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <summary>
         /// Gets the reference white point of this color
         /// </summary>
-        public CieXyz WhitePoint
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-        }
+        public CieXyz WhitePoint { get; }
 
         /// <summary>
         /// Gets the lightness dimension.
@@ -119,18 +110,8 @@ namespace SixLabors.ImageSharp.ColorSpaces
             get => this.backingVector.Z;
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this <see cref="CieLchuv"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
         /// <inheritdoc />
-        public Vector3 Vector
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.backingVector;
-        }
+        public Vector3 Vector => this.backingVector;
 
         /// <summary>
         /// Compares two <see cref="CieLchuv"/> objects for equality.
@@ -144,7 +125,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is equal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(CieLchuv left, CieLchuv right)
         {
             return left.Equals(right);
@@ -162,44 +142,30 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <returns>
         /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(CieLchuv left, CieLchuv right)
         {
             return !left.Equals(right);
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.WhitePoint.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.backingVector.GetHashCode();
-                return hashCode;
-            }
+            return HashHelpers.Combine(this.WhitePoint.GetHashCode(), this.backingVector.GetHashCode());
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "CieLchuv [Empty]";
-            }
-
-            return $"CieLchuv [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}]";
+            return this.Equals(default)
+                ? "CieLchuv [Empty]"
+                : $"CieLchuv [ L={this.L:#0.##}, C={this.C:#0.##}, H={this.H:#0.##}";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is CieLchuv)
-            {
-                return this.Equals((CieLchuv)obj);
-            }
-
-            return false;
+            return obj is CieLchuv other && this.Equals(other);
         }
 
         /// <inheritdoc/>

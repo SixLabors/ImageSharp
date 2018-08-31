@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorSapce
 {
@@ -18,10 +17,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorS
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Rgb Convert(YCbCr input)
+        public Rgb Convert(in YCbCr input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             float y = input.Y;
             float cb = input.Cb - 128F;
             float cr = input.Cr - 128F;
@@ -35,10 +32,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.YCbCrColorS
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public YCbCr Convert(Rgb input)
+        public YCbCr Convert(in Rgb input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             Vector3 rgb = input.Vector * MaxBytes;
             float r = rgb.X;
             float g = rgb.Y;

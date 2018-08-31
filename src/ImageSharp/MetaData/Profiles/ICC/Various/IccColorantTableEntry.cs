@@ -28,9 +28,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="pcs3">Third PCS value</param>
         public IccColorantTableEntry(string name, ushort pcs1, ushort pcs2, ushort pcs3)
         {
-            Guard.NotNull(name, nameof(name));
-
-            this.Name = name;
+            this.Name = name ?? throw new ArgumentNullException(nameof(name));
             this.Pcs1 = pcs1;
             this.Pcs2 = pcs2;
             this.Pcs3 = pcs3;
@@ -87,9 +85,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return (other is IccColorantTableEntry) && this.Equals((IccColorantTableEntry)other);
+            return obj is IccColorantTableEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>

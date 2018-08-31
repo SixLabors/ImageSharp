@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.Memory;
 using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
@@ -36,12 +36,12 @@ namespace SixLabors.ImageSharp.Processing
         }
 
         /// <inheritdoc/>
-        public MemoryManager MemoryManager => this.source.GetConfiguration().MemoryManager;
+        public MemoryAllocator MemoryAllocator => this.source.GetConfiguration().MemoryAllocator;
 
         /// <inheritdoc/>
         public Image<TPixel> Apply()
         {
-            if (!this.mutate && this.destination == null)
+            if (!this.mutate && this.destination is null)
             {
                 // Ensure we have cloned it if we are not mutating as we might have failed to register any processors
                 this.destination = this.source.Clone();
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <inheritdoc/>
         public IImageProcessingContext<TPixel> ApplyProcessor(IImageProcessor<TPixel> processor, Rectangle rectangle)
         {
-            if (!this.mutate && this.destination == null)
+            if (!this.mutate && this.destination is null)
             {
                 // This will only work if the first processor applied is the cloning one thus
                 // realistically for this optimization to work the resize must the first processor

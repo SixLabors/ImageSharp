@@ -2,15 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.Primitives;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Effects;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
-    using SixLabors.ImageSharp.Processing.Effects;
-    using SixLabors.ImageSharp.Processing.Effects.Processors;
-
     public class PixelateTest : BaseImageOperationsExtensionTest
     {
         [Fact]

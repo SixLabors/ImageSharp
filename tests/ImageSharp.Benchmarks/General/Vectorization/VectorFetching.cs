@@ -3,9 +3,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
     using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-
+    using System.Runtime.InteropServices;
     using BenchmarkDotNet.Attributes;
-    using SixLabors.ImageSharp.Memory;
+    using SixLabors.Memory;
 
     /// <summary>
     /// This benchmark compares different methods for fetching memory data into <see cref="Vector{T}"/>
@@ -90,13 +90,13 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         }
 
         [Benchmark]
-        public void FetchWithSpanUtility()
+        public void FetchWithUnsafeCastFromReference()
         {
-            Vector<float> v = new Vector<float>(this.testValue);
+            var v = new Vector<float>(this.testValue);
 
-            Span<float> span = new Span<float>(this.data);
+            var span = new Span<float>(this.data);
 
-            ref Vector<float> start = ref span.FetchVector();
+            ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(span));
 
             int n = this.InputSize / Vector<uint>.Count;
 

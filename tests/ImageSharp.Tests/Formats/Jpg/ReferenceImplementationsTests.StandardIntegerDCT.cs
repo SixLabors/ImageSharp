@@ -1,14 +1,15 @@
 // ReSharper disable InconsistentNaming
+
+using System;
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public partial class ReferenceImplementationsTests
     {
         public class StandardIntegerDCT : JpegFixture
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 int[] data = Create8x8RandomIntData(-range, range, seed);
 
-                Block8x8 source = default(Block8x8);
+                Block8x8 source = default;
                 source.LoadFrom(data);
 
                 Block8x8 expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
@@ -43,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 int[] data = Create8x8RandomIntData(-1000, 1000, seed);
 
-                Block8x8F source = default(Block8x8F);
+                Block8x8F source = default;
                 source.LoadFrom(data);
 
                 Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformFDCT(ref source);
@@ -53,10 +54,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Block8x8 actual8 = ReferenceImplementations.StandardIntegerDCT.Subtract128_TransformFDCT_Upscale8(ref temp);
                 Block8x8F actual = actual8.AsFloatBlock();
                 actual /= 8;
-                
+
                 this.CompareBlocks(expected, actual, 1f);
             }
-
 
             [Theory]
             [InlineData(42, 0)]

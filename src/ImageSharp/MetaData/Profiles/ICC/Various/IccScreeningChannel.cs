@@ -2,12 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
     /// <summary>
     /// A single channel of a <see cref="IccScreeningTagDataEntry"/>
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     internal readonly struct IccScreeningChannel : IEquatable<IccScreeningChannel>
     {
         /// <summary>
@@ -69,17 +71,15 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc />
-        public bool Equals(IccScreeningChannel other)
-        {
-            return this.Frequency.Equals(other.Frequency)
-                && this.Angle.Equals(other.Angle)
-                && this.SpotShape == other.SpotShape;
-        }
+        public bool Equals(IccScreeningChannel other) =>
+            this.Frequency == other.Frequency &&
+            this.Angle == other.Angle &&
+            this.SpotShape == other.SpotShape;
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj is IccScreeningChannel && this.Equals((IccScreeningChannel)obj);
+            return obj is IccScreeningChannel other && this.Equals(other);
         }
 
         /// <inheritdoc/>

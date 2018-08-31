@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>The converted entry</returns>
         public static explicit operator IccMultiLocalizedUnicodeTagDataEntry(IccTextDescriptionTagDataEntry textEntry)
         {
-            if (textEntry == null)
+            if (textEntry is null)
             {
                 return null;
             }
@@ -133,14 +133,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccTextDescriptionTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccTextDescriptionTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccTextDescriptionTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -161,17 +160,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccTextDescriptionTagDataEntry && this.Equals((IccTextDescriptionTagDataEntry)obj);
+            return obj is IccTextDescriptionTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -180,9 +169,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
             unchecked
             {
                 int hashCode = base.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.Ascii != null ? this.Ascii.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Unicode != null ? this.Unicode.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.ScriptCode != null ? this.ScriptCode.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Ascii?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.Unicode?.GetHashCode() ?? 0);
+                hashCode = (hashCode * 397) ^ (this.ScriptCode?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ (int)this.UnicodeLanguageCode;
                 hashCode = (hashCode * 397) ^ this.ScriptCodeCode.GetHashCode();
                 return hashCode;

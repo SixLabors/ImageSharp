@@ -1,21 +1,21 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+using System;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.Primitives;
+using Xunit;
+
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-    using System;
-
-    using SixLabors.ImageSharp.Memory;
-    using SixLabors.Primitives;
-
-    using Xunit;
-
     public class BufferAreaTests
     {
         [Fact]
         public void Construct()
         {
-            using (var buffer = Configuration.Default.MemoryManager.Allocate2D<int>(10, 20))
+            using (var buffer = Configuration.Default.MemoryAllocator.Allocate2D<int>(10, 20))
             {
-                var rectangle = new Rectangle(3,2, 5, 6);
+                var rectangle = new Rectangle(3, 2, 5, 6);
                 var area = new BufferArea<int>(buffer, rectangle);
 
                 Assert.Equal(buffer, area.DestinationBuffer);
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         private static Buffer2D<int> CreateTestBuffer(int w, int h)
         {
-            var buffer = Configuration.Default.MemoryManager.Allocate2D<int>(w, h);
+            var buffer = Configuration.Default.MemoryAllocator.Allocate2D<int>(w, h);
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
@@ -33,9 +33,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
                     buffer[x, y] = y * 100 + x;
                 }
             }
+
             return buffer;
         }
-        
+
         [Theory]
         [InlineData(2, 3, 2, 2)]
         [InlineData(5, 4, 3, 2)]
@@ -44,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using (Buffer2D<int> buffer = CreateTestBuffer(20, 30))
             {
                 Rectangle r = new Rectangle(rx, ry, 5, 6);
-                
+
                 BufferArea<int> area = buffer.GetArea(r);
 
                 int value = area[x, y];
@@ -117,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using (Buffer2D<int> buffer = CreateTestBuffer(22, 13))
             {
                 buffer.GetArea().Clear();
-                Span<int> fullSpan = buffer.Span;
+                Span<int> fullSpan = buffer.GetSpan();
                 Assert.True(fullSpan.SequenceEqual(new int[fullSpan.Length]));
             }
         }

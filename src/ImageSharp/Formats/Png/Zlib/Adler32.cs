@@ -78,10 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public long Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.checksum;
-            }
+            get => this.checksum;
         }
 
         /// <inheritdoc/>
@@ -113,29 +110,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(byte[] buffer)
+        public void Update(ReadOnlySpan<byte> data)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            this.Update(buffer, 0, buffer.Length);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(byte[] buffer, int offset, int count)
-        {
-            DebugGuard.NotNull(buffer, nameof(buffer));
-            DebugGuard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
-            DebugGuard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
-            DebugGuard.MustBeLessThan(offset, buffer.Length, nameof(offset));
-            DebugGuard.MustBeLessThanOrEqualTo(offset + count, buffer.Length, nameof(count));
-
             // (By Per Bothner)
             uint s1 = this.checksum & 0xFFFF;
             uint s2 = this.checksum >> 16;
+
+            int count = data.Length;
+            int offset = 0;
 
             while (count > 0)
             {
@@ -151,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 count -= n;
                 while (--n >= 0)
                 {
-                    s1 = s1 + (uint)(buffer[offset++] & 0xff);
+                    s1 = s1 + (uint)(data[offset++] & 0xff);
                     s2 = s2 + s1;
                 }
 

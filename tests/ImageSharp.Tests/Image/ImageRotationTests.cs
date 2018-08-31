@@ -2,14 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Transforms;
-
     public class ImageRotationTests
     {
         [Fact]

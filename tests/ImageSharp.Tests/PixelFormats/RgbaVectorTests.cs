@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
     /// <summary>
     /// Tests the <see cref="RgbaVector"/> struct.
@@ -125,6 +125,38 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(2, ordered[1]);
             Assert.Equal(3, ordered[2]);
             Assert.Equal(4, ordered[3]);
+        }
+
+        [Fact]
+        public void RgbaVector_PackFromRgb48_ToRgb48()
+        {
+            // arrange
+            var input = default(RgbaVector);
+            var actual = default(Rgb48);
+            var expected = new Rgb48(65535, 0, 65535);
+
+            // act
+            input.PackFromRgb48(expected);
+            input.ToRgb48(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void RgbaVector_PackFromRgba64_ToRgba64()
+        {
+            // arrange
+            var input = default(RgbaVector);
+            var actual = default(Rgba64);
+            var expected = new Rgba64(65535, 0, 65535, 0);
+
+            // act
+            input.PackFromRgba64(expected);
+            input.ToRgba64(ref actual);
+
+            // assert
+            Assert.Equal(expected, actual);
         }
     }
 }

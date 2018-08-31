@@ -30,8 +30,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccProfileSequenceDescTagDataEntry(IccProfileDescription[] descriptions, IccProfileTag tagSignature)
             : base(IccTypeSignature.ProfileSequenceDesc, tagSignature)
         {
-            Guard.NotNull(descriptions, nameof(descriptions));
-            this.Descriptions = descriptions;
+            this.Descriptions = descriptions ?? throw new ArgumentNullException(nameof(descriptions));
         }
 
         /// <summary>
@@ -42,14 +41,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccProfileSequenceDescTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccProfileSequenceDescTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc />
         public bool Equals(IccProfileSequenceDescTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -65,17 +63,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccProfileSequenceDescTagDataEntry && this.Equals((IccProfileSequenceDescTagDataEntry)obj);
+            return obj is IccProfileSequenceDescTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -83,7 +71,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Descriptions != null ? this.Descriptions.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Descriptions?.GetHashCode() ?? 0);
             }
         }
     }

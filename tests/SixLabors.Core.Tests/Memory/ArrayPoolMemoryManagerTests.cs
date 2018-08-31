@@ -80,7 +80,6 @@ namespace SixLabors.Memory.Tests
             Assert.True(this.CheckIsRentingPooledBuffer<byte>(size));
         }
 
-
         [Theory]
         [InlineData(128 * 1024 * 1024)]
         [InlineData(MaxPooledBufferSizeInBytes + 1)]

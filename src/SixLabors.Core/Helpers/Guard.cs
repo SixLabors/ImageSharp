@@ -15,78 +15,6 @@ namespace SixLabors
     internal static class Guard
     {
         /// <summary>
-        /// Verifies, that the method parameter with specified object value is not null
-        /// and throws an exception if it is found to be so.
-        /// </summary>
-        /// <param name="target">The target object, which cannot be null.</param>
-        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
-        /// <typeparam name="T">The type of the object to verify</typeparam>
-        public static void NotNull<T>(T target, string parameterName, string message = "")
-            where T : class
-        {
-            if (target == null)
-            {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentNullException(parameterName, message);
-                }
-
-                throw new ArgumentNullException(parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the string method parameter with specified object value and message
-        /// is not null, not empty and does not contain only blanks and throws an exception
-        /// if the object is null.
-        /// </summary>
-        /// <param name="target">The target string, which should be checked against being null or empty.</param>
-        /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="target"/> is empty or contains only blanks.</exception>
-        public static void NotNullOrEmpty(string target, string parameterName, string message = "")
-        {
-            NotNull(target, parameterName, message);
-
-            if (string.IsNullOrWhiteSpace(target))
-            {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(message, parameterName);
-                }
-
-                throw new ArgumentException("Value cannot be null, empty, or cannot contain only whitespace.", parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the enumeration is not null and not empty.
-        /// </summary>
-        /// <typeparam name="T">The type of objects in the <paramref name="target"/></typeparam>
-        /// <param name="target">The target enumeration, which should be checked against being null or empty.</param>
-        /// <param name="parameterName">Name of the parameter.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null.</exception>
-        /// <exception cref="ArgumentException"><paramref name="target"/> is empty.</exception>
-        public static void NotNullOrEmpty<T>(IEnumerable<T> target, string parameterName, string message = "")
-        {
-            NotNull(target, parameterName, message);
-
-            if (!target.Any())
-            {
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    throw new ArgumentException(message, parameterName);
-                }
-
-                throw new ArgumentException("Value cannot be empty.", parameterName);
-            }
-        }
-
-        /// <summary>
         /// Verifies that the specified value is less than a maximum value
         /// and throws an exception if it is not.
         /// </summary>
@@ -98,7 +26,7 @@ namespace SixLabors
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
         public static void MustBeLessThan<TValue>(TValue value, TValue max, string parameterName)
-                    where TValue : IComparable<TValue>
+            where TValue : IComparable<TValue>
         {
             if (value.CompareTo(max) >= 0)
             {
@@ -118,7 +46,7 @@ namespace SixLabors
         /// <paramref name="value"/> is greater than the maximum value.
         /// </exception>
         public static void MustBeLessThanOrEqualTo<TValue>(TValue value, TValue max, string parameterName)
-                    where TValue : IComparable<TValue>
+            where TValue : IComparable<TValue>
         {
             if (value.CompareTo(max) > 0)
             {
@@ -184,48 +112,6 @@ namespace SixLabors
             if (value.CompareTo(min) < 0 || value.CompareTo(max) > 0)
             {
                 throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min} and less than or equal to {max}.");
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the method parameter with specified target value is true
-        /// and throws an exception if it is found to be so.
-        /// </summary>
-        /// <param name="value">
-        /// The target value, which cannot be false.
-        /// </param>
-        /// <param name="parameterName">
-        /// The name of the parameter that is to be checked.
-        /// </param>
-        /// <param name="message">
-        /// The error message, if any to add to the exception.
-        /// </param>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="value"/> is false
-        /// </exception>
-        public static void IsTrue(bool value, string parameterName, string message)
-        {
-            if (!value)
-            {
-                throw new ArgumentException(message, parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the method parameter with specified target value is false
-        /// and throws an exception if it is found to be so.
-        /// </summary>
-        /// <param name="value">The target value, which cannot be true.</param>
-        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="value"/> is true
-        /// </exception>
-        public static void IsFalse(bool value, string parameterName, string message)
-        {
-            if (value)
-            {
-                throw new ArgumentException(message, parameterName);
             }
         }
 

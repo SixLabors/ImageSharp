@@ -24,7 +24,7 @@ namespace SixLabors
         public static void NotNull<T>(T target, string parameterName)
             where T : class
         {
-            if (target == null)
+            if (target is null)
             {
                 throw new ArgumentNullException(parameterName);
             }
@@ -113,50 +113,6 @@ namespace SixLabors
             if (value.CompareTo(min) < 0)
             {
                 throw new ArgumentOutOfRangeException(parameterName, $"Value must be greater than or equal to {min}.");
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the method parameter with specified target value is true
-        /// and throws an exception if it is found to be so.
-        /// </summary>
-        /// <param name="target">
-        /// The target value, which cannot be false.
-        /// </param>
-        /// <param name="parameterName">
-        /// The name of the parameter that is to be checked.
-        /// </param>
-        /// <param name="message">
-        /// The error message, if any to add to the exception.
-        /// </param>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is false
-        /// </exception>
-        [Conditional("DEBUG")]
-        public static void IsTrue(bool target, string parameterName, string message)
-        {
-            if (!target)
-            {
-                throw new ArgumentException(message, parameterName);
-            }
-        }
-
-        /// <summary>
-        /// Verifies, that the method parameter with specified target value is false
-        /// and throws an exception if it is found to be so.
-        /// </summary>
-        /// <param name="target">The target value, which cannot be true.</param>
-        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <param name="message">The error message, if any to add to the exception.</param>
-        /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
-        /// </exception>
-        [Conditional("DEBUG")]
-        public static void IsFalse(bool target, string parameterName, string message)
-        {
-            if (target)
-            {
-                throw new ArgumentException(message, parameterName);
             }
         }
 

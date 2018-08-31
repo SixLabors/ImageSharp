@@ -252,17 +252,17 @@ namespace SixLabors.Primitives
         public static Size Truncate(SizeF size) => new Size(unchecked((int)size.Width), unchecked((int)size.Height));
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode() => HashHelpers.Combine(this.Width.GetHashCode(), this.Height.GetHashCode());
 
         /// <inheritdoc/>
         public override string ToString() => $"Size [ Width={this.Width}, Height={this.Height} ]";
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Size && this.Equals((Size)obj);
+        public override bool Equals(object obj) => obj is Size other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Size other) => this.Width == other.Width && this.Height == other.Height;
+        public bool Equals(Size other) => this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
 
         /// <summary>
         /// Multiplies <see cref="Size"/> by an <see cref="int"/> producing <see cref="Size"/>.
@@ -281,16 +281,5 @@ namespace SixLabors.Primitives
         /// <returns>Product of type SizeF.</returns>
         private static SizeF Multiply(Size size, float multiplier) =>
             new SizeF(size.Width * multiplier, size.Height * multiplier);
-
-        /// <summary>
-        /// Returns the hash code for this instance.
-        /// </summary>
-        /// <param name="size">
-        /// The instance of <see cref="Size"/> to return the hash code for.
-        /// </param>
-        /// <returns>
-        /// A 32-bit signed integer that is the hash code for this instance.
-        /// </returns>
-        private int GetHashCode(Size size) => HashHelpers.Combine(size.Width.GetHashCode(), size.Height.GetHashCode());
     }
 }

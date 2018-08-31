@@ -117,11 +117,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Gets the y-coordinate of the top edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Top
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.Y;
-        }
+        public float Top => this.Y;
 
         /// <summary>
         /// Gets the x-coordinate of the right edge of this <see cref="RectangleF"/>.
@@ -144,11 +140,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Gets the x-coordinate of the left edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Left
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.X;
-        }
+        public float Left => this.X;
 
         /// <summary>
         /// Creates a <see cref="Rectangle"/> with the coordinates of the specified <see cref="RectangleF"/> by truncating each coordinate.

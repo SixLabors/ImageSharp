@@ -268,7 +268,7 @@ namespace SixLabors.Primitives
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Point other) => this.X == other.X && this.Y == other.Y;
+        public bool Equals(Point other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
 
         private static short HighInt16(int n) => unchecked((short)((n >> 16) & 0xffff));
 

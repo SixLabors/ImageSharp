@@ -1,10 +1,12 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors
 {
     /// <summary>
-    /// Lifted from coreFX repo
+    /// Provides a set of helpers for combining object hashes.
     /// </summary>
     internal static class HashHelpers
     {
@@ -16,6 +18,8 @@ namespace SixLabors
         /// <returns>Returns a hash code for the provided hash codes.</returns>
         public static int Combine(int h1, int h2)
         {
+            // Lifted from coreFX repo
+
             unchecked
             {
                 // RyuJIT optimizes this to use the ROL instruction
@@ -54,9 +58,8 @@ namespace SixLabors
             int hash = Combine(h1, h2);
 
             hash = Combine(hash, h3);
-            hash = Combine(hash, h4);
 
-            return hash;
+            return Combine(hash, h4);
         }
     }
 }

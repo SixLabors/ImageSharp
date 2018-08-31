@@ -200,14 +200,11 @@ namespace SixLabors.Primitives
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.GetHashCode(this);
+            return HashHelpers.Combine(this.Width.GetHashCode(), this.Height.GetHashCode());
         }
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"SizeF [ Width={this.Width}, Height={this.Height} ]";
-        }
+        public override string ToString() => $"SizeF [ Width={this.Width}, Height={this.Height} ]";
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => obj is SizeF && this.Equals((SizeF)obj);
@@ -224,7 +221,5 @@ namespace SixLabors.Primitives
         /// <returns>Product of type SizeF.</returns>
         private static SizeF Multiply(SizeF size, float multiplier) =>
             new SizeF(size.Width * multiplier, size.Height * multiplier);
-
-        private int GetHashCode(SizeF size) => HashHelpers.Combine(size.Width.GetHashCode(), size.Height.GetHashCode());
     }
 }

@@ -117,14 +117,7 @@ namespace SixLabors.Primitives
         /// <summary>
         /// Gets the y-coordinate of the top edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Top
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.Y;
-            }
-        }
+        public float Top => this.Y;
 
         /// <summary>
         /// Gets the x-coordinate of the right edge of this <see cref="RectangleF"/>.
@@ -132,10 +125,7 @@ namespace SixLabors.Primitives
         public float Right
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.X + this.Width;
-            }
+            get => this.X + this.Width;
         }
 
         /// <summary>
@@ -144,23 +134,13 @@ namespace SixLabors.Primitives
         public float Bottom
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.Y + this.Height;
-            }
+            get => this.Y + this.Height;
         }
 
         /// <summary>
         /// Gets the x-coordinate of the left edge of this <see cref="RectangleF"/>.
         /// </summary>
-        public float Left
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return this.X;
-            }
-        }
+        public float Left => this.X;
 
         /// <summary>
         /// Creates a <see cref="Rectangle"/> with the coordinates of the specified <see cref="RectangleF"/> by truncating each coordinate.
@@ -376,7 +356,14 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.GetHashCode(this);
+        public override int GetHashCode()
+        {
+            return HashHelpers.Combine(
+               this.X.GetHashCode(),
+               this.Y.GetHashCode(),
+               this.Width.GetHashCode(),
+               this.Height.GetHashCode());
+        }
 
         /// <inheritdoc/>
         public override string ToString()
@@ -385,19 +372,14 @@ namespace SixLabors.Primitives
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is RectangleF && this.Equals((RectangleF)obj);
+        public override bool Equals(object obj) => obj is RectangleF other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(RectangleF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y) && this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
-
-        private int GetHashCode(RectangleF rectangle)
-        {
-            int hashCode = rectangle.X.GetHashCode();
-            hashCode = HashHelpers.Combine(hashCode, rectangle.Y.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, rectangle.Width.GetHashCode());
-            hashCode = HashHelpers.Combine(hashCode, rectangle.Height.GetHashCode());
-            return hashCode;
-        }
+        public bool Equals(RectangleF other) =>
+            this.X.Equals(other.X) &&
+            this.Y.Equals(other.Y) &&
+            this.Width.Equals(other.Width) &&
+            this.Height.Equals(other.Height);
     }
 }

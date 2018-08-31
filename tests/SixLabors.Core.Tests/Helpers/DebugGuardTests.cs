@@ -5,7 +5,6 @@
 #define DEBUG
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -100,7 +99,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"Value must be greater than {min}."));
+            Assert.Contains($"Value must be greater than {min}.", exception.Message);
         }
 
         [Theory]
@@ -120,43 +119,7 @@ namespace SixLabors.Helpers.Tests
             });
 
             Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains($"Value must be greater than or equal to 2."));
-        }
-
-        [Fact]
-        public void IsTrue_IsTrue_ThrowsNoException()
-        {
-            DebugGuard.IsTrue(true, "myParamName", "myTestMessage");
-        }
-
-        [Fact]
-        public void IsTrue_IsFalse_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                DebugGuard.IsTrue(false, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
-        }
-
-        [Fact]
-        public void IsFalse_IsFalse_ThrowsNoException()
-        {
-            DebugGuard.IsFalse(false, "myParamName", "myTestMessage");
-        }
-
-        [Fact]
-        public void IsFalse_IsTrue_ThrowsException()
-        {
-            var exception = Assert.Throws<ArgumentException>(() =>
-            {
-                DebugGuard.IsFalse(true, "myParamName", "myTestMessage");
-            });
-
-            Assert.Equal("myParamName", exception.ParamName);
-            Assert.True(exception.Message.Contains("myTestMessage"));
+            Assert.Contains($"Value must be greater than or equal to 2.", exception.Message);
         }
 
         [Theory]

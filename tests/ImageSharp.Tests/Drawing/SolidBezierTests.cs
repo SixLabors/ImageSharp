@@ -3,15 +3,12 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.Shapes;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     [GroupOutput("Drawing")]
     public class SolidBezierTests
     {
@@ -40,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.CompareToReferenceOutput(provider);
             }
         }
+
 
         [Theory]
         [WithBlankImages(500, 500, PixelTypes.Rgba32)]

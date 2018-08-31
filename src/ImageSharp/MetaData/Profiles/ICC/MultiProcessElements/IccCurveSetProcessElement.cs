@@ -18,8 +18,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccCurveSetProcessElement(IccOneDimensionalCurve[] curves)
             : base(IccMultiProcessElementSignature.CurveSet, curves?.Length ?? 1, curves?.Length ?? 1)
         {
-            Guard.NotNull(curves, nameof(curves));
-            this.Curves = curves;
+            this.Curves = curves ?? throw new ArgumentNullException(nameof(curves));
         }
 
         /// <summary>

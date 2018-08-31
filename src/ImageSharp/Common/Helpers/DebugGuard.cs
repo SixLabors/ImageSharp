@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 
+// TODO: These should just call the guard equivalents
 namespace SixLabors.ImageSharp
 {
     /// <summary>
@@ -16,13 +17,14 @@ namespace SixLabors.ImageSharp
         /// Verifies, that the method parameter with specified object value is not null
         /// and throws an exception if it is found to be so.
         /// </summary>
-        /// <param name="target">The target object, which cannot be null.</param>
+        /// <param name="value">The target object, which cannot be null.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="target"/> is null</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="value"/> is null</exception>
         [Conditional("DEBUG")]
-        public static void NotNull(object target, string parameterName)
+        public static void NotNull<T>(T value, string parameterName)
+            where T : class
         {
-            if (target == null)
+            if (value is null)
             {
                 throw new ArgumentNullException(parameterName);
             }
@@ -115,6 +117,28 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Verifies that the specified value is greater than or equal to a minimum value and less than
+        /// or equal to a maximum value and throws an exception if it is not.
+        /// </summary>
+        /// <param name="value">The target value, which should be validated.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <param name="parameterName">The name of the parameter that is to be checked.</param>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="value"/> is less than the minimum value of greater than the maximum value.
+        /// </exception>
+        [Conditional("DEBUG")]
+        public static void MustBeBetweenOrEqualTo<TValue>(TValue value, TValue min, TValue max, string parameterName)
+           where TValue : IComparable<TValue>
+        {
+            if (value.CompareTo(min) < 0 || value.CompareTo(max) > 0)
+            {
+                throw new ArgumentOutOfRangeException(parameterName, $"Value {value} must be greater than or equal to {min} and less than or equal to {max}.");
+            }
+        }
+
+        /// <summary>
         /// Verifies, that the method parameter with specified target value is true
         /// and throws an exception if it is found to be so.
         /// </summary>
@@ -166,7 +190,7 @@ namespace SixLabors.ImageSharp
         /// <param name="other">The 'other' span to compare 'target' to.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="target"/> has a different size than <paramref name="other"/>
         /// </exception>
         [Conditional("DEBUG")]
         public static void MustBeSameSized<T>(Span<T> target, Span<T> other, string parameterName)
@@ -186,7 +210,7 @@ namespace SixLabors.ImageSharp
         /// <param name="minSpan">The 'minSpan' span to compare 'target' to.</param>
         /// <param name="parameterName">The name of the parameter that is to be checked.</param>
         /// <exception cref="ArgumentException">
-        /// <paramref name="target"/> is true
+        /// <paramref name="target"/> has less items than <paramref name="minSpan"/>
         /// </exception>
         [Conditional("DEBUG")]
         public static void MustBeSizedAtLeast<T>(Span<T> target, Span<T> minSpan, string parameterName)

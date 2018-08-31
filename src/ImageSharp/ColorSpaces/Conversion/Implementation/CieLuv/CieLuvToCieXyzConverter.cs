@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColorSapce
 {
@@ -14,10 +13,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CieXyz Convert(CieLuv input)
+        public CieXyz Convert(in CieLuv input)
         {
-            DebugGuard.NotNull(input, nameof(input));
-
             // Conversion algorithm described here: http://www.brucelindbloom.com/index.html?Eqn_Luv_to_XYZ.html
             float l = input.L, u = input.U, v = input.V;
 
@@ -60,7 +57,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float ComputeU0(CieXyz input)
+        private static float ComputeU0(in CieXyz input)
         {
             return (4 * input.X) / (input.X + (15 * input.Y) + (3 * input.Z));
         }
@@ -71,7 +68,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.CieLuvColor
         /// <param name="input">The whitepoint</param>
         /// <returns>The <see cref="float"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float ComputeV0(CieXyz input)
+        private static float ComputeV0(in CieXyz input)
         {
             return (9 * input.Y) / (input.X + (15 * input.Y) + (3 * input.Z));
         }

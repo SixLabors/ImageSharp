@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// <summary>
     /// Packed pixel type containing unsigned normalized values ranging from 0 to 1. The x and z components use 5 bits, and the y component uses 6 bits.
     /// <para>
-    /// Ranges from &lt;0, 0, 0, 1&gt; to &lt;1, 1, 1, 1&gt; in vector form.
+    /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
     public struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
@@ -85,6 +85,20 @@ namespace SixLabors.ImageSharp.PixelFormats
                        (this.PackedValue & 0x1F) * (1F / 31F));
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
@@ -106,6 +120,20 @@ namespace SixLabors.ImageSharp.PixelFormats
             this.PackFromVector4(source.ToVector4());
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source)
+        {
+            this.PackFromVector4(source.ToVector4());
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.PackFromVector4(source.ToVector4());
+        }
+
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgb24(ref Rgb24 dest)
@@ -119,6 +147,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToRgba32(ref Rgba32 dest)
+        {
+            Vector4 vector = this.ToVector4() * 255F;
+            dest.R = (byte)MathF.Round(vector.X);
+            dest.G = (byte)MathF.Round(vector.Y);
+            dest.B = (byte)MathF.Round(vector.Z);
+            dest.A = (byte)MathF.Round(vector.W);
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToArgb32(ref Argb32 dest)
         {
             Vector4 vector = this.ToVector4() * 255F;
             dest.R = (byte)MathF.Round(vector.X);
@@ -148,10 +187,26 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.A = (byte)MathF.Round(vector.W);
         }
 
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source) => this.PackFromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
-            return (obj is Bgr565) && this.Equals((Bgr565)obj);
+            return obj is Bgr565 other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -169,10 +224,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
-        {
-            return this.PackedValue.GetHashCode();
-        }
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
         /// Packs the <see cref="float"/> components into a <see cref="ushort"/>.
@@ -184,9 +236,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ushort Pack(float x, float y, float z)
         {
-            return (ushort)((((int)Math.Round(x.Clamp(0, 1) * 31F) & 0x1F) << 11) |
-                   (((int)Math.Round(y.Clamp(0, 1) * 63F) & 0x3F) << 5) |
-                   ((int)Math.Round(z.Clamp(0, 1) * 31F) & 0x1F));
+            return (ushort)((((int)Math.Round(x.Clamp(0, 1) * 31F) & 0x1F) << 11)
+                   | (((int)Math.Round(y.Clamp(0, 1) * 63F) & 0x3F) << 5)
+                   | ((int)Math.Round(z.Clamp(0, 1) * 31F) & 0x1F));
         }
     }
 }

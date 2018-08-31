@@ -3,17 +3,19 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.Primitives;
 using Xunit;
-
 // ReSharper disable InconsistentNaming
+
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
-    using SixLabors.ImageSharp.Processing.Convolution;
+    using SixLabors.ImageSharp.Advanced;
 
     public class DetectEdgesTest : FileTestBase
     {
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
+
         public static readonly string[] CommonTestImages = { TestImages.Png.Bike };
 
         public static readonly TheoryData<EdgeDetectionOperators> DetectEdgesFilters = new TheoryData<EdgeDetectionOperators>
@@ -31,6 +33,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         };
 
         [Theory]
+        [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
+        public void DetectEdges_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunValidatingProcessorTestOnWrappedMemoryImage(
+                ctx =>
+                    {
+                        Size size = ctx.GetCurrentSize();
+                        var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
+                        ctx.DetectEdges(bounds);
+                    },
+                useReferenceOutputFrom: nameof(this.DetectEdges_InBox));
+        }
+
+        [Theory]
         [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, DefaultPixelType)]
         [WithFileCollection(nameof(CommonTestImages), nameof(DetectEdgesFilters), DefaultPixelType)]
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
@@ -40,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges(detector));
                 image.DebugSave(provider, detector.ToString());
-                image.CompareToReferenceOutput(provider, detector.ToString());
+                image.CompareToReferenceOutput(ValidatorComparer, provider, detector.ToString());
             }
         }
 
@@ -53,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
             {
                 image.Mutate(x => x.DetectEdges());
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
 
@@ -80,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
                 image.Mutate(x => x.DetectEdges(bounds));
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
     }

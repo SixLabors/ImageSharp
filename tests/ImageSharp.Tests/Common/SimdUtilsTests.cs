@@ -1,18 +1,18 @@
-﻿using System;
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Tuples;
+
 using Xunit;
-// ReSharper disable InconsistentNaming
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Common
 {
-    using System.Linq;
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Common.Tuples;
-
-    using Xunit.Abstractions;
-    using Xunit.Sdk;
-
     public class SimdUtilsTests
     {
         private ITestOutputHelper Output { get; }
@@ -36,22 +36,10 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             Vector4 actual = v.PseudoRound();
 
-            Assert.Equal(
-                R(v.X),
-                (int)actual.X
-            );
-            Assert.Equal(
-                R(v.Y),
-                (int)actual.Y
-            );
-            Assert.Equal(
-                R(v.Z),
-                (int)actual.Z
-            );
-            Assert.Equal(
-                R(v.W),
-                (int)actual.W
-            );
+            Assert.Equal(R(v.X), (int)actual.X);
+            Assert.Equal(R(v.Y), (int)actual.Y);
+            Assert.Equal(R(v.Z), (int)actual.Z);
+            Assert.Equal(R(v.W), (int)actual.W);
         }
 
         private static Vector<float> CreateExactTestVector1()
@@ -73,12 +61,15 @@ namespace SixLabors.ImageSharp.Tests.Common
         private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
             float[] data = new float[Vector<float>.Count];
-            Random rnd = new Random();
+
+            var rnd = new Random();
+
             for (int i = 0; i < Vector<float>.Count; i++)
             {
-                float v = (float)rnd.NextDouble() * (max-min) + min;
+                float v = (float)rnd.NextDouble() * (max - min) + min;
                 data[i] = v;
             }
+
             return new Vector<float>(data);
         }
 
@@ -102,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [InlineData(42, 1000f)]
         public void FastRound_RandomValues(int seed, float scale)
         {
-            Vector<float> v = CreateRandomTestVector(seed, -scale*0.5f, scale*0.5f);
+            Vector<float> v = CreateRandomTestVector(seed, -scale * 0.5f, scale * 0.5f);
             Vector<float> r = v.FastRound();
 
             this.Output.WriteLine(v.ToString());
@@ -118,6 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
                 return true;
             }
+
             return false;
         }
 
@@ -133,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 return;
             }
 
-            float[] orig =  new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
+            float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
             float[] normalized = orig.Select(f => f / 255f).ToArray();
 
             byte[] dest = new byte[count];
@@ -158,12 +150,12 @@ namespace SixLabors.ImageSharp.Tests.Common
             }
 
             float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
-            
+
             byte[] dest = new byte[count];
-            
+
             SimdUtils.BulkConvertNormalizedFloatToByte(source, dest);
 
-            byte[] expected = source.Select(f => (byte)Math.Round(f*255f)).ToArray();
+            byte[] expected = source.Select(f => (byte)Math.Round(f * 255f)).ToArray();
 
             Assert.Equal(expected, dest);
         }
@@ -217,16 +209,17 @@ namespace SixLabors.ImageSharp.Tests.Common
                 return;
             }
 
-            float[] source = {0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f};
-            byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
+            float[] source = { 0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f };
+
+            var expected = source.Select(f => (byte)Math.Round(f)).ToArray();
 
             source = source.Select(f => f / 255f).ToArray();
 
-            byte[] dest = new byte[8];
+            Span<byte> dest = stackalloc byte[8];
 
             this.MagicConvert(source, dest);
 
-            Assert.Equal(expected, dest);
+            Assert.True(dest.SequenceEqual(expected));
         }
 
         private static byte MagicConvert(float x)
@@ -238,22 +231,23 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private void MagicConvert(Span<float> source, Span<byte> dest)
         {
-            Vector<float> magick = new Vector<float>(32768.0f);
+            var magick = new Vector<float>(32768.0f);
+
             Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
 
-            Vector<float> x = source.NonPortableCast<float, Vector<float>>()[0];
-            
+            Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
+
             x = (x * scale) + magick;
 
-            Tuple8.OfUInt32 ii = default(Tuple8.OfUInt32);
+            Tuple8.OfUInt32 ii = default;
 
             ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
 
             iiRef = x;
 
             //Tuple8.OfUInt32 ii = Unsafe.As<Vector<float>, Tuple8.OfUInt32>(ref x);
-            
-            ref Tuple8.OfByte d = ref dest.NonPortableCast<byte, Tuple8.OfByte>()[0];
+
+            ref Tuple8.OfByte d = ref MemoryMarshal.Cast<byte, Tuple8.OfByte>(dest)[0];
             d.LoadFrom(ref ii);
 
             this.Output.WriteLine(ii.ToString());
@@ -266,6 +260,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             {
                 int actual = (int)r[i];
                 int expected = Re(v[i]);
+
                 Assert.Equal(expected, actual);
             }
         }

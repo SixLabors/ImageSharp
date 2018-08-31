@@ -1,19 +1,17 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Transforms;
-    using SixLabors.ImageSharp.Processing.Transforms.Resamplers;
-
     public class SkewTest : FileTestBase
     {
         public static readonly TheoryData<float, float> SkewValues
@@ -26,21 +24,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static readonly List<string> ResamplerNames
             = new List<string>
         {
-            nameof(ResampleMode.Bicubic),
-            nameof(ResampleMode.Box),
-            nameof(ResampleMode.CatmullRom),
-            nameof(ResampleMode.Hermite),
-            nameof(ResampleMode.Lanczos2),
-            nameof(ResampleMode.Lanczos3),
-            nameof(ResampleMode.Lanczos5),
-            nameof(ResampleMode.Lanczos8),
-            nameof(ResampleMode.MitchellNetravali),
-            nameof(ResampleMode.NearestNeighbor),
-            nameof(ResampleMode.Robidoux),
-            nameof(ResampleMode.RobidouxSharp),
-            nameof(ResampleMode.Spline),
-            nameof(ResampleMode.Triangle),
-            nameof(ResampleMode.Welch),
+            nameof(KnownResamplers.Bicubic),
+            nameof(KnownResamplers.Box),
+            nameof(KnownResamplers.CatmullRom),
+            nameof(KnownResamplers.Hermite),
+            nameof(KnownResamplers.Lanczos2),
+            nameof(KnownResamplers.Lanczos3),
+            nameof(KnownResamplers.Lanczos5),
+            nameof(KnownResamplers.Lanczos8),
+            nameof(KnownResamplers.MitchellNetravali),
+            nameof(KnownResamplers.NearestNeighbor),
+            nameof(KnownResamplers.Robidoux),
+            nameof(KnownResamplers.RobidouxSharp),
+            nameof(KnownResamplers.Spline),
+            nameof(KnownResamplers.Triangle),
+            nameof(KnownResamplers.Welch),
         };
 
         [Theory]
@@ -73,11 +71,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         private static IResampler GetResampler(string name)
         {
-            PropertyInfo property = typeof(ResampleMode).GetTypeInfo().GetProperty(name);
+            PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
 
-            if (property == null)
+            if (property is null)
             {
-                throw new Exception("Invalid property name!");
+                throw new Exception($"No resampler named '{name}");
             }
 
             return (IResampler)property.GetValue(null);

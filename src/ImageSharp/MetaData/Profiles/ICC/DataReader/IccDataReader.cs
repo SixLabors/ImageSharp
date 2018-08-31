@@ -3,7 +3,6 @@
 
 using System;
 using System.Text;
-using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -12,18 +11,12 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
     /// </summary>
     internal sealed partial class IccDataReader
     {
-        private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
         private static readonly Encoding AsciiEncoding = Encoding.GetEncoding("ASCII");
 
         /// <summary>
         /// The data that is read
         /// </summary>
         private readonly byte[] data;
-
-        /// <summary>
-        /// The bit converter
-        /// </summary>
-        private readonly EndianBitConverter converter = new BigEndianBitConverter();
 
         /// <summary>
         /// The current reading position
@@ -36,9 +29,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <param name="data">The data to read</param>
         public IccDataReader(byte[] data)
         {
-            Guard.NotNull(data, nameof(data));
-            this.data = data;
+            this.data = data ?? throw new ArgumentNullException(nameof(data));
         }
+
+        /// <summary>
+        /// Gets the length in bytes of the raw data
+        /// </summary>
+        public int DataLength => this.data.Length;
 
         /// <summary>
         /// Sets the reading position to the given value

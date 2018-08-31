@@ -15,10 +15,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieLab color)
+        public HunterLab ToHunterLab(in CieLab color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -28,10 +26,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieLch color)
+        public HunterLab ToHunterLab(in CieLch color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -41,10 +37,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieLchuv color)
+        public HunterLab ToHunterLab(in CieLchuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -54,10 +48,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieLuv color)
+        public HunterLab ToHunterLab(in CieLuv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -67,10 +59,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieXyy color)
+        public HunterLab ToHunterLab(in CieXyy color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -80,10 +70,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(CieXyz color)
+        public HunterLab ToHunterLab(in CieXyz color)
         {
-            Guard.NotNull(color, nameof(color));
-
             // Adaptation
             CieXyz adapted = !this.WhitePoint.Equals(this.TargetHunterLabWhitePoint) && this.IsChromaticAdaptationPerformed
                 ? this.ChromaticAdaptation.Transform(color, this.WhitePoint, this.TargetHunterLabWhitePoint)
@@ -98,10 +86,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(Cmyk color)
+        public HunterLab ToHunterLab(in Cmyk color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -111,10 +97,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(Hsl color)
+        public HunterLab ToHunterLab(in Hsl color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -124,10 +108,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(Hsv color)
+        public HunterLab ToHunterLab(in Hsv color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -137,10 +119,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(LinearRgb color)
+        public HunterLab ToHunterLab(in LinearRgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -150,10 +130,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(Lms color)
+        public HunterLab ToHunterLab(in Lms color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -163,10 +141,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(Rgb color)
+        public HunterLab ToHunterLab(in Rgb color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }
@@ -176,10 +152,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>The <see cref="HunterLab"/></returns>
-        public HunterLab ToHunterLab(YCbCr color)
+        public HunterLab ToHunterLab(in YCbCr color)
         {
-            Guard.NotNull(color, nameof(color));
-
             var xyzColor = this.ToCieXyz(color);
             return this.ToHunterLab(xyzColor);
         }

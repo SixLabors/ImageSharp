@@ -11,13 +11,6 @@ namespace SixLabors.ImageSharp
     public sealed class ImageProcessingException : Exception
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ImageProcessingException"/> class.
-        /// </summary>
-        public ImageProcessingException()
-        {
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessingException"/> class with the name of the
         /// parameter that causes this exception.
         /// </summary>

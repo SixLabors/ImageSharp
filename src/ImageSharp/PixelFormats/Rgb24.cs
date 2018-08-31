@@ -10,24 +10,30 @@ namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
     /// Pixel type containing three 8-bit unsigned normalized values ranging from 0 to 255.
-    /// The color components are stored in red, green, blue order.
+    /// The color components are stored in red, green, blue order (least significant to most significant byte).
+    /// <para>
+    /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
+    /// </para>
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Explicit)]
     public struct Rgb24 : IPixel<Rgb24>
     {
         /// <summary>
         /// The red component.
         /// </summary>
+        [FieldOffset(0)]
         public byte R;
 
         /// <summary>
         /// The green component.
         /// </summary>
+        [FieldOffset(1)]
         public byte G;
 
         /// <summary>
         /// The blue component.
         /// </summary>
+        [FieldOffset(2)]
         public byte B;
 
         /// <summary>
@@ -57,20 +63,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return obj?.GetType() == typeof(Rgb24) && this.Equals((Rgb24)obj);
+            return obj is Rgb24 other && this.Equals(other);
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hashCode = this.R;
-                hashCode = (hashCode * 397) ^ this.G;
-                hashCode = (hashCode * 397) ^ this.B;
-                return hashCode;
-            }
+            int hash = HashHelpers.Combine(this.R.GetHashCode(), this.G.GetHashCode());
+            return HashHelpers.Combine(hash, this.B.GetHashCode());
         }
 
         /// <inheritdoc/>
@@ -82,9 +83,41 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromArgb32(Argb32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromBgra32(Bgra32 source)
+        {
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromScaledVector4(Vector4 vector)
+        {
+            this.PackFromVector4(vector);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector4 ToScaledVector4()
+        {
+            return this.ToVector4();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void PackFromVector4(Vector4 vector)
         {
-            var rgba = default(Rgba32);
+            Rgba32 rgba = default;
             rgba.PackFromVector4(vector);
             this.PackFromRgba32(rgba);
         }
@@ -93,21 +126,27 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return new Rgba32(this.R, this.G, this.B, 255).ToVector4();
+            return new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToRgb24(ref Rgb24 dest)
-        {
-            dest = this;
-        }
+        public void ToRgb24(ref Rgb24 dest) => dest = this;
 
         /// <inheritdoc/>
         public void ToRgba32(ref Rgba32 dest)
         {
             dest.Rgb = this;
-            dest.A = 255;
+            dest.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        public void ToArgb32(ref Argb32 dest)
+        {
+            dest.R = this.R;
+            dest.G = this.G;
+            dest.B = this.B;
+            dest.A = byte.MaxValue;
         }
 
         /// <inheritdoc/>
@@ -124,8 +163,34 @@ namespace SixLabors.ImageSharp.PixelFormats
             dest.R = this.R;
             dest.G = this.G;
             dest.B = this.B;
-            dest.A = 255;
+            dest.A = byte.MaxValue;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgb48(Rgb48 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgb48(ref Rgb48 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PackFromRgba64(Rgba64 source)
+        {
+            this.R = (byte)(((source.R * 255) + 32895) >> 16);
+            this.G = (byte)(((source.G * 255) + 32895) >> 16);
+            this.B = (byte)(((source.B * 255) + 32895) >> 16);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToRgba64(ref Rgba64 dest) => dest.PackFromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         public override string ToString()

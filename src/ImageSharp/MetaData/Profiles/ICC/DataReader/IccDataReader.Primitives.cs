@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
@@ -17,7 +19,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public ushort ReadUInt16()
         {
-            return this.converter.ToUInt16(this.data, this.AddIndex(2));
+            return BinaryPrimitives.ReadUInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
         }
 
         /// <summary>
@@ -26,7 +28,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public short ReadInt16()
         {
-            return this.converter.ToInt16(this.data, this.AddIndex(2));
+            return BinaryPrimitives.ReadInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
         }
 
         /// <summary>
@@ -35,7 +37,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public uint ReadUInt32()
         {
-            return this.converter.ToUInt32(this.data, this.AddIndex(4));
+            return BinaryPrimitives.ReadUInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
         }
 
         /// <summary>
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public int ReadInt32()
         {
-            return this.converter.ToInt32(this.data, this.AddIndex(4));
+            return BinaryPrimitives.ReadInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
         }
 
         /// <summary>
@@ -53,7 +55,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public ulong ReadUInt64()
         {
-            return this.converter.ToUInt64(this.data, this.AddIndex(8));
+            return BinaryPrimitives.ReadUInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
         }
 
         /// <summary>
@@ -62,16 +64,18 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public long ReadInt64()
         {
-            return this.converter.ToInt64(this.data, this.AddIndex(8));
+            return BinaryPrimitives.ReadInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
         }
 
         /// <summary>
-        /// Reads a float
+        /// Reads a float.
         /// </summary>
         /// <returns>the value</returns>
         public float ReadSingle()
         {
-            return this.converter.ToSingle(this.data, this.AddIndex(4));
+            int intValue = this.ReadInt32();
+
+            return Unsafe.As<int, float>(ref intValue);
         }
 
         /// <summary>
@@ -80,11 +84,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <returns>the value</returns>
         public double ReadDouble()
         {
-            return this.converter.ToDouble(this.data, this.AddIndex(8));
+            long intValue = this.ReadInt64();
+
+            return Unsafe.As<long, double>(ref intValue);
         }
 
         /// <summary>
-        /// Reads an ASCII encoded string
+        /// Reads an ASCII encoded string.
         /// </summary>
         /// <param name="length">number of bytes to read</param>
         /// <returns>The value as a string</returns>
@@ -109,7 +115,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads an UTF-16 big-endian encoded string
+        /// Reads an UTF-16 big-endian encoded string.
         /// </summary>
         /// <param name="length">number of bytes to read</param>
         /// <returns>The value as a string</returns>
@@ -126,34 +132,25 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads a signed 32bit number with 1 sign bit, 15 value bits and 16 fractional bits
+        /// Reads a signed 32bit number with 1 sign bit, 15 value bits and 16 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
-        public float ReadFix16()
-        {
-            return this.ReadInt32() / 65536f;
-        }
+        public float ReadFix16() => this.ReadInt32() / 65536f;
 
         /// <summary>
-        /// Reads an unsigned 32bit number with 16 value bits and 16 fractional bits
+        /// Reads an unsigned 32bit number with 16 value bits and 16 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
-        public float ReadUFix16()
-        {
-            return this.ReadUInt32() / 65536f;
-        }
+        public float ReadUFix16() => this.ReadUInt32() / 65536f;
 
         /// <summary>
-        /// Reads an unsigned 16bit number with 1 value bit and 15 fractional bits
+        /// Reads an unsigned 16bit number with 1 value bit and 15 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
-        public float ReadU1Fix15()
-        {
-            return this.ReadUInt16() / 32768f;
-        }
+        public float ReadU1Fix15() => this.ReadUInt16() / 32768f;
 
         /// <summary>
-        /// Reads an unsigned 16bit number with 8 value bits and 8 fractional bits
+        /// Reads an unsigned 16bit number with 8 value bits and 8 fractional bits.
         /// </summary>
         /// <returns>The number as double</returns>
         public float ReadUFix8()
@@ -162,7 +159,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Reads a number of bytes and advances the index
+        /// Reads a number of bytes and advances the index.
         /// </summary>
         /// <param name="count">The number of bytes to read</param>
         /// <returns>The read bytes</returns>

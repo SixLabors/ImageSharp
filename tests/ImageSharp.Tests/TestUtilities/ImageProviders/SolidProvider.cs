@@ -1,17 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Overlays;
-
+using SixLabors.ImageSharp.Processing;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.Processing;
 
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
@@ -49,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             public override string SourceFileOrDescription
-                => $"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})";
+                => TestUtils.AsInvariantString($"Solid{this.Width}x{this.Height}_({this.r},{this.g},{this.b},{this.a})");
 
             public override Image<TPixel> GetImage()
             {

@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text;
-using SixLabors.ImageSharp.Processing.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
-    /// The configuration options used for encoding gifs
+    /// The configuration options used for encoding gifs.
     /// </summary>
     internal interface IGifEncoderOptions
     {
@@ -17,23 +17,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         bool IgnoreMetadata { get; }
 
         /// <summary>
-        /// Gets the encoding that should be used when writing comments.
+        /// Gets the text encoding used to write comments.
         /// </summary>
         Encoding TextEncoding { get; }
 
         /// <summary>
-        /// Gets the size of the color palette to use. For gifs the value ranges from 1 to 256. Leave as zero for default size.
-        /// </summary>
-        int PaletteSize { get; }
-
-        /// <summary>
-        /// Gets the transparency threshold.
-        /// </summary>
-        byte Threshold { get; }
-
-        /// <summary>
-        /// Gets the quantizer for reducing the color count.
+        /// Gets the quantizer used to generate the color palette.
         /// </summary>
         IQuantizer Quantizer { get; }
+
+        /// <summary>
+        /// Gets the color table mode: Global or local.
+        /// </summary>
+        GifColorTableMode ColorTableMode { get; }
     }
 }

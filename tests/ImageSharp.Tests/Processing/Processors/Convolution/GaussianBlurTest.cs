@@ -2,16 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
 using SixLabors.Primitives;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Convolution;
-
     public class GaussianBlurTest : FileTestBase
     {
         public static readonly TheoryData<int> GaussianBlurValues = new TheoryData<int> { 3, 5 };

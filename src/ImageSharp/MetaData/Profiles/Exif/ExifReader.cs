@@ -1,10 +1,16 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
 {
@@ -13,38 +19,36 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
     /// </summary>
     internal sealed class ExifReader
     {
-        private readonly Collection<ExifTag> invalidTags = new Collection<ExifTag>();
-        private byte[] exifData;
-        private uint currentIndex;
-        private bool isLittleEndian;
+        private readonly List<ExifTag> invalidTags = new List<ExifTag>();
+        private readonly byte[] exifData;
+        private int position;
+        private Endianness endianness = Endianness.BigEndian;
         private uint exifOffset;
         private uint gpsOffset;
-        private uint startIndex;
 
-        private delegate TDataType ConverterMethod<TDataType>(byte[] data);
+        public ExifReader(byte[] exifData)
+        {
+            DebugGuard.NotNull(exifData, nameof(exifData));
+
+            this.exifData = exifData;
+        }
+
+        private delegate TDataType ConverterMethod<TDataType>(ReadOnlySpan<byte> data);
 
         /// <summary>
         /// Gets the invalid tags.
         /// </summary>
-        public IEnumerable<ExifTag> InvalidTags => this.invalidTags;
+        public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags;
 
         /// <summary>
         /// Gets the thumbnail length in the byte stream
         /// </summary>
-        public uint ThumbnailLength
-        {
-            get;
-            private set;
-        }
+        public uint ThumbnailLength { get; private set; }
 
         /// <summary>
         /// Gets the thumbnail offset position in the byte stream
         /// </summary>
-        public uint ThumbnailOffset
-        {
-            get;
-            private set;
-        }
+        public uint ThumbnailOffset { get; private set; }
 
         /// <summary>
         /// Gets the remaining length.
@@ -53,81 +57,65 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         {
             get
             {
-                if (this.currentIndex >= this.exifData.Length)
+                if (this.position >= this.exifData.Length)
                 {
                     return 0;
                 }
 
-                return this.exifData.Length - (int)this.currentIndex;
+                return this.exifData.Length - this.position;
             }
         }
 
         /// <summary>
         /// Reads and returns the collection of EXIF values.
         /// </summary>
-        /// <param name="data">The data.</param>
         /// <returns>
         /// The <see cref="Collection{ExifValue}"/>.
         /// </returns>
-        public Collection<ExifValue> Read(byte[] data)
+        public List<ExifValue> ReadValues()
         {
-            DebugGuard.NotNull(data, nameof(data));
+            var values = new List<ExifValue>();
 
-            var result = new Collection<ExifValue>();
-
-            this.exifData = data;
-
-            if (this.GetString(4) == "Exif")
+            // II == 0x4949
+            if (this.ReadUInt16() == 0x4949)
             {
-                if (this.GetShort() != 0)
-                {
-                    return result;
-                }
-
-                this.startIndex = 6;
-            }
-            else
-            {
-                this.currentIndex = 0;
+                this.endianness = Endianness.LittleEndian;
             }
 
-            this.isLittleEndian = this.GetString(2) == "II";
-
-            if (this.GetShort() != 0x002A)
+            if (this.ReadUInt16() != 0x002A)
             {
-                return result;
+                return values;
             }
 
-            uint ifdOffset = this.GetLong();
-            this.AddValues(result, ifdOffset);
+            uint ifdOffset = this.ReadUInt32();
+            this.AddValues(values, (int)ifdOffset);
 
-            uint thumbnailOffset = this.GetLong();
-            this.GetThumbnail(thumbnailOffset);
+            uint thumbnailOffset = this.ReadUInt32();
+            this.GetThumbnail((int)thumbnailOffset);
 
             if (this.exifOffset != 0)
             {
-                this.AddValues(result, this.exifOffset);
+                this.AddValues(values, (int)this.exifOffset);
             }
 
             if (this.gpsOffset != 0)
             {
-                this.AddValues(result, this.gpsOffset);
+                this.AddValues(values, (int)this.gpsOffset);
             }
 
-            return result;
+            return values;
         }
 
-        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, byte[] data, ConverterMethod<TDataType> converter)
+        private static TDataType[] ToArray<TDataType>(ExifDataType dataType, ReadOnlySpan<byte> data, ConverterMethod<TDataType> converter)
         {
             int dataTypeSize = (int)ExifValue.GetSize(dataType);
             int length = data.Length / dataTypeSize;
 
-            TDataType[] result = new TDataType[length];
-            byte[] buffer = new byte[dataTypeSize];
+            var result = new TDataType[length];
 
             for (int i = 0; i < length; i++)
             {
-                Array.Copy(data, i * dataTypeSize, buffer, 0, dataTypeSize);
+                ReadOnlySpan<byte> buffer = data.Slice(i * dataTypeSize, dataTypeSize);
 
                 result.SetValue(converter(buffer), i);
             }
@@ -135,21 +123,29 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return result;
         }
 
-        private static byte ToByte(byte[] data)
-        {
-            return data[0];
-        }
+        private byte ConvertToByte(ReadOnlySpan<byte> buffer) => buffer[0];
 
-        private static string ToString(byte[] data)
+        private unsafe string ConvertToString(ReadOnlySpan<byte> buffer)
         {
-            string result = Encoding.UTF8.GetString(data, 0, data.Length);
-            int nullCharIndex = result.IndexOf('\0');
-            if (nullCharIndex != -1)
+            Span<byte> nullChar = stackalloc byte[1] { 0 };
+
+            int nullCharIndex = buffer.IndexOf(nullChar);
+
+            if (nullCharIndex > -1)
             {
-                result = result.Substring(0, nullCharIndex);
+                buffer = buffer.Slice(0, nullCharIndex);
             }
 
-            return result;
+#if NETSTANDARD1_1
+            return Encoding.UTF8.GetString(buffer.ToArray(), 0, buffer.Length);
+#elif NETCOREAPP2_1
+            return Encoding.UTF8.GetString(buffer);
+#else
+            fixed (byte* pointer = &MemoryMarshal.GetReference(buffer))
+            {
+                return Encoding.UTF8.GetString(pointer, buffer.Length);
+            }
+#endif
         }
 
         /// <summary>
@@ -157,15 +153,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
         /// </summary>
         /// <param name="values">The values.</param>
         /// <param name="index">The index.</param>
-        private void AddValues(Collection<ExifValue> values, uint index)
+        private void AddValues(List<ExifValue> values, int index)
         {
-            this.currentIndex = this.startIndex + index;
-            ushort count = this.GetShort();
+            this.position = index;
+            int count = this.ReadUInt16();
 
-            for (ushort i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
-                ExifValue value = this.CreateValue();
-                if (value == null)
+                if (!this.TryReadValue(out ExifValue value))
                 {
                     continue;
                 }
@@ -206,9 +201,9 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
         }
 
-        private object ConvertValue(ExifDataType dataType, byte[] data, uint numberOfComponents)
+        private object ConvertValue(ExifDataType dataType, ReadOnlySpan<byte> buffer, uint numberOfComponents)
         {
-            if (data == null || data.Length == 0)
+            if (buffer.Length == 0)
             {
                 return null;
             }
@@ -218,106 +213,116 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
                 case ExifDataType.Unknown:
                     return null;
                 case ExifDataType.Ascii:
-                    return ToString(data);
+                    return this.ConvertToString(buffer);
                 case ExifDataType.Byte:
                     if (numberOfComponents == 1)
                     {
-                        return ToByte(data);
+                        return this.ConvertToByte(buffer);
                     }
 
-                    return data;
+                    return buffer.ToArray();
                 case ExifDataType.DoubleFloat:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToDouble(data);
+                        return this.ConvertToDouble(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToDouble);
+                    return ToArray(dataType, buffer, this.ConvertToDouble);
                 case ExifDataType.Long:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToLong(data);
+                        return this.ConvertToUInt32(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToLong);
+                    return ToArray(dataType, buffer, this.ConvertToUInt32);
                 case ExifDataType.Rational:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToRational(data);
+                        return this.ToRational(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToRational);
+                    return ToArray(dataType, buffer, this.ToRational);
                 case ExifDataType.Short:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToShort(data);
+                        return this.ConvertToShort(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToShort);
+                    return ToArray(dataType, buffer, this.ConvertToShort);
                 case ExifDataType.SignedByte:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToSignedByte(data);
+                        return this.ConvertToSignedByte(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToSignedByte);
+                    return ToArray(dataType, buffer, this.ConvertToSignedByte);
                 case ExifDataType.SignedLong:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToSignedLong(data);
+                        return this.ConvertToInt32(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToSignedLong);
+                    return ToArray(dataType, buffer, this.ConvertToInt32);
                 case ExifDataType.SignedRational:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToSignedRational(data);
+                        return this.ToSignedRational(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToSignedRational);
+                    return ToArray(dataType, buffer, this.ToSignedRational);
                 case ExifDataType.SignedShort:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToSignedShort(data);
+                        return this.ConvertToSignedShort(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToSignedShort);
+                    return ToArray(dataType, buffer, this.ConvertToSignedShort);
                 case ExifDataType.SingleFloat:
                     if (numberOfComponents == 1)
                     {
-                        return this.ToSingle(data);
+                        return this.ConvertToSingle(buffer);
                     }
 
-                    return ToArray(dataType, data, this.ToSingle);
+                    return ToArray(dataType, buffer, this.ConvertToSingle);
                 case ExifDataType.Undefined:
                     if (numberOfComponents == 1)
                     {
-                        return ToByte(data);
+                        return this.ConvertToByte(buffer);
                     }
 
-                    return data;
+                    return buffer.ToArray();
                 default:
                     throw new NotSupportedException();
             }
         }
 
-        private ExifValue CreateValue()
+        private bool TryReadValue(out ExifValue exifValue)
         {
+            // 2   | 2    | 4     | 4
+            // tag | type | count | value offset
             if (this.RemainingLength < 12)
             {
-                return null;
+                exifValue = default;
+
+                return false;
             }
 
-            ExifTag tag = this.ToEnum(this.GetShort(), ExifTag.Unknown);
-            ExifDataType dataType = this.ToEnum(this.GetShort(), ExifDataType.Unknown);
+            ExifTag tag = this.ToEnum(this.ReadUInt16(), ExifTag.Unknown);
+            uint type = this.ReadUInt16();
+
+            // Ensure that the data type is valid
+            if (type == 0 || type > 12)
+            {
+                exifValue = new ExifValue(tag, ExifDataType.Unknown, null, false);
+
+                return true;
+            }
+
+            var dataType = (ExifDataType)type;
+
             object value;
 
-            if (dataType == ExifDataType.Unknown)
-            {
-                return new ExifValue(tag, dataType, null, false);
-            }
-
-            uint numberOfComponents = this.GetLong();
+            uint numberOfComponents = this.ReadUInt32();
 
             // Issue #132: ExifDataType == Undefined is treated like a byte array.
             // If numberOfComponents == 0 this value can only be handled as an inline value and must fallback to 4 (bytes)
@@ -327,29 +332,50 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
 
             uint size = numberOfComponents * ExifValue.GetSize(dataType);
-            byte[] data = this.GetBytes(4);
+
+            this.TryReadSpan(4, out ReadOnlySpan<byte> offsetBuffer);
 
             if (size > 4)
             {
-                uint oldIndex = this.currentIndex;
-                this.currentIndex = this.ToLong(data) + this.startIndex;
+                int oldIndex = this.position;
+
+                uint newIndex = this.ConvertToUInt32(offsetBuffer);
+
+                // Ensure that the new index does not overrun the data
+                if (newIndex > int.MaxValue)
+                {
+                    this.invalidTags.Add(tag);
+
+                    exifValue = default;
+
+                    return false;
+                }
+
+                this.position = (int)newIndex;
+
                 if (this.RemainingLength < size)
                 {
                     this.invalidTags.Add(tag);
-                    this.currentIndex = oldIndex;
-                    return null;
+                    this.position = oldIndex;
+
+                    exifValue = default;
+
+                    return false;
                 }
 
-                value = this.ConvertValue(dataType, this.GetBytes(size), numberOfComponents);
-                this.currentIndex = oldIndex;
+                this.TryReadSpan((int)size, out ReadOnlySpan<byte> dataBuffer);
+
+                value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
+                this.position = oldIndex;
             }
             else
             {
-                value = this.ConvertValue(dataType, data, numberOfComponents);
+                value = this.ConvertValue(dataType, offsetBuffer, numberOfComponents);
             }
 
-            bool isArray = value != null && numberOfComponents > 1;
-            return new ExifValue(tag, dataType, value, isArray);
+            exifValue = new ExifValue(tag, dataType, value, isArray: value != null && numberOfComponents != 1);
+
+            return true;
         }
 
         private TEnum ToEnum<TEnum>(int value, TEnum defaultValue)
@@ -364,51 +390,57 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             return defaultValue;
         }
 
-        private byte[] GetBytes(uint length)
+        private bool TryReadSpan(int length, out ReadOnlySpan<byte> span)
         {
-            if (this.currentIndex + length > (uint)this.exifData.Length)
+            if (this.RemainingLength < length)
             {
-                return null;
+                span = default;
+
+                return false;
             }
 
-            byte[] data = new byte[length];
-            Array.Copy(this.exifData, (int)this.currentIndex, data, 0, (int)length);
-            this.currentIndex += length;
+            span = new ReadOnlySpan<byte>(this.exifData, this.position, length);
 
-            return data;
+            this.position += length;
+
+            return true;
         }
 
-        private uint GetLong()
+        private uint ReadUInt32()
         {
-            return this.ToLong(this.GetBytes(4));
+            // Known as Long in Exif Specification
+            return this.TryReadSpan(4, out ReadOnlySpan<byte> span)
+                ? this.ConvertToUInt32(span)
+                : default;
         }
 
-        private ushort GetShort()
+        private ushort ReadUInt16()
         {
-            return this.ToShort(this.GetBytes(2));
+            return this.TryReadSpan(2, out ReadOnlySpan<byte> span)
+                ? this.ConvertToShort(span)
+                : default;
         }
 
-        private string GetString(uint length)
+        private string ReadString(int length)
         {
-            byte[] data = this.GetBytes(length);
-            if (data == null || data.Length == 0)
+            if (this.TryReadSpan(length, out ReadOnlySpan<byte> span) && span.Length != 0)
             {
-                return null;
+                return this.ConvertToString(span);
             }
 
-            return ToString(data);
+            return null;
         }
 
-        private void GetThumbnail(uint offset)
+        private void GetThumbnail(int offset)
         {
-            var values = new Collection<ExifValue>();
+            var values = new List<ExifValue>();
             this.AddValues(values, offset);
 
             foreach (ExifValue value in values)
             {
                 if (value.Tag == ExifTag.JPEGInterchangeFormat && (value.DataType == ExifDataType.Long))
                 {
-                    this.ThumbnailOffset = (uint)value.Value + this.startIndex;
+                    this.ThumbnailOffset = (uint)value.Value;
                 }
                 else if (value.Tag == ExifTag.JPEGInterchangeFormatLength && value.DataType == ExifDataType.Long)
                 {
@@ -417,120 +449,112 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Exif
             }
         }
 
-        private double ToDouble(byte[] data)
+        private double ConvertToDouble(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 8))
+            if (buffer.Length < 8)
             {
-                return default(double);
+                return default;
             }
 
-            return BitConverter.ToDouble(data, 0);
+            long intValue = this.endianness == Endianness.BigEndian
+                ? BinaryPrimitives.ReadInt64BigEndian(buffer)
+                : BinaryPrimitives.ReadInt64LittleEndian(buffer);
+
+            return Unsafe.As<long, double>(ref intValue);
         }
 
-        private uint ToLong(byte[] data)
+        private uint ConvertToUInt32(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 4))
+            // Known as Long in Exif Specification
+            if (buffer.Length < 4)
             {
-                return default(uint);
+                return default;
             }
 
-            return BitConverter.ToUInt32(data, 0);
+            return this.endianness == Endianness.BigEndian
+                ? BinaryPrimitives.ReadUInt32BigEndian(buffer)
+                : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
-        private ushort ToShort(byte[] data)
+        private ushort ConvertToShort(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 2))
+            if (buffer.Length < 2)
             {
-                return default(ushort);
+                return default;
             }
 
-            return BitConverter.ToUInt16(data, 0);
+            return this.endianness == Endianness.BigEndian
+                ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
+                : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         }
 
-        private float ToSingle(byte[] data)
+        private float ConvertToSingle(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 4))
+            if (buffer.Length < 4)
             {
-                return default(float);
+                return default;
             }
 
-            return BitConverter.ToSingle(data, 0);
+            int intValue = this.endianness == Endianness.BigEndian
+                ? BinaryPrimitives.ReadInt32BigEndian(buffer)
+                : BinaryPrimitives.ReadInt32LittleEndian(buffer);
+
+            return Unsafe.As<int, float>(ref intValue);
         }
 
-        private Rational ToRational(byte[] data)
+        private Rational ToRational(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 8, 4))
+            if (buffer.Length < 8)
             {
-                return default(Rational);
+                return default;
             }
 
-            uint numerator = BitConverter.ToUInt32(data, 0);
-            uint denominator = BitConverter.ToUInt32(data, 4);
+            uint numerator = this.ConvertToUInt32(buffer.Slice(0, 4));
+            uint denominator = this.ConvertToUInt32(buffer.Slice(4, 4));
 
             return new Rational(numerator, denominator, false);
         }
 
-        private sbyte ToSignedByte(byte[] data)
+        private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer)
         {
-            return unchecked((sbyte)data[0]);
+            return unchecked((sbyte)buffer[0]);
         }
 
-        private int ToSignedLong(byte[] data)
+        private int ConvertToInt32(ReadOnlySpan<byte> buffer) // SignedLong in Exif Specification
         {
-            if (!this.ValidateArray(data, 4))
+            if (buffer.Length < 4)
             {
-                return default(int);
+                return default;
             }
 
-            return BitConverter.ToInt32(data, 0);
+            return this.endianness == Endianness.BigEndian
+                ? BinaryPrimitives.ReadInt32BigEndian(buffer)
+                : BinaryPrimitives.ReadInt32LittleEndian(buffer);
         }
 
-        private SignedRational ToSignedRational(byte[] data)
+        private SignedRational ToSignedRational(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 8, 4))
+            if (buffer.Length < 8)
             {
-                return default(SignedRational);
+                return default;
             }
 
-            int numerator = BitConverter.ToInt32(data, 0);
-            int denominator = BitConverter.ToInt32(data, 4);
+            int numerator = this.ConvertToInt32(buffer.Slice(0, 4));
+            int denominator = this.ConvertToInt32(buffer.Slice(4, 4));
 
             return new SignedRational(numerator, denominator, false);
         }
 
-        private short ToSignedShort(byte[] data)
+        private short ConvertToSignedShort(ReadOnlySpan<byte> buffer)
         {
-            if (!this.ValidateArray(data, 2))
+            if (buffer.Length < 2)
             {
-                return default(short);
+                return default;
             }
 
-            return BitConverter.ToInt16(data, 0);
-        }
-
-        private bool ValidateArray(byte[] data, int size)
-        {
-            return this.ValidateArray(data, size, size);
-        }
-
-        private bool ValidateArray(byte[] data, int size, int stepSize)
-        {
-            if (data == null || data.Length < size)
-            {
-                return false;
-            }
-
-            if (this.isLittleEndian == BitConverter.IsLittleEndian)
-            {
-                return true;
-            }
-
-            for (int i = 0; i < data.Length; i += stepSize)
-            {
-                Array.Reverse(data, i, stepSize);
-            }
-
-            return true;
+            return this.endianness == Endianness.BigEndian
+                ? BinaryPrimitives.ReadInt16BigEndian(buffer)
+                : BinaryPrimitives.ReadInt16LittleEndian(buffer);
         }
     }
 }

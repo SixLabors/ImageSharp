@@ -29,8 +29,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccMultiLocalizedUnicodeTagDataEntry(IccLocalizedString[] texts, IccProfileTag tagSignature)
             : base(IccTypeSignature.MultiLocalizedUnicode, tagSignature)
         {
-            Guard.NotNull(texts, nameof(texts));
-            this.Texts = texts;
+            this.Texts = texts ?? throw new ArgumentNullException(nameof(texts));
         }
 
         /// <summary>
@@ -41,14 +40,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccMultiLocalizedUnicodeTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccMultiLocalizedUnicodeTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccMultiLocalizedUnicodeTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -64,17 +62,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccMultiLocalizedUnicodeTagDataEntry && this.Equals((IccMultiLocalizedUnicodeTagDataEntry)obj);
+            return obj is IccMultiLocalizedUnicodeTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc />
@@ -82,7 +70,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Texts != null ? this.Texts.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Texts?.GetHashCode() ?? 0);
             }
         }
     }

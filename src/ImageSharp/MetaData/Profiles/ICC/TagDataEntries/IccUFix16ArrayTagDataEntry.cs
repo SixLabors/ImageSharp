@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
 {
@@ -28,26 +27,24 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public IccUFix16ArrayTagDataEntry(float[] data, IccProfileTag tagSignature)
             : base(IccTypeSignature.U16Fixed16Array, tagSignature)
         {
-            Guard.NotNull(data, nameof(data));
-            this.Data = data;
+            this.Data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
         /// <summary>
-        /// Gets the array data
+        /// Gets the array data.
         /// </summary>
         public float[] Data { get; }
 
         /// <inheritdoc/>
         public override bool Equals(IccTagDataEntry other)
         {
-            var entry = other as IccUFix16ArrayTagDataEntry;
-            return entry != null && this.Equals(entry);
+            return other is IccUFix16ArrayTagDataEntry entry && this.Equals(entry);
         }
 
         /// <inheritdoc/>
         public bool Equals(IccUFix16ArrayTagDataEntry other)
         {
-            if (ReferenceEquals(null, other))
+            if (other is null)
             {
                 return false;
             }
@@ -57,23 +54,13 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
                 return true;
             }
 
-            return base.Equals(other) && this.Data.SequenceEqual(other.Data);
+            return base.Equals(other) && this.Data.AsSpan().SequenceEqual(other.Data);
         }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj is IccUFix16ArrayTagDataEntry && this.Equals((IccUFix16ArrayTagDataEntry)obj);
+            return obj is IccUFix16ArrayTagDataEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
@@ -81,7 +68,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         {
             unchecked
             {
-                return (base.GetHashCode() * 397) ^ (this.Data != null ? this.Data.GetHashCode() : 0);
+                return (base.GetHashCode() * 397) ^ (this.Data?.GetHashCode() ?? 0);
             }
         }
     }

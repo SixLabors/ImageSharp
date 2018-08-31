@@ -5,7 +5,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ///     <cref>https://github.com/dotnet/corefx/issues/15957</cref>
             /// </see>
             /// </remarks>
-            internal static void ToVector4SimdAligned(Span<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
+            internal static void ToVector4SimdAligned(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
             {
                 if (!Vector.IsHardwareAccelerated)
                 {
@@ -87,15 +87,15 @@ namespace SixLabors.ImageSharp.PixelFormats
             }
 
             /// <inheritdoc />
-            internal override void ToVector4(Span<Rgba32> sourceColors, Span<Vector4> destVectors, int count)
+            internal override void ToVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
             {
                 Guard.MustBeSizedAtLeast(sourceColors, count, nameof(sourceColors));
-                Guard.MustBeSizedAtLeast(destVectors, count, nameof(destVectors));
+                Guard.MustBeSizedAtLeast(destinationVectors, count, nameof(destinationVectors));
 
                 if (count < 256 || !Vector.IsHardwareAccelerated)
                 {
                     // Doesn't worth to bother with SIMD:
-                    base.ToVector4(sourceColors, destVectors, count);
+                    base.ToVector4(sourceColors, destinationVectors, count);
                     return;
                 }
 
@@ -104,24 +104,25 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 if (alignedCount > 0)
                 {
-                    ToVector4SimdAligned(sourceColors, destVectors, alignedCount);
+                    ToVector4SimdAligned(sourceColors, destinationVectors, alignedCount);
                 }
 
                 if (remainder > 0)
                 {
                     sourceColors = sourceColors.Slice(alignedCount);
-                    destVectors = destVectors.Slice(alignedCount);
-                    base.ToVector4(sourceColors, destVectors, remainder);
+                    destinationVectors = destinationVectors.Slice(alignedCount);
+                    base.ToVector4(sourceColors, destinationVectors, remainder);
                 }
             }
 
-            internal override void PackFromVector4(Span<Vector4> sourceVectors, Span<Rgba32> destColors, int count)
+            /// <inheritdoc />
+            internal override void PackFromVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
             {
-                GuardSpans(sourceVectors, nameof(sourceVectors), destColors, nameof(destColors), count);
+                GuardSpans(sourceVectors, nameof(sourceVectors), destinationColors, nameof(destinationColors), count);
 
                 if (!SimdUtils.IsAvx2CompatibleArchitecture)
                 {
-                    base.PackFromVector4(sourceVectors, destColors, count);
+                    base.PackFromVector4(sourceVectors, destinationColors, count);
                     return;
                 }
 
@@ -130,8 +131,8 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 if (alignedCount > 0)
                 {
-                    Span<float> flatSrc = sourceVectors.Slice(0, alignedCount).NonPortableCast<Vector4, float>();
-                    Span<byte> flatDest = destColors.NonPortableCast<Rgba32, byte>();
+                    ReadOnlySpan<float> flatSrc = MemoryMarshal.Cast<Vector4, float>(sourceVectors.Slice(0, alignedCount));
+                    Span<byte> flatDest = MemoryMarshal.Cast<Rgba32, byte>(destinationColors);
 
                     SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(flatSrc, flatDest);
                 }
@@ -140,24 +141,36 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     // actually: remainder == 1
                     int lastIdx = count - 1;
-                    destColors[lastIdx].PackFromVector4(sourceVectors[lastIdx]);
+                    destinationColors[lastIdx].PackFromVector4(sourceVectors[lastIdx]);
                 }
             }
 
             /// <inheritdoc />
-            internal override void PackFromRgba32(Span<Rgba32> source, Span<Rgba32> destPixels, int count)
+            internal override void ToScaledVector4(ReadOnlySpan<Rgba32> sourceColors, Span<Vector4> destinationVectors, int count)
             {
-                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
-
-                SpanHelper.Copy(source, destPixels, count);
+                this.ToVector4(sourceColors, destinationVectors, count);
             }
 
             /// <inheritdoc />
-            internal override void ToRgba32(Span<Rgba32> sourcePixels, Span<Rgba32> dest, int count)
+            internal override void PackFromScaledVector4(ReadOnlySpan<Vector4> sourceVectors, Span<Rgba32> destinationColors, int count)
+            {
+                this.PackFromVector4(sourceVectors, destinationColors, count);
+            }
+
+            /// <inheritdoc />
+            internal override void PackFromRgba32(ReadOnlySpan<Rgba32> source, Span<Rgba32> destPixels, int count)
+            {
+                GuardSpans(source, nameof(source), destPixels, nameof(destPixels), count);
+
+                source.Slice(0, count).CopyTo(destPixels);
+            }
+
+            /// <inheritdoc />
+            internal override void ToRgba32(ReadOnlySpan<Rgba32> sourcePixels, Span<Rgba32> dest, int count)
             {
                 GuardSpans(sourcePixels, nameof(sourcePixels), dest, nameof(dest), count);
 
-                SpanHelper.Copy(sourcePixels, dest, count);
+                sourcePixels.Slice(0, count).CopyTo(dest);
             }
 
             /// <summary>

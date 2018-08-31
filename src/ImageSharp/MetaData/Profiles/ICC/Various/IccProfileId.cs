@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// A profile ID with all values set to zero
         /// </summary>
-        public static readonly IccProfileId Zero = new IccProfileId(0, 0, 0, 0);
+        public static readonly IccProfileId Zero = default;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IccProfileId"/> struct.
@@ -53,16 +53,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         /// <summary>
         /// Gets a value indicating whether the ID is set or just consists of zeros
         /// </summary>
-        public bool IsSet
-        {
-            get
-            {
-                return this.Part1 != 0
-                    && this.Part2 != 0
-                    && this.Part3 != 0
-                    && this.Part4 != 0;
-            }
-        }
+        public bool IsSet => !this.Equals(Zero);
 
         /// <summary>
         /// Compares two <see cref="IccProfileId"/> objects for equality.
@@ -95,19 +86,17 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return (other is IccProfileId) && this.Equals((IccProfileId)other);
+            return obj is IccProfileId other && this.Equals(other);
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccProfileId other)
-        {
-            return this.Part1 == other.Part1
-                && this.Part2 == other.Part2
-                && this.Part3 == other.Part3
-                && this.Part4 == other.Part4;
-        }
+        public bool Equals(IccProfileId other) =>
+            this.Part1 == other.Part1 &&
+            this.Part2 == other.Part2 &&
+            this.Part3 == other.Part3 &&
+            this.Part4 == other.Part4;
 
         /// <inheritdoc/>
         public override int GetHashCode()

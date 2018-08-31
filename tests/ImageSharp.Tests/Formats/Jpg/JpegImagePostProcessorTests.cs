@@ -1,14 +1,17 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-    using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class JpegImagePostProcessorTests
     {
         public static string[] BaselineTestJpegs =
@@ -18,16 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
                 TestImages.Jpeg.Baseline.Testorig420,
-                TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Baseline.Jpeg444,
-                TestImages.Jpeg.Baseline.Bad.BadEOF,
-            };
-
-        public static string[] ProgressiveTestJpegs =
-            {
-                TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
-                TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-                TestImages.Jpeg.Progressive.Bad.ExifUndefType,
             };
 
         public JpegImagePostProcessorTests(ITestOutputHelper output)
@@ -44,7 +38,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 image.DebugSave(provider, $"-C{cp.Component.Index}-");
             }
-
         }
 
         [Theory]
@@ -54,9 +47,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
-            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default.MemoryManager, decoder.ImageWidth, decoder.ImageHeight))
+            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
+            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryAllocator, decoder))
+            using (var imageFrame = new ImageFrame<Rgba32>(Configuration.Default, decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.DoPostProcessorStep(imageFrame);
 
@@ -67,17 +60,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 SaveBuffer(cp[2], provider);
             }
         }
-
+        
         [Theory]
-        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgba32)]
-        [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void PostProcess<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
-            using (OrigJpegDecoderCore decoder = JpegFixture.ParseStream(imageFile))
-            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryManager, decoder))
+            using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
+            using (var pp = new JpegImagePostProcessor(Configuration.Default.MemoryAllocator, decoder))
             using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
             {
                 pp.PostProcess(image.Frames.RootFrame);
@@ -94,14 +85,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 
                     this.Output.WriteLine($"*** {imageFile} ***");
-                    this.Output.WriteLine($"Difference: "+ report.DifferencePercentageString);
+                    this.Output.WriteLine($"Difference: {report.DifferencePercentageString}");
 
                     // ReSharper disable once PossibleInvalidOperationException
                     Assert.True(report.TotalNormalizedDifference.Value < 0.005f);
                 }
             }
-
-
         }
     }
 }

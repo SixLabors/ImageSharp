@@ -4,12 +4,12 @@
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSapce
 {
     /// <summary>
-    /// Trivial implementation of <see cref="IRgbWorkingSpace"/>
+    /// Trivial implementation of <see cref="RgbWorkingSpace"/>
     /// </summary>
-    internal readonly struct RgbWorkingSpace : IRgbWorkingSpace
+    internal class RgbWorkingSpace
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> struct.
+        /// Initializes a new instance of the <see cref="RgbWorkingSpace"/> class.
         /// </summary>
         /// <param name="referenceWhite">The reference white point.</param>
         /// <param name="companding">The function pair for converting to <see cref="CieXyz"/> and back.</param>
@@ -70,19 +70,12 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.RgbColorSap
             return !Equals(left, right);
         }
 
-        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            if (obj is RgbWorkingSpace)
-            {
-                return this.Equals((RgbWorkingSpace)obj);
-            }
-
-            return false;
+            return obj is RgbWorkingSpace other && this.Equals(other);
         }
 
-        /// <inheritdoc/>
-        public bool Equals(IRgbWorkingSpace other)
+        public bool Equals(RgbWorkingSpace other)
         {
             // TODO: Object.Equals for ICompanding will be slow.
             return this.WhitePoint.Equals(other.WhitePoint)

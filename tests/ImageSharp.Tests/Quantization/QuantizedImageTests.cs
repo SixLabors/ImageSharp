@@ -1,22 +1,29 @@
-﻿namespace SixLabors.ImageSharp.Tests
+﻿// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
+
+using Xunit;
+
+namespace SixLabors.ImageSharp.Tests
 {
-    using SixLabors.ImageSharp.PixelFormats;
-    using SixLabors.ImageSharp.Processing.Quantization;
-
-    using Xunit;
-
     public class QuantizedImageTests
     {
         [Fact]
         public void QuantizersDitherByDefault()
         {
-            var palette = new PaletteQuantizer<Rgba32>();
-            var octree = new OctreeQuantizer<Rgba32>();
-            var wu = new WuQuantizer<Rgba32>();
+            var palette = new PaletteQuantizer();
+            var octree = new OctreeQuantizer();
+            var wu = new WuQuantizer();
 
-            Assert.True(palette.Dither);
-            Assert.True(octree.Dither);
-            Assert.True(wu.Dither);
+            Assert.NotNull(palette.Diffuser);
+            Assert.NotNull(octree.Diffuser);
+            Assert.NotNull(wu.Diffuser);
+
+            Assert.True(palette.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(octree.CreateFrameQuantizer<Rgba32>().Dither);
+            Assert.True(wu.CreateFrameQuantizer<Rgba32>().Dither);
         }
 
         [Theory]
@@ -29,14 +36,14 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new PaletteQuantizer<TPixel> { Dither = dither };
+                var quantizer = new PaletteQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.Quantize(frame, 256);
+                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
                 }
             }
         }
@@ -51,14 +58,14 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new OctreeQuantizer<TPixel> { Dither = dither };
+                var quantizer = new OctreeQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.Quantize(frame, 256);
+                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
                 }
             }
         }
@@ -73,14 +80,14 @@
             {
                 Assert.True(image[0, 0].Equals(default(TPixel)));
 
-                IQuantizer<TPixel> quantizer = new WuQuantizer<TPixel>() { Dither = dither };
+                var quantizer = new WuQuantizer(dither);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    QuantizedFrame<TPixel> quantized = quantizer.Quantize(frame, 256);
+                    QuantizedFrame<TPixel> quantized = quantizer.CreateFrameQuantizer<TPixel>().QuantizeFrame(frame);
 
                     int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.Pixels[0]);
+                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
                 }
             }
         }

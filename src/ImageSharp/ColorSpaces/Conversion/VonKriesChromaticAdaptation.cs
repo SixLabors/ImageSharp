@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.LmsColorSapce;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
@@ -48,12 +47,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <inheritdoc/>
-        public CieXyz Transform(CieXyz sourceColor, CieXyz sourceWhitePoint, CieXyz targetWhitePoint)
+        public CieXyz Transform(in CieXyz sourceColor, in CieXyz sourceWhitePoint, in CieXyz targetWhitePoint)
         {
-            Guard.NotNull(sourceColor, nameof(sourceColor));
-            Guard.NotNull(sourceWhitePoint, nameof(sourceWhitePoint));
-            Guard.NotNull(targetWhitePoint, nameof(targetWhitePoint));
-
             if (sourceWhitePoint.Equals(targetWhitePoint))
             {
                 return sourceColor;

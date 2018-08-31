@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         public TestType()
         {
         }
-        
+
         public void Deserialize(IXunitSerializationInfo info)
         {
         }

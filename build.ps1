@@ -8,7 +8,7 @@ $tagRegex = '^v?(\d+\.\d+\.\d+)(-([a-zA-Z]+)\.?(\d*))?$'
 # we are running on the build server 
 $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
 
- if($isVersionTag){
+ if($isVersionTag) {
      
     Write-Debug "Building commit tagged with a compatable version number"
     
@@ -26,7 +26,8 @@ $isVersionTag = $env:APPVEYOR_REPO_TAG_NAME -match $tagRegex
 
         $version = "${version}${padded}"
      }
- }else {
+ }
+ else {
      
     Write-Debug "Untagged"
     $lastTag =  (git tag --list  --sort=-taggerdate)  | Out-String
@@ -100,9 +101,17 @@ dotnet build -c Release /p:packageversion=$version
 
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
-if ( $env:CI -ne "True") {
-    dotnet test ./tests/ImageSharp.Tests/ImageSharp.Tests.csproj --no-build -c Release
-}
+#
+# TODO: DO WE NEED TO RUN TESTS IMPLICITLY?
+#
+# if ( $env:CI -ne "True") {
+#     cd ./tests/ImageSharp.Tests/
+#     dotnet xunit -nobuild -c Release -f netcoreapp2.0 --fx-version 2.0.0
+#     ./RunExtendedTests.cmd
+#     cd ../..
+# }
+#
+
 if ($LASTEXITCODE ){ Exit $LASTEXITCODE }
 
 Write-Host "Packaging projects"

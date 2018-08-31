@@ -1,7 +1,8 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Primitives;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -17,15 +18,15 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreEqual()
         {
-            SignedRational r1 = new SignedRational(3, 2);
-            SignedRational r2 = new SignedRational(3, 2);
+            var r1 = new SignedRational(3, 2);
+            var r2 = new SignedRational(3, 2);
 
             Assert.Equal(r1, r2);
             Assert.True(r1 == r2);
 
-            SignedRational r3 = new SignedRational(7.55);
-            SignedRational r4 = new SignedRational(755, 100);
-            SignedRational r5 = new SignedRational(151, 20);
+            var r3 = new SignedRational(7.55);
+            var r4 = new SignedRational(755, 100);
+            var r5 = new SignedRational(151, 20);
 
             Assert.Equal(r3, r4);
             Assert.Equal(r4, r5);
@@ -37,8 +38,8 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void AreNotEqual()
         {
-            SignedRational first = new SignedRational(0, 100);
-            SignedRational second = new SignedRational(100, 100);
+            var first = new SignedRational(0, 100);
+            var second = new SignedRational(100, 100);
 
             Assert.NotEqual(first, second);
             Assert.True(first != second);
@@ -50,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorAssignsProperties()
         {
-            SignedRational rational = new SignedRational(7, -55);
+            var rational = new SignedRational(7, -55);
             Assert.Equal(7, rational.Numerator);
             Assert.Equal(-55, rational.Denominator);
 
@@ -78,15 +79,15 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void Fraction()
         {
-            SignedRational first = new SignedRational(1.0 / 1600);
-            SignedRational second = new SignedRational(1.0 / 1600, true);
+            var first = new SignedRational(1.0 / 1600);
+            var second = new SignedRational(1.0 / 1600, true);
             Assert.False(first.Equals(second));
         }
 
         [Fact]
         public void ToDouble()
         {
-            SignedRational rational = new SignedRational(0, 0);
+            var rational = new SignedRational(0, 0);
             Assert.Equal(double.NaN, rational.ToDouble());
 
             rational = new SignedRational(2, 0);
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ToStringRepresention()
         {
-            SignedRational rational = new SignedRational(0, 0);
+            var rational = new SignedRational(0, 0);
             Assert.Equal("[ Indeterminate ]", rational.ToString());
 
             rational = new SignedRational(double.PositiveInfinity);

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <summary>
-        /// Gets the signature of this element
+        /// Gets the signature of this element,
         /// </summary>
         public IccMultiProcessElementSignature Signature { get; }
 
@@ -37,14 +37,14 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         public int InputChannelCount { get; }
 
         /// <summary>
-        /// Gets the number of output channels
+        /// Gets the number of output channels.
         /// </summary>
         public int OutputChannelCount { get; }
 
         /// <inheritdoc/>
         public virtual bool Equals(IccMultiProcessElement other)
         {
-            if (other == null)
+            if (other is null)
             {
                 return false;
             }

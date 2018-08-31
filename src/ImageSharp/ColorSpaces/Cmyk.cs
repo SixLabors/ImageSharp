@@ -14,11 +14,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
     internal readonly struct Cmyk : IEquatable<Cmyk>, IAlmostEquatable<Cmyk, float>
     {
         /// <summary>
-        /// Represents a <see cref="Cmyk"/> that has C, M, Y, and K values set to zero.
-        /// </summary>
-        public static readonly Cmyk Empty = default(Cmyk);
-
-        /// <summary>
         /// The backing vector for SIMD support.
         /// </summary>
         private readonly Vector4 backingVector;
@@ -88,12 +83,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="Cmyk"/> is empty.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public bool IsEmpty => this.Equals(Empty);
-
-        /// <summary>
         /// Compares two <see cref="Cmyk"/> objects for equality.
         /// </summary>
         /// <param name="left">
@@ -130,6 +119,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             return this.backingVector.GetHashCode();
@@ -138,24 +128,15 @@ namespace SixLabors.ImageSharp.ColorSpaces
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (this.IsEmpty)
-            {
-                return "Cmyk [Empty]";
-            }
-
-            return $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
+            return this.Equals(default)
+                ? "Cmyk [Empty]"
+                : $"Cmyk [ C={this.C:#0.##}, M={this.M:#0.##}, Y={this.Y:#0.##}, K={this.K:#0.##}]";
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj)
         {
-            if (obj is Cmyk)
-            {
-                return this.Equals((Cmyk)obj);
-            }
-
-            return false;
+            return obj is Cmyk other && this.Equals(other);
         }
 
         /// <inheritdoc/>

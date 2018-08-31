@@ -1,12 +1,14 @@
-// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+
+using Xunit;
+using Xunit.Abstractions;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common;
-    using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
-    using Xunit;
-    using Xunit.Abstractions;
-
     public class Block8x8Tests : JpegFixture
     {
         public Block8x8Tests(ITestOutputHelper output)
@@ -26,11 +28,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Assert.Equal(data[i], block[i]);
             }
         }
-        
+
         [Fact]
         public void Indexer_Set()
         {
-            var block = default(Block8x8);
+            Block8x8 block = default;
 
             block[17] = 17;
             block[42] = 42;
@@ -39,7 +41,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(17, block[17]);
             Assert.Equal(42, block[42]);
         }
-
 
         [Fact]
         public unsafe void Indexer_GetScalarAt_SetScalarAt()
@@ -117,7 +118,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void IndexerXY()
         {
-            var block = default(Block8x8);
+            Block8x8 block = default;
             block[8 * 3 + 5] = 42;
 
             short value = block[5, 3];

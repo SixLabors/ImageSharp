@@ -2,43 +2,38 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
+
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Drawing;
-using SixLabors.ImageSharp.Processing.Drawing.Pens;
+using SixLabors.ImageSharp.Processing;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Drawing
 {
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Overlays;
-
     public class LineTests : FileTestBase
     {
         [Fact]
         public void ImageShouldBeOverlayedByPath()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(Rgba32.HotPink, 5,
-                    new SixLabors.Primitives.PointF[]{
-                            new Vector2(10, 10),
-                            new Vector2(200, 150),
-                            new Vector2(50, 300)
-                    }));
+                image.Mutate(
+                    x => x.BackgroundColor(Rgba32.Blue).DrawLines(
+                        Rgba32.HotPink,
+                        5,
+                        new Vector2(10, 10),
+                        new Vector2(200, 150),
+                        new Vector2(50, 300)));
                 image.Save($"{path}/Simple.png");
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
+                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+                Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
 
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
+                Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
 
-                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
-                }
+                Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
             }
         }
 
@@ -46,27 +41,24 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPath_NoAntialias()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
-                image.Mutate(x => x
-                    .BackgroundColor(Rgba32.Blue)
-                    .DrawLines(Rgba32.HotPink, 5,
-                    new SixLabors.Primitives.PointF[] {
-                            new Vector2(10, 10),
-                            new Vector2(200, 150),
-                            new Vector2(50, 300)
-                    },
-                    new GraphicsOptions(false)));
+                image.Mutate(
+                    x => x.BackgroundColor(Rgba32.Blue).DrawLines(
+                        new GraphicsOptions(false),
+                        Rgba32.HotPink,
+                        5,
+                        new Vector2(10, 10),
+                        new Vector2(200, 150),
+                        new Vector2(50, 300)));
                 image.Save($"{path}/Simple_noantialias.png");
 
-                using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-                {
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
+                Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+                Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
 
-                    Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
+                Assert.Equal(Rgba32.HotPink, sourcePixels[199, 149]);
 
-                    Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
-                }
+                Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
             }
         }
 
@@ -74,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashed()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -92,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDotted()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -110,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashDot()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            using (Image<Rgba32> image = new Image<Rgba32>(500, 500))
+            using (var image = new Image<Rgba32>(500, 500))
             {
                 image.Mutate(x => x
                     .BackgroundColor(Rgba32.Blue)
@@ -128,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void ImageShouldBeOverlayedByPathDashDotDot()
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
-            Image<Rgba32> image = new Image<Rgba32>(500, 500);
+            var image = new Image<Rgba32>(500, 500);
 
             image.Mutate(x => x
                 .BackgroundColor(Rgba32.Blue)
@@ -145,30 +137,29 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
 
-            Rgba32 color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
+            var color = new Rgba32(Rgba32.HotPink.R, Rgba32.HotPink.G, Rgba32.HotPink.B, 150);
 
-            Image<Rgba32> image = new Image<Rgba32>(500, 500);
+            var image = new Image<Rgba32>(500, 500);
 
-            image.Mutate(x => x
-                .BackgroundColor(Rgba32.Blue)
-                .DrawLines(color, 10, new SixLabors.Primitives.PointF[] {
-                            new Vector2(10, 10),
-                            new Vector2(200, 150),
-                            new Vector2(50, 300)
-                }));
+            image.Mutate(
+                x => x.BackgroundColor(Rgba32.Blue).DrawLines(
+                    color,
+                    10,
+                    new Vector2(10, 10),
+                    new Vector2(200, 150),
+                    new Vector2(50, 300)));
             image.Save($"{path}/Opacity.png");
 
             //shift background color towards forground color by the opacity amount
-            Rgba32 mergedColor = new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
+            var mergedColor =
+                new Rgba32(Vector4.Lerp(Rgba32.Blue.ToVector4(), Rgba32.HotPink.ToVector4(), 150f / 255f));
 
-            using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-            {
-                Assert.Equal(mergedColor, sourcePixels[11, 11]);
+            Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+            Assert.Equal(mergedColor, sourcePixels[11, 11]);
 
-                Assert.Equal(mergedColor, sourcePixels[199, 149]);
+            Assert.Equal(mergedColor, sourcePixels[199, 149]);
 
-                Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
-            }
+            Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
         }
 
         [Fact]
@@ -176,29 +167,26 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         {
             string path = TestEnvironment.CreateOutputDirectory("Drawing", "Lines");
 
-            Image<Rgba32> image = new Image<Rgba32>(500, 500);
+            var image = new Image<Rgba32>(500, 500);
 
-            image.Mutate(x => x
-                .BackgroundColor(Rgba32.Blue)
-                .DrawLines(Rgba32.HotPink, 10, new SixLabors.Primitives.PointF[] {
-                            new Vector2(10, 10),
-                            new Vector2(200, 10),
-                            new Vector2(200, 150),
-                            new Vector2(10, 150)
-                    }));
+            image.Mutate(
+                x => x.BackgroundColor(Rgba32.Blue).DrawLines(
+                    Rgba32.HotPink,
+                    10,
+                    new Vector2(10, 10),
+                    new Vector2(200, 10),
+                    new Vector2(200, 150),
+                    new Vector2(10, 150)));
             image.Save($"{path}/Rectangle.png");
 
-            using (PixelAccessor<Rgba32> sourcePixels = image.Lock())
-            {
-                Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
+            Buffer2D<Rgba32> sourcePixels = image.GetRootFramePixelBuffer();
+            Assert.Equal(Rgba32.HotPink, sourcePixels[11, 11]);
 
-                Assert.Equal(Rgba32.HotPink, sourcePixels[198, 10]);
+            Assert.Equal(Rgba32.HotPink, sourcePixels[198, 10]);
 
-                Assert.Equal(Rgba32.Blue, sourcePixels[10, 50]);
+            Assert.Equal(Rgba32.Blue, sourcePixels[10, 50]);
 
-                Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
-            }
+            Assert.Equal(Rgba32.Blue, sourcePixels[50, 50]);
         }
-
     }
 }

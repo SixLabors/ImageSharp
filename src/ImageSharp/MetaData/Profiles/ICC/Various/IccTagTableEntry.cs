@@ -69,18 +69,16 @@ namespace SixLabors.ImageSharp.MetaData.Profiles.Icc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            return (other is IccTagTableEntry) && this.Equals((IccTagTableEntry)other);
+            return obj is IccTagTableEntry other && this.Equals(other);
         }
 
         /// <inheritdoc/>
-        public bool Equals(IccTagTableEntry other)
-        {
-            return this.Signature == other.Signature
-                && this.Offset == other.Offset
-                && this.DataSize == other.DataSize;
-        }
+        public bool Equals(IccTagTableEntry other) =>
+            this.Signature == other.Signature &&
+            this.Offset == other.Offset &&
+            this.DataSize == other.DataSize;
 
         /// <inheritdoc/>
         public override int GetHashCode()

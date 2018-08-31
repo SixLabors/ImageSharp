@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
+
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using SixLabors.ImageSharp.Formats.Jpeg.Common.Decoder;
-    using SixLabors.ImageSharp.Formats.Jpeg.GolangPort;
-
-    using Xunit;
-
     public class AdobeMarkerTests
     {
         // Taken from actual test image
@@ -25,29 +25,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void MarkerReturnsCorrectParsedValue()
         {
-            bool isAdobe = AdobeMarker.TryParse(this.bytes, out var marker);
+            bool isAdobe = AdobeMarker.TryParse(this.bytes, out AdobeMarker marker);
 
             Assert.True(isAdobe);
             Assert.Equal(100, marker.DCTEncodeVersion);
             Assert.Equal(0, marker.APP14Flags0);
             Assert.Equal(0, marker.APP14Flags1);
-            Assert.Equal(OrigJpegConstants.Adobe.ColorTransformYcck, marker.ColorTransform);
+            Assert.Equal(JpegConstants.Adobe.ColorTransformYcck, marker.ColorTransform);
         }
 
         [Fact]
         public void MarkerIgnoresIncorrectValue()
         {
-            bool isAdobe = AdobeMarker.TryParse(new byte[] { 0, 0, 0, 0 }, out var marker);
+            bool isAdobe = AdobeMarker.TryParse(new byte[] { 0, 0, 0, 0 }, out AdobeMarker marker);
 
             Assert.False(isAdobe);
-            Assert.Equal(default(AdobeMarker), marker);
+            Assert.Equal(default, marker);
         }
 
         [Fact]
         public void MarkerEqualityIsCorrect()
         {
-            AdobeMarker.TryParse(this.bytes, out var marker);
-            AdobeMarker.TryParse(this.bytes, out var marker2);
+            AdobeMarker.TryParse(this.bytes, out AdobeMarker marker);
+            AdobeMarker.TryParse(this.bytes, out AdobeMarker marker2);
 
             Assert.True(marker.Equals(marker2));
         }
@@ -55,8 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void MarkerInEqualityIsCorrect()
         {
-            AdobeMarker.TryParse(this.bytes, out var marker);
-            AdobeMarker.TryParse(this.bytes2, out var marker2);
+            AdobeMarker.TryParse(this.bytes, out AdobeMarker marker);
+            AdobeMarker.TryParse(this.bytes2, out AdobeMarker marker2);
 
             Assert.False(marker.Equals(marker2));
         }
@@ -64,8 +64,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void MarkerHashCodeIsReplicable()
         {
-            AdobeMarker.TryParse(this.bytes, out var marker);
-            AdobeMarker.TryParse(this.bytes, out var marker2);
+            AdobeMarker.TryParse(this.bytes, out AdobeMarker marker);
+            AdobeMarker.TryParse(this.bytes, out AdobeMarker marker2);
 
             Assert.True(marker.GetHashCode().Equals(marker2.GetHashCode()));
         }
@@ -73,8 +73,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void MarkerHashCodeIsUnique()
         {
-            AdobeMarker.TryParse(this.bytes, out var marker);
-            AdobeMarker.TryParse(this.bytes2, out var marker2);
+            AdobeMarker.TryParse(this.bytes, out AdobeMarker marker);
+            AdobeMarker.TryParse(this.bytes2, out AdobeMarker marker2);
 
             Assert.False(marker.GetHashCode().Equals(marker2.GetHashCode()));
         }

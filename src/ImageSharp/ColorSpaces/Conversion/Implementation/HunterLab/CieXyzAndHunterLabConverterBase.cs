@@ -18,8 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ComputeKa(CieXyz whitePoint)
         {
-            DebugGuard.NotNull(whitePoint, nameof(whitePoint));
-
             if (whitePoint.Equals(Illuminants.C))
             {
                 return 175F;
@@ -36,8 +34,6 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.HunterLabCo
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ComputeKb(CieXyz whitePoint)
         {
-            DebugGuard.NotNull(whitePoint, nameof(whitePoint));
-
             if (whitePoint == Illuminants.C)
             {
                 return 70F;
